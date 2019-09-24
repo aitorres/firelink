@@ -97,8 +97,8 @@ El tipo de dato _booleano_ representa un valor de verdad con dos posibilidades. 
 
 Los literales booleanos son los siguientes:
 
-- `lit` para un valor de verdad, con los aliases `true`, `yes`.
-- `unlit` para un valor de falsedad, con los aliases `false`, `no`.
+- `lit` para un valor de verdad.
+- `unlit` para un valor de falsedad.
 
 El valor por defecto de un booleano es `lit`.
 
@@ -168,7 +168,6 @@ Nuestro lenguaje soporta todos los operadores básicos de enteros:
 * `-`: substracción de dos `humanity`s, retornando un `humanity`.
 * `*`: multiplicación de dos `humanity`s, retornando un `humanity`.
 * `/`: división de dos `humanity`s, retornando un `humanity`.
-* `%`: resto de la división de dos `humanity`s, retornando un `humanity`.
 * `-`: operador menos unario una `humanity`, retornando un `humanity`.
 * `lt`: operador _menor que_, que retorna un `bonfire`.
 * `gt`: operador _mayor que_, que retorna un `bonfire`.
@@ -181,8 +180,8 @@ Nuestro lenguaje soporta todos los operadores básicos de enteros:
 
 El tipo de dato _caracter_ representa un caracter. Este tipo cuenta con dos representaciones distintas, cada una con su declarador de tipo.
 
-- `small sign`, caracter con codificación ASCII (7 bits).
-- `big sign`, caracter con codificación UTF-8 (8 bits).
+- `small sign`, caracter con codificación ASCII (ocupa 8 bits).
+- `big sign`, caracter con codificación UTF-8 (ocupa 32 bits). [!!!!!!!!!!!]
 
 Adicionalmente, el declarador de tipo `sign` es un alias para `small sign`.
 
@@ -198,7 +197,7 @@ El valor por defecto de un caracter es el caracter nulo (`|\0|`).
 
 Los caracteres poseen varios operadores:
 
-* `ascii of`: Retorna el código ascii (solo funciona en `small sign`s) de la variable.
+* `ascii of`: Retorna el código ascii (solo funciona en `small sign`s) de la variable (como `humanity`). (pasar a función del preludio)
 * `>-<`: Operador binario que concatena dos caracteres, retornando un `2-miracle`.
 
 ### Colección
@@ -264,29 +263,33 @@ La sintaxis de declaración de una unión es la siguiente (con indentación agre
 
 ```
 link {
-  <type <tipo 1>,
-  <type <tipo 2>,
-  <type <tipo 3>,
+  type <tipo 1>,
+  type <tipo 2>,
+  type <tipo 3>,
   ...
-  <type <tipo n>
+  type <tipo n>
 }
 ```
 
 Donde `n` es la cantidad de tipos *distintos entre sí* de la unión.
 
-El valor por defecto de una unión corresponde al valor por defecto de su primer tipo declarado.
+El valor por defecto de una unión corresponde al valor por defecto de alguno de sus tipos.
 
 ### Especiales
 
 #### Valor nulo
 
-El valor nulo es un tipo especial con un único valor, `abyss`, utilizado para indicar que un apuntador no tiene a quién referenciar, es decir, no está haciendo referencia a un valor válido.
+El tipo unitario `abyss` tiene un único valor (`abyss`), utilizado para indicar que un apuntador no tiene a quién referenciar, es decir, no está haciendo referencia a un valor válido.
 
 #### Apuntador al Heap
 
-Representa la dirección en la que un valor de un tipo dado se encuentra almacenado. Su declarador de tipo es `arrow to <tipo>`, donde `tipo` es un declarador de tipo.
+Representa la dirección en la que un valor de un tipo dado se encuentra almacenado. Su declarador de tipo es `arrow to <tipo>`, donde `tipo` es un declarador de tipo escalar.
 
+TO DO:
 
+- Función malloc
+- Función asignar
+- Función dereferenciar
 
 El valor por defecto de un apuntador es el valor nulo, `abyss`.
 
