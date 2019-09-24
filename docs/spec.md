@@ -381,7 +381,41 @@ El identificador debe corresponder con una variable ya declarada de un tipo esca
 
 ### Selección
 
+El lenguaje poseee estructuras condicionales, de tipo if/elseif/else. La sintaxis es la siguiente:
+
+```
+trust your inventory
+<condición 1>:
+  <bloque de instrucciones 1>
+[<condición 2>:
+  <bloque de instrucciones 2>]
+...
+[<condición n>:
+  <bloque de instrucciones n>]
+[liar!:
+  <bloque de instrucciones para el else>]
+```
+
+El token `liar!` es equivalente al token `else` de otros lenguajes de programación. Las condiciones deben ser expresiones que evaluen a un tipo de dato `bonfire` (booleano).
+
 ### Selección por casos
+
+El lenguaje poseee estructuras condicionales, de tipo switch. La sintaxis es la siguiente:
+
+```
+enter dungeon with <identificador>
+<expressión 1>:
+  <bloque de instrucciones 1>
+[<expressión 2>:
+  <bloque de instrucciones 2>]
+...
+[<expressión n>:
+  <bloque de instrucciones n>]
+[empty dungeon:
+  <bloque de instrucciones para el else>]
+```
+
+El token `liar!` es equivalente al token `else` de otros lenguajes de programación. Las condiciones deben ser expresiones que evaluen a un tipo de dato `bonfire` (booleano).
 
 ### Iteraciones acotadas
 
