@@ -248,6 +248,7 @@ Donde _lugar_ es una de las siguientes palabras reservadas (cualquiera):
 
 - `anor londo`
 - `undead settlement`
+- `the firelink`
 - `duke's archives`
 
 ### Secuenciación
@@ -384,5 +385,30 @@ El identificador debe corresponder con una variable ya declarada de un tipo esca
 ### Selección por casos
 
 ### Iteraciones acotadas
+
+Las iteraciones acotadas permiten repetir una secuencia no vacía de instrucciones por una cantidad fija de iteraciones, conocida antes de la primera iteración.
+
+La sintaxis para una iteración acotada es la siguiente:
+
+```
+upgrading <identificador de la variable de iteración> with <paso> soul[s] until level <cota superior>
+  <bloque de instrucciones>
+max level reached
+```
+
+Donde _identificador de la variable de iteración_ corresponde al identificador de una variable de tipo _humanity_ previamente declarada e inicializada, y _paso_ es la cantidad que será adicionada automáticamente a la variable al finalizar una iteración.
+
+Por ejemplo:
+
+```
+upgrading i with 1 soul until level 20
+  traveling to the firelink
+    with orange saponite say i \
+    with orange saponite say |\n|
+  you died
+max level reached
+```
+
+Dentro del bloque de instrucciones, no se permitirá modificar directamente la variable de iteración. La cota superior es una cota no alcanzada; es decir, la iteración no se ejecutará para el valor de la cota superior.
 
 ### Iteraciones condicionadas
