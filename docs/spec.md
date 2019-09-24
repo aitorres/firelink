@@ -32,13 +32,13 @@ A continuación se muestran las palabras reservadas por el lenguaje, a manera de
 
 ## Identificadores
 
-En <lenguaje>, un identificador válido es toda palabra que comienza con una letra minúscula, está formada posteriormente por letras, números y guiones bajos (`_`) y no es una palabra reservada por el lenguaje.
+En `<lenguaje>`, un identificador válido es toda palabra que comienza con una letra minúscula, está formada posteriormente por letras, números y guiones bajos (`_`) y no es una palabra reservada por el lenguaje.
 
 Formalmente, es toda palabra de la forma `[a-lz][A-Za-z0-9_]*` que no sea a su vez una palabra reservada por el lenguaje.
 
 ## Declaradores
 
-En <lenguaje>, existen dos tipos de declaradores para los tipos de datos:
+En `<lenguaje>`, existen dos tipos de declaradores para los tipos de datos:
 
 - `const` para declarar identificadores cuyos valores no pueden ser reasignados, y que requiere de una inicialización junto a su declaración.
 - `var` para declarar identificadores cuyos valores pueden o no ser reasignados, y que no requiere de una inicialización al momento de declararse.
@@ -82,12 +82,12 @@ Nuestro lenguaje soporta todos los operadores básicos de enteros:
 * `/`: división de dos `humanity`s, retornando un `humanity`.
 * `%`: resto de la división de dos `humanity`s, retornando un `humanity`.
 * `-`: operador menos unario una `humanity`, retornando un `humanity`.
-* `lt`: operador _menor que_, que retorna un `bonfire`. 
-* `gt`: operador _mayor que_, que retorna un `bonfire`. 
-* `lte`: operador _menor que_, que retorna un `bonfire`. 
-* `gte`: operador _mayor que_, que retorna un `bonfire`. 
-* `eq`: operador _igual_, que retorna un `bonfire`. 
-* `neq`: operador _desigual_, que retorna un `bonfire`. 
+* `lt`: operador _menor que_, que retorna un `bonfire`.
+* `gt`: operador _mayor que_, que retorna un `bonfire`.
+* `lte`: operador _menor que_, que retorna un `bonfire`.
+* `gte`: operador _mayor que_, que retorna un `bonfire`.
+* `eq`: operador _igual_, que retorna un `bonfire`.
+* `neq`: operador _desigual_, que retorna un `bonfire`.
 
 #### Booleano
 
@@ -148,12 +148,12 @@ Nuestro lenguaje soporta todos los operadores básicos de enteros:
 * `/`: división de dos `humanity`s, retornando un `humanity`.
 * `%`: resto de la división de dos `humanity`s, retornando un `humanity`.
 * `-`: operador menos unario una `humanity`, retornando un `humanity`.
-* `lt`: operador _menor que_, que retorna un `bonfire`. 
-* `gt`: operador _mayor que_, que retorna un `bonfire`. 
-* `lte`: operador _menor que_, que retorna un `bonfire`. 
-* `gte`: operador _mayor que_, que retorna un `bonfire`. 
-* `eq`: operador _igual_, que retorna un `bonfire`. 
-* `neq`: operador _desigual_, que retorna un `bonfire`. 
+* `lt`: operador _menor que_, que retorna un `bonfire`.
+* `gt`: operador _mayor que_, que retorna un `bonfire`.
+* `lte`: operador _menor que_, que retorna un `bonfire`.
+* `gte`: operador _mayor que_, que retorna un `bonfire`.
+* `eq`: operador _igual_, que retorna un `bonfire`.
+* `neq`: operador _desigual_, que retorna un `bonfire`.
 
 #### Caracter
 
