@@ -28,7 +28,7 @@ A continuación se muestran las palabras reservadas por el lenguaje, a manera de
 | enter    | dungeon   | empty     | upgrading | soul     | souls      | until      | level    |
 | max      | reached   | while     | the       | covenant | is         | active     | left     |
 | lte      | lt        | gte       | gt        | eq       | neq        | not        | ascii    |
-| of       |           |           |           |          |            |            |          |
+| of       | closed    | exited    |           |          |            |            |          |
 
 ## Identificadores
 
@@ -49,7 +49,7 @@ La *sintaxis* de declaración sin asignación es la siguiente:
 <declarador de valor> <identificador> of type <declarador de tipo>
 ```
 
-La *sintaxis* de declaración con asignación es la siguiente (obligatoria para constantes, opcional para variables):o
+La *sintaxis* de declaración con asignación es la siguiente (obligatoria para constantes, opcional para variables):
 
 ```
 <declarador de valor> <identificador> of type <declarador de tipo> [<<= <valor>]
@@ -126,9 +126,29 @@ El tipo de datos 3-booleanos soporta los mismos operadores que el booleano conve
 
 * `and`: `a and b` retorna un `bonfire` _verdadero_ (`lit`) si ambos operandos son `lit`.
 * `or`: `a or b` retorna un `fate` `lit` si alguno de sus operandos es `lit`, `unknown` si alguno es `unknown` o `unlit` en caso contrario.
-* `eq`: la implemetación es análoga a la del booleano convencional, retornando `fate`.
-* `neq`: la implementación se puede ver en LA TABLA.
+* `eq`: la implementación es análoga a la del booleano convencional, retornando `fate`.
+* `neq`: la implementación se puede ver en la tabla a continuación.
 * `not`: si la variable es `unknown`, evalúa a `unknown`. Sino, usamos la implemetación del booleano convencional.
+
+##### Tabla de Valores para el Operador *eq*
+
+A continuación, los resultados de aplicar el operador _eq_ a distintos valores del tipo `fate`.
+
+| **eq**  | lit     | unknown | unlit   |
+|---------|---------|---------|---------|
+| lit     | lit     | unlit   | unlit   |
+| unknown | unlit   | lit     | unlit   |
+| unlit   | unlit   | unlit   | lit     |
+
+##### Tabla de Valores para el Operador *neq*
+
+A continuación, los resultados de aplicar el operador _neq_ a distintos valores del tipo `fate`.
+
+| **neq** | lit     | unknown | unlit   |
+|---------|---------|---------|---------|
+| lit     | unlit   | unknown | lit     |
+| unknown | unknown | unlit   | unknown |
+| unlit   | lit     | unknown | unlit   |
 
 #### Punto flotante
 
@@ -208,7 +228,7 @@ El valor por defecto de un arreglo `<n>-chest of type <tipo>` es un arreglo cuyo
 
 Además, se debe proveer el operador `>-<` que concatena dos arreglos. El tipo de dato que encierra cada arreglo debe ser el mismo, aunque no está sujeto a que ambos arreglos sean del mismo tamaño.
 
-#### Conjuntos (*)
+#### Conjuntos [!]
 
 ### Estructurados
 
@@ -268,13 +288,13 @@ Representa la dirección en la que un valor de un tipo dado se encuentra almacen
 
 El valor por defecto de un apuntador es el valor nulo, `abyss`.
 
-#### Enumeración (*)
+#### Enumeración [!]
 
-#### Aliases de Tipo (*)
+#### Aliases de Tipo [!]
 
 ## Instrucciones y Control de Flujo
 
-### Comentarios (*)
+### Comentarios [!]
 
 ### Programa
 
