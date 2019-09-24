@@ -1,0 +1,36 @@
+
+hello ashen one
+
+spell hello_world
+  traveling to duke's archives
+    with orange saponite say @Hello, world!@
+  you died
+ashen estus flask consumed
+
+invocation fibonacci
+requesting
+  val n of type humanity
+with skill of type humanity
+  traveling to undead settlement
+  with
+    var i of type humanity
+  in your inventory
+    // FALTA IF
+    i <<= summon fibonacci
+      granting n - 1
+    go back with n*i
+  you died
+after this return to your world
+
+traveling to anor londo
+with
+  var dragon of type humanity,
+  var fire of type hollow,
+  const estus of type sign <<= |d|
+in your inventory
+  dragon <<= 1 \
+  fire <<= 1.5 \
+you died
+
+
+farewell ashen one
