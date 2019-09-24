@@ -1,0 +1,23 @@
+hello ashen one
+
+  traveling to the firelink
+  with
+    var i of type humanity,
+    var r of type humanity,
+    var n of type humanity
+  in your inventory
+    transpose into n \
+
+    r <<= 1 \
+    i <<= 1 \
+
+    upgrading i with 1 soul until level n+1
+      traveling to duke's archives
+        r <<= r * i \
+      you died
+    max level reached \
+
+    with orange saponite say r \
+  you died
+
+farewell ashen one
