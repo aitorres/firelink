@@ -410,6 +410,7 @@ trust your inventory
   <bloque de instrucciones n>]
 [liar!:
   <bloque de instrucciones para el else>]
+inventory closed
 ```
 
 El token `liar!` es equivalente al token `else` de otros lenguajes de programación. Las condiciones deben ser expresiones que evaluen a un tipo de dato `bonfire` (booleano).
@@ -429,6 +430,7 @@ enter dungeon with <identificador>
   <bloque de instrucciones n>]
 [empty dungeon:
   <bloque de instrucciones para el else>]
+dungeon exited
 ```
 
 El token `empty dungeon` es equivalente al token `default` de otros lenguajes de programación. No es requerido finalizar un bloque de instrucciones con un token especial (similar al `break` de otros lenguajes), ya que no se permite desbordar un caso hacia otro.
