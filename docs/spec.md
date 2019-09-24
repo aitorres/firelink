@@ -1,10 +1,10 @@
 # Fire Link
 
-Descripción del lenguaje.
+**Fire Link**
 
 Realizada por:
 
-- Germán Robayo (14-)
+- Germán Robayo (14-10924)
 - Andrés Ignacio Torres (14-11082)
 
 ## Palabras Reservadas
@@ -412,3 +412,23 @@ max level reached
 Dentro del bloque de instrucciones, no se permitirá modificar directamente la variable de iteración. La cota superior es una cota no alcanzada; es decir, la iteración no se ejecutará para el valor de la cota superior.
 
 ### Iteraciones condicionadas
+
+Las iteraciones condicionadas permiten repetir una secuencia no vacía de instrucciones mientras se cumpla una condición de tipo `bonfire`, evaluada antes de la primera iteración y luego de cada una de las iteraciones realizadas, mientras el valor de la expresión `bonfire` corresponda a un valor de verdad.
+
+La sintaxis para una iteración condicionada es la siguiente:
+
+```
+while the <expresion de tipo bonfire> covenant is active:
+  <bloque de instrucciones>
+covenant left
+```
+
+Donde _expresion de tipo bonfire_ corresponde a la condición de iteración que será evaluada como se refirió anteriormente.
+
+Por ejemplo:
+
+```
+while the b covenant is active:
+  b <<= unlit
+covenant left
+```
