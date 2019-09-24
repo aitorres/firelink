@@ -13,17 +13,26 @@ Autores:
 
 ## Palabras Reservadas
 
-En construcción.
+A continuación se muestran las palabras reservadas por el lenguaje, a manera de referencia. El uso de cada palabra se describe a lo largo de este documento.
 
-```
-const var small big of type fact doubt true false yes yas si ja da ok no nah nein nicht cancelled unknown idk something both schroedinger sink rune monogram box gister possibility pointer to nothing
-```
+|          |           |           |           |          |            |            |          |
+|----------|-----------|-----------|-----------|----------|------------|------------|----------|
+| const    | var       | of        | type      | small    | big        | humanity   | hollow   |
+| bonfire  | lit       | unlit     | yes       | no       | true       | false      | fate     |
+| unknown  | pending   | sign      | miracle   | chest    | bezel      | link       | abyss    |
+| arrow    | to        | hello     | ashen     | one      | farewell   | with       | in       |
+| your     | inventory | traveling | you       | died     | invocation | requesting | skill    |
+| after    | this      | return    | world     | val      | ref        | summon     | granting |
+| spell    | ashen     | estus     | flask     | consumed | cast       | offering   | orange   |
+| saponite | say       | transpose | trust     | your     | inventory  | liar!      | enter    |
+| enter    | dungeon   | empty     | upgrading | soul     | souls      | until      | level    |
+| max      | reached   | while     | the       | covenant | is         | active     | left     |
 
 ## Identificadores
 
 En <lenguaje>, un identificador válido es toda palabra que comienza con una letra minúscula, está formada posteriormente por letras, números y guiones bajos (`_`) y no es una palabra reservada por el lenguaje.
 
-Formalmente, es toda palabra de la forma `[a-z][A-Za-z0-9_]*` que no sea a su vez una palabra reservada por el lenguaje.
+Formalmente, es toda palabra de la forma `[a-lz][A-Za-z0-9_]*` que no sea a su vez una palabra reservada por el lenguaje.
 
 ## Declaradores
 
@@ -38,7 +47,7 @@ La *sintaxis* de declaración sin asignación es la siguiente:
 <declarador de valor> <identificador> of type <declarador de tipo>
 ```
 
-La *sintaxis* de declaración con asignación es la siguiente (obligatoria para constantes, opcional para variables):
+La *sintaxis* de declaración con asignación es la siguiente (obligatoria para constantes, opcional para variables):o
 
 ```
 <declarador de valor> <identificador> of type <declarador de tipo> [<<= <valor>]
