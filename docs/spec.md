@@ -2,7 +2,7 @@
 
 **Fire Link** es un lenguaje de programación basado en el _lore_ de la serie de videojuegos *Dark Souls*, diseñado para la cadena de electivas de área Lenguajes de Programación II y III (CI-4721, CI-4722), durante los trimestres Septiembre - Diciembre 2019 y Enero - Marzo 2020 en la Universidad Simón Bolívar.
 
-Autores:
+**Autores**
 
 - Germán Robayo (14-10924)
 - Andrés Ignacio Torres (14-11082)
@@ -29,6 +29,8 @@ A continuación se muestran las palabras reservadas por el lenguaje, a manera de
 | max      | reached   | while     | the       | covenant | is         | active     | left     |
 | lte      | lt        | gte       | gt        | eq       | neq        | not        | ascii    |
 | of       | closed    | exited    |           |          |            |            |          |
+
+(Agregar lugares.)
 
 ## Identificadores
 
@@ -354,9 +356,20 @@ you died
 Donde _lugar_ es una de las siguientes palabras reservadas (cualquiera):
 
 - `anor londo`
-- `undead settlement`
-- `the firelink`
+- `undead asylum`
+- `firelink shrine`
 - `duke's archives`
+- `undead burg`
+- `undead parish`
+- `depths`
+- `blighttown`
+- `queelag's domain`
+- `the great hollow`
+- `ash lake`
+- `sen's fortress`
+- `painted world of ariamis`
+- `darkroot garden`
+- `darkroot basin`
 
 ### Secuenciación
 
@@ -408,7 +421,6 @@ Dentro de la función, se puede utilizar la siguiente sintaxis para retornar una
 ```
 go back with <expresion>
 ```
-
 
 #### Llamada a Funciones
 
@@ -575,3 +587,19 @@ while the b covenant is active:
   b <<= unlit
 covenant left
 ```
+
+## Peso Máximo
+
+**Fire Link** restringe el tamaño máximo (o _peso máximo_) de las variables en memoria estática y de pila a tiempo de ejecución, a una cantidad de _bytes_ conocida al compilar. Al momento de compilar, el compilador especificará una opción para escoger una cantidad entera que corresponde a la cantidad máxima (en bytes) de uso de memoria estática y de pila (ambas sumadas) que se permitirá al programa. En caso de sobrepasar el peso máximo durante la ejecución, el programa abortará y se avisará al usuario que se ha sobrepasado el mismo y por cuánta diferencia. Por defecto, se establecerá un *peso máximo* de **1000000 (1e6) bytes**.
+
+## Cantidad Máxima de Funciones y Procedimientos
+
+**Fire Link** restringe la cantidad máxima de armas (funciones y procedimientos) que pueden definirse en el programa a tiempo de compilación, a una cantidad máxima de funciones y procedimientos combinados. Al momento de compilar, el compilador especificará una opción para escoger una cantidad entera que corresponde a la cantidad máxima (en unidades) de funciones y procedimientos (ambos sumados) que se permitirá al programa. En caso de sobrepasar la cantidad máxima en compilación, el programa no compilará y el compilador avisará al usuario que se ha sobrepasado el máximo y por cuanta diferencia. Por defecto, se establecerá una *cantidad máxima* de **8 funciones y procedimientos**.
+
+## Cantidad Máxima de Llamadas a Funciones y Procedimientos
+
+**Fire Link** restringe la cantidad máxima de llamadas a funciones y procedimientos que pueden realizarse a tiempo de ejecución, a una cantidad máxima. Al momento de compilar, el compilador especificará una opción para escoger una cantidad entera que corresponde a la cantidad máxima (en unidades) de llamadas a funciones y procedimientos (ambos sumados) que se permitirá al programa. En caso de sobrepasar la cantidad máxima en ejecución, el programa abortará y se avisará al usuario que se ha sobrepasado el mismo. Este límite no incluirá llamadas recursivas de una misma función. Por defecto, se establecerá una *cantidad máxima* de **40 llamadas funciones y procedimientos**.
+
+## Mensaje de Bienvenida a Ciudades
+
+Al entrar a cada bloque de código, representado por un viaje a una ubicación del universo de *Dark Souls*, se emitirá un mensaje alusivo a la locación visitada a través de la salida estándar. El compilador permitirá, a través de una opción, desactivar el mensaje que se muestre al usuario.
