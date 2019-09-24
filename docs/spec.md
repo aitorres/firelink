@@ -1,13 +1,19 @@
 # Fire Link
 
-**Fire Link**
+**Fire Link** es un lenguaje de programación basado en el _lore_ de la serie de videojuegos *Dark Souls*, diseñado para la cadena de electivas de área Lenguajes de Programación II y III (CI-4721, CI-4722), durante los trimestres Septiembre - Diciembre 2019 y Enero - Marzo 2020 en la Universidad Simón Bolívar.
 
-Realizada por:
+Autores:
 
 - Germán Robayo (14-10924)
 - Andrés Ignacio Torres (14-11082)
 
+## Descripción General del Lenguaje
+
+**Fire Link** es un lenguaje de programación imperativo no orientado a objetos.
+
 ## Palabras Reservadas
+
+En construcción.
 
 ```
 const var small big of type fact doubt true false yes yas si ja da ok no nah nein nicht cancelled unknown idk something both schroedinger sink rune monogram box gister possibility pointer to nothing
