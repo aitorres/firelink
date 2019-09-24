@@ -70,6 +70,23 @@ Los literales enteros son de la forma `[-]{0,1}[0-9]+` en expresión regular.
 
 El valor por defecto de un entero es `0`.
 
+##### Operadores para los enteros
+
+Nuestro lenguaje soporta todos los operadores básicos de enteros:
+
+* `+`: adición de dos `humanity`s, retornando un `humanity`.
+* `-`: substracción de dos `humanity`s, retornando un `humanity`.
+* `*`: multiplicación de dos `humanity`s, retornando un `humanity`.
+* `/`: división de dos `humanity`s, retornando un `humanity`.
+* `%`: resto de la división de dos `humanity`s, retornando un `humanity`.
+* `-`: operador menos unario una `humanity`, retornando un `humanity`.
+* `lt`: operador _menor que_, que retorna un `bonfire`. 
+* `gt`: operador _mayor que_, que retorna un `bonfire`. 
+* `lte`: operador _menor que_, que retorna un `bonfire`. 
+* `gte`: operador _mayor que_, que retorna un `bonfire`. 
+* `eq`: operador _igual_, que retorna un `bonfire`. 
+* `neq`: operador _desigual_, que retorna un `bonfire`. 
+
 #### Booleano
 
 El tipo de dato _booleano_ representa un valor de verdad con dos posibilidades. Su declarador de tipo es `bonfire`.
@@ -81,6 +98,16 @@ Los literales booleanos son los siguientes:
 
 El valor por defecto de un booleano es `lit`.
 
+##### Operadores para los booleanos
+
+Nuestro lenguaje soporta todos los operadores básicos de booleanos:
+
+* `and`: conjunción de dos `bonfire`s, retornando un `bonfire`.
+* `or`: disyunción de dos `bonfire`s, retornando un `bonfire`.
+* `eq`: equivalencia de dos `bonfire`s, retornando un `bonfire`.
+* `neq`: inequivalencia de dos `bonfire`s, retornando un `bonfire`.
+* `not`: negación de un `bonfire`, retornando un `bonfire`.
+
 #### 3-Booleano
 
 El tipo de dato _3-booleano_ representa un valor de verdad con posibilidad de duda, es decir, con tres posibilidades. Su declarador de tipo es `fate`.
@@ -91,6 +118,16 @@ Los literales 3-booleanos, además de incluir los literales del tipo de datos _b
 
 El valor por defecto de un 3-booleano es `unknown`.
 
+##### Operadores para los 3-booleanos
+
+El tipo de datos 3-booleanos soporta los mismos operadores que el booleano convencional, con algunas modificaciones:
+
+* `and`: `a and b` retorna un `bonfire` _verdadero_ (`lit`) si ambos operandos son `lit`.
+* `or`: `a or b` retorna un `fate` `lit` si alguno de sus operandos es `lit`, `unknown` si alguno es `unknown` o `unlit` en caso contrario.
+* `eq`: la implemetación es análoga a la del booleano convencional, retornando `fate`.
+* `neq`: la implementación se puede ver en LA TABLA.
+* `not`: si la variable es `unknown`, evalúa a `unknown`. Sino, usamos la implemetación del booleano convencional.
+
 #### Punto flotante
 
 El tipo de dato _punto flotante_ representa un número decimal con signo de precisión doble almacenado según el estándar _IEEE 754-2019_. Su declarador de tipo es _hollow_.
@@ -98,6 +135,23 @@ El tipo de dato _punto flotante_ representa un número decimal con signo de prec
 Los literales punto flotante son de la forma `[-]{0,1}[0-9]+([.][0-9]+){0,1}` en expresión regular.
 
 El valor por defecto de un punto flotante es `0.0`.
+
+##### Operadores para los enteros
+
+Nuestro lenguaje soporta todos los operadores básicos de enteros:
+
+* `+`: adición de dos `humanity`s, retornando un `humanity`.
+* `-`: substracción de dos `humanity`s, retornando un `humanity`.
+* `*`: multiplicación de dos `humanity`s, retornando un `humanity`.
+* `/`: división de dos `humanity`s, retornando un `humanity`.
+* `%`: resto de la división de dos `humanity`s, retornando un `humanity`.
+* `-`: operador menos unario una `humanity`, retornando un `humanity`.
+* `lt`: operador _menor que_, que retorna un `bonfire`. 
+* `gt`: operador _mayor que_, que retorna un `bonfire`. 
+* `lte`: operador _menor que_, que retorna un `bonfire`. 
+* `gte`: operador _mayor que_, que retorna un `bonfire`. 
+* `eq`: operador _igual_, que retorna un `bonfire`. 
+* `neq`: operador _desigual_, que retorna un `bonfire`. 
 
 #### Caracter
 
@@ -116,6 +170,13 @@ Los literales de caracter están encerrados entre el caracter `|`. Adicionalment
 
 El valor por defecto de un caracter es el caracter nulo (`|\0|`).
 
+##### Operadores de los caracteres
+
+Los caracteres poseen varios operadores:
+
+* `ascii of`: Retorna el código ascii (solo funciona en `small sign`s) de la variable.
+* `>-<`: Operador binario que concatena dos caracteres, retornando un `2-miracle`.
+
 ### Colección
 
 #### Cadena de Caracteres
@@ -125,6 +186,13 @@ Representa una cadena colección de cero, uno o varios caracteres, almacenados c
 Los literales de cadena de caracteres están encerrados entre el caracter `@` y sus elementos no están separados entre sí por ningún caracter.
 
 El valor por defecto de una cadena de caracteres `n-miracle` es la cadena consistente de n espacios (`@          @` para `n == 10`).
+
+##### Operadores de las cadenas de caracteres
+
+Los operadores son los mismos que en los caracteres:
+
+* `ascii of`: retorna un arreglo de `small humanity`s, representando los códigos asciis de cada caracter en el input.
+* `>-<`: toma un `n-miracle` y un `m-miracle` y los concatena, retornando un `(n+m)-miracle`.
 
 #### Arreglos
 
@@ -136,7 +204,9 @@ Se puede acceder al valor en la posición `i` de un arreglo `a` con la sintaxis 
 
 El valor por defecto de un arreglo `<n>-chest of type <tipo>` es un arreglo cuyos valores están inicializados al valor por defecto del tipo dado.
 
-#### Conjuntos
+Además, se debe proveer el operador `>-<` que concatena dos arreglos. El tipo de dato que encierra cada arreglo debe ser el mismo, aunque no está sujeto a que ambos arreglos sean del mismo tamaño.
+
+#### Conjuntos (*)
 
 ### Estructurados
 
@@ -196,13 +266,13 @@ Representa la dirección en la que un valor de un tipo dado se encuentra almacen
 
 El valor por defecto de un apuntador es el valor nulo, `abyss`.
 
-#### Enumeración
+#### Enumeración (*)
 
-#### Aliases de Tipo
+#### Aliases de Tipo (*)
 
 ## Instrucciones y Control de Flujo
 
-### Comentarios
+### Comentarios (*)
 
 ### Programa
 
