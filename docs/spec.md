@@ -27,6 +27,8 @@ A continuación se muestran las palabras reservadas por el lenguaje, a manera de
 | saponite | say       | transpose | trust     | your     | inventory  | liar!      | enter    |
 | enter    | dungeon   | empty     | upgrading | soul     | souls      | until      | level    |
 | max      | reached   | while     | the       | covenant | is         | active     | left     |
+| lte      | lt        | gte       | gt        | eq       | neq        | not        | ascii    |
+| of       |           |           |           |          |            |            |          |
 
 ## Identificadores
 
