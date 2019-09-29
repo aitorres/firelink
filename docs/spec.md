@@ -36,7 +36,7 @@ A continuación se muestran las palabras reservadas por el lenguaje, a manera de
 
 En `<lenguaje>`, un identificador válido es toda palabra que comienza con una letra minúscula, está formada posteriormente por letras, números y guiones bajos (`_`) y no es una palabra reservada por el lenguaje.
 
-Formalmente, es toda palabra de la forma `[a-lz][A-Za-z0-9_]*` que no sea a su vez una palabra reservada por el lenguaje.
+Formalmente, es toda palabra de la forma `[a-z][A-Za-z0-9_]*` que no sea a su vez una palabra reservada por el lenguaje.
 
 ## Declaradores
 
@@ -59,7 +59,11 @@ La *sintaxis* de declaración con asignación es la siguiente (obligatoria para 
 
 ## Tipos de Datos
 
+En **FireLink** se soportan los siguientes tipos de datos:
+
 ### Escalares
+
+Los tipos de datos escalares son los tipos más primitivos que soporta el lenguaje, que pueden retornarse a través de funciones.
 
 #### Entero
 
@@ -91,66 +95,79 @@ Nuestro lenguaje soporta todos los operadores básicos de enteros:
 * `eq`: operador _igual_, que retorna un `bonfire`.
 * `neq`: operador _desigual_, que retorna un `bonfire`.
 
-#### Booleano
+#### Bonfire
 
-El tipo de dato _booleano_ representa un valor de verdad con dos posibilidades. Su declarador de tipo es `bonfire`.
+El tipo de dato _bonfire_ representa un valor de verdad con posibilidad de incertidumbre, es decir, con tres posibilidades. Su declarador de tipo es `bonfire`.
 
-Los literales booleanos son los siguientes:
+Los literales bonfire son los siguientes:
 
 - `lit` para un valor de verdad.
 - `unlit` para un valor de falsedad.
+- `undiscovered` para un valor de incertidumbre.
 
-El valor por defecto de un booleano es `lit`.
+El valor por defecto de un _bonfire_ es `undiscovered`.
 
-##### Operadores para los booleanos
+##### Operadores para los vonfires
 
-Nuestro lenguaje soporta todos los operadores básicos de booleanos:
+El tipo de datos _bonfire_ soporta los siguientes operadores:
 
-* `and`: conjunción de dos `bonfire`s, retornando un `bonfire`.
-* `or`: disyunción de dos `bonfire`s, retornando un `bonfire`.
-* `eq`: equivalencia de dos `bonfire`s, retornando un `bonfire`.
-* `neq`: inequivalencia de dos `bonfire`s, retornando un `bonfire`.
-* `not`: negación de un `bonfire`, retornando un `bonfire`.
+* `and`: `a and b`
+* `or`: `a or b`
+* `eq`: `a eq b`
+* `neq`: `a neq b`
+* `not`: `not a`
 
-#### 3-Booleano
+Los resultados de aplicar estos operadores se muestran a continuación, en distintas tablas.
 
-El tipo de dato _3-booleano_ representa un valor de verdad con posibilidad de duda, es decir, con tres posibilidades. Su declarador de tipo es `fate`.
+##### Tabla de Valores para el Operador *not*
 
-Los literales 3-booleanos, además de incluir los literales del tipo de datos _booleano_ de verdad y falsedad, incluyen:
+A continuación, los resultados de aplicar el operador _not_ a distintos valores del tipo `bonfire`.
 
-- `unknown` para un valor de duda, con el alias `pending`.
+| **not** |         |
+|---------|---------|
+| lit     | unlit   |
+| undiscovered | undiscovered |
+| unlit   | lit     |
 
-El valor por defecto de un 3-booleano es `unknown`.
+##### Tabla de Valores para el Operador *and*
 
-##### Operadores para los 3-booleanos
+A continuación, los resultados de aplicar el operador _and_ a distintos valores del tipo `bonfire`.
 
-El tipo de datos 3-booleanos soporta los mismos operadores que el booleano convencional, con algunas modificaciones:
+| **and** | lit     | undiscovered | unlit   |
+|---------|---------|---------|---------|
+| lit     | lit     | undiscovered   | unlit   |
+| undiscovered | undiscovered   | undiscovered     | undiscovered   |
+| unlit   | unlit   | undiscovered   | unlit     |
 
-* `and`: `a and b` retorna un `bonfire` _verdadero_ (`lit`) si ambos operandos son `lit`.
-* `or`: `a or b` retorna un `fate` `lit` si alguno de sus operandos es `lit`, `unknown` si alguno es `unknown` o `unlit` en caso contrario.
-* `eq`: la implementación es análoga a la del booleano convencional, retornando `fate`.
-* `neq`: la implementación se puede ver en la tabla a continuación.
-* `not`: si la variable es `unknown`, evalúa a `unknown`. Sino, usamos la implemetación del booleano convencional.
+##### Tabla de Valores para el Operador *or*
+
+A continuación, los resultados de aplicar el operador _or_ a distintos valores del tipo `bonfire`.
+
+| **eq**  | lit     | undiscovered | unlit   |
+|---------|---------|---------|---------|
+| lit     | lit     | lit   | lit   |
+| undiscovered | lit   | undiscovered     | undiscovered   |
+| unlit   | lit   | undiscovered   | unlit     |
 
 ##### Tabla de Valores para el Operador *eq*
 
-A continuación, los resultados de aplicar el operador _eq_ a distintos valores del tipo `fate`.
+A continuación, los resultados de aplicar el operador _eq_ a distintos valores del tipo `bonfire`.
 
-| **eq**  | lit     | unknown | unlit   |
+| **eq**  | lit     | undiscovered | unlit   |
 |---------|---------|---------|---------|
-| lit     | lit     | unlit   | unlit   |
-| unknown | unlit   | lit     | unlit   |
-| unlit   | unlit   | unlit   | lit     |
+| lit     | lit     | undiscovered | unlit   |
+| undiscovered | undiscovered | lit     | undiscovered |
+| unlit   | unlit   | undiscovered | lit     |
 
 ##### Tabla de Valores para el Operador *neq*
 
-A continuación, los resultados de aplicar el operador _neq_ a distintos valores del tipo `fate`.
+A continuación, los resultados de aplicar el operador _neq_ a distintos valores del tipo `bonfire`.
 
-| **neq** | lit     | unknown | unlit   |
+| **neq** | lit     | undiscovered | unlit   |
 |---------|---------|---------|---------|
-| lit     | unlit   | unknown | lit     |
-| unknown | unknown | unlit   | unknown |
-| unlit   | lit     | unknown | unlit   |
+| lit     | unlit   | undiscovered | lit     |
+| undiscovered | undiscovered | unlit   | undiscovered |
+| unlit   | lit     | undiscovered | unlit   |
 
 #### Punto flotante
 
