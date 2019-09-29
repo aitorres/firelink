@@ -241,7 +241,7 @@ Se debe implementar la siguiente función en el preludio de **FireLink**.
 
 Representa una colección de valores del mismo tipo, almacenados contiguamente, de longitud conocida al momento de su declaración. Su declarador de tipo es `<n>-chest of type <tipo>`, donde `n` es un literal entero o una expresión de tipo entero y `tipo` es un declarador de tipo (que puede ser a su vez otro arreglo).
 
-Los literales de arreglo están encerrados entre el caracter `$` y sus elementos están separados entre sí por una coma (`,`), seguida de cero, uno o varios espacios (` `). No se admite una coma entre el último elemento y el `$` de cierre.
+Los literales de arreglo están encerrados entre el caracter de inicio `<$` y el caracter de fin `$>`, y sus elementos están separados entre sí por una coma (`,`), seguida de cero, uno o varios espacios (` `). No se admite una coma entre el último elemento y el `$>` de cierre.
 
 Se puede acceder al valor en la posición `i` de un arreglo `a` con la sintaxis `a$i$`.
 
@@ -283,15 +283,15 @@ La sintaxis de declaración de una unión es la siguiente (con indentación agre
 
 ```
 link {
-  type <tipo 1>,
-  type <tipo 2>,
-  type <tipo 3>,
+  <nombre 1> of type <tipo 1>,
+  <nombre 2> of type <tipo 2>,
+  <nombre 3> of type <tipo 3>,
   ...
-  type <tipo n>
+  <nombre n> of type <tipo n>
 }
 ```
 
-Donde `n` es la cantidad de tipos *distintos entre sí* de la unión.
+Donde `n` es la cantidad de tipos *distintos entre sí* de la unión, cada una con un nombre *único* para el mismo registro, independientemente de los tipos.
 
 El valor por defecto de una unión corresponde al valor por defecto de alguno de sus tipos.
 
@@ -313,9 +313,34 @@ TO DO:
 
 El valor por defecto de un apuntador es el valor nulo, `abyss`.
 
-#### Enumeración [!]
+#### Aliases de Tipo
 
-#### Aliases de Tipo [!]
+Un alias de tipo permite referenciar un tipo determinado de manera más sencilla para el programador. Su declarador de tipo es `knight`. Solo pueden existir de manera global en un programa. La sintaxis de creación de un alias de tipo es la siguiente:
+
+```
+knight <identificador> <tipo>
+```
+
+Donde `identificador` es un identificador válido para el alias de tipo, y `tipo` corresponde al tipo al que hará alias. Por ejemplo:
+
+```
+knight onion 10-chest of type 5-chest of type 15-miracle
+
+...
+
+var i of type knight
+```
+
+Se puede declarar una **lista** de `n` aliases de tipo, utilizando la siguiente sintaxis:
+
+```
+requiring help of
+  <alias de tipo 1>,
+  <alias de tipo 2>,
+  ...
+  <alias de tipo n>
+help received
+```
 
 ## Instrucciones y Control de Flujo
 
@@ -327,6 +352,8 @@ Un programa tiene la siguiente sintaxis:
 
 ```
 hello ashen one
+
+[<lista de alias de tipo>]
 
 [<declaraciones de funciones y/o procedimientos>]
 
