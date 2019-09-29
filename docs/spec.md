@@ -344,7 +344,20 @@ help received
 
 ## Instrucciones y Control de Flujo
 
-### Comentarios [!]
+### Comentarios
+
+Un programa puede contener comentarios en cualquier lugar. Los comentarios inician con `--` y abarcan el resto de la línea, hasta el próximo salto de línea. Sólo se admiten comentarios de una sola línea.
+
+```
+-- Esto es un comentario.
+
+hello ashen one
+
+-- Esto simula un bloque de comentarios
+-- de muchas líneas,
+-- ya van tres.
+
+```
 
 ### Programa
 
