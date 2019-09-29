@@ -195,12 +195,9 @@ Nuestro lenguaje soporta todos los operadores básicos de enteros:
 
 #### Caracter
 
-El tipo de dato _caracter_ representa un caracter. Este tipo cuenta con dos representaciones distintas, cada una con su declarador de tipo.
+El tipo de dato _caracter_ representa un caracter. Este tipo cuenta con una representación:.
 
-- `small sign`, caracter con codificación ASCII (ocupa 8 bits).
-- `big sign`, caracter con codificación UTF-8 (ocupa 32 bits). [!!!!!!!!!!!]
-
-Adicionalmente, el declarador de tipo `sign` es un alias para `small sign`.
+- `sign`, caracter con codificación ASCII (ocupa 8 bits).
 
 Los literales de caracter están encerrados entre el caracter `|`. Adicionalmente, el lenguaje debe reconocer los siguientes caracteres especiales:
 
@@ -210,14 +207,15 @@ Los literales de caracter están encerrados entre el caracter `|`. Adicionalment
 
 El valor por defecto de un caracter es el caracter nulo (`|\0|`).
 
-##### Operadores de los caracteres
+##### Funciones de los caracteres
 
-Los caracteres poseen varios operadores:
+Se debe implementar la siguiente función en el preludio de **FireLink**.
 
-* `ascii of`: Retorna el código ascii (solo funciona en `small sign`s) de la variable (como `humanity`). (pasar a función del preludio)
-* `>-<`: Operador binario que concatena dos caracteres, retornando un `2-miracle`.
+* `ascii_of`: Retorna el código ascii  de la variable (como `humanity`).
 
 ### Colección
+
+Los tipos colección permiten incorporar la noción de estructura de datos al lenguaje.
 
 #### Cadena de Caracteres
 
@@ -229,10 +227,15 @@ El valor por defecto de una cadena de caracteres `n-miracle` es la cadena consis
 
 ##### Operadores de las cadenas de caracteres
 
-Los operadores son los mismos que en los caracteres:
+Se cuenta con el siguiente operador:
 
-* `ascii of`: retorna un arreglo de `small humanity`s, representando los códigos asciis de cada caracter en el input.
 * `>-<`: toma un `n-miracle` y un `m-miracle` y los concatena, retornando un `(n+m)-miracle`.
+
+##### Funciones de los caracteres
+
+Se debe implementar la siguiente función en el preludio de **FireLink**.
+
+* `ascii_of`: Retorna un arreglo de `humanity`s, representando los códigos asciis de cada caracter en el input.
 
 #### Arreglos
 
