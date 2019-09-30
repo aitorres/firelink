@@ -622,7 +622,7 @@ Por ejemplo:
 
 ```
 upgrading i with 1 soul until level 20
-  traveling to the firelink
+  traveling somewhere
     with orange saponite say i \
     with orange saponite say |\n|
   you died
@@ -630,6 +630,35 @@ max level reached
 ```
 
 Dentro del bloque de instrucciones, no se permitirá modificar directamente la variable de iteración. La cota superior es una cota no alcanzada; es decir, la iteración no se ejecutará para el valor de la cota superior.
+
+### Iteraciones por estructuras
+
+Las iteraciones por estructuras permiten repetir una secuencia no vacía de instrucciones asignando en una variable un elemento distinto de una estructura iterable en cada iteración.
+
+Las estructuras iterables son: listas y conjuntos.
+
+La sintaxis para una iteración por estructura es la siguiente:
+
+```
+repairing <identificador de la variable de iteración> with titanite from <estructura>
+  <bloque de instrucciones>
+weaponry repaired
+```
+
+Donde _identificador de la variable de iteración_ corresponde al identificador de una variable, no necesariamente declarada antes, y _estructura_ corresponde a la estructura iterable de la que se tomarán los elementos.
+
+Por ejemplo:
+
+```
+repairing i with titanite from biglist
+  traveling somewhere
+    with orange saponite say i \
+    with orange saponite say |\n|
+  you died
+weaponry repaired
+```
+
+Dentro del bloque de instrucciones, no se permitirá modificar directamente la variable de iteración.
 
 ### Iteraciones condicionadas
 
