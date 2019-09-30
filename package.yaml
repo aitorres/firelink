@@ -28,6 +28,7 @@ library:
   build-tools:
     - alex
     - happy
+    - hlint
 
 executables:
   firelink-exe:
