@@ -39,12 +39,12 @@ data Token = TkId String
     | TkAsciiOf
     --- Collections
     -- Strings
-    | TkMiracle Int -- size known at compile time
-    | TkMiracle String -- size unknown
+    | TkMiracleKnown Int -- size known at compile time
+    | TkMiracleUnknown String -- size unknown
     | TkAt -- String delimitators
     -- Arrays
-    | TkChest Int
-    | TkChest String
+    | TkChestKnown Int
+    | TkChestUnknown String
     | TkChestOpen
     | TkChestClose
     | TkSize
@@ -55,7 +55,6 @@ data Token = TkId String
     | TkUnion
     | TkIntersect
     | TkDiff
-    | TkSize
     -- Enums
     | TkTitanite
     | TkBraceOpen
@@ -101,7 +100,6 @@ data Token = TkId String
     | TkGranting
     -- Procedures
     | TkSpell
-    | TkRequesting
     | TkSpellEnd -- ashen estus flask consumed
     | TkCast
     | TkOffering
