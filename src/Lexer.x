@@ -1,19 +1,19 @@
 {
 module Lexer (
-    alexMonadScan, runAlex,
-    Token (..)
+    alexMonadScan, readTokens,
+    Token (..), AlexUserState(..)
     ) where
+import Debug.Trace (trace)
 }
-%wrapper "monad"
-$digit = 0-9
--- digits
-$alpha = [a-zA-Z]
--- alphabetic characters
+%wrapper "monadUserState"
 tokens :-
-    . ;
+    $white+         ;
+    const           { makeToken TConst }
+    .               { throwLexError }
+
 {
 -- Only meant to build the tokens via actions
-data TokenIds = TId | TConst | TVar | TOfType | TAsig
+data TokenId = TId | TConst | TVar | TOfType | TAsig
     -------------------
     ------ Types ------
     -------------------
@@ -80,10 +80,26 @@ data TokenIds = TId | TConst | TVar | TOfType | TAsig
     | TNot
     -- Eof
     | TEof
-    deriving (Eq)
+    deriving (Show)
 
--- Each action has type :: String -> Token
--- The token type:
+tokenMapper :: TokenId -> Token
+tokenMapper TConst = TkConst
+
+makeToken :: TokenId -> AlexAction AlexUserState
+makeToken tokenId alexInput int = do
+    userState <- getUserState
+    case userState of
+        LexFailure errors -> error ""
+        LexSuccess tokens -> do
+            addTokenToState $ tokenMapper $ trace "debug" tokenId
+            getUserState
+
+throwLexError :: AlexAction AlexUserState
+throwLexError alexInput int = do
+    addErrorToState $ LexError alexInput
+    getUserState
+
+    -- The token type:
 data Token = TkId String | TkConst | TkVar | TkOfType | TkAsig
     -------------------
     ------ Types ------
@@ -173,11 +189,48 @@ data Token = TkId String | TkConst | TkVar | TkOfType | TkAsig
     | TkGte | TkEq | TkNeq | TkAnd | TkOr | TkConcat
     -- Unary operators
     | TkNot
-    -- Eof
-    | TkEof
     deriving (Eq, Show)
 
+data LexError = LexError AlexInput
+    deriving (Show)
+
 -- This isn't on the documentation
-alexEOF :: Alex Token
-alexEOF = return TkEof
+alexEOF :: Alex AlexUserState
+alexEOF = getUserState
+
+data AlexUserState = LexFailure [LexError]
+    | LexSuccess [Token]
+
+alexInitUserState :: AlexUserState
+alexInitUserState = LexSuccess []
+
+getTokens :: AlexUserState -> [Token]
+getTokens (LexSuccess tokens) = tokens
+getTokens _ = [] -- if the computation failed it doesn't have tokens
+
+getErrors :: AlexUserState -> [LexError]
+getErrors (LexFailure errors) = errors
+getErrors _ = [] -- same here
+
+getUserState :: Alex AlexUserState
+getUserState = Alex $ \s@AlexState{alex_ust=ust} -> Right (s, ust)
+
+addTokenToState :: Token -> Alex ()
+addTokenToState lexToken = Alex $ \s@AlexState{alex_ust=ust}
+    -> Right (s{
+        alex_ust=LexSuccess $ lexToken:(getTokens ust)
+    }, ())
+
+addErrorToState :: LexError -> Alex ()
+addErrorToState lexError = Alex $ \s@AlexState{alex_ust=ust}
+    -> Right (s{
+        alex_ust=LexFailure $ lexError:(getErrors ust)
+    }, ())
+
+
+readTokens :: String -> AlexUserState
+readTokens str = case runAlex str alexMonadScan of
+    Left e -> error $ show e
+    Right userState -> userState
+
 }

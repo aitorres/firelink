@@ -1,11 +1,9 @@
 module Lib
     ( someFunc
     ) where
-import Lexer (Token (..), alexMonadScan, runAlex)
+import Lexer (Token (..), AlexUserState(..), alexMonadScan, readTokens)
 
 someFunc :: IO ()
-someFunc =
-    case runAlex "" alexMonadScan of
-        Left s -> putStrLn s
-        _ -> putStrLn "holis"
-    -- putStrLn "Hello world!"
+someFunc = case readTokens "b const" of
+        LexFailure errors -> print errors
+        LexSuccess tokens -> print tokens
