@@ -31,7 +31,7 @@ data TokenIds = TId | TConst | TVar | TOfType | TAsig
     -- Arrays
     | TChestKnown | TChestUnknown | TChestOpen | TChestClose | TSize
     -- Sets
-    | TArmor | TArmorOpen | TArmorClose | TUnion | TIntersect | TkDiff
+    | TArmor | TArmorOpen | TArmorClose | TUnion | TIntersect | TDiff
     -- Enums
     | TTitanite | TBraceOpen | TBraceClosed | TComma | TAccessor
     -- Records (C-like structs)
