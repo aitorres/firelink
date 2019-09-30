@@ -342,11 +342,10 @@ El tipo unitario `abyss` tiene un único valor (`abyss`), utilizado para indicar
 
 Representa la dirección en la que un valor de un tipo dado se encuentra almacenado. Su declarador de tipo es `arrow to <tipo>`, donde `tipo` es un declarador de tipo escalar.
 
-TO DO:
-
-- Función malloc
-- Función asignar
-- Función dereferenciar
+Todo apuntador al heap tiene los siguientes operadores:
+* `aim a`, que reserva cantidad de memoria suficiente para almacenar un valor del tipo del apuntador en el heap y lo inicializa a su valor por defecto.
+* `throw a`, que referencia el valor almacenado en esa ubicación de la memoria.
+* `recover a`, que elimina la memoria reservada para un apuntador ya reservado y le asigna el valor nulo.
 
 El valor por defecto de un apuntador es el valor nulo, `abyss`.
 
