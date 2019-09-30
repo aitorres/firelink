@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: d86098dfa69b75c3a5fb9d9fa736b7b3977bfe9a1fa082776ed871c8224cf806
+-- hash: c166e80a12c8fca76a366bf52478aa4ae0c3250067c61ab5f96683ec85db4e0f
 
 name:           firelink
 version:        0.1.0.0
@@ -36,6 +36,8 @@ library
   build-tools:
       alex
     , happy
+  build-tool-depends:
+      hlint:hlint
   build-depends:
       array
     , base >=4.7 && <5
