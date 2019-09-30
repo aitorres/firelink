@@ -215,7 +215,7 @@ Se debe implementar la siguiente función en el preludio de **FireLink**.
 
 ### Colección
 
-Los tipos colección permiten incorporar la noción de estructura de datos al lenguaje.
+Los tipos colección permiten incorporar una noción de orden en datos al lenguaje.
 
 #### Cadena de Caracteres
 
@@ -252,6 +252,26 @@ Además, se debe proveer el operador `>-<` que concatena dos arreglos. El tipo d
 #### Conjuntos [!]
 
 ### Estructurados
+
+Los tipos de datos estructurados dan cierta noción de estructura al lenguaje.
+
+#### Enumeración
+
+Representa un agrupamiento de distintas _posibilidades_ de acuerdo a su nombre. Internamente, cada posibilidad corresponde a un valor entero ordinal autoincrementado, y cada posibilidad evalúa a su valor. Su declarador de tipo es `titanite`.
+
+La sintaxis de declaración de una enumeración es la siguiente (con indentación agregada para mayor legibilidad):
+
+```
+titanite {
+  <nombre 1>,
+  <nombre 2>,
+  <nombre 3>
+}
+```
+
+Donde `n` es la cantidad de _posibilidades_ distintas de la enumeración declarada, cada una con un nombre *único* para la misma enumeración.
+
+El acceso a una posibilidad de nombre `pos` de una enumeración `a` se realiza mediante la sintaxis `a~>pos`.
 
 #### Registro
 
