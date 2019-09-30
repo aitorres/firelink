@@ -1,7 +1,11 @@
 module Lib
     ( someFunc
     ) where
-import Lexer (Token (..), alexScanTokens)
+import Lexer (Token (..), alexMonadScan, runAlex)
 
 someFunc :: IO ()
-someFunc = putStrLn "Hello world!"
+someFunc =
+    case runAlex "" alexMonadScan of
+        Left s -> putStrLn s
+        _ -> putStrLn "holis"
+    -- putStrLn "Hello world!"
