@@ -249,7 +249,24 @@ El valor por defecto de un arreglo `<n>-chest of type <tipo>` es un arreglo cuyo
 
 Además, se debe proveer el operador `>-<` que concatena dos arreglos. El tipo de dato que encierra cada arreglo debe ser el mismo, aunque no está sujeto a que ambos arreglos sean del mismo tamaño.
 
-#### Conjuntos [!]
+Finalmente, se debe proveer el operador unario `size` que retorna un `humanity` con la cantidad de elementos que tenga el arreglo en el momento.
+
+#### Conjuntos
+
+Representa una colección de valores del msimo tipo que no admite elementos repetidos. Su declarador de tipo es `armor of type <tipo>`, donde `tipo` es un declarador de tipo escalar.
+
+Los literales de arreglo están encerrados entre el caracter de inicio `{$` y el caracter de fin `$}`, y sus elementos están separados entre sí por una coma (`,`), seguida de cero, uno o varios espacios (` `). No se admite una coma entre el último elemento y el `$}` de cierre.
+
+Se puede acceder al valor en la posición `i` de un conjunto `a` con la sintaxis `a{i}`.
+
+El valor por defecto de un conjunto `armor of type <tipo>` es el conjunto vacío `{$ $}`.
+
+Se deben proveer los siguientes operadores sobre conjuntos:
+
+* `union`: `a union b` retorna un `armor` con todos los elementos que estén en `a` o en `b`.
+* `intersect`: `a intersect b` retorna un `armor` con todos los elementos que estén en `a` y en `b` al mismo tiempo.
+* `diff`: `a diff b` retorna un `armor` con todos los elementos que estén en `a` y no estén en `b`.
+* `size`: `size a` retorna un `humanity` con la cantidad de elementos que tenga el conjunto en el momento.
 
 ### Estructurados
 
