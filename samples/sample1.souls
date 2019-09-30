@@ -2,7 +2,7 @@
 hello ashen one
 
 spell hello_world
-  traveling to duke's archives
+  traveling somewhere
     with orange saponite say @Hello, world!@
   you died
 ashen estus flask consumed
@@ -11,18 +11,25 @@ invocation fibonacci
 requesting
   val n of type humanity
 with skill of type humanity
-  traveling to undead settlement
+  traveling somewhere
   with
     var i of type humanity
   in your inventory
-    // FALTA IF
+
+    trust your inventory
+    i eq 0:
+      traveling somewhere
+        go back with 1
+      you died
+    inventory closed
+
     i <<= summon fibonacci
       granting n - 1
     go back with n*i
   you died
 after this return to your world
 
-traveling to anor londo
+traveling somewhere
 with
   var dragon of type humanity,
   var fire of type hollow,

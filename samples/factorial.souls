@@ -12,7 +12,7 @@ hello ashen one
     i <<= 1 \
 
     upgrading i with 1 soul until level n+1
-      traveling to duke's archives
+      traveling somewhere
         r <<= r * i \
       you died
     max level reached \

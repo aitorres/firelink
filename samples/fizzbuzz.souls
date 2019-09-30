@@ -1,6 +1,6 @@
 hello ashen one
 
-  traveling to undead settlement
+  traveling somewhere
   with
     var n of type humanity,
     var i of type humanity <<= 1
@@ -10,17 +10,17 @@ hello ashen one
 
       trust your inventory
       i % 15 == 0:
-        traveling to anor londo
+        traveling somewhere
           with orange saponite say @FizzBuzz@ \
           with orange saponite say @\n@
         you died
       i % 3 == 0:
-        traveling to anor londo
+        traveling somewhere
           with orange saponite say @Fizz@ \
           with orange saponite say @\n@
         you died
       i % 5 == 0:
-        traveling to anor londo
+        traveling somewhere
           with orange saponite say @Buzz@ \
           with orange saponite say @\n@
         you died
