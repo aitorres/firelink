@@ -1,0 +1,69 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.31.2.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: d86098dfa69b75c3a5fb9d9fa736b7b3977bfe9a1fa082776ed871c8224cf806
+
+name:           firelink
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/githubuser/firelink#readme>
+homepage:       https://github.com/githubuser/firelink#readme
+bug-reports:    https://github.com/githubuser/firelink/issues
+author:         Author name here
+maintainer:     example@example.com
+copyright:      2019 Author name here
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    ChangeLog.md
+
+source-repository head
+  type: git
+  location: https://github.com/githubuser/firelink
+
+library
+  exposed-modules:
+      Lexer
+      Lib
+  other-modules:
+      Paths_firelink
+  hs-source-dirs:
+      src
+  build-tools:
+      alex
+    , happy
+  build-depends:
+      array
+    , base >=4.7 && <5
+  default-language: Haskell2010
+
+executable firelink-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_firelink
+  hs-source-dirs:
+      app
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      array
+    , base >=4.7 && <5
+    , firelink
+  default-language: Haskell2010
+
+test-suite firelink-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_firelink
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      array
+    , base >=4.7 && <5
+    , firelink
+  default-language: Haskell2010
