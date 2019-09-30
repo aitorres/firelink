@@ -410,29 +410,11 @@ Un bloque de instrucciones incluye opcionalmente un bloque de declaraciones de v
 La sintaxis de un bloque de instrucciones es la siguiente (con indentación opcional para facilitar la legibilidad):
 
 ```
-traveling to <lugar>
+traveling somewhere
 [<bloque de declaraciones>]
   <lista de instruciones>
 you died
 ```
-
-Donde _lugar_ es una de las siguientes palabras reservadas (cualquiera):
-
-- `anor londo`
-- `undead asylum`
-- `firelink shrine`
-- `duke's archives`
-- `undead burg`
-- `undead parish`
-- `depths`
-- `blighttown`
-- `queelag's domain`
-- `the great hollow`
-- `ash lake`
-- `sen's fortress`
-- `painted world of ariamis`
-- `darkroot garden`
-- `darkroot basin`
 
 ### Secuenciación
 
@@ -662,7 +644,3 @@ covenant left
 ## Cantidad Máxima de Llamadas a Funciones y Procedimientos
 
 **Fire Link** restringe la cantidad máxima de llamadas a funciones y procedimientos que pueden realizarse a tiempo de ejecución, a una cantidad máxima. Al momento de compilar, el compilador especificará una opción para escoger una cantidad entera que corresponde a la cantidad máxima (en unidades) de llamadas a funciones y procedimientos (ambos sumados) que se permitirá al programa. En caso de sobrepasar la cantidad máxima en ejecución, el programa abortará y se avisará al usuario que se ha sobrepasado el mismo. Este límite no incluirá llamadas recursivas de una misma función. Por defecto, se establecerá una *cantidad máxima* de **40 llamadas funciones y procedimientos**.
-
-## Mensaje de Bienvenida a Ciudades
-
-Al entrar a cada bloque de código, representado por un viaje a una ubicación del universo de *Dark Souls*, se emitirá un mensaje alusivo a la locación visitada a través de la salida estándar. El compilador permitirá, a través de una opción, desactivar el mensaje que se muestre al usuario.
