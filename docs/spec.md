@@ -227,7 +227,7 @@ El valor por defecto de una cadena de caracteres `<n>-miracle` es la cadena cons
 
 Se cuenta con el siguiente operador:
 
-* `>-<`: toma un `<n>-miracle` y un `<m>-miracle` y los concatena, retornando un `<n+m>-miracle`.
+- `>-<`: toma un `<n>-miracle` y un `<m>-miracle` y los concatena, retornando un `<n+m>-miracle`.
 
 ##### Funciones de las cadenas de caracteres
 
