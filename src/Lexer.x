@@ -131,15 +131,19 @@ data Token = Token AbstractToken -- Token perse
                 AlexPosn -- To get file context
     deriving (Show)
 
+type Tokens = [Token]
+
 data LexError = LexError AlexInput
     deriving (Show)
+
+type LexErrors = [LexError]
 
 -- This isn't on the documentation
 alexEOF :: Alex AlexUserState
 alexEOF = getUserState
 
-data AlexUserState = LexFailure [LexError]
-    | LexSuccess [Token]
+data AlexUserState = LexFailure LexErrors
+    | LexSuccess Tokens
 
 alexInitUserState :: AlexUserState
 alexInitUserState = LexSuccess []
@@ -169,7 +173,7 @@ printLexErrors (e:errs) = do
     print e
     printLexErrors errs
 
-scanTokens :: String -> IO (Maybe [Token])
+scanTokens :: String -> IO (Maybe Tokens)
 scanTokens str = case runAlex str alexMonadScan of
     Left e -> do
         putStrLn $ "Alex error " ++ show e
