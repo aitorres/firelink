@@ -70,8 +70,8 @@ tokens :-
     covenant\ is\ active { makeToken TkCovenantIsActive }
     -- Types
     humanity            { makeToken TkBigHumanity}
-    small\ humanity            { makeToken TkBigHumanity}
-    big\ humanity            { makeToken TkBigHumanity}
+    small\ humanity     { makeToken TkSmallHumanity}
+    big\ humanity       { makeToken TkBigHumanity}
 
     bonfire             { makeToken TkBonfire }
     lit                 { makeToken TkLit }
