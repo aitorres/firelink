@@ -1,2 +1,4 @@
 .stack-work/
 *~
+*.vscode
+*.code-workspace
