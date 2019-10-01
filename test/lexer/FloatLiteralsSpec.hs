@@ -7,7 +7,7 @@ spec :: Spec
 spec = describe "Lexer" $ do
 
   it "accepts `0.0` as a valid float literal" $ do
-    let x = "0.o"
+    let x = "0.0"
     s <- scanTokens x
     case s of
       Just toks -> do
