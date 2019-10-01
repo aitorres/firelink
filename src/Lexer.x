@@ -3,7 +3,6 @@ module Lexer (
     alexMonadScan, scanTokens,
     Token (..), AlexUserState(..)
     ) where
-import Debug.Trace (trace)
 }
 %wrapper "monadUserState"
 
@@ -11,6 +10,7 @@ import Debug.Trace (trace)
 @ids = [a-z][A-Za-z0-9_]*
 tokens :-
     $white+         ;
+    -- reserved keywords
     const           { makeToken TkConst }
     var             { makeToken TkVar }
     of\ type        { makeToken TkOfType }
@@ -179,8 +179,8 @@ scanTokens str = case runAlex str alexMonadScan of
         putStrLn $ "Alex error " ++ show e
         return Nothing
     Right userState -> case userState of
-        LexSuccess tokens -> return $ Just tokens
+        LexSuccess tokens -> return $ Just $ reverse tokens
         LexFailure errors -> do
-            printLexErrors errors
+            printLexErrors $ reverse errors
             return Nothing
 }
