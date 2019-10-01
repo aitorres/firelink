@@ -8,7 +8,10 @@ module Lexer (
 
 -- macros for sets and regex
 $digits = [0-9]
+$characters = [^\\\|]
 @ids = [a-z][A-Za-z0-9_]*
+-- @strings = \@([$characters | "\\\@"] # \@)\@
+@strings = \@([$characters # \@] | "\@")+\@
 tokens :-
     $white+         ;
     -- reserved keywords
@@ -35,16 +38,23 @@ tokens :-
     ref                 { makeToken TkRef }
     with\ skill\ of\ type { makeToken TkInvocationType }
     trust\ your\ inventory { makeToken TkIf }
+    inventory\ closed       { makeToken TkEndIf }
+    summon              { makeToken TkSummon }
+    granting            { makeToken TkGranting }
+    go\ back\ with      { makeToken TkReturn }
+    after\ this\ return\ to\ your\ world { makeToken TkInvocationEnd }
 
 
     -- Literals
     $digits+            { makeToken TkIntLit }
     $digits+\.$digits+  { makeToken TkFloatLit }
+    @strings            { makeToken TkString }
 
     -- Special characters
     \,                  { makeToken TkComma }
     \\                  { makeToken TkSeq }
     :                   { makeToken TkColon }
+    \|$characters\|        { makeToken TkChar }
 
     -- Operators
     \<\<=                 { makeToken TkAsig }
@@ -98,12 +108,12 @@ data AbstractToken = TkId | TkConst | TkVar | TkOfType | TkAsig
     -- Double precission
     | TkHollow | TkFloatLit
     -- Character
-    | TkSign | TkChar Char | TkAsciiOf
+    | TkSign | TkChar | TkAsciiOf
     --- Collections
     -- Strings
     | TkMiracleKnown -- size known at compile time
     | TkMiracleUnknown -- size unknown
-    | TkAt -- String delimitators
+    | TkString -- Strings
     -- Arrays
     | TkChestKnown | TkChestUnknown | TkChestOpen | TkChestClose | TkSize
     -- Sets
