@@ -1,32 +1,33 @@
 {
 module Lexer (
-    alexMonadScan, readTokens,
+    alexMonadScan, scanTokens,
     Token (..), AlexUserState(..)
     ) where
 import Debug.Trace (trace)
 }
 %wrapper "monadUserState"
+
+-- macros for sets and regex
+@ids = [a-z][A-Za-z0-9_]*
 tokens :-
-    $white+         { skip }
+    $white+         ;
     const           { makeToken TkConst }
     var             { makeToken TkVar }
+    of\ type        { makeToken TkOfType }
+    @ids            { makeToken TkId }
     .               { throwLexError }
 
 {
 
 addPayload :: AbstractToken -> String -> Maybe String
 addPayload aToken payload
-        | aToken `elem` [] = Just payload
+        | aToken `elem` [TkConst, TkVar] = Just payload
         | otherwise = Nothing
 
 makeToken :: AbstractToken -> AlexAction AlexUserState
-makeToken token alexInput int = do
-    userState <- getUserState
-    case userState of
-        LexFailure errors -> return userState
-        LexSuccess tokens -> do
-            -- addTokenToState $ tokenMapper $ trace ("debug" ++ show tokenId) tokenId
-            alexMonadScan
+makeToken token (alexPosn, _, _, str) len = do
+    addTokenToState $ Token token (addPayload token $ take len str) alexPosn
+    alexMonadScan
 
 throwLexError :: AlexAction AlexUserState
 throwLexError alexInput int = do
@@ -130,15 +131,19 @@ data Token = Token AbstractToken -- Token perse
                 AlexPosn -- To get file context
     deriving (Show)
 
+type Tokens = [Token]
+
 data LexError = LexError AlexInput
     deriving (Show)
+
+type LexErrors = [LexError]
 
 -- This isn't on the documentation
 alexEOF :: Alex AlexUserState
 alexEOF = getUserState
 
-data AlexUserState = LexFailure [LexError]
-    | LexSuccess [Token]
+data AlexUserState = LexFailure LexErrors
+    | LexSuccess Tokens
 
 alexInitUserState :: AlexUserState
 alexInitUserState = LexSuccess []
@@ -147,26 +152,35 @@ getUserState :: Alex AlexUserState
 getUserState = Alex $ \s@AlexState{alex_ust=ust} -> Right (s, ust)
 
 addTokenToState :: Token -> Alex ()
-addTokenToState lexToken = Alex $ \s@AlexState{alex_ust=ust}
+addTokenToState token = Alex $ \s@AlexState{alex_ust=ust}
     -> Right (s{
-        alex_ust=LexSuccess $ lexToken:(getTokens ust)
+        alex_ust = (case ust of
+                        LexSuccess tokens -> LexSuccess (token:tokens)
+                        _ -> ust)
     }, ())
-    where getTokens ust = case ust of
-                                LexSuccess tokens -> tokens
-                                _ -> []
 
 addErrorToState :: LexError -> Alex ()
 addErrorToState lexError = Alex $ \s@AlexState{alex_ust=ust}
     -> Right (s{
-        alex_ust=LexFailure $ lexError:(getErrors ust)
+        alex_ust = (case ust of
+                        LexFailure errors -> LexFailure (lexError:errors)
+                        _ -> LexFailure [lexError])
     }, ())
-    where getErrors ust = case ust of
-                                LexFailure errors -> errors
-                                _ -> []
 
-readTokens :: String -> AlexUserState
-readTokens str = case runAlex str alexMonadScan of
-    Left e -> error $ show e
-    Right userState -> userState
+printLexErrors :: [LexError] -> IO ()
+printLexErrors [] = return ()
+printLexErrors (e:errs) = do
+    print e
+    printLexErrors errs
 
+scanTokens :: String -> IO (Maybe Tokens)
+scanTokens str = case runAlex str alexMonadScan of
+    Left e -> do
+        putStrLn $ "Alex error " ++ show e
+        return Nothing
+    Right userState -> case userState of
+        LexSuccess tokens -> return $ Just tokens
+        LexFailure errors -> do
+            printLexErrors errors
+            return Nothing
 }
