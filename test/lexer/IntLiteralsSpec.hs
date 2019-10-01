@@ -12,7 +12,7 @@ spec = describe "Lexer" $ do
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkInt
+        atok `shouldBe` TkIntLit
       Nothing ->
         error "rejected as an invalid token"
 
@@ -22,7 +22,7 @@ spec = describe "Lexer" $ do
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkInt
+        atok `shouldBe` TkIntLit
       Nothing ->
         error "rejected as an invalid token"
 
@@ -32,6 +32,6 @@ spec = describe "Lexer" $ do
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkInt
+        atok `shouldBe` TkIntLit
       Nothing ->
         error "rejected as an invalid token"
