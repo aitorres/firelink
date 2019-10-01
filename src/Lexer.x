@@ -21,12 +21,8 @@ addPayload aToken payload
 
 makeToken :: AbstractToken -> AlexAction AlexUserState
 makeToken token alexInput int = do
-    userState <- getUserState
-    case userState of
-        LexFailure errors -> return userState
-        LexSuccess tokens -> do
-            -- addTokenToState $ tokenMapper $ trace ("debug" ++ show tokenId) tokenId
-            alexMonadScan
+    addTokenToState token
+    alexMonadScan
 
 throwLexError :: AlexAction AlexUserState
 throwLexError alexInput int = do
@@ -147,22 +143,20 @@ getUserState :: Alex AlexUserState
 getUserState = Alex $ \s@AlexState{alex_ust=ust} -> Right (s, ust)
 
 addTokenToState :: Token -> Alex ()
-addTokenToState lexToken = Alex $ \s@AlexState{alex_ust=ust}
+addTokenToState token = Alex $ \s@AlexState{alex_ust=ust}
     -> Right (s{
-        alex_ust=LexSuccess $ lexToken:(getTokens ust)
+        alex_ust = (case ust of
+                        LexSuccess tokens -> LexSuccess (token:tokens)
+                        _ -> ust)
     }, ())
-    where getTokens ust = case ust of
-                                LexSuccess tokens -> tokens
-                                _ -> []
 
 addErrorToState :: LexError -> Alex ()
 addErrorToState lexError = Alex $ \s@AlexState{alex_ust=ust}
     -> Right (s{
-        alex_ust=LexFailure $ lexError:(getErrors ust)
+        alex_ust = (case ust of
+                        LexFailure errors -> LexFailure (lexError:errors)
+                        _ -> ust)
     }, ())
-    where getErrors ust = case ust of
-                                LexFailure errors -> errors
-                                _ -> []
 
 readTokens :: String -> AlexUserState
 readTokens str = case runAlex str alexMonadScan of
