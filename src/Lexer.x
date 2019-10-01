@@ -7,105 +7,39 @@ import Debug.Trace (trace)
 }
 %wrapper "monadUserState"
 tokens :-
-    $white+         ;
-    const           { makeToken TConst }
+    $white+         { skip }
+    const           { makeToken TkConst }
+    var             { makeToken TkVar }
     .               { throwLexError }
 
 {
--- Only meant to build the tokens via actions
-data TokenId = TId | TConst | TVar | TOfType | TAsig
-    -------------------
-    ------ Types ------
-    -------------------
-    -- Integers
-    | TBigHumanity | TSmallHumanity | TInt
-    -- Tri-booleans
-    | TBonfire | TLit | TUnlit | TUndiscovered
-    -- Double precission
-    | THollow
-    -- Character
-    | TSign | TChar | TAsciiOf
-    --- Collections
-    -- Strings
-    | TMiracleKnown | TMiracleUnknown | TAt
-    -- Arrays
-    | TChestKnown | TChestUnknown | TChestOpen | TChestClose | TSize
-    -- Sets
-    | TArmor | TArmorOpen | TArmorClose | TUnion | TIntersect | TDiff
-    -- Enums
-    | TTitanite | TBraceOpen | TBraceClosed | TComma | TAccessor
-    -- Records (C-like structs)
-    | TBezel
-    -- Unions
-    | TLink
-    -- Null, pointer stuff
-    | TAbyss | TArrowTo | TAimA | TThrowA | TRecoverA
-    -- Type Aliases
-    | TKnight
-    ------------------
-    -- Instructions --
-    ------------------
-    -- Program basic structure tokens
-    | TComment | TProgramBegin | TProgramEnd
-    -- Declarations
-    | TBeginDeclarations | TEndDeclarations
-    -- Instructions
-    | TInstructionBegin
-    | TInstructionEnd
-    | TSeq -- \
-    -- Functions
-    | TInvocation | TRequesting | TInvocationType | TInvocationEnd | TVal
-    | TRef | TReturn | TSummon | TGranting
-    -- Procedures
-    | TSpell | TSpellEnd | TCast | TOffering
-    -- Basic I/O
-    | TPrint | TRead
-    -- Basic selection
-    | TIf | TColon | TElse | TEndIf
-    -- Switch selection
-    | TSwitch | TDefault | TEndSwitch
-    -- Finite iterations
-    | TUpgrading | TWith | TSoul | TLevel | TEndUpgrading | TRepairing
-    | TWithTitaniteFrom | TEndRepairing
-    -- Conditional iterations
-    | TWhile | TCovenantIsActive | TEndWhile
 
-    -------------------
-    -- Common tokens --
-    -------------------
-    -- Binary operators
-    | TPlus | TMinus | TMult | TDiv | TMod | TLt | TGt | TLte | TGte
-    | TEq | TNeq | TAnd | TOr | TConcat
-    -- Unary operators
-    | TNot
-    -- Eof
-    | TEof
-    deriving (Show)
+addPayload :: AbstractToken -> String -> Maybe String
+addPayload aToken payload
+        | aToken `elem` [] = Just payload
+        | otherwise = Nothing
 
-tokenMapper :: TokenId -> Token
-tokenMapper TConst = TkConst
-
-makeToken :: TokenId -> AlexAction AlexUserState
-makeToken tokenId alexInput int = do
+makeToken :: AbstractToken -> AlexAction AlexUserState
+makeToken token alexInput int = do
     userState <- getUserState
     case userState of
-        LexFailure errors -> error ""
+        LexFailure errors -> return userState
         LexSuccess tokens -> do
-            addTokenToState $ tokenMapper $ trace "debug" tokenId
-            getUserState
+            -- addTokenToState $ tokenMapper $ trace ("debug" ++ show tokenId) tokenId
+            alexMonadScan
 
 throwLexError :: AlexAction AlexUserState
 throwLexError alexInput int = do
     addErrorToState $ LexError alexInput
-    getUserState
+    alexMonadScan
 
     -- The token type:
-data Token = TkId String | TkConst | TkVar | TkOfType | TkAsig
+data AbstractToken = TkId | TkConst | TkVar | TkOfType | TkAsig
     -------------------
     ------ Types ------
     -------------------
     -- Integers
-    | TkBigHumanity | TkSmallHumanity | TkInt Int
+    | TkBigHumanity | TkSmallHumanity | TkInt
     -- Tri-booleans
     | TkBonfire | TkLit | TkUnlit | TkUndiscovered
     -- Double precission
@@ -114,11 +48,11 @@ data Token = TkId String | TkConst | TkVar | TkOfType | TkAsig
     | TkSign | TkChar Char | TkAsciiOf
     --- Collections
     -- Strings
-    | TkMiracleKnown Int -- size known at compile time
-    | TkMiracleUnknown String -- size unknown
+    | TkMiracleKnown -- size known at compile time
+    | TkMiracleUnknown -- size unknown
     | TkAt -- String delimitators
     -- Arrays
-    | TkChestKnown Int | TkChestUnknown String | TkChestOpen | TkChestClose | TkSize
+    | TkChestKnown | TkChestUnknown | TkChestOpen | TkChestClose | TkSize
     -- Sets
     | TkArmor | TkArmorOpen | TkArmorClose | TkUnion | TkIntersect | TkDiff
     -- Enums
@@ -191,6 +125,11 @@ data Token = TkId String | TkConst | TkVar | TkOfType | TkAsig
     | TkNot
     deriving (Eq, Show)
 
+data Token = Token AbstractToken -- Token perse
+                (Maybe String) -- Extra info (useful on literals, ids, etc)
+                AlexPosn -- To get file context
+    deriving (Show)
+
 data LexError = LexError AlexInput
     deriving (Show)
 
@@ -204,14 +143,6 @@ data AlexUserState = LexFailure [LexError]
 alexInitUserState :: AlexUserState
 alexInitUserState = LexSuccess []
 
-getTokens :: AlexUserState -> [Token]
-getTokens (LexSuccess tokens) = tokens
-getTokens _ = [] -- if the computation failed it doesn't have tokens
-
-getErrors :: AlexUserState -> [LexError]
-getErrors (LexFailure errors) = errors
-getErrors _ = [] -- same here
-
 getUserState :: Alex AlexUserState
 getUserState = Alex $ \s@AlexState{alex_ust=ust} -> Right (s, ust)
 
@@ -220,13 +151,18 @@ addTokenToState lexToken = Alex $ \s@AlexState{alex_ust=ust}
     -> Right (s{
         alex_ust=LexSuccess $ lexToken:(getTokens ust)
     }, ())
+    where getTokens ust = case ust of
+                                LexSuccess tokens -> tokens
+                                _ -> []
 
 addErrorToState :: LexError -> Alex ()
 addErrorToState lexError = Alex $ \s@AlexState{alex_ust=ust}
     -> Right (s{
         alex_ust=LexFailure $ lexError:(getErrors ust)
     }, ())
-
+    where getErrors ust = case ust of
+                                LexFailure errors -> errors
+                                _ -> []
 
 readTokens :: String -> AlexUserState
 readTokens str = case runAlex str alexMonadScan of
