@@ -544,6 +544,12 @@ Donde el tipo de parámetro es:
 - `val` para parámetros por valor
 - `ref` para parámetros por referencia
 
+Dentro del procedimiento, se puede utilizar la siguiente sintaxis para retornar y detener la ejecución del procedimiento inmediatamente.
+
+```firelink
+go back
+```
+
 #### Llamada a Procedimientos
 
 Dentro de un bloque de instrucciones, se puede realizar una llamada a un procedimiento de la siguiente manera:
