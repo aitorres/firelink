@@ -7,21 +7,56 @@ module Lexer (
 %wrapper "monadUserState"
 
 -- macros for sets and regex
+$digits = [0-9]
 @ids = [a-z][A-Za-z0-9_]*
 tokens :-
     $white+         ;
     -- reserved keywords
-    const           { makeToken TkConst }
-    var             { makeToken TkVar }
-    of\ type        { makeToken TkOfType }
-    @ids            { makeToken TkId }
-    .               { throwLexError }
+    hello\ ashen\ one   { makeToken TkProgramBegin }
+    farewell\ ashen\ one { makeToken TkProgramEnd }
+    traveling\ somewhere { makeToken TkInstructionBegin }
+    you\ died             { makeToken TkInstructionEnd }
+    with                { makeToken TkWith }
+    humanity            { makeToken TkBigHumanity}
+    small\ humanity            { makeToken TkBigHumanity}
+    big\ humanity            { makeToken TkBigHumanity}
+    in\ your\ inventory { makeToken TkInYourInventory }
+    transpose\ into      { makeToken TkRead }
+    upgrading           { makeToken TkUpgrading }
+    max\ level\ reached { makeToken TKEndUpgrading }
+    souls?              { makeToken TkSoul }
+    until\ level        { makeToken TkLevel }
+    with\ orange\ saponite\ say { makeToken TkPrint }
+
+
+    -- Literals
+    $digits+            { makeToken TkInt }
+
+    -- Special characters
+    \,                  { makeToken TkComma }
+    \\                  { makeToken TkSeq }
+    \<\<=                 { makeToken TkAsig }
+    \+                  { makeToken TkPlus }
+    \-                  { makeToken TkMinus }
+    \*                  { makeToken TkMult }
+    \/                  { makeToken TkDiv }
+
+
+    const               { makeToken TkConst }
+    var                 { makeToken TkVar }
+    of\ type            { makeToken TkOfType }
+    @ids                { makeToken TkId }
+    .                   { throwLexError }
 
 {
 
+payloadRequiredTokens :: [AbstractToken]
+payloadRequiredTokens = [
+    ]
+
 addPayload :: AbstractToken -> String -> Maybe String
 addPayload aToken payload
-        | aToken `elem` [TkConst, TkVar] = Just payload
+        | aToken `elem` payloadRequiredTokens = Just payload
         | otherwise = Nothing
 
 makeToken :: AbstractToken -> AlexAction AlexUserState
@@ -75,7 +110,7 @@ data AbstractToken = TkId | TkConst | TkVar | TkOfType | TkAsig
     | TkProgramBegin -- hello ashen one
     | TkProgramEnd -- farewell ashen one
     -- Declarations
-    | TkBeginDeclarations | TkEndDeclarations
+    | TkInYourInventory
     -- Instructions
     | TkInstructionBegin -- traveling somewhere
     | TkInstructionEnd -- you died
