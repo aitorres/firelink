@@ -14,7 +14,7 @@ $digits = [0-9]
 $characters = [^\\\|]
 @ids = [a-z][A-Za-z0-9_]*
 @scapedchars = \\[nt\\\|]
-@strings = \@([$characters # \@] | "\@" | @scapedchars)+\@
+@strings = \@([$characters # \@] | "\@" | @scapedchars)*\@
 @comments = \-\- $printable+
 tokens :-
     $white+         ;
