@@ -129,7 +129,7 @@ data AbstractToken = TkId | TkConst | TkVar | TkOfType | TkAsig
 data Token = Token AbstractToken -- Token perse
                 (Maybe String) -- Extra info (useful on literals, ids, etc)
                 AlexPosn -- To get file context
-    deriving (Show)
+    deriving (Eq, Show)
 
 type Tokens = [Token]
 
