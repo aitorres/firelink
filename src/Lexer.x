@@ -1,7 +1,7 @@
 {
 module Lexer (
-    alexMonadScan, scanTokens,
-    Token (..), AlexUserState(..)
+    alexMonadScan, scanTokens, getAbstractToken,
+    AbstractToken (..), Token (..), AlexUserState(..)
     ) where
 import Debug.Trace (trace)
 }
@@ -142,8 +142,9 @@ type LexErrors = [LexError]
 alexEOF :: Alex AlexUserState
 alexEOF = getUserState
 
-data AlexUserState = LexFailure LexErrors
-    | LexSuccess Tokens
+data AlexUserState = LexFailure [LexError]
+    | LexSuccess [Token]
+    deriving (Show)
 
 alexInitUserState :: AlexUserState
 alexInitUserState = LexSuccess []
@@ -183,4 +184,7 @@ scanTokens str = case runAlex str alexMonadScan of
         LexFailure errors -> do
             printLexErrors errors
             return Nothing
+
+getAbstractToken :: Token -> AbstractToken
+getAbstractToken (Token t _ _) = t
 }

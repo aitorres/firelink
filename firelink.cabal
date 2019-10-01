@@ -4,13 +4,13 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: c166e80a12c8fca76a366bf52478aa4ae0c3250067c61ab5f96683ec85db4e0f
+-- hash: b78aff7fcd099c0bca05cd145300bb7362ddf8825c3a734c03e48ef99b08259a
 
 name:           firelink
 version:        0.1.0.0
-description:    Please see the README on GitHub at <https://github.com/githubuser/firelink#readme>
-homepage:       https://github.com/githubuser/firelink#readme
-bug-reports:    https://github.com/githubuser/firelink/issues
+description:    Please see the README on GitHub at <https://github.com/aitorres/firelink#readme>
+homepage:       https://github.com/aitorres/firelink#readme
+bug-reports:    https://github.com/aitorres/firelink/issues
 author:         Author name here
 maintainer:     example@example.com
 copyright:      2019 Author name here
@@ -23,7 +23,7 @@ extra-source-files:
 
 source-repository head
   type: git
-  location: https://github.com/githubuser/firelink
+  location: https://github.com/aitorres/firelink
 
 library
   exposed-modules:
@@ -56,16 +56,19 @@ executable firelink-exe
     , firelink
   default-language: Haskell2010
 
-test-suite firelink-test
+test-suite lexer-tests
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      GeneralSpec
       Paths_firelink
   hs-source-dirs:
-      test
+      test/lexer
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
     , base >=4.7 && <5
     , firelink
+    , hspec
+    , hspec-discover
   default-language: Haskell2010
