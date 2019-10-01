@@ -95,8 +95,8 @@ spec = describe "Lexer" $ do
       Nothing ->
         error "rejected as an invalid token"
 
-  it "accepts `while` as a valid token" $ do
-    let x = "while"
+  it "accepts `while the` as a valid token" $ do
+    let x = "while the"
     s <- scanTokens x
     case s of
       Just toks -> do

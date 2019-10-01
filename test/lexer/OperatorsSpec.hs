@@ -138,8 +138,8 @@ spec = describe "Lexer" $ do
         error "rejected as an invalid token"
 
   -- Collections
-  it "accepts `<->` as a valid token" $ do
-    let x = "<->"
+  it "accepts `>-<` as a valid token" $ do
+    let x = ">-<"
     s <- scanTokens x
     case s of
       Just toks -> do
@@ -156,5 +156,36 @@ spec = describe "Lexer" $ do
       Just toks -> do
         let atok = getAbstractToken $ head toks
         atok `shouldBe` TkNot
+      Nothing ->
+        error "rejected as an invalid token"
+
+  -- Special
+  it "accepts `<` as a valid token" $ do
+    let x = "<"
+    s <- scanTokens x
+    case s of
+      Just toks -> do
+        let atok = getAbstractToken $ head toks
+        atok `shouldBe` TkLteLit
+      Nothing ->
+        error "rejected as an invalid token"
+
+  it "accepts `{` as a valid token" $ do
+    let x = "{"
+    s <- scanTokens x
+    case s of
+      Just toks -> do
+        let atok = getAbstractToken $ head toks
+        atok `shouldBe` TkBraceOpen
+      Nothing ->
+        error "rejected as an invalid token"
+
+  it "accepts `}` as a valid token" $ do
+    let x = "}"
+    s <- scanTokens x
+    case s of
+      Just toks -> do
+        let atok = getAbstractToken $ head toks
+        atok `shouldBe` TkBraceOpen
       Nothing ->
         error "rejected as an invalid token"
