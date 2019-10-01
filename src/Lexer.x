@@ -12,9 +12,11 @@ $characters = [^\\\|]
 @ids = [a-z][A-Za-z0-9_]*
 @scapedchars = \\[nt\\\|]
 @strings = \@([$characters # \@] | "\@" | @scapedchars)+\@
+@comments = \-\- $printable+
 tokens :-
     $white+         ;
-    -- reserved keywords
+    -- reserved keywords --
+    -- Program structure
     hello\ ashen\ one   { makeToken TkProgramBegin }
     farewell\ ashen\ one { makeToken TkProgramEnd }
     traveling\ somewhere { makeToken TkInstructionBegin }
@@ -22,26 +24,47 @@ tokens :-
     with                { makeToken TkWith }
     in\ your\ inventory { makeToken TkInYourInventory }
     transpose\ into      { makeToken TkRead }
-    upgrading           { makeToken TkUpgrading }
-    max\ level\ reached { makeToken TKEndUpgrading }
-    souls?              { makeToken TkSoul }
-    until\ level        { makeToken TkLevel }
     with\ orange\ saponite\ say { makeToken TkPrint }
+
+    -- Functions and procedures
     spell               { makeToken TkSpell }
     ashen\ estus\ flask\ consumed { makeToken TkSpellEnd }
     invocation          { makeToken TkInvocation }
+    with\ skill\ of\ type { makeToken TkInvocationType }
     requesting          { makeToken TkRequesting }
     val                 { makeToken TkVal }
     ref                 { makeToken TkRef }
-    with\ skill\ of\ type { makeToken TkInvocationType }
-    trust\ your\ inventory { makeToken TkIf }
-    inventory\ closed       { makeToken TkEndIf }
     summon              { makeToken TkSummon }
     granting            { makeToken TkGranting }
     go\ back\ with      { makeToken TkReturn }
     after\ this\ return\ to\ your\ world { makeToken TkInvocationEnd }
+
+    -- classic conditional
+    trust\ your\ inventory { makeToken TkIf }
+    liar\!                  { makeToken TkElse }
+    inventory\ closed       { makeToken TkEndIf }
+
     ascii_of            { makeToken TkAsciiOf }
 
+    -- switch statements
+    enter\ dungeon\ with { makeToken TkSwitch }
+    dungeon\ exited         { makeToken TkEndSwitch }
+    empty dungeon           { makeToken TkSwitchDefault }
+
+    -- on-structure looping
+    repairing               { makeToken TkRepairing }
+    with\ titanite\ from      { makeToken TkWithTitaniteFrom }
+    weaponry\ repaired          { makeToken TkEndRepairing }
+
+    -- iterable looping
+    upgrading           { makeToken TkUpgrading }
+    max\ level\ reached { makeToken TKEndUpgrading }
+    souls?              { makeToken TkSoul }
+    until\ level        { makeToken TkLevel }
+
+    -- conditionate looping
+    while\ the           { makeToken TkWhile }
+    covenant\ is\ active { makeToken TkCovenantIsActive }
     -- Types
     humanity            { makeToken TkBigHumanity}
     small\ humanity            { makeToken TkBigHumanity}
@@ -84,6 +107,7 @@ tokens :-
     knight              { makeToken TkKnight }
     requiring\ help\ of { makeToken TkAliasesListBegin }
     help\ received      { makeToken TkAliasesListEnd }
+
     -- Literals
     $digits+            { makeToken TkIntLit }
     $digits+\.$digits+  { makeToken TkFloatLit }
@@ -209,7 +233,7 @@ data AbstractToken = TkId | TkConst | TkVar | TkOfType | TkAsig
     | TkEndIf -- inventory closed
     -- Switch selection
     | TkSwitch -- enter dungeon with <id>
-    | TkDefault
+    | TkSwitchDefault
     | TkEndSwitch -- dungeon exited
     -- Finite iterations
     | TkUpgrading -- for without iterable
