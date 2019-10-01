@@ -20,6 +20,7 @@ tokens :-
     $white+         ;
     -- reserved keywords --
     -- Program structure
+    @comments           { makeToken TkComment }
     hello\ ashen\ one   { makeToken TkProgramBegin }
     farewell\ ashen\ one { makeToken TkProgramEnd }
     traveling\ somewhere { makeToken TkInstructionBegin }
@@ -39,6 +40,8 @@ tokens :-
     ref                 { makeToken TkRef }
     summon              { makeToken TkSummon }
     granting            { makeToken TkGranting }
+    cast                { makeToken TkCast }
+    offering            { makeToken TkOffering }
     go\ back            { makeToken TkReturn }
     go\ back\ with      { makeToken TkReturnWith }
     after\ this\ return\ to\ your\ world { makeToken TkInvocationEnd }
@@ -53,7 +56,7 @@ tokens :-
     -- switch statements
     enter\ dungeon\ with { makeToken TkSwitch }
     dungeon\ exited         { makeToken TkEndSwitch }
-    empty dungeon           { makeToken TkSwitchDefault }
+    empty\ dungeon           { makeToken TkSwitchDefault }
 
     -- on-structure looping
     repairing               { makeToken TkRepairing }
@@ -69,6 +72,7 @@ tokens :-
     -- conditionate looping
     while\ the           { makeToken TkWhile }
     covenant\ is\ active { makeToken TkCovenantIsActive }
+    covenant\ left       { makeToken TkEndWhile }
     -- Types
     humanity            { makeToken TkBigHumanity}
     small\ humanity     { makeToken TkSmallHumanity}
@@ -98,7 +102,7 @@ tokens :-
     size                { makeToken TkSize }
 
     titanite            { makeToken TkTitanite }
-    ~\>                 { makeToken TkAccessor }
+    \~\>                { makeToken TkAccessor }
 
     bezel               { makeToken TkBezel }
 
@@ -122,7 +126,7 @@ tokens :-
     -- Special characters
     \,                  { makeToken TkComma }
     \\                  { makeToken TkSeq }
-    :                   { makeToken TkColon }
+    \:                   { makeToken TkColon }
     \|$characters\|        { makeToken TkChar }
     \|@scapedchars\|        { makeToken TkChar }
 
