@@ -168,10 +168,7 @@ addErrorToState lexError = Alex $ \s@AlexState{alex_ust=ust}
     }, ())
 
 printLexErrors :: [LexError] -> IO ()
-printLexErrors [] = return ()
-printLexErrors (e:errs) = do
-    print e
-    printLexErrors errs
+printLexErrors = mapM_ print -- mapM_ is the monadic version of map
 
 scanTokens :: String -> IO (Maybe Tokens)
 scanTokens str = case runAlex str alexMonadScan of
