@@ -78,6 +78,8 @@ tokens :-
     unlit               { makeToken TkUnlit }
     undiscovered        { makeToken TkUndiscovered }
 
+    hollow              { makeToken TkHollow }
+
     sign                { makeToken TkSign }
 
     \>\-miracle         { makeToken TkMiracle }
