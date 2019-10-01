@@ -1,27 +1,32 @@
 {
 module Lexer (
-    alexMonadScan, readTokens,
+    alexMonadScan, scanTokens,
     Token (..), AlexUserState(..)
     ) where
 import Debug.Trace (trace)
 }
 %wrapper "monadUserState"
+
+-- macros for sets and regex
+@ids = [a-z][A-Za-z0-9_]*
 tokens :-
-    $white+         { skip }
+    $white+         ;
     const           { makeToken TkConst }
     var             { makeToken TkVar }
+    of\ type        { makeToken TkOfType }
+    @ids            { makeToken TkId }
     .               { throwLexError }
 
 {
 
 addPayload :: AbstractToken -> String -> Maybe String
 addPayload aToken payload
-        | aToken `elem` [] = Just payload
+        | aToken `elem` [TkConst, TkVar] = Just payload
         | otherwise = Nothing
 
 makeToken :: AbstractToken -> AlexAction AlexUserState
-makeToken token alexInput int = do
-    addTokenToState token
+makeToken token (alexPosn, _, _, str) len = do
+    addTokenToState $ Token token (addPayload token $ take len str) alexPosn
     alexMonadScan
 
 throwLexError :: AlexAction AlexUserState
@@ -155,12 +160,23 @@ addErrorToState lexError = Alex $ \s@AlexState{alex_ust=ust}
     -> Right (s{
         alex_ust = (case ust of
                         LexFailure errors -> LexFailure (lexError:errors)
-                        _ -> ust)
+                        _ -> LexFailure [lexError])
     }, ())
 
-readTokens :: String -> AlexUserState
-readTokens str = case runAlex str alexMonadScan of
-    Left e -> error $ show e
-    Right userState -> userState
+printLexErrors :: [LexError] -> IO ()
+printLexErrors [] = return ()
+printLexErrors (e:errs) = do
+    print e
+    printLexErrors errs
 
+scanTokens :: String -> IO (Maybe [Token])
+scanTokens str = case runAlex str alexMonadScan of
+    Left e -> do
+        putStrLn $ "Alex error " ++ show e
+        return Nothing
+    Right userState -> case userState of
+        LexSuccess tokens -> return $ Just tokens
+        LexFailure errors -> do
+            printLexErrors errors
+            return Nothing
 }
