@@ -138,7 +138,7 @@ tokens :-
     or                 { makeToken TkOr }
     \>\-\<              { makeToken TkConcat }
     \<                  { makeToken TkLteLit }
-    \{                  { maketoken TkBraceOpen }
+    \{                  { makeToken TkBraceOpen }
     \}                  { makeToken TkBraceClosed }
 
     const               { makeToken TkConst }
