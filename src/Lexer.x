@@ -304,7 +304,7 @@ addErrorToState lexError = Alex $ \s@AlexState{alex_ust=ust}
 
 formatLexError :: String -> LexError -> String
 formatLexError fullStr (LexError (AlexPn offset r c, _, _, s)) =
-    printf "Lexical error at line %d, column %d:\n%s\n" r c fs
+    printf "\x1b[1m!!\x1b[0m Lexical error at line \x1b[1m\x1b[31m%d\x1b[0m, column \x1b[1m\x1b[31m%d\x1b[0m:\n%s\n" r c fs
     where
         allLines = splitOn "\n" fullStr
         maxSize = foldl max (-1) $ map length allLines
@@ -313,7 +313,7 @@ formatLexError fullStr (LexError (AlexPn offset r c, _, _, s)) =
         relevantLines = drop (r-1) allLines
         firstLine = head relevantLines ++ "\n"
         restLines = take 4 $ tail relevantLines
-        errorRuler = (buildRuler (c-1)) ++ "^" ++ buildRuler (maxSize - c) ++ "\n"
+        errorRuler = "\x1b[1m\x1b[31m" ++ (buildRuler (c-1)) ++ "^" ++ buildRuler (maxSize - c) ++ "\x1b[0m\n"
         fs = firstLine ++ errorRuler ++ (intercalate "\n" restLines)
 
 
