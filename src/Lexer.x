@@ -56,6 +56,34 @@ tokens :-
 
     \>\-miracle         { makeToken TkMiracle }
 
+    \>\-chest           { makeToken TkChest }
+    \<\$                { makeToken TkChestOpen }
+    \$\>                { makeToken TkChestClose }
+
+    armor               { makeToken TkArmor }
+    \{\$                { makeToken TkArmorOpen }
+    \$\}                { makeToken TkArmorClose }
+    union               { makeToken TkUnion }
+    intersect           { makeToken TkIntersect }
+    diff                { makeToken TkDiff }
+    size                { makeToken TkSize }
+
+    titanite            { makeToken TkTitanite }
+    ~\>                 { makeToken TkAccessor }
+
+    bezel               { makeToken TkBezel }
+
+    link                { makeToken TkLink }
+
+    abyss               { makeToken TkAbyss }
+    arrow\ to           { makeToken TkArrowTo }
+    aim\ a              { makeToken TkAimA }
+    throw\ a            { makeToken TkThrowA }
+    recover\ a          { makeToken TkRecoverA }
+
+    knight              { makeToken TkKnight }
+    requiring\ help\ of { makeToken TkAliasesListBegin }
+    help\ received      { makeToken TkAliasesListEnd }
     -- Literals
     $digits+            { makeToken TkIntLit }
     $digits+\.$digits+  { makeToken TkFloatLit }
@@ -86,6 +114,8 @@ tokens :-
     or                 { makeToken TkOr }
     \>\-\<              { makeToken TkConcat }
     \<                  { makeToken TkLteLit }
+    \{                  { maketoken TkBraceOpen }
+    \}                  { makeToken TkBraceClosed }
 
     const               { makeToken TkConst }
     var                 { makeToken TkVar }
@@ -132,7 +162,7 @@ data AbstractToken = TkId | TkConst | TkVar | TkOfType | TkAsig
     | TkMiracle | TkLteLit
     | TkString -- Strings
     -- Arrays
-    | TkChestKnown | TkChestUnknown | TkChestOpen | TkChestClose | TkSize
+    | TkChest | TkChestOpen | TkChestClose | TkSize
     -- Sets
     | TkArmor | TkArmorOpen | TkArmorClose | TkUnion | TkIntersect | TkDiff
     -- Enums
@@ -144,7 +174,7 @@ data AbstractToken = TkId | TkConst | TkVar | TkOfType | TkAsig
     -- Null, pointer stuff
     | TkAbyss | TkArrowTo | TkAimA | TkThrowA | TkRecoverA
     -- Type Aliases
-    | TkKnight
+    | TkKnight | TkAliasesListBegin | TkAliasesListEnd
 
     ------------------
     -- Instructions --
