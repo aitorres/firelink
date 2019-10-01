@@ -107,7 +107,7 @@ Los literales bonfire son los siguientes:
 
 El valor por defecto de un _bonfire_ es `undiscovered`.
 
-##### Operadores para los vonfires
+##### Operadores para los bonfires
 
 El tipo de datos _bonfire_ soporta los siguientes operadores:
 
@@ -177,7 +177,7 @@ Los literales punto flotante son de la forma `[-]{0,1}[0-9]+([.][0-9]+){0,1}` en
 
 El valor por defecto de un punto flotante es `0.0`.
 
-##### Operadores para los enteros
+##### Operadores para los flotantes
 
 Nuestro lenguaje soporta todos los operadores básicos de enteros:
 
@@ -223,15 +223,15 @@ Representa una cadena colección de cero, uno o varios caracteres, almacenados c
 
 Los literales de cadena de caracteres están encerrados entre el caracter `@` y sus elementos no están separados entre sí por ningún caracter.
 
-El valor por defecto de una cadena de caracteres `n-miracle` es la cadena consistente de n espacios (`@          @` para `n == 10`).
+El valor por defecto de una cadena de caracteres `<n>-miracle` es la cadena consistente de n espacios (`@          @` para `n == 10`).
 
 ##### Operadores de las cadenas de caracteres
 
 Se cuenta con el siguiente operador:
 
-* `>-<`: toma un `n-miracle` y un `m-miracle` y los concatena, retornando un `(n+m)-miracle`.
+* `>-<`: toma un `<n>-miracle` y un `<m>-miracle` y los concatena, retornando un `<n+m>-miracle`.
 
-##### Funciones de los caracteres
+##### Funciones de las cadenas de caracteres
 
 Se debe implementar la siguiente función en el preludio de **FireLink**.
 
@@ -243,7 +243,7 @@ Representa una colección de valores del mismo tipo, almacenados contiguamente, 
 
 Los literales de arreglo están encerrados entre el caracter de inicio `<$` y el caracter de fin `$>`, y sus elementos están separados entre sí por una coma (`,`), seguida de cero, uno o varios espacios (` `). No se admite una coma entre el último elemento y el `$>` de cierre.
 
-Se puede acceder al valor en la posición `i` de un arreglo `a` con la sintaxis `a$i$`.
+Se puede acceder al valor en la posición `i` de un arreglo `a` con la sintaxis `a<$i$>`.
 
 El valor por defecto de un arreglo `<n>-chest of type <tipo>` es un arreglo cuyos valores están inicializados al valor por defecto del tipo dado.
 
@@ -256,8 +256,6 @@ Finalmente, se debe proveer el operador unario `size` que retorna un `humanity` 
 Representa una colección de valores del msimo tipo que no admite elementos repetidos. Su declarador de tipo es `armor of type <tipo>`, donde `tipo` es un declarador de tipo escalar.
 
 Los literales de arreglo están encerrados entre el caracter de inicio `{$` y el caracter de fin `$}`, y sus elementos están separados entre sí por una coma (`,`), seguida de cero, uno o varios espacios (` `). No se admite una coma entre el último elemento y el `$}` de cierre.
-
-Se puede acceder al valor en la posición `i` de un conjunto `a` con la sintaxis `a{i}`.
 
 El valor por defecto de un conjunto `armor of type <tipo>` es el conjunto vacío `{$ $}`.
 
@@ -282,7 +280,8 @@ La sintaxis de declaración de una enumeración es la siguiente (con indentació
 titanite {
   <nombre 1>,
   <nombre 2>,
-  <nombre 3>
+  ...
+  <nombre n>
 }
 ```
 
@@ -392,6 +391,8 @@ hello ashen one
 -- Esto simula un bloque de comentarios
 -- de muchas líneas,
 -- ya van tres.
+
+farewell ashen one
 
 ```
 
@@ -523,7 +524,7 @@ La llamada a la función evalúa a una expresión que puede ser asignada a una v
 
 ### Declaración de Procedimientos
 
-ES un bloque aislado de código con una secuencia no nula de instrucciones a ejecutar que no tiene un tipo de retorno asociado. Todo procedimiento requiere de un identificador único y válido, y opcionalmente una serie de parámetros con su identificador local y su tipo.
+Es un bloque aislado de código con una secuencia no nula de instrucciones a ejecutar que no tiene un tipo de retorno asociado. Todo procedimiento requiere de un identificador único y válido, y opcionalmente una serie de parámetros con su identificador local y su tipo.
 
 La sintaxis para declarar un procedimiento en la siguiente:
 
@@ -598,7 +599,7 @@ trust your inventory
 inventory closed
 ```
 
-El token `liar!` es equivalente al token `else` de otros lenguajes de programación. Las condiciones deben ser expresiones que evaluen a un tipo de dato `bonfire` (booleano).
+El token `liar!` es equivalente al token `else` de otros lenguajes de programación. Las condiciones deben ser expresiones que evaluen a un tipo de dato `bonfire` (3-booleano).
 
 ### Selección por casos
 
@@ -694,7 +695,9 @@ Por ejemplo:
 
 ```
 while the b covenant is active:
-  b <<= unlit
+  traveling somewhere
+    b <<= unlit
+  you died
 covenant left
 ```
 
