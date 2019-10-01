@@ -39,7 +39,8 @@ tokens :-
     ref                 { makeToken TkRef }
     summon              { makeToken TkSummon }
     granting            { makeToken TkGranting }
-    go\ back\ with      { makeToken TkReturn }
+    go\ back            { makeToken TkReturn }
+    go\ back\ with      { makeToken TkReturnWith }
     after\ this\ return\ to\ your\ world { makeToken TkInvocationEnd }
 
     -- classic conditional
@@ -228,6 +229,7 @@ data AbstractToken = TkId | TkConst | TkVar | TkOfType | TkAsig
     | TkSpellEnd -- ashen estus flask consumed
     | TkCast
     | TkOffering
+    | TkReturnWith
     -- Basic I/O
     | TkPrint -- with orange saponite say
     | TkRead -- transpose into
@@ -272,6 +274,7 @@ data Token = Token AbstractToken -- Token perse
 type Tokens = [Token]
 
 data LexError = LexError AlexInput
+    deriving Show
 
 type LexErrors = [LexError]
 
