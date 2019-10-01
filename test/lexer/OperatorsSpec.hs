@@ -148,6 +148,90 @@ spec = describe "Lexer" $ do
       Nothing ->
         error "rejected as an invalid token"
 
+  it "accepts `union` as a valid token" $ do
+    let x = "union"
+    s <- scanTokens x
+    case s of
+      Just toks -> do
+        let atok = getAbstractToken $ head toks
+        atok `shouldBe` TkUnion
+      Nothing ->
+        error "rejected as an invalid token"
+
+  it "accepts `intersect` as a valid token" $ do
+    let x = "intersect"
+    s <- scanTokens x
+    case s of
+      Just toks -> do
+        let atok = getAbstractToken $ head toks
+        atok `shouldBe` TkIntersect
+      Nothing ->
+        error "rejected as an invalid token"
+
+  it "accepts `diff` as a valid token" $ do
+    let x = "diff"
+    s <- scanTokens x
+    case s of
+      Just toks -> do
+        let atok = getAbstractToken $ head toks
+        atok `shouldBe` TkDiff
+      Nothing ->
+        error "rejected as an invalid token"
+
+  it "accepts `size` as a valid token" $ do
+    let x = "size"
+    s <- scanTokens x
+    case s of
+      Just toks -> do
+        let atok = getAbstractToken $ head toks
+        atok `shouldBe` TkSize
+      Nothing ->
+        error "rejected as an invalid token"
+
+  -- Structured
+
+  it "accepts `~>` as a valid token for comments" $ do
+    let x = "~>"
+    s <- scanTokens x
+    case s of
+      Just toks -> do
+        let atok = getAbstractToken $ head toks
+        atok `shouldBe` TkAccessor
+      Nothing ->
+        error "rejected as an invalid token"
+
+  -- Pointers
+
+  it "accepts `aim a` as a valid token" $ do
+    let x = "aim a"
+    s <- scanTokens x
+    case s of
+      Just toks -> do
+        let atok = getAbstractToken $ head toks
+        atok `shouldBe` TkAimA
+      Nothing ->
+        error "rejected as an invalid token"
+
+  it "accepts `throw a` as a valid token" $ do
+    let x = "throw a"
+    s <- scanTokens x
+    case s of
+      Just toks -> do
+        let atok = getAbstractToken $ head toks
+        atok `shouldBe` TkThrowA
+      Nothing ->
+        error "rejected as an invalid token"
+
+  it "accepts `recover a` as a valid token" $ do
+    let x = "recover a"
+    s <- scanTokens x
+    case s of
+      Just toks -> do
+        let atok = getAbstractToken $ head toks
+        atok `shouldBe` TkRecoverA
+      Nothing ->
+        error "rejected as an invalid token"
+
   -- Unary
   it "accepts `not` as a valid token" $ do
     let x = "not"
@@ -186,6 +270,6 @@ spec = describe "Lexer" $ do
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkBraceOpen
+        atok `shouldBe` TkBraceClosed
       Nothing ->
         error "rejected as an invalid token"
