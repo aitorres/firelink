@@ -10,8 +10,8 @@ module Lexer (
 $digits = [0-9]
 $characters = [^\\\|]
 @ids = [a-z][A-Za-z0-9_]*
--- @strings = \@([$characters | "\\\@"] # \@)\@
-@strings = \@([$characters # \@] | "\@")+\@
+@scapedchars = \\[nt\\\|]
+@strings = \@([$characters # \@] | "\@" | @scapedchars)+\@
 tokens :-
     $white+         ;
     -- reserved keywords
@@ -55,6 +55,7 @@ tokens :-
     \\                  { makeToken TkSeq }
     :                   { makeToken TkColon }
     \|$characters\|        { makeToken TkChar }
+    \|@scapedchars\|        { makeToken TkChar }
 
     -- Operators
     \<\<=                 { makeToken TkAsig }
@@ -62,12 +63,12 @@ tokens :-
     \-                  { makeToken TkMinus }
     \*                  { makeToken TkMult }
     \/                  { makeToken TkDiv }
+    \%                   { makeToken TkMod }
     eq                  { makeToken TkEq }
     neq                  { makeToken TkNeq }
     not                 { makeToken TkNot }
     and                 { makeToken TkAnd }
     or                 { makeToken TkOr }
-
 
     const               { makeToken TkConst }
     var                 { makeToken TkVar }
