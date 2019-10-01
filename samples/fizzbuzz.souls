@@ -5,21 +5,21 @@ hello ashen one
     var n of type humanity,
     var i of type humanity <<= 1
   in your inventory
-    transpose n \
+    transpose into n \
     upgrading i with 1 soul until level n + 1
 
       trust your inventory
-      i % 15 == 0:
+      i % 15 eq 0:
         traveling somewhere
           with orange saponite say @FizzBuzz@ \
           with orange saponite say @\n@
         you died
-      i % 3 == 0:
+      i % 3 eq 0:
         traveling somewhere
           with orange saponite say @Fizz@ \
           with orange saponite say @\n@
         you died
-      i % 5 == 0:
+      i % 5 eq 0:
         traveling somewhere
           with orange saponite say @Buzz@ \
           with orange saponite say @\n@
