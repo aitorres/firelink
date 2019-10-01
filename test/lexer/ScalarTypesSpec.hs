@@ -63,7 +63,7 @@ spec = describe "Lexer" $ do
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkLit
+        atok `shouldBe` TkUnlit
       Nothing ->
         error "rejected as an invalid token"
 
@@ -73,7 +73,7 @@ spec = describe "Lexer" $ do
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkLit
+        atok `shouldBe` TkUndiscovered
       Nothing ->
         error "rejected as an invalid token"
 
@@ -84,7 +84,7 @@ spec = describe "Lexer" $ do
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkLit
+        atok `shouldBe` TkHollow
       Nothing ->
         error "rejected as an invalid token"
 
@@ -95,7 +95,7 @@ spec = describe "Lexer" $ do
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkLit
+        atok `shouldBe` TkSign
       Nothing ->
         error "rejected as an invalid token"
 

@@ -21,7 +21,7 @@ spec = describe "Lexer" $ do
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkPRogramBegin
+        atok `shouldBe` TkProgramBegin
       Nothing ->
         error "rejected as an invalid token"
 
@@ -35,23 +35,13 @@ spec = describe "Lexer" $ do
       Nothing ->
         error "rejected as an invalid token"
 
-  it "accepts `with` as a valid token" $ do
-    let x = "with"
-    s <- scanTokens x
-    case s of
-      Just toks -> do
-        let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkBeginDeclarations
-      Nothing ->
-        error "rejected as an invalid token"
-
   it "accepts `in your inventory` as a valid token" $ do
     let x = "in your inventory"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkEndDeclarations
+        atok `shouldBe` TkInYourInventory
       Nothing ->
         error "rejected as an invalid token"
 

@@ -61,7 +61,7 @@ spec = describe "Lexer" $ do
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkMaxLevel
+        atok `shouldBe` TKEndUpgrading
       Nothing ->
         error "rejected as an invalid token"
 
