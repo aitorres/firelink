@@ -30,17 +30,15 @@ A continuación se muestran las palabras reservadas por el lenguaje, a manera de
 | lte      | lt        | gte       | gt        | eq       | neq        | not        | ascii    |
 | of       | closed    | exited    |           |          |            |            |          |
 
-(Agregar lugares.)
-
 ## Identificadores
 
-En `<lenguaje>`, un identificador válido es toda palabra que comienza con una letra minúscula, está formada posteriormente por letras, números y guiones bajos (`_`) y no es una palabra reservada por el lenguaje.
+En **Fire Link**, un identificador válido es toda palabra que comienza con una letra minúscula, está formada posteriormente por letras, números y guiones bajos (`_`) y no es una palabra reservada por el lenguaje.
 
 Formalmente, es toda palabra de la forma `[a-z][A-Za-z0-9_]*` que no sea a su vez una palabra reservada por el lenguaje.
 
 ## Declaradores
 
-En `<lenguaje>`, existen dos tipos de declaradores para los tipos de datos:
+En **Fire Link**, existen dos tipos de declaradores para los tipos de datos:
 
 - `const` para declarar identificadores cuyos valores no pueden ser reasignados, y que requiere de una inicialización junto a su declaración.
 - `var` para declarar identificadores cuyos valores pueden o no ser reasignados, y que no requiere de una inicialización al momento de declararse.
