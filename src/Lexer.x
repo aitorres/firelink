@@ -3,6 +3,9 @@ module Lexer (
     alexMonadScan, scanTokens,
     Token (..), AlexUserState(..)
     ) where
+import Text.Printf (printf)
+import Data.List.Split (splitOn)
+import Data.List (intercalate)
 }
 %wrapper "monadUserState"
 
@@ -267,7 +270,6 @@ data Token = Token AbstractToken -- Token perse
 type Tokens = [Token]
 
 data LexError = LexError AlexInput
-    deriving (Show)
 
 type LexErrors = [LexError]
 
@@ -300,8 +302,26 @@ addErrorToState lexError = Alex $ \s@AlexState{alex_ust=ust}
                         _ -> LexFailure [lexError])
     }, ())
 
-printLexErrors :: [LexError] -> IO ()
-printLexErrors = mapM_ print -- mapM_ is the monadic version of map
+formatLexError :: String -> LexError -> String
+formatLexError fullStr (LexError (AlexPn offset r c, _, _, s)) =
+    printf "Lexical error at line %d, column %d:\n%s\n" r c fs
+    where
+        allLines = splitOn "\n" fullStr
+        maxSize = foldl max (-1) $ map length allLines
+        buildRuler = flip replicate '~'
+        rule = buildRuler maxSize ++ "\n"
+        relevantLines = drop (r-1) allLines
+        firstLine = head relevantLines ++ "\n"
+        restLines = take 4 $ tail relevantLines
+        errorRuler = (buildRuler (c-1)) ++ "^" ++ buildRuler (maxSize - c) ++ "\n"
+        fs = firstLine ++ errorRuler ++ (intercalate "\n" restLines)
+
+
+printLexErrors :: String -> [LexError] -> IO ()
+printLexErrors str [] = return ()
+printLexErrors str (error:xs) = do
+    putStrLn $ formatLexError str error
+    printLexErrors str xs
 
 scanTokens :: String -> IO (Maybe Tokens)
 scanTokens str = case runAlex str alexMonadScan of
@@ -311,6 +331,6 @@ scanTokens str = case runAlex str alexMonadScan of
     Right userState -> case userState of
         LexSuccess tokens -> return $ Just $ reverse tokens
         LexFailure errors -> do
-            printLexErrors $ reverse errors
+            printLexErrors str $ reverse errors
             return Nothing
 }
