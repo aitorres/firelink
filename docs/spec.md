@@ -2,7 +2,7 @@
 
 **Fire Link** es un lenguaje de programación basado en el _lore_ de la serie de videojuegos *Dark Souls*, diseñado para la cadena de electivas de área Lenguajes de Programación II y III (CI-4721, CI-4722), durante los trimestres Septiembre - Diciembre 2019 y Enero - Marzo 2020 en la Universidad Simón Bolívar.
 
-**Autores**
+## Autores
 
 - Germán Robayo (14-10924)
 - Andrés Ignacio Torres (14-11082)
@@ -30,30 +30,28 @@ A continuación se muestran las palabras reservadas por el lenguaje, a manera de
 | lte      | lt        | gte       | gt        | eq       | neq        | not        | ascii    |
 | of       | closed    | exited    |           |          |            |            |          |
 
-(Agregar lugares.)
-
 ## Identificadores
 
-En `<lenguaje>`, un identificador válido es toda palabra que comienza con una letra minúscula, está formada posteriormente por letras, números y guiones bajos (`_`) y no es una palabra reservada por el lenguaje.
+En **Fire Link**, un identificador válido es toda palabra que comienza con una letra minúscula, está formada posteriormente por letras, números y guiones bajos (`_`) y no es una palabra reservada por el lenguaje.
 
 Formalmente, es toda palabra de la forma `[a-z][A-Za-z0-9_]*` que no sea a su vez una palabra reservada por el lenguaje.
 
 ## Declaradores
 
-En `<lenguaje>`, existen dos tipos de declaradores para los tipos de datos:
+En **Fire Link**, existen dos tipos de declaradores para los tipos de datos:
 
 - `const` para declarar identificadores cuyos valores no pueden ser reasignados, y que requiere de una inicialización junto a su declaración.
 - `var` para declarar identificadores cuyos valores pueden o no ser reasignados, y que no requiere de una inicialización al momento de declararse.
 
 La *sintaxis* de declaración sin asignación es la siguiente:
 
-```
+```firelink
 <declarador de valor> <identificador> of type <declarador de tipo>
 ```
 
 La *sintaxis* de declaración con asignación es la siguiente (obligatoria para constantes, opcional para variables):
 
-```
+```firelink
 <declarador de valor> <identificador> of type <declarador de tipo> [<<= <valor>]
 ```
 
@@ -82,18 +80,18 @@ El valor por defecto de un entero es `0`.
 
 Nuestro lenguaje soporta todos los operadores básicos de enteros:
 
-* `+`: adición de dos `humanity`s, retornando un `humanity`.
-* `-`: substracción de dos `humanity`s, retornando un `humanity`.
-* `*`: multiplicación de dos `humanity`s, retornando un `humanity`.
-* `/`: división de dos `humanity`s, retornando un `humanity`.
-* `%`: resto de la división de dos `humanity`s, retornando un `humanity`.
-* `-`: operador menos unario una `humanity`, retornando un `humanity`.
-* `lt`: operador _menor que_, que retorna un `bonfire`.
-* `gt`: operador _mayor que_, que retorna un `bonfire`.
-* `lte`: operador _menor que_, que retorna un `bonfire`.
-* `gte`: operador _mayor que_, que retorna un `bonfire`.
-* `eq`: operador _igual_, que retorna un `bonfire`.
-* `neq`: operador _desigual_, que retorna un `bonfire`.
+- `+`: adición de dos `humanity`s, retornando un `humanity`.
+- `-`: substracción de dos `humanity`s, retornando un `humanity`.
+- `*`: multiplicación de dos `humanity`s, retornando un `humanity`.
+- `/`: división de dos `humanity`s, retornando un `humanity`.
+- `%`: resto de la división de dos `humanity`s, retornando un `humanity`.
+- `-`: operador menos unario una `humanity`, retornando un `humanity`.
+- `lt`: operador _menor que_, que retorna un `bonfire`.
+- `gt`: operador _mayor que_, que retorna un `bonfire`.
+- `lte`: operador _menor que_, que retorna un `bonfire`.
+- `gte`: operador _mayor que_, que retorna un `bonfire`.
+- `eq`: operador _igual_, que retorna un `bonfire`.
+- `neq`: operador _desigual_, que retorna un `bonfire`.
 
 #### Bonfire
 
@@ -111,11 +109,11 @@ El valor por defecto de un _bonfire_ es `undiscovered`.
 
 El tipo de datos _bonfire_ soporta los siguientes operadores:
 
-* `and`: `a and b`
-* `or`: `a or b`
-* `eq`: `a eq b`
-* `neq`: `a neq b`
-* `not`: `not a`
+- `and`: `a and b`
+- `or`: `a or b`
+- `eq`: `a eq b`
+- `neq`: `a neq b`
+- `not`: `not a`
 
 Los resultados de aplicar estos operadores se muestran a continuación, en distintas tablas.
 
@@ -181,17 +179,17 @@ El valor por defecto de un punto flotante es `0.0`.
 
 Nuestro lenguaje soporta todos los operadores básicos de enteros:
 
-* `+`: adición de dos `humanity`s, retornando un `humanity`.
-* `-`: substracción de dos `humanity`s, retornando un `humanity`.
-* `*`: multiplicación de dos `humanity`s, retornando un `humanity`.
-* `/`: división de dos `humanity`s, retornando un `humanity`.
-* `-`: operador menos unario una `humanity`, retornando un `humanity`.
-* `lt`: operador _menor que_, que retorna un `bonfire`.
-* `gt`: operador _mayor que_, que retorna un `bonfire`.
-* `lte`: operador _menor que_, que retorna un `bonfire`.
-* `gte`: operador _mayor que_, que retorna un `bonfire`.
-* `eq`: operador _igual_, que retorna un `bonfire`.
-* `neq`: operador _desigual_, que retorna un `bonfire`.
+- `+`: adición de dos `humanity`s, retornando un `humanity`.
+- `-`: substracción de dos `humanity`s, retornando un `humanity`.
+- `*`: multiplicación de dos `humanity`s, retornando un `humanity`.
+- `/`: división de dos `humanity`s, retornando un `humanity`.
+- `-`: operador menos unario una `humanity`, retornando un `humanity`.
+- `lt`: operador _menor que_, que retorna un `bonfire`.
+- `gt`: operador _mayor que_, que retorna un `bonfire`.
+- `lte`: operador _menor que_, que retorna un `bonfire`.
+- `gte`: operador _mayor que_, que retorna un `bonfire`.
+- `eq`: operador _igual_, que retorna un `bonfire`.
+- `neq`: operador _desigual_, que retorna un `bonfire`.
 
 #### Caracter
 
@@ -211,7 +209,7 @@ El valor por defecto de un caracter es el caracter nulo (`|\0|`).
 
 Se debe implementar la siguiente función en el preludio de **FireLink**.
 
-* `ascii_of`: Retorna el código ascii  de la variable (como `humanity`).
+- `ascii_of`: Retorna el código ascii  de la variable (como `humanity`).
 
 ### Colección
 
@@ -229,13 +227,13 @@ El valor por defecto de una cadena de caracteres `<n>-miracle` es la cadena cons
 
 Se cuenta con el siguiente operador:
 
-* `>-<`: toma un `<n>-miracle` y un `<m>-miracle` y los concatena, retornando un `<n+m>-miracle`.
+- `>-<`: toma un `<n>-miracle` y un `<m>-miracle` y los concatena, retornando un `<n+m>-miracle`.
 
 ##### Funciones de las cadenas de caracteres
 
 Se debe implementar la siguiente función en el preludio de **FireLink**.
 
-* `ascii_of`: Retorna un arreglo de `humanity`s, representando los códigos asciis de cada caracter en el input.
+- `ascii_of`: Retorna un arreglo de `humanity`s, representando los códigos asciis de cada caracter en el input.
 
 #### Arreglos
 
@@ -261,10 +259,10 @@ El valor por defecto de un conjunto `armor of type <tipo>` es el conjunto vacío
 
 Se deben proveer los siguientes operadores sobre conjuntos:
 
-* `union`: `a union b` retorna un `armor` con todos los elementos que estén en `a` o en `b`.
-* `intersect`: `a intersect b` retorna un `armor` con todos los elementos que estén en `a` y en `b` al mismo tiempo.
-* `diff`: `a diff b` retorna un `armor` con todos los elementos que estén en `a` y no estén en `b`.
-* `size`: `size a` retorna un `humanity` con la cantidad de elementos que tenga el conjunto en el momento.
+- `union`: `a union b` retorna un `armor` con todos los elementos que estén en `a` o en `b`.
+- `intersect`: `a intersect b` retorna un `armor` con todos los elementos que estén en `a` y en `b` al mismo tiempo.
+- `diff`: `a diff b` retorna un `armor` con todos los elementos que estén en `a` y no estén en `b`.
+- `size`: `size a` retorna un `humanity` con la cantidad de elementos que tenga el conjunto en el momento.
 
 ### Estructurados
 
@@ -276,7 +274,7 @@ Representa un agrupamiento de distintas _posibilidades_ de acuerdo a su nombre. 
 
 La sintaxis de declaración de una enumeración es la siguiente (con indentación agregada para mayor legibilidad):
 
-```
+```firelink
 titanite {
   <nombre 1>,
   <nombre 2>,
@@ -295,7 +293,7 @@ Representa un agrupamiento de distintas _propiedades_ (donde una _propiedad_ es 
 
 La sintaxis de declaración de un registro es la siguiente (con indentación agregada para mayor legibilidad):
 
-```
+```firelink
 bezel {
   <nombre 1> of type <tipo 1>,
   <nombre 2> of type <tipo 2>,
@@ -317,7 +315,7 @@ Representa un valor que puede ser de algún tipo entre varios, bajo un mismo nom
 
 La sintaxis de declaración de una unión es la siguiente (con indentación agregada para mayor legibilidad):
 
-```
+```firelink
 link {
   <nombre 1> of type <tipo 1>,
   <nombre 2> of type <tipo 2>,
@@ -342,9 +340,10 @@ El tipo unitario `abyss` tiene un único valor (`abyss`), utilizado para indicar
 Representa la dirección en la que un valor de un tipo dado se encuentra almacenado. Su declarador de tipo es `arrow to <tipo>`, donde `tipo` es un declarador de tipo escalar.
 
 Todo apuntador al heap tiene los siguientes operadores:
-* `aim a`, que reserva cantidad de memoria suficiente para almacenar un valor del tipo del apuntador en el heap y lo inicializa a su valor por defecto.
-* `throw a`, que referencia el valor almacenado en esa ubicación de la memoria.
-* `recover a`, que elimina la memoria reservada para un apuntador ya reservado y le asigna el valor nulo.
+
+- `aim a`, que reserva cantidad de memoria suficiente para almacenar un valor del tipo del apuntador en el heap y lo inicializa a su valor por defecto.
+- `throw a`, que referencia el valor almacenado en esa ubicación de la memoria.
+- `recover a`, que elimina la memoria reservada para un apuntador ya reservado y le asigna el valor nulo.
 
 El valor por defecto de un apuntador es el valor nulo, `abyss`.
 
@@ -352,13 +351,13 @@ El valor por defecto de un apuntador es el valor nulo, `abyss`.
 
 Un alias de tipo permite referenciar un tipo determinado de manera más sencilla para el programador. Su declarador de tipo es `knight`. Solo pueden existir de manera global en un programa. La sintaxis de creación de un alias de tipo es la siguiente:
 
-```
+```firelink
 knight <identificador> <tipo>
 ```
 
 Donde `identificador` es un identificador válido para el alias de tipo, y `tipo` corresponde al tipo al que hará alias. Por ejemplo:
 
-```
+```firelink
 knight onion 10-chest of type 5-chest of type 15-miracle
 
 ...
@@ -368,7 +367,7 @@ var i of type knight
 
 Se puede declarar una **lista** de `n` aliases de tipo, utilizando la siguiente sintaxis:
 
-```
+```firelink
 requiring help of
   <alias de tipo 1>,
   <alias de tipo 2>,
@@ -383,7 +382,7 @@ help received
 
 Un programa puede contener comentarios en cualquier lugar. Los comentarios inician con `--` y abarcan el resto de la línea, hasta el próximo salto de línea. Sólo se admiten comentarios de una sola línea.
 
-```
+```firelink
 -- Esto es un comentario.
 
 hello ashen one
@@ -394,13 +393,13 @@ hello ashen one
 
 farewell ashen one
 
-```
+```firelink
 
 ### Programa
 
 Un programa tiene la siguiente sintaxis:
 
-```
+```firelink
 hello ashen one
 
 [<lista de alias de tipo>]
@@ -420,7 +419,7 @@ Un bloque de declaraciones de variables incluye una lista de una o varias declar
 
 La sintaxis de un bloque de declaraciones es la siguiente (con indentación opcional para facilitar la legibilidad):
 
-```
+```firelink
 with
   <declaracion 1>,
   <declaracion 2>,
@@ -433,7 +432,7 @@ Donde _declaracion 1_, _declaracion 2_, _declaracion n_ son declaraciones de tip
 
 Por ejemplo,
 
-```
+```firelink
 with
   var dragon of type humanity,
   var fire of type hollow
@@ -446,7 +445,7 @@ Un bloque de instrucciones incluye opcionalmente un bloque de declaraciones de v
 
 La sintaxis de un bloque de instrucciones es la siguiente (con indentación opcional para facilitar la legibilidad):
 
-```
+```firelink
 traveling somewhere
 [<bloque de declaraciones>]
   <lista de instruciones>
@@ -457,7 +456,7 @@ you died
 
 Para concatenar dos instrucciones `I1` e `I2`, de modo que `I1` se ejecute antes de `I2` en secuencia, se deben separar ambas con el operador `\`, quedando:
 
-```
+```firelink
 I1 \
 I2
 ```
@@ -470,7 +469,7 @@ Una asignación consiste en almacenar un valor en una variable de algún tipo de
 
 La sintaxis de asignación de una variable previamente declarada de identificador `a` es la siguiente:
 
-```
+```firelink
 a <<= <valor>
 ```
 
@@ -480,7 +479,7 @@ Es un bloque aislado de código con una secuencia no nula de instrucciones a eje
 
 La sintaxis para declarar una función es la siguiente:
 
-```
+```firelink
 invocation <identificador>
 [requesting
   <tipo de parametro 1> <identificador 1> of type <tipo 1>,
@@ -500,7 +499,7 @@ Donde el tipo de parámetro es:
 
 Dentro de la función, se puede utilizar la siguiente sintaxis para retornar una expresión que debe corresponder con el tipo de retorno de la función.
 
-```
+```firelink
 go back with <expresion>
 ```
 
@@ -508,7 +507,7 @@ go back with <expresion>
 
 Dentro de un bloque de instrucciones, se puede realizar una llamada a una función de la siguiente manera:
 
-```
+```firelink
 summon <nombre de la función>
 [granting
   <expresion 1>,
@@ -528,7 +527,7 @@ Es un bloque aislado de código con una secuencia no nula de instrucciones a eje
 
 La sintaxis para declarar un procedimiento en la siguiente:
 
-```
+```firelink
 spell <identificador>
 [requesting
   <tipo de parametro 1> <identificador 1> of type <tipo 1>
@@ -545,11 +544,17 @@ Donde el tipo de parámetro es:
 - `val` para parámetros por valor
 - `ref` para parámetros por referencia
 
+Dentro del procedimiento, se puede utilizar la siguiente sintaxis para retornar y detener la ejecución del procedimiento inmediatamente.
+
+```firelink
+go back
+```
+
 #### Llamada a Procedimientos
 
 Dentro de un bloque de instrucciones, se puede realizar una llamada a un procedimiento de la siguiente manera:
 
-```
+```firelink
 cast <nombre de la función>
 [offering
   <expresion 1>,
@@ -567,7 +572,7 @@ La llamada a la función NO evalúa a ninguna expresión.
 
 Para imprimir una expresión a la salida estándar, se puede usar el siguiente procedimiento:
 
-```
+```firelink
 with orange saponite say <expresion>
 ```
 
@@ -575,7 +580,7 @@ with orange saponite say <expresion>
 
 Para leer una expresión y almacenarla en una variable, se puede usar el siguiente procedimiento:
 
-```
+```firelink
 transpose into <identificador>
 ```
 
@@ -585,7 +590,7 @@ El identificador debe corresponder con una variable ya declarada de un tipo esca
 
 El lenguaje poseee estructuras condicionales, de tipo if/elseif/else. La sintaxis es la siguiente:
 
-```
+```firelink
 trust your inventory
 <condición 1>:
   <bloque de instrucciones 1>
@@ -605,7 +610,7 @@ El token `liar!` es equivalente al token `else` de otros lenguajes de programaci
 
 El lenguaje poseee estructuras condicionales, de tipo switch. La sintaxis es la siguiente:
 
-```
+```firelink
 enter dungeon with <identificador>
 <expresión 1>:
   <bloque de instrucciones 1>
@@ -627,7 +632,7 @@ Las iteraciones acotadas permiten repetir una secuencia no vacía de instruccion
 
 La sintaxis para una iteración acotada es la siguiente:
 
-```
+```firelink
 upgrading <identificador de la variable de iteración> with <paso> soul[s] until level <cota superior>
   <bloque de instrucciones>
 max level reached
@@ -637,7 +642,7 @@ Donde _identificador de la variable de iteración_ corresponde al identificador 
 
 Por ejemplo:
 
-```
+```firelink
 upgrading i with 1 soul until level 20
   traveling somewhere
     with orange saponite say i \
@@ -656,7 +661,7 @@ Las estructuras iterables son: listas y conjuntos.
 
 La sintaxis para una iteración por estructura es la siguiente:
 
-```
+```firelink
 repairing <identificador de la variable de iteración> with titanite from <estructura>
   <bloque de instrucciones>
 weaponry repaired
@@ -666,7 +671,7 @@ Donde _identificador de la variable de iteración_ corresponde al identificador 
 
 Por ejemplo:
 
-```
+```firelink
 repairing i with titanite from biglist
   traveling somewhere
     with orange saponite say i \
@@ -683,7 +688,7 @@ Las iteraciones condicionadas permiten repetir una secuencia no vacía de instru
 
 La sintaxis para una iteración condicionada es la siguiente:
 
-```
+```firelink
 while the <expresion de tipo bonfire> covenant is active:
   <bloque de instrucciones>
 covenant left
@@ -693,7 +698,7 @@ Donde _expresion de tipo bonfire_ corresponde a la condición de iteración que 
 
 Por ejemplo:
 
-```
+```firelink
 while the b covenant is active:
   traveling somewhere
     b <<= unlit

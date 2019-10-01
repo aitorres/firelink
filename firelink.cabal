@@ -4,13 +4,13 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: b5ee0b61d4921550e2ed7670aa7c9b6ba7f735ea7f60fcda5cbf3ebb07d8469e
+-- hash: cba83c448568a0ff961660672df4102fa4b779bf14ee80e05049d2b553a8f40a
 
 name:           firelink
 version:        0.1.0.0
-description:    Please see the README on GitHub at <https://github.com/githubuser/firelink#readme>
-homepage:       https://github.com/githubuser/firelink#readme
-bug-reports:    https://github.com/githubuser/firelink/issues
+description:    Please see the README on GitHub at <https://github.com/aitorres/firelink#readme>
+homepage:       https://github.com/aitorres/firelink#readme
+bug-reports:    https://github.com/aitorres/firelink/issues
 author:         Author name here
 maintainer:     example@example.com
 copyright:      2019 Author name here
@@ -23,7 +23,7 @@ extra-source-files:
 
 source-repository head
   type: git
-  location: https://github.com/githubuser/firelink
+  location: https://github.com/aitorres/firelink
 
 library
   exposed-modules:
@@ -58,17 +58,34 @@ executable firelink-exe
     , split
   default-language: Haskell2010
 
-test-suite firelink-test
+test-suite lexer-tests
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      CharLiteralsSpec
+      CollectionTypesSpec
+      FloatLiteralsSpec
+      GeneralSpec
+      IdSpec
+      IntLiteralsSpec
+      OperatorsSpec
+      ProgramIterationSpec
+      ProgramMethodsSpec
+      ProgramSelectionSpec
+      ProgramStructureSpec
+      ScalarTypesSpec
+      SpecialTypesSpec
+      StringLiteralsSpec
+      StructuredTypesSpec
       Paths_firelink
   hs-source-dirs:
-      test
+      test/lexer
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
     , base >=4.7 && <5
     , firelink
+    , hspec
+    , hspec-discover
     , split
   default-language: Haskell2010

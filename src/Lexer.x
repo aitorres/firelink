@@ -1,7 +1,7 @@
 {
 module Lexer (
-    alexMonadScan, scanTokens,
-    Token (..), AlexUserState(..)
+    alexMonadScan, scanTokens, getAbstractToken,
+    AbstractToken (..), Token (..), AlexUserState(..)
     ) where
 import Text.Printf (printf)
 import Data.List.Split (splitOn)
@@ -14,12 +14,13 @@ $digits = [0-9]
 $characters = [^\\\|]
 @ids = [a-z][A-Za-z0-9_]*
 @scapedchars = \\[nt\\\|]
-@strings = \@([$characters # \@] | "\@" | @scapedchars)+\@
+@strings = \@([$characters # \@] | "\@" | @scapedchars)*\@
 @comments = \-\- $printable+
 tokens :-
     $white+         ;
     -- reserved keywords --
     -- Program structure
+    @comments           { makeToken TkComment }
     hello\ ashen\ one   { makeToken TkProgramBegin }
     farewell\ ashen\ one { makeToken TkProgramEnd }
     traveling\ somewhere { makeToken TkInstructionBegin }
@@ -39,7 +40,10 @@ tokens :-
     ref                 { makeToken TkRef }
     summon              { makeToken TkSummon }
     granting            { makeToken TkGranting }
-    go\ back\ with      { makeToken TkReturn }
+    cast                { makeToken TkCast }
+    offering            { makeToken TkOffering }
+    go\ back            { makeToken TkReturn }
+    go\ back\ with      { makeToken TkReturnWith }
     after\ this\ return\ to\ your\ world { makeToken TkInvocationEnd }
 
     -- classic conditional
@@ -52,7 +56,7 @@ tokens :-
     -- switch statements
     enter\ dungeon\ with { makeToken TkSwitch }
     dungeon\ exited         { makeToken TkEndSwitch }
-    empty dungeon           { makeToken TkSwitchDefault }
+    empty\ dungeon           { makeToken TkSwitchDefault }
 
     -- on-structure looping
     repairing               { makeToken TkRepairing }
@@ -68,6 +72,7 @@ tokens :-
     -- conditionate looping
     while\ the           { makeToken TkWhile }
     covenant\ is\ active { makeToken TkCovenantIsActive }
+    covenant\ left       { makeToken TkEndWhile }
     -- Types
     humanity            { makeToken TkBigHumanity}
     small\ humanity     { makeToken TkSmallHumanity}
@@ -97,7 +102,7 @@ tokens :-
     size                { makeToken TkSize }
 
     titanite            { makeToken TkTitanite }
-    ~\>                 { makeToken TkAccessor }
+    \~\>                { makeToken TkAccessor }
 
     bezel               { makeToken TkBezel }
 
@@ -121,7 +126,7 @@ tokens :-
     -- Special characters
     \,                  { makeToken TkComma }
     \\                  { makeToken TkSeq }
-    :                   { makeToken TkColon }
+    \:                   { makeToken TkColon }
     \|$characters\|        { makeToken TkChar }
     \|@scapedchars\|        { makeToken TkChar }
 
@@ -228,6 +233,7 @@ data AbstractToken = TkId | TkConst | TkVar | TkOfType | TkAsig
     | TkSpellEnd -- ashen estus flask consumed
     | TkCast
     | TkOffering
+    | TkReturnWith
     -- Basic I/O
     | TkPrint -- with orange saponite say
     | TkRead -- transpose into
@@ -267,11 +273,12 @@ data AbstractToken = TkId | TkConst | TkVar | TkOfType | TkAsig
 data Token = Token AbstractToken -- Token perse
                 (Maybe String) -- Extra info (useful on literals, ids, etc)
                 AlexPosn -- To get file context
-    deriving (Show)
+    deriving (Eq, Show)
 
 type Tokens = [Token]
 
 data LexError = LexError AlexInput
+    deriving Show
 
 type LexErrors = [LexError]
 
@@ -279,8 +286,9 @@ type LexErrors = [LexError]
 alexEOF :: Alex AlexUserState
 alexEOF = getUserState
 
-data AlexUserState = LexFailure LexErrors
-    | LexSuccess Tokens
+data AlexUserState = LexFailure [LexError]
+    | LexSuccess [Token]
+    deriving (Show)
 
 alexInitUserState :: AlexUserState
 alexInitUserState = LexSuccess []
@@ -335,4 +343,7 @@ scanTokens str = case runAlex str alexMonadScan of
         LexFailure errors -> do
             printLexErrors str $ reverse errors
             return Nothing
+
+getAbstractToken :: Token -> AbstractToken
+getAbstractToken (Token t _ _) = t
 }
