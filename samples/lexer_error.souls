@@ -1,0 +1,31 @@
+hello ashen one
+
+  traveling somewhere
+  with
+    va+r n of type humanity,
+    var i of type humanity <<= 1
+  in your inventory
+    transpose into n \
+    upgrading i with 1 soul until level n + 1 > 2
+
+      trust your inventory
+      i % 15 eq 0:
+        traveling somewhere
+          with orange saponite say @FizzBuzz@ \
+          with orange saponite say @\n@
+        you died
+      i % 3 eq 0:
+        traveling somewhere
+          with orange saponite say @Fizz@ \
+      ¿    with orange saponite say @\n@
+        you died
+      i % 5 eq 0:
+        traveling somewhere
+          with orange saponite say @Buzz@ \
+          with orange saponite say @\n@
+        you died
+      inventory closed
+
+  you died
+
+farewell ashen one

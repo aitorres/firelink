@@ -15,4 +15,8 @@ someFunc = do
         handle <- openFile programFile ReadMode
         contents <- hGetContents handle
         tokens <- scanTokens contents
-        print tokens
+        case tokens of
+            Just validTokens ->
+                print validTokens
+            Nothing ->
+                putStrLn "Fix your mistakes, ashen one."
