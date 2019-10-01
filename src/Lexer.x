@@ -20,9 +20,6 @@ tokens :-
     traveling\ somewhere { makeToken TkInstructionBegin }
     you\ died             { makeToken TkInstructionEnd }
     with                { makeToken TkWith }
-    humanity            { makeToken TkBigHumanity}
-    small\ humanity            { makeToken TkBigHumanity}
-    big\ humanity            { makeToken TkBigHumanity}
     in\ your\ inventory { makeToken TkInYourInventory }
     transpose\ into      { makeToken TkRead }
     upgrading           { makeToken TkUpgrading }
@@ -43,7 +40,21 @@ tokens :-
     granting            { makeToken TkGranting }
     go\ back\ with      { makeToken TkReturn }
     after\ this\ return\ to\ your\ world { makeToken TkInvocationEnd }
+    ascii_of            { makeToken TkAsciiOf }
 
+    -- Types
+    humanity            { makeToken TkBigHumanity}
+    small\ humanity            { makeToken TkBigHumanity}
+    big\ humanity            { makeToken TkBigHumanity}
+
+    bonfire             { makeToken TkBonfire }
+    lit                 { makeToken TkLit }
+    unlit               { makeToken TkUnlit }
+    undiscovered        { makeToken TkUndiscovered }
+
+    sign                { makeToken TkSign }
+
+    \>\-miracle         { makeToken TkMiracle }
 
     -- Literals
     $digits+            { makeToken TkIntLit }
@@ -64,11 +75,17 @@ tokens :-
     \*                  { makeToken TkMult }
     \/                  { makeToken TkDiv }
     \%                   { makeToken TkMod }
+    lt                  { makeToken TkLt }
+    gt                  { makeToken TkGt }
+    lte                  { makeToken TkLte }
+    gte                  { makeToken TkGte }
     eq                  { makeToken TkEq }
     neq                  { makeToken TkNeq }
     not                 { makeToken TkNot }
     and                 { makeToken TkAnd }
     or                 { makeToken TkOr }
+    \>\-\<              { makeToken TkConcat }
+    \<                  { makeToken TkLteLit }
 
     const               { makeToken TkConst }
     var                 { makeToken TkVar }
@@ -112,8 +129,7 @@ data AbstractToken = TkId | TkConst | TkVar | TkOfType | TkAsig
     | TkSign | TkChar | TkAsciiOf
     --- Collections
     -- Strings
-    | TkMiracleKnown -- size known at compile time
-    | TkMiracleUnknown -- size unknown
+    | TkMiracle | TkLteLit
     | TkString -- Strings
     -- Arrays
     | TkChestKnown | TkChestUnknown | TkChestOpen | TkChestClose | TkSize

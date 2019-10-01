@@ -223,13 +223,13 @@ Representa una cadena colección de cero, uno o varios caracteres, almacenados c
 
 Los literales de cadena de caracteres están encerrados entre el caracter `@` y sus elementos no están separados entre sí por ningún caracter.
 
-El valor por defecto de una cadena de caracteres `n-miracle` es la cadena consistente de n espacios (`@          @` para `n == 10`).
+El valor por defecto de una cadena de caracteres `<n>-miracle` es la cadena consistente de n espacios (`@          @` para `n == 10`).
 
 ##### Operadores de las cadenas de caracteres
 
 Se cuenta con el siguiente operador:
 
-* `>-<`: toma un `n-miracle` y un `m-miracle` y los concatena, retornando un `(n+m)-miracle`.
+* `>-<`: toma un `<n>-miracle` y un `<m>-miracle` y los concatena, retornando un `<n+m>-miracle`.
 
 ##### Funciones de las cadenas de caracteres
 
