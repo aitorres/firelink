@@ -27,19 +27,36 @@ tokens :-
     souls?              { makeToken TkSoul }
     until\ level        { makeToken TkLevel }
     with\ orange\ saponite\ say { makeToken TkPrint }
+    spell               { makeToken TkSpell }
+    ashen\ estus\ flask\ consumed { makeToken TkSpellEnd }
+    invocation          { makeToken TkInvocation }
+    requesting          { makeToken TkRequesting }
+    val                 { makeToken TkVal }
+    ref                 { makeToken TkRef }
+    with\ skill\ of\ type { makeToken TkInvocationType }
+    trust\ your\ inventory { makeToken TkIf }
 
 
     -- Literals
-    $digits+            { makeToken TkInt }
+    $digits+            { makeToken TkIntLit }
+    $digits+\.$digits+  { makeToken TkFloatLit }
 
     -- Special characters
     \,                  { makeToken TkComma }
     \\                  { makeToken TkSeq }
+    :                   { makeToken TkColon }
+
+    -- Operators
     \<\<=                 { makeToken TkAsig }
     \+                  { makeToken TkPlus }
     \-                  { makeToken TkMinus }
     \*                  { makeToken TkMult }
     \/                  { makeToken TkDiv }
+    eq                  { makeToken TkEq }
+    neq                  { makeToken TkNeq }
+    not                 { makeToken TkNot }
+    and                 { makeToken TkAnd }
+    or                 { makeToken TkOr }
 
 
     const               { makeToken TkConst }
@@ -75,11 +92,11 @@ data AbstractToken = TkId | TkConst | TkVar | TkOfType | TkAsig
     ------ Types ------
     -------------------
     -- Integers
-    | TkBigHumanity | TkSmallHumanity | TkInt
+    | TkBigHumanity | TkSmallHumanity | TkIntLit
     -- Tri-booleans
     | TkBonfire | TkLit | TkUnlit | TkUndiscovered
     -- Double precission
-    | TkHollow
+    | TkHollow | TkFloatLit
     -- Character
     | TkSign | TkChar Char | TkAsciiOf
     --- Collections
