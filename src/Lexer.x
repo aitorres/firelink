@@ -20,142 +20,143 @@ tokens :-
     $white+         ;
     -- reserved keywords --
     -- Program structure
-    @comments           { makeToken TkComment }
-    hello\ ashen\ one   { makeToken TkProgramBegin }
-    farewell\ ashen\ one { makeToken TkProgramEnd }
-    traveling\ somewhere { makeToken TkInstructionBegin }
-    you\ died             { makeToken TkInstructionEnd }
-    with                { makeToken TkWith }
-    in\ your\ inventory { makeToken TkInYourInventory }
-    transpose\ into      { makeToken TkRead }
-    with\ orange\ saponite\ say { makeToken TkPrint }
+    @comments                             { makeToken TkComment }
+    hello\ ashen\ one                     { makeToken TkProgramBegin }
+    farewell\ ashen\ one                  { makeToken TkProgramEnd }
+    traveling\ somewhere                  { makeToken TkInstructionBegin }
+    you\ died                             { makeToken TkInstructionEnd }
+    with                                  { makeToken TkWith }
+    in\ your\ inventory                   { makeToken TkDeclarationEnd }
+    transpose\ into                       { makeToken TkRead }
+    with\ orange\ saponite\ say           { makeToken TkPrint }
 
     -- Functions and procedures
-    spell               { makeToken TkSpell }
-    ashen\ estus\ flask\ consumed { makeToken TkSpellEnd }
-    invocation          { makeToken TkInvocation }
-    with\ skill\ of\ type { makeToken TkInvocationType }
-    requesting          { makeToken TkRequesting }
-    val                 { makeToken TkVal }
-    ref                 { makeToken TkRef }
-    summon              { makeToken TkSummon }
-    granting            { makeToken TkGranting }
-    cast                { makeToken TkCast }
-    offering            { makeToken TkOffering }
-    go\ back            { makeToken TkReturn }
-    go\ back\ with      { makeToken TkReturnWith }
-    after\ this\ return\ to\ your\ world { makeToken TkInvocationEnd }
+    spell                                 { makeToken TkSpell }
+    ashen\ estus\ flask\ consumed         { makeToken TkSpellEnd }
+    invocation                            { makeToken TkInvocation }
+    with\ skill\ of\ type                 { makeToken TkInvocationType }
+    requesting                            { makeToken TkRequesting }
+    val                                   { makeToken TkVal }
+    ref                                   { makeToken TkRef }
+    summon                                { makeToken TkSummon }
+    granting                              { makeToken TkGranting }
+    cast                                  { makeToken TkCast }
+    offering                              { makeToken TkOffering }
+    go\ back                              { makeToken TkReturn }
+    go\ back\ with                        { makeToken TkReturnWith }
+    after\ this\ return\ to\ your\ world  { makeToken TkInvocationEnd }
 
     -- classic conditional
-    trust\ your\ inventory { makeToken TkIf }
-    liar\!                  { makeToken TkElse }
-    inventory\ closed       { makeToken TkEndIf }
+    trust\ your\ inventory                { makeToken TkIf }
+    liar\!                                { makeToken TkElse }
+    inventory\ closed                     { makeToken TkEndIf }
 
-    ascii_of            { makeToken TkAsciiOf }
+    ascii_of                              { makeToken TkAsciiOf }
 
     -- switch statements
-    enter\ dungeon\ with { makeToken TkSwitch }
-    dungeon\ exited         { makeToken TkEndSwitch }
-    empty\ dungeon           { makeToken TkSwitchDefault }
+    enter\ dungeon\ with                  { makeToken TkSwitch }
+    dungeon\ exited                       { makeToken TkEndSwitch }
+    empty\ dungeon                        { makeToken TkSwitchDefault }
 
     -- on-structure looping
-    repairing               { makeToken TkRepairing }
-    with\ titanite\ from      { makeToken TkWithTitaniteFrom }
-    weaponry\ repaired          { makeToken TkEndRepairing }
+    repairing                             { makeToken TkForEach }
+    with\ titanite\ from                  { makeToken TkWithTitaniteFrom }
+    weaponry\ repaired                    { makeToken TkEndForEach }
 
     -- iterable looping
-    upgrading           { makeToken TkUpgrading }
-    max\ level\ reached { makeToken TKEndUpgrading }
-    souls?              { makeToken TkSoul }
-    until\ level        { makeToken TkLevel }
+    upgrading                             { makeToken TkFor }
+    max\ level\ reached                   { makeToken TKEndFor }
+    souls?                                { makeToken TkSoul }
+    until\ level                          { makeToken TkLevel }
 
     -- conditionate looping
-    while\ the           { makeToken TkWhile }
-    covenant\ is\ active { makeToken TkCovenantIsActive }
-    covenant\ left       { makeToken TkEndWhile }
+    while\ the                            { makeToken TkWhile }
+    covenant\ is\ active                  { makeToken TkCovenantIsActive }
+    covenant\ left                        { makeToken TkEndWhile }
     -- Types
-    humanity            { makeToken TkBigHumanity}
-    small\ humanity     { makeToken TkSmallHumanity}
-    big\ humanity       { makeToken TkBigHumanity}
+    humanity                              { makeToken TkBigInt }
+    small\ humanity                       { makeToken TkSmallInt }
+    big\ humanity                         { makeToken TkBigInt }
 
-    bonfire             { makeToken TkBonfire }
-    lit                 { makeToken TkLit }
-    unlit               { makeToken TkUnlit }
-    undiscovered        { makeToken TkUndiscovered }
+    bonfire                               { makeToken TkBool }
+    lit                                   { makeToken TkLit }
+    unlit                                 { makeToken TkUnlit }
+    undiscovered                          { makeToken TkUndiscovered }
 
-    hollow              { makeToken TkHollow }
+    hollow                                { makeToken TkFloat }
 
-    sign                { makeToken TkSign }
+    sign                                  { makeToken TkChar }
 
-    \>\-miracle         { makeToken TkMiracle }
+    \>\-miracle                           { makeToken TkString }
 
-    \>\-chest           { makeToken TkChest }
-    \<\$                { makeToken TkChestOpen }
-    \$\>                { makeToken TkChestClose }
+    \>\-chest                             { makeToken TkArray }
+    \<\$                                  { makeToken TkArrayOpen }
+    \$\>                                  { makeToken TkArrayClose }
 
-    armor               { makeToken TkArmor }
-    \{\$                { makeToken TkArmorOpen }
-    \$\}                { makeToken TkArmorClose }
-    union               { makeToken TkUnion }
-    intersect           { makeToken TkIntersect }
-    diff                { makeToken TkDiff }
-    size                { makeToken TkSize }
+    armor                                 { makeToken TkSet }
+    \{\$                                  { makeToken TkSetOpen }
+    \$\}                                  { makeToken TkSetClose }
+    union                                 { makeToken TkUnion }
+    intersect                             { makeToken TkIntersect }
+    diff                                  { makeToken TkDiff }
+    size                                  { makeToken TkSize }
 
-    titanite            { makeToken TkTitanite }
-    \~\>                { makeToken TkAccessor }
+    titanite                              { makeToken TkEnum }
+    \~\>                                  { makeToken TkAccessor }
 
-    bezel               { makeToken TkBezel }
+    bezel                                 { makeToken TkRecord }
 
-    link                { makeToken TkLink }
+    link                                  { makeToken TkUnionStruct }
 
-    abyss               { makeToken TkAbyss }
-    arrow\ to           { makeToken TkArrowTo }
-    aim\ a              { makeToken TkAimA }
-    throw\ a            { makeToken TkThrowA }
-    recover\ a          { makeToken TkRecoverA }
+    abyss                                 { makeToken TkNull }
+    arrow\ to                             { makeToken TkPointer }
+    aim\ a                                { makeToken TkAimA }
+    throw\ a                              { makeToken TkThrowA }
+    recover\ a                            { makeToken TkRecoverA }
 
-    knight              { makeToken TkKnight }
-    requiring\ help\ of { makeToken TkAliasesListBegin }
-    help\ received      { makeToken TkAliasesListEnd }
+    knight                                { makeToken TkAlias }
+    requiring\ help\ of                   { makeToken TkAliasListBegin }
+    help\ received                        { makeToken TkAliasListEnd }
 
     -- Literals
-    $digits+            { makeToken TkIntLit }
-    $digits+\.$digits+  { makeToken TkFloatLit }
-    @strings            { makeToken TkString }
+    $digits+                              { makeToken TkIntLit }
+    $digits+\.$digits+                    { makeToken TkFloatLit }
+    @strings                              { makeToken TkStringLit }
 
     -- Special characters
-    \,                  { makeToken TkComma }
-    \\                  { makeToken TkSeq }
-    \:                   { makeToken TkColon }
-    \|$characters\|        { makeToken TkChar }
-    \|@scapedchars\|        { makeToken TkChar }
+    \,                                    { makeToken TkComma }
+    \\                                    { makeToken TkSeq }
+    \:                                    { makeToken TkColon }
+    \|$characters\|                       { makeToken TkCharLit }
+    \|@scapedchars\|                      { makeToken TkCharLit }
 
     -- Operators
-    \<\<=                 { makeToken TkAsig }
-    \+                  { makeToken TkPlus }
-    \-                  { makeToken TkMinus }
-    \*                  { makeToken TkMult }
-    \/                  { makeToken TkDiv }
-    \%                   { makeToken TkMod }
-    lt                  { makeToken TkLt }
-    gt                  { makeToken TkGt }
-    lte                  { makeToken TkLte }
-    gte                  { makeToken TkGte }
-    eq                  { makeToken TkEq }
-    neq                  { makeToken TkNeq }
-    not                 { makeToken TkNot }
-    and                 { makeToken TkAnd }
-    or                 { makeToken TkOr }
-    \>\-\<              { makeToken TkConcat }
-    \<                  { makeToken TkLteLit }
-    \{                  { makeToken TkBraceOpen }
-    \}                  { makeToken TkBraceClosed }
+    \<\<=                                 { makeToken TkAsig }
+    \+                                    { makeToken TkPlus }
+    \-                                    { makeToken TkMinus }
+    \*                                    { makeToken TkMult }
+    \/                                    { makeToken TkDiv }
+    \%                                    { makeToken TkMod }
+    lt                                    { makeToken TkLt }
+    gt                                    { makeToken TkGt }
+    lte                                   { makeToken TkLte }
+    gte                                   { makeToken TkGte }
+    eq                                    { makeToken TkEq }
+    neq                                   { makeToken TkNeq }
+    not                                   { makeToken TkNot }
+    and                                   { makeToken TkAnd }
+    or                                    { makeToken TkOr }
+    \>\-\<                                { makeToken TkConcat }
+    \<                                    { makeToken TkLteLit }
+    \{                                    { makeToken TkBraceOpen }
+    \}                                    { makeToken TkBraceClosed }
 
-    const               { makeToken TkConst }
-    var                 { makeToken TkVar }
-    of\ type            { makeToken TkOfType }
-    @ids                { makeToken TkId }
-    .                   { throwLexError }
+    const                                 { makeToken TkConst }
+    var                                   { makeToken TkVar }
+    of\ type                              { makeToken TkOfType }
+    @ids                                  { makeToken TkId }
+
+    .                                     { throwLexError }
 
 {
 
@@ -184,31 +185,31 @@ data AbstractToken = TkId | TkConst | TkVar | TkOfType | TkAsig
     ------ Types ------
     -------------------
     -- Integers
-    | TkBigHumanity | TkSmallHumanity | TkIntLit
+    | TkBigInt | TkSmallInt | TkIntLit
     -- Tri-booleans
-    | TkBonfire | TkLit | TkUnlit | TkUndiscovered
+    | TkBool | TkLit | TkUnlit | TkUndiscovered
     -- Double precission
-    | TkHollow | TkFloatLit
+    | TkFloat | TkFloatLit
     -- Character
-    | TkSign | TkChar | TkAsciiOf
+    | TkChar | TkCharLit | TkAsciiOf
     --- Collections
     -- Strings
-    | TkMiracle | TkLteLit
-    | TkString -- Strings
+    | TkString | TkLteLit
+    | TkStringLit -- Strings
     -- Arrays
-    | TkChest | TkChestOpen | TkChestClose | TkSize
+    | TkArray | TkArrayOpen | TkArrayClose | TkSize
     -- Sets
-    | TkArmor | TkArmorOpen | TkArmorClose | TkUnion | TkIntersect | TkDiff
+    | TkSet | TkSetOpen | TkSetClose | TkUnion | TkIntersect | TkDiff
     -- Enums
-    | TkTitanite | TkBraceOpen | TkBraceClosed | TkComma | TkAccessor
+    | TkEnum | TkBraceOpen | TkBraceClosed | TkComma | TkAccessor
     -- Records (C-like structs)
-    | TkBezel
+    | TkRecord
     -- Unions
-    | TkLink
+    | TkUnionStruct
     -- Null, pointer stuff
-    | TkAbyss | TkArrowTo | TkAimA | TkThrowA | TkRecoverA
+    | TkNull | TkPointer | TkAimA | TkThrowA | TkRecoverA
     -- Type Aliases
-    | TkKnight | TkAliasesListBegin | TkAliasesListEnd
+    | TkAlias | TkAliasListBegin | TkAliasListEnd
 
     ------------------
     -- Instructions --
@@ -218,7 +219,7 @@ data AbstractToken = TkId | TkConst | TkVar | TkOfType | TkAsig
     | TkProgramBegin -- hello ashen one
     | TkProgramEnd -- farewell ashen one
     -- Declarations
-    | TkInYourInventory
+    | TkDeclarationEnd
     -- Instructions
     | TkInstructionBegin -- traveling somewhere
     | TkInstructionEnd -- you died
@@ -247,14 +248,14 @@ data AbstractToken = TkId | TkConst | TkVar | TkOfType | TkAsig
     | TkSwitchDefault
     | TkEndSwitch -- dungeon exited
     -- Finite iterations
-    | TkUpgrading -- for without iterable
+    | TkFor -- for without iterable
     | TkWith -- with
     | TkSoul -- soul[s]
     | TkLevel -- until level
-    | TKEndUpgrading -- max level reached
-    | TkRepairing -- for with iterable
+    | TKEndFor -- max level reached
+    | TkForEach -- for with iterable
     | TkWithTitaniteFrom -- with titanite from
-    | TkEndRepairing -- weaponry repaired
+    | TkEndForEach -- weaponry repaired
     -- Conditional iterations
     | TkWhile
     | TkCovenantIsActive -- covenant is active
