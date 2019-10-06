@@ -161,8 +161,7 @@ tokens :-
 {
 
 payloadRequiredTokens :: [AbstractToken]
-payloadRequiredTokens = [
-    ]
+payloadRequiredTokens = [ TkStringLit, TkIntLit, TkCharLit, TkFloatLit]
 
 addPayload :: AbstractToken -> String -> Maybe String
 addPayload aToken payload
