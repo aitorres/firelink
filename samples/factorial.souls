@@ -13,11 +13,11 @@ hello ashen one
 
     upgrading i with 1 soul until level n+1
       traveling somewhere
-        r <<= r * i \
+        r <<= r * i
       you died
     max level reached \
 
-    with orange saponite say r \
+    with orange saponite say r
   you died
 
 farewell ashen one

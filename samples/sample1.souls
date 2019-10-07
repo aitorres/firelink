@@ -21,10 +21,10 @@ with skill of type humanity
       traveling somewhere
         go back with 1
       you died
-    inventory closed
+    inventory closed \
 
     i <<= summon fibonacci
-      granting n - 1
+      granting n - 1 \
     go back with n*i
   you died
 after this return to your world
@@ -36,7 +36,7 @@ with
   const estus of type sign <<= |d|
 in your inventory
   dragon <<= 1 \
-  fire <<= 1.5 \
+  fire <<= 1.5
 you died
 
 
