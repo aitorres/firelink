@@ -1,7 +1,7 @@
 {
 module Lexer (
     alexMonadScan, scanTokens, getAbstractToken, filterComments,
-    AbstractToken (..), Token (..), AlexUserState(..)
+    AbstractToken (..), Token (..), AlexUserState(..), AlexPosn (..)
     ) where
 import Text.Printf (printf)
 import Data.List.Split (splitOn)
@@ -318,7 +318,7 @@ addErrorToState lexError = Alex $ \s@AlexState{alex_ust=ust}
 
 formatLexError :: String -> LexError -> String
 formatLexError fullStr (LexError (AlexPn offset r c, _, _, s)) =
-    printf "\x1b[1mYOU DIED!!\x1b[0m Lexical error at line \x1b[1m\x1b[31m%d\x1b[0m, column \x1b[1m\x1b[31m%d\x1b[0m:\n%s\n" r c fs
+    printf "\x1b[1m\x1b[31mYOU DIED!!\x1b[0m Lexical error at line \x1b[1m\x1b[31m%d\x1b[0m, column \x1b[1m\x1b[31m%d\x1b[0m:\n%s\n" r c fs
     where
         allLines = splitOn "\n" fullStr
         maxSize = foldl max (-1) $ map length allLines
