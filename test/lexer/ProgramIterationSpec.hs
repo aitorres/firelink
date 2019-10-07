@@ -11,7 +11,7 @@ spec = describe "Lexer" $ do
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkUpgrading
+        atok `shouldBe` TkFor
       Nothing ->
         error "rejected as an invalid token"
 
@@ -36,7 +36,7 @@ spec = describe "Lexer" $ do
         error "rejected as an invalid token"
 
   it "accepts `souls` as a valid token" $ do
-    let x = "soul"
+    let x = "souls"
     s <- scanTokens x
     case s of
       Just toks -> do
@@ -61,7 +61,7 @@ spec = describe "Lexer" $ do
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TKEndUpgrading
+        atok `shouldBe` TkEndFor
       Nothing ->
         error "rejected as an invalid token"
 
@@ -71,7 +71,7 @@ spec = describe "Lexer" $ do
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkRepairing
+        atok `shouldBe` TkForEach
       Nothing ->
         error "rejected as an invalid token"
 
@@ -91,7 +91,7 @@ spec = describe "Lexer" $ do
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkEndRepairing
+        atok `shouldBe` TkEndForEach
       Nothing ->
         error "rejected as an invalid token"
 

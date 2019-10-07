@@ -12,7 +12,7 @@ spec = describe "Lexer" $ do
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkChar
+        atok `shouldBe` TkCharLit
       Nothing ->
         error "rejected as an invalid token"
 
@@ -22,7 +22,7 @@ spec = describe "Lexer" $ do
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkChar
+        atok `shouldBe` TkCharLit
       Nothing ->
         error "rejected as an invalid token"
 
@@ -32,7 +32,7 @@ spec = describe "Lexer" $ do
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkChar
+        atok `shouldBe` TkCharLit
       Nothing ->
         error "rejected as an invalid token"
 
@@ -42,16 +42,16 @@ spec = describe "Lexer" $ do
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkChar
+        atok `shouldBe` TkCharLit
       Nothing ->
         error "rejected as an invalid token"
 
-  it "accepts `|\n|` as a valid char literal" $ do
-    let x = "|\n|"
+  it "accepts `|\\n|` as a valid char literal" $ do
+    let x = "|\\n|"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkChar
+        atok `shouldBe` TkCharLit
       Nothing ->
         error "rejected as an invalid token"

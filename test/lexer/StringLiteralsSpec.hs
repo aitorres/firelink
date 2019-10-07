@@ -11,7 +11,7 @@ spec = describe "Lexer" $ do
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkString
+        atok `shouldBe` TkStringLit
       Nothing ->
         error "rejected as an invalid token"
 
@@ -21,7 +21,7 @@ spec = describe "Lexer" $ do
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkString
+        atok `shouldBe` TkStringLit
       Nothing ->
         error "rejected as an invalid token"
 
@@ -31,7 +31,7 @@ spec = describe "Lexer" $ do
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkString
+        atok `shouldBe` TkStringLit
       Nothing ->
         error "rejected as an invalid token"
 
@@ -41,7 +41,7 @@ spec = describe "Lexer" $ do
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkString
+        atok `shouldBe` TkStringLit
       Nothing ->
         error "rejected as an invalid token"
 
@@ -51,7 +51,7 @@ spec = describe "Lexer" $ do
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkString
+        atok `shouldBe` TkStringLit
       Nothing ->
         error "rejected as an invalid token"
 
@@ -61,7 +61,7 @@ spec = describe "Lexer" $ do
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkString
+        atok `shouldBe` TkStringLit
       Nothing ->
         error "rejected as an invalid token"
 
@@ -71,7 +71,7 @@ spec = describe "Lexer" $ do
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkString
+        atok `shouldBe` TkStringLit
       Nothing ->
         error "rejected as an invalid token"
 
@@ -81,17 +81,17 @@ spec = describe "Lexer" $ do
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkString
+        atok `shouldBe` TkStringLit
       Nothing ->
         error "rejected as an invalid token"
 
-  it "accepts `@\n@` as a valid string literal" $ do
-    let x = "@\n@"
+  it "accepts `@\\n@` as a valid string literal" $ do
+    let x = "@\\n@"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkString
+        atok `shouldBe` TkStringLit
       Nothing ->
         error "rejected as an invalid token"
 
@@ -101,6 +101,6 @@ spec = describe "Lexer" $ do
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkString
+        atok `shouldBe` TkStringLit
       Nothing ->
         error "rejected as an invalid token"
