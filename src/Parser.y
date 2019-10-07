@@ -1,13 +1,15 @@
 {
 module Parser (parse) where
 
-import Lexer (Token (..), AbstractToken (..))
+import Lexer (Token (..), AbstractToken (..), AlexPosn (..))
+import AST (AST)
 import Data.Maybe
 }
 
 %name         parse
 %tokentype    { Token }
-%error        { parseError }
+%error        { parseErrors }
+%monad        { AST }
 
 %token
     programBegin    { Token TkProgramBegin _ _ }
@@ -262,8 +264,14 @@ PARSLIST
 
 {
 
-parseError :: [Token] -> a
-parseError _ = error "Parse error"
+parseErrors :: [Token] -> AST a
+parseErrors errors =
+  let (Token abst _ (AlexPn _ l c)) = errors !! 0
+      name = show abst
+      line = show l
+      column = show c
+      msg = "\x1b[1m\x1b[31mYOU DIED!!\x1b[0m Parser error: Unexpected token \x1b[1m\x1b[31m" ++ name ++ "\x1b[0m at line \x1b[1m\x1b[31m" ++ line ++ "\x1b[0m, column \x1b[1m\x1b[31m" ++ column ++ "\x1b[0m"
+  in  fail msg
 
 type Declarations = [Declaration]
 type Instructions = [Instruction]
