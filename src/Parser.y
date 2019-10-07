@@ -11,99 +11,135 @@ import Data.Maybe
 %error                                                                  { parseErrors }
 %monad                                                                  { AST }
 
+%left comma
+
+%left granting
+
+%left plus minus
+%left mult div mod
+
+%left and or
+
+%left accessor
+%right arrOpen arrClose
+
+%left not UMINUS
+
+%nonassoc lt lte gt gte eq neq granting
+
 %token
-    programBegin                                                        { Token TkProgramBegin _ _ }
-    programEnd                                                          { Token TkProgramEnd _ _ }
+  programBegin                                                          { Token TkProgramBegin _ _ }
+  programEnd                                                            { Token TkProgramEnd _ _ }
 
-    aliasListBegin                                                      { Token TkAliasListBegin _ _ }
-    aliasListEnd                                                        { Token TkAliasListEnd _ _ }
-    alias                                                               { Token TkAlias _ _ }
+  aliasListBegin                                                        { Token TkAliasListBegin _ _ }
+  aliasListEnd                                                          { Token TkAliasListEnd _ _ }
+  alias                                                                 { Token TkAlias _ _ }
 
-    id                                                                  { Token TkId $$ _ }
+  id                                                                    { Token TkId $$ _ }
 
-    ofType                                                              { Token TkOfType _ _ }
+  ofType                                                                { Token TkOfType _ _ }
 
-    paramRequest                                                        { Token TkRequesting _ _ }
-    parVal                                                              { Token TkVal _ _ }
-    parRef                                                              { Token TkRef _ _ }
+  paramRequest                                                          { Token TkRequesting _ _ }
+  parVal                                                                { Token TkVal _ _ }
+  parRef                                                                { Token TkRef _ _ }
 
-    bigInt                                                              { Token TkBigInt _ _ }
-    smallInt                                                            { Token TkSmallInt _ _ }
-    float                                                               { Token TkFloat _ _ }
-    char                                                                { Token TkChar _ _ }
-    bool                                                                { Token TkBool _ _ }
-    ltelit                                                              { Token TkLteLit _ _ }
-    string                                                              { Token TkString _ _ }
-    array                                                               { Token TkArray _ _ }
-    set                                                                 { Token TkSet _ _ }
-    enum                                                                { Token TkEnum _ _ }
-    unionStruct                                                         { Token TkUnionStruct _ _ }
-    record                                                              { Token TkRecord _ _ }
-    pointer                                                             { Token TkPointer _ _ }
+  bigInt                                                                { Token TkBigInt _ _ }
+  smallInt                                                              { Token TkSmallInt _ _ }
+  float                                                                 { Token TkFloat _ _ }
+  char                                                                  { Token TkChar _ _ }
+  bool                                                                  { Token TkBool _ _ }
+  ltelit                                                                { Token TkLteLit _ _ }
+  string                                                                { Token TkString _ _ }
+  array                                                                 { Token TkArray _ _ }
+  set                                                                   { Token TkSet _ _ }
+  enum                                                                  { Token TkEnum _ _ }
+  unionStruct                                                           { Token TkUnionStruct _ _ }
+  record                                                                { Token TkRecord _ _ }
+  pointer                                                               { Token TkPointer _ _ }
 
-    intLit                                                              { Token TkIntLit $$ _ }
-    floatLit                                                            { Token TkFloatLit $$ _ }
-    charLit                                                             { Token TkCharLit $$ _ }
-    stringLit                                                           { Token TkStringLit $$ _ }
+  intLit                                                                { Token TkIntLit $$ _ }
+  floatLit                                                              { Token TkFloatLit $$ _ }
+  charLit                                                               { Token TkCharLit $$ _ }
+  stringLit                                                             { Token TkStringLit $$ _ }
 
-    functionBegin                                                       { Token TkInvocation _ _ }
-    functionType                                                        { Token TkInvocationType _ _ }
-    functionEnd                                                         { Token TkInvocationEnd _ _ }
+  functionBegin                                                         { Token TkInvocation _ _ }
+  functionType                                                          { Token TkInvocationType _ _ }
+  functionEnd                                                           { Token TkInvocationEnd _ _ }
 
-    procedureBegin                                                      { Token TkSpell _ _ }
-    procedureEnd                                                        { Token TkSpellEnd _ _ }
+  procedureBegin                                                        { Token TkSpell _ _ }
+  procedureEnd                                                          { Token TkSpellEnd _ _ }
 
-    comma                                                               { Token TkComma _ _ }
-    brOpen                                                              { Token TkBraceOpen _ _ }
-    brClose                                                             { Token TkBraceClosed _ _ }
+  comma                                                                 { Token TkComma _ _ }
+  brOpen                                                                { Token TkBraceOpen _ _ }
+  brClose                                                               { Token TkBraceClosed _ _ }
 
-    with                                                                { Token TkWith _ _ }
-    declarend                                                           { Token TkDeclarationEnd _ _ }
+  with                                                                  { Token TkWith _ _ }
+  declarend                                                             { Token TkDeclarationEnd _ _ }
 
-    const                                                               { Token TkConst _ _ }
-    var                                                                 { Token TkVar _ _ }
-    asig                                                                { Token TkAsig _ _ }
+  const                                                                 { Token TkConst _ _ }
+  var                                                                   { Token TkVar _ _ }
+  asig                                                                  { Token TkAsig _ _ }
 
-    instructionsBegin                                                   { Token TkInstructionBegin _ _ }
-    instructionsEnd                                                     { Token TkInstructionEnd _ _ }
-    seq                                                                 { Token TkSeq _ _ }
+  instructionsBegin                                                     { Token TkInstructionBegin _ _ }
+  instructionsEnd                                                       { Token TkInstructionEnd _ _ }
+  seq                                                                   { Token TkSeq _ _ }
 
-    cast                                                                { Token TkCast _ _ }
-    offering                                                            { Token TkOffering _ _ }
+  cast                                                                  { Token TkCast _ _ }
+  offering                                                              { Token TkOffering _ _ }
 
-    summon                                                              { Token TkSummon _ _ }
-    granting                                                            { Token TkGranting _ _ }
+  summon                                                                { Token TkSummon _ _ }
+  granting                                                              { Token TkGranting _ _ }
 
-    return                                                              { Token TkReturn _ _ }
-    returnWith                                                          { Token TkReturnWith _ _ }
+  return                                                                { Token TkReturn _ _ }
+  returnWith                                                            { Token TkReturnWith _ _ }
 
-    print                                                               { Token TkPrint _ _ }
-    read                                                                { Token TkRead _ _ }
+  print                                                                 { Token TkPrint _ _ }
+  read                                                                  { Token TkRead _ _ }
 
-    whileBegin                                                          { Token TkWhile _ _ }
-    whileEnd                                                            { Token TkEndWhile _ _ }
-    covenantIsActive                                                    { Token TkCovenantIsActive _ _ }
+  whileBegin                                                            { Token TkWhile _ _ }
+  whileEnd                                                              { Token TkEndWhile _ _ }
+  covenantIsActive                                                      { Token TkCovenantIsActive _ _ }
 
-    ifBegin                                                             { Token TkIf _ _ }
-    ifEnd                                                               { Token TkEndIf _ _ }
-    colon                                                               { Token TkColon _ _ }
-    else                                                                { Token TkElse _ _ }
+  ifBegin                                                               { Token TkIf _ _ }
+  ifEnd                                                                 { Token TkEndIf _ _ }
+  colon                                                                 { Token TkColon _ _ }
+  else                                                                  { Token TkElse _ _ }
 
-    switchBegin                                                         { Token TkSwitch _ _ }
-    switchDefault                                                       { Token TkSwitchDefault _ _ }
-    switchEnd                                                           { Token TkEndSwitch _ _ }
+  switchBegin                                                           { Token TkSwitch _ _ }
+  switchDefault                                                         { Token TkSwitchDefault _ _ }
+  switchEnd                                                             { Token TkEndSwitch _ _ }
 
-    forBegin                                                            { Token TkFor _ _ }
-    forEnd                                                              { Token TKEndFor _ _ }
-    souls                                                               { Token TkSoul _ _ }
-    untilLevel                                                          { Token TkLevel _ _ }
+  forBegin                                                              { Token TkFor _ _ }
+  forEnd                                                                { Token TKEndFor _ _ }
+  souls                                                                 { Token TkSoul _ _ }
+  untilLevel                                                            { Token TkLevel _ _ }
 
-    forEachBegin                                                        { Token TkForEach _ _ }
-    forEachEnd                                                          { Token TkEndForEach _ _ }
-    withTitaniteFrom                                                    { Token TkWithTitaniteFrom _ _ }
+  forEachBegin                                                          { Token TkForEach _ _ }
+  forEachEnd                                                            { Token TkEndForEach _ _ }
+  withTitaniteFrom                                                      { Token TkWithTitaniteFrom _ _ }
 
-    parensOpen                                                          { Token TkParensOpen _ _ }
-    parensClosed                                                        { Token TkParensClosed _ _ }
+  parensOpen                                                            { Token TkParensOpen _ _ }
+  parensClosed                                                          { Token TkParensClosed _ _ }
+
+  plus                                                                  { Token TkPlus _ _ }
+  minus                                                                 { Token TkMinus _ _ }
+  mult                                                                  { Token TkMult _ _ }
+  div                                                                   { Token TkDiv _ _ }
+  mod                                                                   { Token TkMod _ _ }
+  lt                                                                    { Token TkLt _ _ }
+  gt                                                                    { Token TkGt _ _ }
+  lte                                                                   { Token TkLte _ _ }
+  gte                                                                   { Token TkGte _ _ }
+  eq                                                                    { Token TkEq _ _ }
+  neq                                                                   { Token TkNeq _ _ }
+  not                                                                   { Token TkNot _ _ }
+  and                                                                   { Token TkAnd _ _ }
+  or                                                                    { Token TkOr _ _ }
+
+  arrOpen                                                               { Token TkArrayOpen _ _ }
+  arrClose                                                              { Token TkArrayClose _ _ }
+
+  accessor                                                              { Token TkAccessor _ _ }
 
 %%
 
@@ -115,7 +151,7 @@ ALIASES
   | {- empty -}                                                         { [] }
 
 ALIASL
-  : ALIASL comma ALIAS                                                  { $3 : $1 }
+  : ALIASL ALIAS                                                        { $2 : $1 }
   | ALIAS                                                               { [$1] }
 
 ALIAS
@@ -127,12 +163,33 @@ EXPR
   | floatLit                                                            { FloatLit $1 }
   | stringLit                                                           { StringLit $1 }
   | parensOpen EXPR parensClosed                                        { $2 }
+  | ID accessor EXPR                                                    { Access $1 $3 }
+  | ID arrOpen EXPR arrClose                                            { Access $1 $3 }
+  | EXPR plus EXPR                                                      { Add $1 $3 }
+  | EXPR minus EXPR                                                     { Substract $1 $3 }
+  | EXPR mult EXPR                                                      { Multiply $1 $3 }
+  | EXPR div EXPR                                                       { Divide $1 $3 }
+  | EXPR mod EXPR                                                       { Mod $1 $3 }
+  | minus EXPR %prec UMINUS                                             { Negative $2 }
+  | EXPR lt EXPR                                                        { Lt $1 $3 }
+  | EXPR gt EXPR                                                        { Gt $1 $3 }
+  | EXPR lte EXPR                                                       { Lte $1 $3 }
+  | EXPR gte EXPR                                                       { Gte $1 $3 }
+  | EXPR eq EXPR                                                        { Eq $1 $3 }
+  | EXPR neq EXPR                                                       { Neq $1 $3 }
+  | EXPR and EXPR                                                       { And $1 $3 }
+  | EXPR or EXPR                                                        { Or $1 $3 }
+  | not EXPR                                                            { Not $2 }
+  | FUNCALL                                                             { EvalFunc (fst $1) (snd $1) }
   | ID                                                                  { IdExpr $1 }
 
 METHODS
-  : METHODS comma METHOD                                                { $3 : $1 }
+  : {- empty -}                                                         { [] }
+  | METHODL                                                             { $1 }
+
+METHODL
+  : METHODL METHOD                                                      { $2 : $1 }
   | METHOD                                                              { [$1] }
-  | {- empty -}                                                         { [] }
 
 METHOD
   : FUNC                                                                { $1 }
@@ -214,7 +271,7 @@ INSTRL
 INSTR
   : ID asig EXPR                                                        { InstAsig $1 $3 }
   | cast ID PROCPARS                                                    { InstCallProc $2 $3 }
-  | summon ID FUNCPARS                                                  { InstCallFunc $2 $3 }
+  | FUNCALL                                                             { InstCallFunc (fst $1) (snd $1) }
   | return                                                              { InstReturn }
   | returnWith EXPR                                                     { InstReturnWith $2 }
   | print EXPR                                                          { InstPrint $2 }
@@ -227,8 +284,11 @@ INSTR
   | forBegin ID with EXPR souls untilLevel EXPR CODEBLOCK forEnd        { InstFor $2 $4 $7 $8 }
   | forEachBegin ID withTitaniteFrom ID CODEBLOCK forEachEnd            { InstForEach $2 $4 $5 }
 
+FUNCALL
+  : summon ID FUNCPARS                                                  { ($2, $3) }
+
 IFCASES
-  : IFCASES comma IFCASE                                                { $3 : $1 }
+  : IFCASES IFCASE                                                      { $2 : $1 }
   | IFCASE                                                              { [$1] }
 
 IFCASE
@@ -238,7 +298,7 @@ ELSECASE
   : else colon CODEBLOCK                                                { ElseCase $3 }
 
 SWITCHCASES
-  : SWITCHCASES comma SWITCHCASE                                        { $3 : $1 }
+  : SWITCHCASES SWITCHCASE                                              { $2 : $1 }
   | SWITCHCASE                                                          { [$1] }
 
 SWITCHCASE
@@ -249,15 +309,17 @@ DEFAULTCASE
 
 FUNCPARS
   : granting PARSLIST                                                   { $2 }
+  | granting EXPR                                                       { [$2] }
   | {- empty -}                                                         { [] }
 
 PROCPARS
   : offering PARSLIST                                                   { $2 }
+  | offering EXPR                                                       { [$2] }
   | {- empty -}                                                         { [] }
 
 PARSLIST
-  : PARSLIST comma EXPR                                                 { $3 : $1 }
-  | EXPR                                                                { [$1] }
+  : EXPR comma PARSLIST                                                 { $1 : $3 }
+  | {- empty -}                                                         { [] }
 
 {
 
@@ -348,6 +410,23 @@ data Expr
   | FloatLit (Maybe String)
   | CharLit (Maybe String)
   | StringLit (Maybe String)
+  | EvalFunc Id Params
+  | Add Expr Expr
+  | Substract Expr Expr
+  | Multiply Expr Expr
+  | Divide Expr Expr
+  | Mod Expr Expr
+  | Negative Expr
+  | Lt Expr Expr
+  | Gt Expr Expr
+  | Lte Expr Expr
+  | Gte Expr Expr
+  | Eq Expr Expr
+  | Neq Expr Expr
+  | And Expr Expr
+  | Or Expr Expr
+  | Not Expr
+  | Access Id Expr
   | IdExpr Id
   deriving Show
 
