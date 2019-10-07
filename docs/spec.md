@@ -11,25 +11,6 @@
 
 **Fire Link** es un lenguaje de programación imperativo no orientado a objetos.
 
-## Palabras Reservadas
-
-A continuación se muestran las palabras reservadas por el lenguaje, a manera de referencia. El uso de cada palabra se describe a lo largo de este documento.
-
-|          |           |           |           |          |            |            |          |
-|----------|-----------|-----------|-----------|----------|------------|------------|----------|
-| const    | var       | of        | type      | small    | big        | humanity   | hollow   |
-| bonfire  | lit       | unlit     | yes       | no       | true       | false      | fate     |
-| unknown  | pending   | sign      | miracle   | chest    | bezel      | link       | abyss    |
-| arrow    | to        | hello     | ashen     | one      | farewell   | with       | in       |
-| your     | inventory | traveling | you       | died     | invocation | requesting | skill    |
-| after    | this      | return    | world     | val      | ref        | summon     | granting |
-| spell    | ashen     | estus     | flask     | consumed | cast       | offering   | orange   |
-| saponite | say       | transpose | trust     | your     | inventory  | liar!      | enter    |
-| enter    | dungeon   | empty     | upgrading | soul     | souls      | until      | level    |
-| max      | reached   | while     | the       | covenant | is         | active     | left     |
-| lte      | lt        | gte       | gt        | eq       | neq        | not        | ascii    |
-| of       | closed    | exited    |           |          |            |            |          |
-
 ## Identificadores
 
 En **Fire Link**, un identificador válido es toda palabra que comienza con una letra minúscula, está formada posteriormente por letras, números y guiones bajos (`_`) y no es una palabra reservada por el lenguaje.
@@ -375,6 +356,10 @@ requiring help of
   <alias de tipo n>
 help received
 ```
+
+#### Paréntesis
+
+Las expresiones (valores) pueden agruparse en paréntesis (`()`) por motivos de precedencia. Al momento de evaluar una expresión con paréntesis, se evaluará en primer lugar la expresión dentro de un paréntesis antes de evaluar las operaciones fuera de ellas; la expresión resultante dentro de los paréntesis será el valor que se reemplazará por completo en lugar de la expresión parentizada.
 
 ## Instrucciones y Control de Flujo
 
