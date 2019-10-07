@@ -446,7 +446,7 @@ I1 \
 I2
 ```
 
-No es necesario colocar el operador de secuenciación al final de la última instrucción de un bloque de instrucciones.
+No se permitirá colocar el operador de secuenciación al final de la última instrucción de un bloque de instrucciones.
 
 ### Asignación
 
