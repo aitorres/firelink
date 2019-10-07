@@ -65,11 +65,6 @@ spec = describe "Lexer" $ do
     s <- scanTokens x
     s `shouldBe` Nothing
 
-  it "rejects `1test` as a valid token" $ do
-    let x = "1test"
-    s <- scanTokens x
-    s `shouldBe` Nothing
-
   it "rejects `_test` as a valid token" $ do
     let x = "_test"
     s <- scanTokens x

@@ -41,7 +41,7 @@ spec = describe "Lexer" $ do
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkInYourInventory
+        atok `shouldBe` TkDeclarationEnd
       Nothing ->
         error "rejected as an invalid token"
 

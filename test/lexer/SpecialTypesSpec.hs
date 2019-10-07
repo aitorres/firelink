@@ -11,7 +11,7 @@ spec = describe "Lexer" $ do
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkAbyss
+        atok `shouldBe` TkNull
       Nothing ->
         error "rejected as an invalid token"
 
@@ -21,7 +21,7 @@ spec = describe "Lexer" $ do
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkArrowTo
+        atok `shouldBe` TkPointer
       Nothing ->
         error "rejected as an invalid token"
 
@@ -31,7 +31,7 @@ spec = describe "Lexer" $ do
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkKnight
+        atok `shouldBe` TkAlias
       Nothing ->
         error "rejected as an invalid token"
 
@@ -41,7 +41,7 @@ spec = describe "Lexer" $ do
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkAliasesListBegin
+        atok `shouldBe` TkAliasListBegin
       Nothing ->
         error "rejected as an invalid token"
 
@@ -51,6 +51,6 @@ spec = describe "Lexer" $ do
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkAliasesListEnd
+        atok `shouldBe` TkAliasListEnd
       Nothing ->
         error "rejected as an invalid token"
