@@ -15,9 +15,9 @@ $characters = [^\\\|]
 @ids = [a-z][A-Za-z0-9_]*
 @scapedchars = \\[nt\\\|]
 @strings = \@([$characters # \@] | "\@" | @scapedchars)*\@
-@comments = \-\- $printable+
+@comments = \-\-$printable*
 tokens :-
-    $white+         ;
+    $white+                               ;
     -- reserved keywords --
     -- Program structure
     @comments                             { makeToken TkComment }
@@ -65,7 +65,7 @@ tokens :-
 
     -- iterable looping
     upgrading                             { makeToken TkFor }
-    max\ level\ reached                   { makeToken TKEndFor }
+    max\ level\ reached                   { makeToken TkEndFor }
     souls?                                { makeToken TkSoul }
     until\ level                          { makeToken TkLevel }
 
@@ -251,7 +251,7 @@ data AbstractToken = TkId | TkConst | TkVar | TkOfType | TkAsig
     | TkWith -- with
     | TkSoul -- soul[s]
     | TkLevel -- until level
-    | TKEndFor -- max level reached
+    | TkEndFor -- max level reached
     | TkForEach -- for with iterable
     | TkWithTitaniteFrom -- with titanite from
     | TkEndForEach -- weaponry repaired
