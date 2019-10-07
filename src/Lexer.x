@@ -1,6 +1,6 @@
 {
 module Lexer (
-    alexMonadScan, scanTokens, getAbstractToken,
+    alexMonadScan, scanTokens, getAbstractToken, filterComments,
     AbstractToken (..), Token (..), AlexUserState(..)
     ) where
 import Text.Printf (printf)
@@ -150,6 +150,8 @@ tokens :-
     \<                                    { makeToken TkLteLit }
     \{                                    { makeToken TkBraceOpen }
     \}                                    { makeToken TkBraceClosed }
+    \(                                    { makeToken TkParensOpen }
+    \)                                    { makeToken TkParensClosed }
 
     const                                 { makeToken TkConst }
     var                                   { makeToken TkVar }
@@ -161,7 +163,7 @@ tokens :-
 {
 
 payloadRequiredTokens :: [AbstractToken]
-payloadRequiredTokens = [ TkStringLit, TkIntLit, TkCharLit, TkFloatLit]
+payloadRequiredTokens = [TkStringLit, TkIntLit, TkCharLit, TkFloatLit, TkComment]
 
 addPayload :: AbstractToken -> String -> Maybe String
 addPayload aToken payload
@@ -266,6 +268,8 @@ data AbstractToken = TkId | TkConst | TkVar | TkOfType | TkAsig
     -- Binary operators
     | TkPlus | TkMinus | TkMult | TkDiv | TkMod | TkLt | TkGt | TkLte
     | TkGte | TkEq | TkNeq | TkAnd | TkOr | TkConcat
+    -- Parens
+    | TkParensOpen | TkParensClosed
     -- Unary operators
     | TkNot
     deriving (Eq, Show)
@@ -346,4 +350,8 @@ scanTokens str = case runAlex str alexMonadScan of
 
 getAbstractToken :: Token -> AbstractToken
 getAbstractToken (Token t _ _) = t
+
+filterComments :: [Token] -> [Token]
+filterComments =
+    filter (\(Token abst _ _) -> abst /= TkComment)
 }

@@ -100,6 +100,9 @@ import Data.Maybe
     forEachEnd          { Token TkEndForEach _ _ }
     withTitaniteFrom    { Token TkWithTitaniteFrom _ _}
 
+    parensOpen          { Token TkParensOpen _ _ }
+    parensClosed        { Token TkParensClosed _ _ }
+
 %%
 
 PROGRAM
@@ -121,6 +124,7 @@ EXPR
   | charLit                             { CharLit $1 }
   | floatLit                            { FloatLit $1 }
   | stringLit                           { StringLit $1 }
+  | parensOpen EXPR parensClosed        { $2 }
   | ID                                  { IdExpr $1 }
 
 METHODS

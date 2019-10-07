@@ -1,7 +1,7 @@
 module Lib
     ( mainFunc
     ) where
-import Lexer (Token (..), AlexUserState(..), alexMonadScan, scanTokens)
+import Lexer (Token (..), AlexUserState(..), alexMonadScan, scanTokens, filterComments)
 import Parser (parse)
 import System.Environment (getArgs)
 import System.IO (openFile, IOMode(..), hGetContents)
@@ -20,7 +20,8 @@ mainFunc = do
         tokens <- scanTokens contents
         case tokens of
             Just validTokens -> do
-                let parsedProgram = parse validTokens
+                let programTokens = filterComments validTokens
+                let parsedProgram = parse programTokens
                 putStrLn $ show parsedProgram
             Nothing ->
                 putStrLn "Fix your lexical mistakes, ashen one."
