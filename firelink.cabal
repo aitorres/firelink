@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: a4a18bc9887135321732b2557140338ec7faae4ee53ad69750828266877a7d4a
+-- hash: 8a62ce0714581f843b32162150c47803277bdb2e92af3f83c0e4053c9b9790cd
 
 name:           firelink
 version:        0.1.0.0
@@ -27,6 +27,7 @@ source-repository head
 
 library
   exposed-modules:
+      AST
       Lexer
       Lib
       Parser
