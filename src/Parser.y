@@ -110,7 +110,7 @@ import Data.Maybe
   switchEnd                                                             { Token TkEndSwitch _ _ }
 
   forBegin                                                              { Token TkFor _ _ }
-  forEnd                                                                { Token TKEndFor _ _ }
+  forEnd                                                                { Token TkEndFor _ _ }
   souls                                                                 { Token TkSoul _ _ }
   untilLevel                                                            { Token TkLevel _ _ }
 
