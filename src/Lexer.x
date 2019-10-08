@@ -32,10 +32,12 @@ tokens :-
 
     -- Functions and procedures
     spell                                 { makeToken TkSpell }
+    to\ the\ estus\ flask                 { makeToken TkSpellParsEnd }
     ashen\ estus\ flask\ consumed         { makeToken TkSpellEnd }
     invocation                            { makeToken TkInvocation }
     with\ skill\ of\ type                 { makeToken TkInvocationType }
     requesting                            { makeToken TkRequesting }
+    to\ the\ knight                       { makeToken TkInvocationParsEnd }
     val                                   { makeToken TkVal }
     ref                                   { makeToken TkRef }
     summon                                { makeToken TkSummon }
@@ -228,6 +230,7 @@ data AbstractToken = TkId | TkConst | TkVar | TkOfType | TkAsig
     -- Functions
     | TkInvocation | TkRequesting
     | TkInvocationType -- with skill of type
+    | TkInvocationParsEnd
     | TkInvocationEnd -- after this return to your world
     | TkVal | TkRef | TkReturn | TkSummon | TkGranting
     -- Procedures
@@ -235,6 +238,7 @@ data AbstractToken = TkId | TkConst | TkVar | TkOfType | TkAsig
     | TkSpellEnd -- ashen estus flask consumed
     | TkCast
     | TkOffering
+    | TkSpellParsEnd
     | TkReturnWith
     -- Basic I/O
     | TkPrint -- with orange saponite say

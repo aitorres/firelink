@@ -13,7 +13,7 @@ import Data.Maybe
 
 %left comma
 
-%left granting
+%left granting offering
 
 %left plus minus
 %left mult div mod
@@ -86,9 +86,11 @@ import Data.Maybe
 
   cast                                                                  { Token TkCast _ _ }
   offering                                                              { Token TkOffering _ _ }
+  toTheKnight                                                           { Token TkInvocationParsEnd _ _ }
 
   summon                                                                { Token TkSummon _ _ }
   granting                                                              { Token TkGranting _ _ }
+  toTheEstusFlask                                                       { Token TkSpellParsEnd _ _ }
 
   return                                                                { Token TkReturn _ _ }
   returnWith                                                            { Token TkReturnWith _ _ }
@@ -143,34 +145,40 @@ import Data.Maybe
 
 %%
 
+PROGRAM :: { Program }
 PROGRAM
   : programBegin ALIASES METHODS CODEBLOCK programEnd                   { Program $2 $3 $4 }
 
+ALIASES :: { AliasList }
 ALIASES
   : aliasListBegin ALIASL aliasListEnd                                  { $2 }
   | {- empty -}                                                         { [] }
 
+ALIASL :: { AliasList }
 ALIASL
   : ALIASL ALIAS                                                        { $2 : $1 }
   | ALIAS                                                               { [$1] }
 
+ALIAS :: { Alias }
 ALIAS
   : alias ID TYPE                                                       { Alias $2 $3 }
 
+EXPR :: { Expr }
 EXPR
-  : intLit                                                              { IntLit $1 }
-  | charLit                                                             { CharLit $1 }
-  | floatLit                                                            { FloatLit $1 }
-  | stringLit                                                           { StringLit $1 }
+  : intLit                                                              { IntLit $ (read (fromJust $1) :: Int) }
+  | floatLit                                                            { FloatLit $ (read (fromJust $1) :: Float) }
+  | charLit                                                             { CharLit $ fromJust $1 }
+  | stringLit                                                           { StringLit $ fromJust $1 }
   | parensOpen EXPR parensClosed                                        { $2 }
   | ID accessor EXPR                                                    { Access $1 $3 }
   | ID arrOpen EXPR arrClose                                            { Access $1 $3 }
+  | minus EXPR                                                          { Negative $2 }
+  | not EXPR                                                            { Not $2 }
   | EXPR plus EXPR                                                      { Add $1 $3 }
   | EXPR minus EXPR                                                     { Substract $1 $3 }
   | EXPR mult EXPR                                                      { Multiply $1 $3 }
   | EXPR div EXPR                                                       { Divide $1 $3 }
   | EXPR mod EXPR                                                       { Mod $1 $3 }
-  | minus EXPR %prec UMINUS                                             { Negative $2 }
   | EXPR lt EXPR                                                        { Lt $1 $3 }
   | EXPR gt EXPR                                                        { Gt $1 $3 }
   | EXPR lte EXPR                                                       { Lte $1 $3 }
@@ -179,43 +187,52 @@ EXPR
   | EXPR neq EXPR                                                       { Neq $1 $3 }
   | EXPR and EXPR                                                       { And $1 $3 }
   | EXPR or EXPR                                                        { Or $1 $3 }
-  | not EXPR                                                            { Not $2 }
   | FUNCALL                                                             { EvalFunc (fst $1) (snd $1) }
   | ID                                                                  { IdExpr $1 }
 
+METHODS :: { Methods }
 METHODS
   : {- empty -}                                                         { [] }
   | METHODL                                                             { $1 }
 
+METHODL :: { Methods }
 METHODL
   : METHODL METHOD                                                      { $2 : $1 }
   | METHOD                                                              { [$1] }
 
+METHOD :: { Method }
 METHOD
   : FUNC                                                                { $1 }
   | PROC                                                                { $1 }
 
+FUNC :: { Method }
 FUNC
   : functionBegin ID METHODPARS functionType TYPE CODEBLOCK functionEnd { Function $2 $3 $5 $6 }
 
+PROC :: { Method }
 PROC
   : procedureBegin ID METHODPARS CODEBLOCK procedureEnd                 { Procedure $2 $3 $4 }
 
+METHODPARS :: { MethodDeclarations }
 METHODPARS
   : paramRequest PARS                                                   { $2 }
   | {- empty -}                                                         { [] }
 
+PARS :: { MethodDeclarations }
 PARS
   : PARS comma PAR                                                      { $3 : $1 }
   | PAR                                                                 { [$1] }
 
+PAR :: { MethodDeclaration }
 PAR
   : PARTYPE ID ofType TYPE                                              { MethodDeclaration $1 $2 $4 }
 
+PARTYPE :: { ParamType }
 PARTYPE
   : parVal                                                              { Val }
   | parRef                                                              { Ref }
 
+TYPE :: { Type }
 TYPE
   : ID                                                                  { AliasType $1 }
   | bigInt                                                              { BigInt }
@@ -231,43 +248,54 @@ TYPE
   | record  brOpen STRUCTITS brClose                                    { Record $3 }
   | pointer TYPE                                                        { Pointer $2 }
 
+ENUMITS :: { EnumItems }
 ENUMITS
   : ENUMITS comma ID                                                    { (EnumItem $3) : $1 }
   | ID                                                                  { [EnumItem $1] }
 
+STRUCTITS :: { StructItems }
 STRUCTITS
   : STRUCTITS comma STRUCTIT                                            { $3 : $1 }
   | STRUCTIT                                                            { [$1] }
 
+STRUCTIT :: { StructItem }
 STRUCTIT
   : ID ofType TYPE                                                      { StructItem $1 $3 }
 
+ID :: { Id }
 ID
-  : id                                                                  { Id $1 }
+  : id                                                                  { Id $ fromJust $1 }
 
+CODEBLOCK :: { CodeBlock }
 CODEBLOCK
   : instructionsBegin DECLARS INSTRL instructionsEnd                    { CodeBlock $2 $3 }
   | instructionsBegin INSTRL instructionsEnd                            { CodeBlock [] $2 }
 
+DECLARS :: { Declarations }
 DECLARS
   : with DECLARSL declarend                                             { $2 }
 
+DECLARSL :: { Declarations }
 DECLARSL
   : DECLARSL comma DECLAR                                               { $3 : $1 }
   | DECLAR                                                              { [$1] }
 
+VARTYPE :: { VarType }
 VARTYPE
   : const                                                               { Const }
   | var                                                                 { Var }
 
+DECLAR :: { Declaration }
 DECLAR
   : VARTYPE ID ofType TYPE                                              { UninitializedDeclaration $1 $2 $4 }
   | VARTYPE ID ofType TYPE asig EXPR                                    { InitializedDeclaration $1 $2 $4 $6 }
 
+INSTRL :: { Instructions }
 INSTRL
   : INSTRL seq INSTR                                                    { $3 : $1 }
   | INSTR                                                               { [$1] }
 
+INSTR :: { Instruction }
 INSTR
   : ID asig EXPR                                                        { InstAsig $1 $3 }
   | cast ID PROCPARS                                                    { InstCallProc $2 $3 }
@@ -284,42 +312,42 @@ INSTR
   | forBegin ID with EXPR souls untilLevel EXPR CODEBLOCK forEnd        { InstFor $2 $4 $7 $8 }
   | forEachBegin ID withTitaniteFrom ID CODEBLOCK forEachEnd            { InstForEach $2 $4 $5 }
 
+FUNCALL :: { (Id, Params) }
 FUNCALL
   : summon ID FUNCPARS                                                  { ($2, $3) }
 
+IFCASES :: { IfCases }
 IFCASES
   : IFCASES IFCASE                                                      { $2 : $1 }
   | IFCASE                                                              { [$1] }
 
-IFCASE
+IFCASE :: { IfCase }
   : EXPR colon CODEBLOCK                                                { GuardedCase $1 $3 }
 
-ELSECASE
+ELSECASE :: { IfCase }
   : else colon CODEBLOCK                                                { ElseCase $3 }
 
-SWITCHCASES
+SWITCHCASES :: { SwitchCases }
   : SWITCHCASES SWITCHCASE                                              { $2 : $1 }
   | SWITCHCASE                                                          { [$1] }
 
-SWITCHCASE
+SWITCHCASE :: { SwitchCase }
   : ID colon CODEBLOCK                                                  { IdCase $1 $3 }
 
-DEFAULTCASE
+DEFAULTCASE :: { SwitchCase }
   : switchDefault colon CODEBLOCK                                       { DefaultCase $3 }
 
-FUNCPARS
-  : granting PARSLIST                                                   { $2 }
-  | granting EXPR                                                       { [$2] }
+FUNCPARS :: { Params }
+  : granting PARSLIST toTheKnight                                       { $2 }
   | {- empty -}                                                         { [] }
 
-PROCPARS
-  : offering PARSLIST                                                   { $2 }
-  | offering EXPR                                                       { [$2] }
+PROCPARS :: { Params }
+  : offering PARSLIST toTheEstusFlask                                   { $2 }
   | {- empty -}                                                         { [] }
 
-PARSLIST
-  : EXPR comma PARSLIST                                                 { $1 : $3 }
-  | {- empty -}                                                         { [] }
+PARSLIST :: { Params }
+  : PARSLIST comma EXPR                                                 { $3 : $1 }
+  | EXPR                                                                { [$1] }
 
 {
 
@@ -347,7 +375,7 @@ type SwitchCases = [SwitchCase]
 type StructItems = [StructItem]
 
 data Id
-  = Id (Maybe String)
+  = Id String
   deriving Show
 
 data Alias
@@ -406,10 +434,10 @@ data Expr
   = Lit
   | Unlit
   | Undiscovered
-  | IntLit (Maybe String)
-  | FloatLit (Maybe String)
-  | CharLit (Maybe String)
-  | StringLit (Maybe String)
+  | IntLit Int
+  | FloatLit Float
+  | CharLit String
+  | StringLit String
   | EvalFunc Id Params
   | Add Expr Expr
   | Substract Expr Expr

@@ -499,6 +499,7 @@ summon <nombre de la función>
   <expresion 2>,
   ...
   <expresion n>
+  to the knight
 ]
 ```
 
@@ -515,10 +516,11 @@ La sintaxis para declarar un procedimiento en la siguiente:
 ```firelink
 spell <identificador>
 [requesting
-  <tipo de parametro 1> <identificador 1> of type <tipo 1>
-  <tipo de parametro 2> <identificador 2> of type <tipo 2>
+  <tipo de parametro 1> <identificador 1> of type <tipo 1>,
+  <tipo de parametro 2> <identificador 2> of type <tipo 2>,
   ...
   <tipo de parametro n> <identificador n> of type <tipo n>
+  to the estus flask
 ]
   <bloque de instrucciones>
 ashen estus flask consumed
