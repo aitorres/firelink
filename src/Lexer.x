@@ -1,7 +1,7 @@
 {
 module Lexer (
-    alexMonadScan, scanTokens, getAbstractToken,
-    AbstractToken (..), Token (..), AlexUserState(..)
+    alexMonadScan, scanTokens, getAbstractToken, filterComments,
+    AbstractToken (..), Token (..), AlexUserState(..), AlexPosn (..)
     ) where
 import Text.Printf (printf)
 import Data.List.Split (splitOn)
@@ -32,10 +32,12 @@ tokens :-
 
     -- Functions and procedures
     spell                                 { makeToken TkSpell }
+    to\ the\ estus\ flask                 { makeToken TkSpellParsEnd }
     ashen\ estus\ flask\ consumed         { makeToken TkSpellEnd }
     invocation                            { makeToken TkInvocation }
     with\ skill\ of\ type                 { makeToken TkInvocationType }
     requesting                            { makeToken TkRequesting }
+    to\ the\ knight                       { makeToken TkInvocationParsEnd }
     val                                   { makeToken TkVal }
     ref                                   { makeToken TkRef }
     summon                                { makeToken TkSummon }
@@ -150,6 +152,8 @@ tokens :-
     \<                                    { makeToken TkLteLit }
     \{                                    { makeToken TkBraceOpen }
     \}                                    { makeToken TkBraceClosed }
+    \(                                    { makeToken TkParensOpen }
+    \)                                    { makeToken TkParensClosed }
 
     const                                 { makeToken TkConst }
     var                                   { makeToken TkVar }
@@ -161,7 +165,7 @@ tokens :-
 {
 
 payloadRequiredTokens :: [AbstractToken]
-payloadRequiredTokens = [ TkStringLit, TkIntLit, TkCharLit, TkFloatLit]
+payloadRequiredTokens = [TkStringLit, TkIntLit, TkCharLit, TkFloatLit, TkComment, TkId]
 
 addPayload :: AbstractToken -> String -> Maybe String
 addPayload aToken payload
@@ -226,6 +230,7 @@ data AbstractToken = TkId | TkConst | TkVar | TkOfType | TkAsig
     -- Functions
     | TkInvocation | TkRequesting
     | TkInvocationType -- with skill of type
+    | TkInvocationParsEnd
     | TkInvocationEnd -- after this return to your world
     | TkVal | TkRef | TkReturn | TkSummon | TkGranting
     -- Procedures
@@ -233,6 +238,7 @@ data AbstractToken = TkId | TkConst | TkVar | TkOfType | TkAsig
     | TkSpellEnd -- ashen estus flask consumed
     | TkCast
     | TkOffering
+    | TkSpellParsEnd
     | TkReturnWith
     -- Basic I/O
     | TkPrint -- with orange saponite say
@@ -266,6 +272,8 @@ data AbstractToken = TkId | TkConst | TkVar | TkOfType | TkAsig
     -- Binary operators
     | TkPlus | TkMinus | TkMult | TkDiv | TkMod | TkLt | TkGt | TkLte
     | TkGte | TkEq | TkNeq | TkAnd | TkOr | TkConcat
+    -- Parens
+    | TkParensOpen | TkParensClosed
     -- Unary operators
     | TkNot
     deriving (Eq, Show)
@@ -314,7 +322,7 @@ addErrorToState lexError = Alex $ \s@AlexState{alex_ust=ust}
 
 formatLexError :: String -> LexError -> String
 formatLexError fullStr (LexError (AlexPn offset r c, _, _, s)) =
-    printf "\x1b[1mYOU DIED!!\x1b[0m Lexical error at line \x1b[1m\x1b[31m%d\x1b[0m, column \x1b[1m\x1b[31m%d\x1b[0m:\n%s\n" r c fs
+    printf "\x1b[1m\x1b[31mYOU DIED!!\x1b[0m Lexical error at line \x1b[1m\x1b[31m%d\x1b[0m, column \x1b[1m\x1b[31m%d\x1b[0m:\n%s\n" r c fs
     where
         allLines = splitOn "\n" fullStr
         maxSize = foldl max (-1) $ map length allLines
@@ -346,4 +354,8 @@ scanTokens str = case runAlex str alexMonadScan of
 
 getAbstractToken :: Token -> AbstractToken
 getAbstractToken (Token t _ _) = t
+
+filterComments :: [Token] -> [Token]
+filterComments =
+    filter (\(Token abst _ _) -> abst /= TkComment)
 }

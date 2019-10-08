@@ -1,11 +1,4 @@
-
 hello ashen one
-
-spell hello_world
-  traveling somewhere
-    with orange saponite say @Hello, world!@
-  you died
-ashen estus flask consumed
 
 invocation fibonacci
 requesting
@@ -31,13 +24,14 @@ after this return to your world
 
 traveling somewhere
 with
-  var dragon of type humanity,
-  var fire of type hollow,
-  const estus of type sign <<= |d|
+  var n of type humanity,
+  var f of type humanity
 in your inventory
-  dragon <<= 1 \
-  fire <<= 1.5
+  a <<= |p| \
+  transpose into n \
+  f <<= summon fibonacci
+    granting n to the knight \
+  with orange saponite say f
 you died
-
 
 farewell ashen one

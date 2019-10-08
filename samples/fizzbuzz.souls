@@ -8,24 +8,26 @@ hello ashen one
     transpose into n \
     upgrading i with 1 soul until level n + 1
 
-      trust your inventory
-      i % 15 eq 0:
-        traveling somewhere
-          with orange saponite say @FizzBuzz@ \
-          with orange saponite say @\n@
-        you died
-      i % 3 eq 0:
-        traveling somewhere
-          with orange saponite say @Fizz@ \
-          with orange saponite say @\n@
-        you died
-      i % 5 eq 0:
-        traveling somewhere
-          with orange saponite say @Buzz@ \
-          with orange saponite say @\n@
-        you died
-      inventory closed
-
+      traveling somewhere
+        trust your inventory
+        i % 15 eq 0:
+          traveling somewhere
+            with orange saponite say @FizzBuzz@ \
+            with orange saponite say @\n@
+          you died
+        i % 3 eq 0:
+          traveling somewhere
+            with orange saponite say @Fizz@ \
+            with orange saponite say @\n@
+          you died
+        i % 5 eq 0:
+          traveling somewhere
+            with orange saponite say @Buzz@ \
+            with orange saponite say @\n@
+          you died
+        inventory closed
+      you died
+    max level reached
   you died
 
 farewell ashen one

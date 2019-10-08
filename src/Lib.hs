@@ -1,22 +1,27 @@
 module Lib
-    ( someFunc
+    ( mainFunc
     ) where
-import Lexer (Token (..), AlexUserState(..), alexMonadScan, scanTokens)
+import Lexer (Token (..), AlexUserState(..), alexMonadScan, scanTokens, filterComments)
+import Parser (parse)
 import System.Environment (getArgs)
 import System.IO (openFile, IOMode(..), hGetContents)
 
-someFunc :: IO ()
-someFunc = do
+mainFunc :: IO ()
+mainFunc = do
     args <- getArgs
-    if null args then
-        putStrLn "Mano qlq"
+    if null args then do
+        putStrLn "\x1b[31m\x1b[1mFireLink\x1b[0m"
+        putStrLn "Your journey must be started from a \x1b[1m\x1b[31m<file path>\x1b[0m, ashen one."
+        putStrLn "Usage: \t stack run <path>"
     else do
         let programFile = head args
         handle <- openFile programFile ReadMode
         contents <- hGetContents handle
         tokens <- scanTokens contents
         case tokens of
-            Just validTokens ->
-                print validTokens
+            Just validTokens -> do
+                let programTokens = filterComments validTokens
+                let parsedProgram = parse programTokens
+                putStrLn $ show parsedProgram
             Nothing ->
-                putStrLn "Fix your mistakes, ashen one."
+                putStrLn "Fix your lexical mistakes, ashen one."
