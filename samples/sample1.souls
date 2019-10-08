@@ -24,7 +24,7 @@ with skill of type humanity
     inventory closed \
 
     i <<= summon fibonacci
-      granting n - 1 \
+      granting n - 1 to the knight \
     go back with n*i
   you died
 after this return to your world
