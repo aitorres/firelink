@@ -1,6 +1,6 @@
 {
 module Lexer (
-    alexMonadScan, scanTokens, getAbstractToken, filterComments,
+    alexMonadScan, scanTokens, filterComments,
     AbstractToken (..), Token (..), AlexUserState(..), AlexPosn (..)
     ) where
 import Text.Printf (printf)
@@ -352,8 +352,8 @@ scanTokens str = case runAlex str alexMonadScan of
             printLexErrors str $ reverse errors
             return Nothing
 
-getAbstractToken :: Token -> AbstractToken
-getAbstractToken (Token t _ _) = t
+-- getAbstractToken :: Token -> AbstractToken
+-- getAbstractToken (Token t _ _) = t
 
 filterComments :: [Token] -> [Token]
 filterComments =
