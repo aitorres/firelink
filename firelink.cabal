@@ -4,16 +4,16 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 8a62ce0714581f843b32162150c47803277bdb2e92af3f83c0e4053c9b9790cd
+-- hash: 5be4aada91bf781116988818c6c34260f97885f7231783df8e02166e27f10a17
 
 name:           firelink
-version:        0.1.0.0
+version:        0.0.2.0
 description:    Please see the README on GitHub at <https://github.com/aitorres/firelink#readme>
 homepage:       https://github.com/aitorres/firelink#readme
 bug-reports:    https://github.com/aitorres/firelink/issues
-author:         Author name here
+author:         Andrés Ignacio Torres, Germán Robayo
 maintainer:     example@example.com
-copyright:      2019 Author name here
+copyright:      2019 (c) Andrés Ignacio Torres, Germán Robayo
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
