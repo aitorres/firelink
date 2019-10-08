@@ -1,8 +1,8 @@
-module ScalarTypesSpec where
+module Lexer.ScalarTypesSpec where
 
 import Test.Hspec
 import Lexer
-import Utils (getAbstractToken)
+import Lexer.Utils (getAbstractToken)
 
 spec :: Spec
 spec = describe "Lexer" $ do

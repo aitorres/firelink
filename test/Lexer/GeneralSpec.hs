@@ -1,8 +1,8 @@
-module GeneralSpec where
+module Lexer.GeneralSpec where
 
 import Test.Hspec
 import Lexer
-import Utils (getAbstractToken)
+import Lexer.Utils (getAbstractToken)
 
 spec :: Spec
 spec = describe "Lexer" $ do

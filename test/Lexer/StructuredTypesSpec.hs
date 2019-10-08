@@ -1,8 +1,8 @@
-module StructuredTypesSpec where
+module Lexer.StructuredTypesSpec where
 
 import Test.Hspec
 import Lexer
-import Utils (getAbstractToken)
+import Lexer.Utils (getAbstractToken)
 
 spec :: Spec
 spec = describe "Lexer" $ do

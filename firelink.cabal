@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 5be4aada91bf781116988818c6c34260f97885f7231783df8e02166e27f10a17
+-- hash: 1ef774180eefedf1979f1cc89e5a0adaaf5b04e59d9a2eb085492f2e4a46d271
 
 name:           firelink
 version:        0.0.2.0
@@ -64,24 +64,26 @@ test-suite lexer-tests
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      CharLiteralsSpec
-      CollectionTypesSpec
-      FloatLiteralsSpec
-      GeneralSpec
-      IdSpec
-      IntLiteralsSpec
-      OperatorsSpec
-      ProgramIterationSpec
-      ProgramMethodsSpec
-      ProgramSelectionSpec
-      ProgramStructureSpec
-      ScalarTypesSpec
-      SpecialTypesSpec
-      StringLiteralsSpec
-      StructuredTypesSpec
+      Lexer.CharLiteralsSpec
+      Lexer.CollectionTypesSpec
+      Lexer.FloatLiteralsSpec
+      Lexer.GeneralSpec
+      Lexer.IdSpec
+      Lexer.IntLiteralsSpec
+      Lexer.OperatorsSpec
+      Lexer.ProgramIterationSpec
+      Lexer.ProgramMethodsSpec
+      Lexer.ProgramSelectionSpec
+      Lexer.ProgramStructureSpec
+      Lexer.ScalarTypesSpec
+      Lexer.SpecialTypesSpec
+      Lexer.StringLiteralsSpec
+      Lexer.StructuredTypesSpec
+      Lexer.Utils
+      Parser.SampleSpec
       Paths_firelink
   hs-source-dirs:
-      test/lexer
+      test/
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array

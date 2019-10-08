@@ -1,58 +1,57 @@
-module CharLiteralsSpec where
+module Lexer.SpecialTypesSpec where
 
 import Test.Hspec
 import Lexer
-import Utils (getAbstractToken)
+import Lexer.Utils (getAbstractToken)
 
 spec :: Spec
 spec = describe "Lexer" $ do
-
-  it "accepts `|a|` as a valid char literal" $ do
-    let x = "|a|"
+  it "accepts `abyss` as a valid token for comments" $ do
+    let x = "abyss"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkCharLit
+        atok `shouldBe` TkNull
       Nothing ->
         error "rejected as an invalid token"
 
-  it "accepts `|b|` as a valid char literal" $ do
-    let x = "|b|"
+  it "accepts `arrow to` as a valid token for comments" $ do
+    let x = "arrow to"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkCharLit
+        atok `shouldBe` TkPointer
       Nothing ->
         error "rejected as an invalid token"
 
-  it "accepts `|\0|` as a valid char literal" $ do
-    let x = "|\0|"
+  it "accepts `knight` as a valid token for comments" $ do
+    let x = "knight"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkCharLit
+        atok `shouldBe` TkAlias
       Nothing ->
         error "rejected as an invalid token"
 
-  it "accepts `|\t|` as a valid char literal" $ do
-    let x = "|\t|"
+  it "accepts `requiring help of` as a valid token for comments" $ do
+    let x = "requiring help of"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkCharLit
+        atok `shouldBe` TkAliasListBegin
       Nothing ->
         error "rejected as an invalid token"
 
-  it "accepts `|\\n|` as a valid char literal" $ do
-    let x = "|\\n|"
+  it "accepts `help received` as a valid token for comments" $ do
+    let x = "help received"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkCharLit
+        atok `shouldBe` TkAliasListEnd
       Nothing ->
         error "rejected as an invalid token"

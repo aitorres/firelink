@@ -1,57 +1,72 @@
-module SpecialTypesSpec where
+module Lexer.IdSpec where
 
 import Test.Hspec
 import Lexer
-import Utils (getAbstractToken)
+import Lexer.Utils (getAbstractToken)
 
 spec :: Spec
 spec = describe "Lexer" $ do
-  it "accepts `abyss` as a valid token for comments" $ do
-    let x = "abyss"
+  it "accepts `a` as a valid id" $ do
+    let x = "a"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkNull
+        atok `shouldBe` TkId
       Nothing ->
         error "rejected as an invalid token"
 
-  it "accepts `arrow to` as a valid token for comments" $ do
-    let x = "arrow to"
+  it "accepts `b` as a valid id" $ do
+    let x = "b"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkPointer
+        atok `shouldBe` TkId
       Nothing ->
         error "rejected as an invalid token"
 
-  it "accepts `knight` as a valid token for comments" $ do
-    let x = "knight"
+  it "accepts `testy` as a valid id" $ do
+    let x = "testy"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkAlias
+        atok `shouldBe` TkId
       Nothing ->
         error "rejected as an invalid token"
 
-  it "accepts `requiring help of` as a valid token for comments" $ do
-    let x = "requiring help of"
+  it "accepts `test123` as a valid id" $ do
+    let x = "test123"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkAliasListBegin
+        atok `shouldBe` TkId
       Nothing ->
         error "rejected as an invalid token"
 
-  it "accepts `help received` as a valid token for comments" $ do
-    let x = "help received"
+  it "accepts `test_123` as a valid id" $ do
+    let x = "test_123"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkAliasListEnd
+        atok `shouldBe` TkId
       Nothing ->
         error "rejected as an invalid token"
+
+  it "rejects `T` as a valid token" $ do
+    let x = "T"
+    s <- scanTokens x
+    s `shouldBe` Nothing
+
+  it "rejects `Test` as a valid token" $ do
+    let x = "Test"
+    s <- scanTokens x
+    s `shouldBe` Nothing
+
+  it "rejects `_test` as a valid token" $ do
+    let x = "_test"
+    s <- scanTokens x
+    s `shouldBe` Nothing

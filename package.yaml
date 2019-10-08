@@ -45,7 +45,7 @@ executables:
 tests:
   lexer-tests:
     main:                Spec.hs
-    source-dirs:         test/lexer
+    source-dirs:         test/
     ghc-options:
     - -threaded
     - -rtsopts
