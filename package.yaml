@@ -1,10 +1,10 @@
 name:                firelink
-version:             0.1.0.0
+version:             0.0.2.0
 github:              "aitorres/firelink"
 license:             BSD3
-author:              "Author name here"
+author:              "Andrés Ignacio Torres, Germán Robayo"
 maintainer:          "example@example.com"
-copyright:           "2019 Author name here"
+copyright:           "2019 (c) Andrés Ignacio Torres, Germán Robayo"
 
 extra-source-files:
 - README.md
