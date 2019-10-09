@@ -95,7 +95,7 @@ data Expr
   | And Expr Expr
   | Or Expr Expr
   | Not Expr
-  | Access Id Expr
+  | Access Id I
   | IdExpr Id
   deriving Show
 

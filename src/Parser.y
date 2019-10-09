@@ -182,7 +182,7 @@ EXPR
   | setOpen EXPRL setClose                                              { SetLit $ reverse $2 }
   | unknownLit                                                          { UndiscoveredLit }
   | parensOpen EXPR parensClosed                                        { $2 }
-  | ID accessor EXPR                                                    { Access $1 $3 }
+  | ID accessor ID                                                      { Access $1 $3 }
   | ID arrOpen EXPR arrClose                                            { Access $1 $3 }
   | minus EXPR                                                          { Negative $2 }
   | not EXPR                                                            { Not $2 }
