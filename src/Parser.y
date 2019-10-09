@@ -242,7 +242,7 @@ TYPE
   | float                                                               { Float }
   | char                                                                { Char }
   | bool                                                                { Bool }
-  | ltelit EXPR array                                                   { Array $2 }
+  | ltelit EXPR array ofType TYPE                                       { Array $5 $2 }
   | ltelit EXPR string                                                  { StringType $2 }
   | set                                                                 { Set }
   | enum brOpen ENUMITS brClose                                         { Enum $3 }

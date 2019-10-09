@@ -32,7 +32,7 @@ data Type
   | Char
   | Bool
   | StringType Expr
-  | Array Expr
+  | Array Type Expr
   | Set
   | Enum EnumItems
   | Record StructItems
