@@ -145,6 +145,8 @@ import Grammar
 
   arrOpen                                                               { Token TkArrayOpen _ _ }
   arrClose                                                              { Token TkArrayClose _ _ }
+  setOpen                                                               { Token TkSetOpen _ _ }
+  setClose                                                              { Token TkSetClose _ _ }
 
   accessor                                                              { Token TkAccessor _ _ }
 
@@ -177,6 +179,7 @@ EXPR
   | trueLit                                                             { TrueLit }
   | falseLit                                                            { FalseLit }
   | arrOpen EXPRL arrClose                                              { ArrayLit $ reverse $2 }
+  | setOpen EXPRL setClose                                              { SetLit $ reverse $2 }
   | unknownLit                                                          { UndiscoveredLit }
   | parensOpen EXPR parensClosed                                        { $2 }
   | ID accessor EXPR                                                    { Access $1 $3 }

@@ -77,7 +77,8 @@ data Expr
   | FloatLit Float
   | CharLit Char
   | StringLit String
-  | ArrayLit [Expr]
+  | ArrayLit Exprs
+  | SetLit Exprs
   | EvalFunc Id Params
   | Add Expr Expr
   | Substract Expr Expr

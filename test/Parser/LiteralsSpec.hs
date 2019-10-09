@@ -86,6 +86,8 @@ spec = describe "Literal Values" $ do
             CodeBlock
                 [InitializedDeclaration Const (Id "patata") BigInt (FloatLit 0)]
                 _)) -> True)
+
+    -- array literals
     it "accepts `<$$>` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "<$$>")
         (\(Program _ _ (
@@ -113,4 +115,36 @@ spec = describe "Literal Values" $ do
         (\(Program _ _ (
             CodeBlock
                 [InitializedDeclaration Const (Id "patata") BigInt (ArrayLit [ArrayLit []])]
+                _)) -> True)
+
+    -- set literals
+    it "accepts `{$$}` as a literal" $
+        runTestForValidProgram (buildProgramWithLiteral "{$$}")
+        (\(Program _ _ (
+            CodeBlock
+                [InitializedDeclaration Const (Id "patata") BigInt (SetLit [])]
+                _)) -> True)
+    it "accepts `{$1$}` as a literal" $
+        runTestForValidProgram (buildProgramWithLiteral "{$1$}")
+        (\(Program _ _ (
+            CodeBlock
+                [InitializedDeclaration Const (Id "patata") BigInt (
+                    SetLit [IntLit  1])]
+                _)) -> True)
+    it "rejects `{$1,$}` as a literal" $
+        runTestForInvalidProgram (buildProgramWithLiteral "{$1,$}")
+    it "rejects `{$,1$}` as a literal" $
+        runTestForInvalidProgram (buildProgramWithLiteral "{$,1$}")
+    it "accepts `{$1, 2$}` as a literal" $
+        runTestForValidProgram (buildProgramWithLiteral "{$1, 2$}")
+        (\(Program _ _ (
+            CodeBlock
+                [InitializedDeclaration Const (Id "patata") BigInt (
+                    SetLit [IntLit 1, IntLit 2])]
+                _)) -> True)
+    it "accepts `{${$$}$}` as a literal" $
+        runTestForValidProgram (buildProgramWithLiteral "{${$$}$}")
+        (\(Program _ _ (
+            CodeBlock
+                [InitializedDeclaration Const (Id "patata") BigInt (SetLit [SetLit []])]
                 _)) -> True)
