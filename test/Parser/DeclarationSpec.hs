@@ -66,13 +66,13 @@ spec = describe "Declarations for new scopes" $ do
 
         \ traveling somewhere \
         \   with \
-        \      var patata of type humanity <<= lit \
+        \      var patata of type humanity <<= 1 \
         \   in your inventory \
         \   with orange saponite say @Hello world@ \
         \ you died \
 
         \ farewell ashen one" (\(Program _ _ (
             CodeBlock
-                [InitializedDeclaration Var (Id "patata") BigInt Lit]
+                [InitializedDeclaration Var (Id "patata") BigInt (IntLit 1)]
                 _)) -> True)
 
