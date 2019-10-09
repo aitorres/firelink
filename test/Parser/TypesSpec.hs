@@ -61,6 +61,7 @@ spec = describe "Data types" $ do
                 CodeBlock
                     [UninitializedDeclaration Const (Id "patata") (StringType (IntLit 2))]
                     _)) -> True)
+
     it "allows `<n>-chest of type humanity` as data type declaration" $
         runTestForValidProgram (buildProgramWithType "<2>-chest of type humanity")
             (\(Program _ _ (
@@ -71,3 +72,14 @@ spec = describe "Data types" $ do
         runTestForInvalidProgram (buildProgramWithType "<2>-chest")
     it "rejects `<n>-chest of type <3>-chest` as data type declaration" $
         runTestForInvalidProgram (buildProgramWithType "<2>-chest of type <3>-chest")
+
+    it "rejects `armor` as data type declaration" $
+        runTestForInvalidProgram (buildProgramWithType "armor")
+    it "rejects `armor of type armor` as data type declaration" $
+        runTestForInvalidProgram (buildProgramWithType "armor of type armor")
+    it "allows `armor of type humanity` as data type declaration" $
+        runTestForValidProgram (buildProgramWithType "armor of type humanity")
+            (\(Program _ _ (
+                CodeBlock
+                    [UninitializedDeclaration Const (Id "patata") (Set BigInt)]
+                    _)) -> True)

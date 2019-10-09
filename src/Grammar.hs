@@ -33,7 +33,7 @@ data Type
   | Bool
   | StringType Expr
   | Array Type Expr
-  | Set
+  | Set Type
   | Enum EnumItems
   | Record StructItems
   | UnionStruct StructItems

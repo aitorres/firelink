@@ -244,7 +244,7 @@ TYPE
   | bool                                                                { Bool }
   | ltelit EXPR array ofType TYPE                                       { Array $5 $2 }
   | ltelit EXPR string                                                  { StringType $2 }
-  | set                                                                 { Set }
+  | set ofType TYPE                                                     { Set $3 }
   | enum brOpen ENUMITS brClose                                         { Enum $3 }
   | unionStruct brOpen STRUCTITS brClose                                { UnionStruct $3 }
   | record  brOpen STRUCTITS brClose                                    { Record $3 }
