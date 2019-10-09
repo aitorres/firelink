@@ -188,3 +188,73 @@ spec = describe "Expressions" $ do
                 [InitializedDeclaration Const (Id "patata") BigInt (
                     Lt (IntLit 1) (Add (IntLit 2) (IntLit 3)))]
                 _)) -> True)
+    it "accepts `1 lte 2` as an expression and associates to the left" $
+        runTestForValidProgram (buildProgramWithExpr "1 lte 2")
+        (\(Program _ _ (
+            CodeBlock
+                [InitializedDeclaration Const (Id "patata") BigInt (
+                    Lte (IntLit 1) (IntLit 2))]
+                _)) -> True)
+    it "accepts `1 lte 2 + 3` as an expression and associates to the right (1 lte (2 + 3))" $
+        runTestForValidProgram (buildProgramWithExpr "1 lte 2 + 3")
+        (\(Program _ _ (
+            CodeBlock
+                [InitializedDeclaration Const (Id "patata") BigInt (
+                    Lte (IntLit 1) (Add (IntLit 2) (IntLit 3)))]
+                _)) -> True)
+    it "accepts `1 gt 2` as an expression and associates to the left" $
+        runTestForValidProgram (buildProgramWithExpr "1 gt 2")
+        (\(Program _ _ (
+            CodeBlock
+                [InitializedDeclaration Const (Id "patata") BigInt (
+                    Gt (IntLit 1) (IntLit 2))]
+                _)) -> True)
+    it "accepts `1 gt 2 + 3` as an expression and associates to the right (1 gt (2 + 3))" $
+        runTestForValidProgram (buildProgramWithExpr "1 gt 2 + 3")
+        (\(Program _ _ (
+            CodeBlock
+                [InitializedDeclaration Const (Id "patata") BigInt (
+                    Gt (IntLit 1) (Add (IntLit 2) (IntLit 3)))]
+                _)) -> True)
+    it "accepts `1 gte 2` as an expression and associates to the left" $
+        runTestForValidProgram (buildProgramWithExpr "1 gte 2")
+        (\(Program _ _ (
+            CodeBlock
+                [InitializedDeclaration Const (Id "patata") BigInt (
+                    Gte (IntLit 1) (IntLit 2))]
+                _)) -> True)
+    it "accepts `1 gte 2 + 3` as an expression and associates to the right (1 gte (2 + 3))" $
+        runTestForValidProgram (buildProgramWithExpr "1 gte 2 + 3")
+        (\(Program _ _ (
+            CodeBlock
+                [InitializedDeclaration Const (Id "patata") BigInt (
+                    Gte (IntLit 1) (Add (IntLit 2) (IntLit 3)))]
+                _)) -> True)
+    it "accepts `1 eq 2` as an expression and associates to the left" $
+        runTestForValidProgram (buildProgramWithExpr "1 eq 2")
+        (\(Program _ _ (
+            CodeBlock
+                [InitializedDeclaration Const (Id "patata") BigInt (
+                    Eq (IntLit 1) (IntLit 2))]
+                _)) -> True)
+    it "accepts `1 eq 2 + 3` as an expression and associates to the right (1 eq (2 + 3))" $
+        runTestForValidProgram (buildProgramWithExpr "1 eq 2 + 3")
+        (\(Program _ _ (
+            CodeBlock
+                [InitializedDeclaration Const (Id "patata") BigInt (
+                    Eq (IntLit 1) (Add (IntLit 2) (IntLit 3)))]
+                _)) -> True)
+    it "accepts `1 neq 2` as an expression and associates to the left" $
+        runTestForValidProgram (buildProgramWithExpr "1 neq 2")
+        (\(Program _ _ (
+            CodeBlock
+                [InitializedDeclaration Const (Id "patata") BigInt (
+                    Neq (IntLit 1) (IntLit 2))]
+                _)) -> True)
+    it "accepts `1 neq 2 + 3` as an expression and associates to the right (1 neq (2 + 3))" $
+        runTestForValidProgram (buildProgramWithExpr "1 neq 2 + 3")
+        (\(Program _ _ (
+            CodeBlock
+                [InitializedDeclaration Const (Id "patata") BigInt (
+                    Neq (IntLit 1) (Add (IntLit 2) (IntLit 3)))]
+                _)) -> True)

@@ -13,8 +13,9 @@ import Grammar
 %error                                                                  { parseErrors }
 %monad                                                                  { AST }
 
-%nonassoc lt lte gt gte eq neq
+%nonassoc lt lte gt gte
 
+%left eq neq
 %left plus minus
 %left mult div mod
 
