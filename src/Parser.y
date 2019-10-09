@@ -1,11 +1,11 @@
 {
 module Parser (
-  parse, Program(..), CodeBlock(..), Type(..), Id(..), Alias(..),
-  VarType(..), Declaration(..)) where
+  parse) where
 
 import Lexer (Token (..), AbstractToken (..), AlexPosn (..))
 import AST (AST)
 import Data.Maybe
+import Grammar
 }
 
 %name                                                                     parse
@@ -365,131 +365,4 @@ parseErrors errors =
       msg = header ++ "Unexpected token \x1b[1m\x1b[31m" ++ name ++ "\x1b[0m at " ++ position ++ endmsg
   in  fail msg
 
-type Declarations = [Declaration]
-type Instructions = [Instruction]
-type MethodDeclarations = [MethodDeclaration]
-type Methods = [Method]
-type Params = [Expr]
-type AliasList = [Alias]
-type EnumItems = [EnumItem]
-type IfCases = [IfCase]
-type SwitchCases = [SwitchCase]
-type StructItems = [StructItem]
-
-data Id
-  = Id String
-  deriving Show
-
-data Alias
-  = Alias Id Type
-  deriving Show
-
-data Declaration
-  = UninitializedDeclaration VarType Id Type
-  | InitializedDeclaration VarType Id Type Expr
-  deriving Show
-
-data Type
-  = BigInt
-  | SmallInt
-  | Float
-  | Char
-  | Bool
-  | StringType Expr
-  | Array Expr
-  | Set
-  | Enum EnumItems
-  | Record StructItems
-  | UnionStruct StructItems
-  | Pointer Type
-  | AliasType Id
-  deriving Show
-
-data EnumItem
-  = EnumItem Id
-  deriving Show
-
-data StructItem
-  = StructItem Id Type
-  deriving Show
-
-data VarType
-  = Const
-  | Var
-  deriving Show
-
-data MethodDeclaration
-   = MethodDeclaration ParamType Id Type
-   deriving Show
-
-data ParamType
-  = Val
-  | Ref
-  deriving Show
-
-data Method
-  = Function Id MethodDeclarations Type CodeBlock
-  | Procedure Id MethodDeclarations CodeBlock
-  deriving Show
-
-data Expr
-  = Lit
-  | Unlit
-  | Undiscovered
-  | IntLit Int
-  | FloatLit Float
-  | CharLit String
-  | StringLit String
-  | EvalFunc Id Params
-  | Add Expr Expr
-  | Substract Expr Expr
-  | Multiply Expr Expr
-  | Divide Expr Expr
-  | Mod Expr Expr
-  | Negative Expr
-  | Lt Expr Expr
-  | Gt Expr Expr
-  | Lte Expr Expr
-  | Gte Expr Expr
-  | Eq Expr Expr
-  | Neq Expr Expr
-  | And Expr Expr
-  | Or Expr Expr
-  | Not Expr
-  | Access Id Expr
-  | IdExpr Id
-  deriving Show
-
-data Program
-  = Program AliasList Methods CodeBlock
-  deriving Show
-
-data Instruction
-  = InstAsig Id Expr
-  | InstCallProc Id Params
-  | InstCallFunc Id Params
-  | InstReturn
-  | InstReturnWith Expr
-  | InstPrint Expr
-  | InstRead Id
-  | InstIf IfCases
-  | InstForEach Id Id CodeBlock
-  | InstFor Id Expr Expr CodeBlock
-  | InstSwitch Id SwitchCases
-  | InstWhile Expr CodeBlock
-  deriving Show
-
-data IfCase
-  = GuardedCase Expr CodeBlock
-  | ElseCase CodeBlock
-  deriving Show
-
-data SwitchCase
-  = IdCase Id CodeBlock
-  | DefaultCase CodeBlock
-  deriving Show
-
-data CodeBlock
-  = CodeBlock Declarations Instructions
-  deriving Show
 }

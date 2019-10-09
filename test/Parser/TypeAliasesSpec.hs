@@ -2,9 +2,7 @@ module Parser.TypeAliasesSpec where
 
 import Test.Hspec
 import Parser.Utils
-import Parser
-import Data.Maybe
-import Lexer
+import Grammar
 
 spec :: Spec
 spec = describe "Type Aliases" $ do

@@ -4,7 +4,8 @@ import AST (AST (..))
 import Lexer (Tokens, scanTokens)
 import Test.Hspec (shouldSatisfy, shouldBe)
 import Data.Maybe (fromJust)
-import Parser (parse, Program(..))
+import Parser
+import Grammar
 
 isParseError :: AST f -> Bool
 isParseError (ValidAST _) = False

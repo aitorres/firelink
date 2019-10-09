@@ -2,9 +2,7 @@ module Parser.ProgramStructureSpec where
 
 import Test.Hspec
 import Parser.Utils
-import Parser
-import Data.Maybe
-import Lexer
+import Grammar
 
 spec :: Spec
 spec = describe "ProgramStructure" $ do
