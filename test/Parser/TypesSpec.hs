@@ -1,7 +1,7 @@
-module Parser.TypesSpec where
+module TypesSpec where
 
 import Test.Hspec
-import Parser.Utils
+import Utils
 import Grammar
 
 buildProgramWithType t = "\

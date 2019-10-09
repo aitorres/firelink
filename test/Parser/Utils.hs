@@ -1,4 +1,4 @@
-module Parser.Utils where
+module Utils where
 
 import AST (AST (..))
 import Lexer (Tokens, scanTokens)

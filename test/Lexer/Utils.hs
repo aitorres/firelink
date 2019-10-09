@@ -1,4 +1,4 @@
-module Lexer.Utils where
+module Utils where
 import Lexer (Token(..), AbstractToken(..))
 
 getAbstractToken :: Token -> AbstractToken

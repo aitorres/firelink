@@ -1,7 +1,7 @@
-module Parser.DeclarationSpec where
+module DeclarationSpec where
 
 import Test.Hspec
-import Parser.Utils
+import Utils
 import Grammar
 
 spec :: Spec

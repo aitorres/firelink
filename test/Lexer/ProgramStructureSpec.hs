@@ -1,8 +1,8 @@
-module Lexer.ProgramStructureSpec where
+module ProgramStructureSpec where
 
 import Test.Hspec
 import Lexer
-import Lexer.Utils (getAbstractToken)
+import Utils (getAbstractToken)
 
 spec :: Spec
 spec = describe "Lexer" $ do

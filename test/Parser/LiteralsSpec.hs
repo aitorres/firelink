@@ -1,7 +1,7 @@
-module Parser.LiteralsSpec where
+module LiteralsSpec where
 
 import Test.Hspec
-import Parser.Utils
+import Utils
 import Grammar
 
 buildProgramWithLiteral l = "\

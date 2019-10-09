@@ -1,7 +1,7 @@
-module Parser.TypeAliasesSpec where
+module TypeAliasesSpec where
 
 import Test.Hspec
-import Parser.Utils
+import Utils
 import Grammar
 
 spec :: Spec
