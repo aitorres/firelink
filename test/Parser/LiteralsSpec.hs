@@ -38,3 +38,21 @@ spec = describe "Literal Values" $ do
             CodeBlock
                 [InitializedDeclaration Const (Id "patata") BigInt (CharLit '\n')]
                 _)) -> True)
+    it "accepts `@@` as a literal" $
+        runTestForValidProgram (buildProgramWithLiteral "@@")
+        (\(Program _ _ (
+            CodeBlock
+                [InitializedDeclaration Const (Id "patata") BigInt (StringLit "")]
+                _)) -> True)
+    it "accepts `@hello@` as a literal" $
+        runTestForValidProgram (buildProgramWithLiteral "@hello@")
+        (\(Program _ _ (
+            CodeBlock
+                [InitializedDeclaration Const (Id "patata") BigInt (StringLit "hello")]
+                _)) -> True)
+    it "accepts `@\\@@` as a literal" $
+        runTestForValidProgram (buildProgramWithLiteral "@\\@@")
+        (\(Program _ _ (
+            CodeBlock
+                [InitializedDeclaration Const (Id "patata") BigInt (StringLit "@")]
+                _)) -> True)

@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: df8e2d725f7e880c830063dcfcdaaeeb27293ad76ac7e4fa4dba2bf09bc6dadb
+-- hash: deadf0477b3c0a3419635626ca098cf2e5e65a75ffadc342b14d27499d6a23c3
 
 name:           firelink
 version:        0.0.2.0
@@ -44,6 +44,7 @@ library
   build-depends:
       array
     , base >=4.7 && <5
+    , extra
     , split
   default-language: Haskell2010
 
@@ -57,6 +58,7 @@ executable firelink-exe
   build-depends:
       array
     , base >=4.7 && <5
+    , extra
     , firelink
     , split
   default-language: Haskell2010
@@ -94,6 +96,7 @@ test-suite lexer-tests
   build-depends:
       array
     , base >=4.7 && <5
+    , extra
     , firelink
     , hspec
     , hspec-discover

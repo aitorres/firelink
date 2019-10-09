@@ -7,6 +7,8 @@ module Lexer (
 import Text.Printf (printf)
 import Data.List.Split (splitOn)
 import Data.List (intercalate)
+import Data.List.Extra (replace)
+
 }
 %wrapper "monadUserState"
 
@@ -353,15 +355,22 @@ scanTokens str = case runAlex str alexMonadScan of
             printLexErrors str $ reverse errors
             return Nothing
 
+removeFirstAndLast :: [a] -> [a]
+removeFirstAndLast = reverse . tail . reverse . tail
+
 postProcess :: Token -> Token
 postProcess (Token TkCharLit (Just s) p) = Token TkCharLit (Just $ f s) p
-            where cut = reverse . tail . reverse . tail
-                  f s = if head a == '\\' then mapEscaped $ last a else a
-                    where a = cut s
-                          mapEscaped 'n' = "\n"
-                          mapEscaped 't' = "\t"
-                          mapEscaped '\\' = "\\"
-                          mapEscaped '|' = "\n"
+    where
+        f s = if head a == '\\' then mapEscaped $ last a else a
+        a = removeFirstAndLast s
+        mapEscaped 'n' = "\n"
+        mapEscaped 't' = "\t"
+        mapEscaped '\\' = "\\"
+        mapEscaped '|' = "\n"
+postProcess (Token TkStringLit (Just s) p) = Token TkStringLit (Just cleanedString) p
+    where
+        pp = removeFirstAndLast s
+        cleanedString = replace "\\@" "@" pp
 postProcess a = a
 
 -- getAbstractToken :: Token -> AbstractToken

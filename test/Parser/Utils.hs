@@ -21,11 +21,8 @@ extractInvalidAST m = case parse $ fromJust m of
 
 
 runTestForValidProgram program predicate = do
-    print program
     tokens <- scanTokens program
-    print tokens
     let ast = extractValidAST tokens
-    print ast
     ast `shouldSatisfy` predicate
 
 runTestForInvalidProgram program = do
