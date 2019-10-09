@@ -122,3 +122,39 @@ spec = describe "Expressions" $ do
                         (Divide (IntLit 2) (IntLit 3))
                         )]
                 _)) -> True)
+    it "accepts `1 % 2` as an expression" $
+        runTestForValidProgram (buildProgramWithExpr "1 % 2")
+        (\(Program _ _ (
+            CodeBlock
+                [InitializedDeclaration Const (Id "patata") BigInt (Mod (IntLit 1) (IntLit 2))]
+                _)) -> True)
+    it "accepts `1 % 2 % 3` as an expressions and associates to the left" $
+        runTestForValidProgram (buildProgramWithExpr "1 % 2 % 3")
+        (\(Program _ _ (
+            CodeBlock
+                [InitializedDeclaration Const (Id "patata") BigInt (
+                    Mod
+                        (Mod (IntLit 1) (IntLit 2))
+                        (IntLit 3)
+                        )]
+                _)) -> True)
+    it "accepts `1 % 2 + 3` as an expression and associates to the left" $
+        runTestForValidProgram (buildProgramWithExpr "1 % 2 + 3")
+        (\(Program _ _ (
+            CodeBlock
+                [InitializedDeclaration Const (Id "patata") BigInt (
+                    Add
+                        (Mod (IntLit 1) (IntLit 2))
+                        (IntLit 3)
+                        )]
+                _)) -> True)
+    it "accepts `1 + 2 % 3` as an expressions and associates to the left" $
+        runTestForValidProgram (buildProgramWithExpr "1 + 2 % 3")
+        (\(Program _ _ (
+            CodeBlock
+                [InitializedDeclaration Const (Id "patata") BigInt (
+                    Add
+                        (IntLit 1)
+                        (Mod (IntLit 2) (IntLit 3))
+                        )]
+                _)) -> True)

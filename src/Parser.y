@@ -13,10 +13,6 @@ import Grammar
 %error                                                                  { parseErrors }
 %monad                                                                  { AST }
 
-%left comma
-
-%left granting offering
-
 %left plus minus
 %left mult div mod
 
@@ -27,7 +23,7 @@ import Grammar
 
 %left not
 
-%nonassoc lt lte gt gte eq neq granting
+%nonassoc lt lte gt gte eq neq
 
 %token
   programBegin                                                          { Token TkProgramBegin _ _ }
