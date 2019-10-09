@@ -355,7 +355,13 @@ scanTokens str = case runAlex str alexMonadScan of
 
 postProcess :: Token -> Token
 postProcess (Token TkCharLit (Just s) p) = Token TkCharLit (Just $ f s) p
-            where f s = reverse $ tail $ reverse $ tail s
+            where cut = reverse . tail . reverse . tail
+                  f s = if head a == '\\' then mapEscaped $ last a else a
+                    where a = cut s
+                          mapEscaped 'n' = "\n"
+                          mapEscaped 't' = "\t"
+                          mapEscaped '\\' = "\\"
+                          mapEscaped '|' = "\n"
 postProcess a = a
 
 -- getAbstractToken :: Token -> AbstractToken

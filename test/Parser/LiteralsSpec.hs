@@ -31,3 +31,10 @@ spec = describe "Literal Values" $ do
             CodeBlock
                 [InitializedDeclaration Const (Id "patata") BigInt (CharLit 'a')]
                 _)) -> True)
+
+    it "accepts `|\\n|` as a literal" $
+        runTestForValidProgram (buildProgramWithLiteral "|\\n|")
+        (\(Program _ _ (
+            CodeBlock
+                [InitializedDeclaration Const (Id "patata") BigInt (CharLit '\n')]
+                _)) -> True)
