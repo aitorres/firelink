@@ -1,5 +1,6 @@
 {
-module Parser (parse) where
+module Parser (
+  parse, Program(..), CodeBlock(..)) where
 
 import Lexer (Token (..), AbstractToken (..), AlexPosn (..))
 import AST (AST)
