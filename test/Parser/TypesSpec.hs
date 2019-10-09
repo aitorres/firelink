@@ -47,7 +47,7 @@ spec = describe "Data types" $ do
         runTestForValidProgram (buildProgramWithType "hollow")
             (\(Program _ _ (
                 CodeBlock
-                    [UninitializedDeclaration Const (Id "patata") Float]
+                    [UninitializedDeclaration Const (Id "patata") FloatT]
                     _)) -> True)
     it "allows `sign` as data type declaration" $
         runTestForValidProgram (buildProgramWithType "sign")

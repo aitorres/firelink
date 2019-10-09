@@ -74,3 +74,15 @@ spec = describe "Literal Values" $ do
             CodeBlock
                 [InitializedDeclaration Const (Id "patata") BigInt (StringLit "@")]
                 _)) -> True)
+    it "accepts `1.123` as a literal" $
+        runTestForValidProgram (buildProgramWithLiteral "1.123")
+        (\(Program _ _ (
+            CodeBlock
+                [InitializedDeclaration Const (Id "patata") BigInt (FloatLit 1.123)]
+                _)) -> True)
+    it "accepts `0.0` as a literal" $
+        runTestForValidProgram (buildProgramWithLiteral "0.0")
+        (\(Program _ _ (
+            CodeBlock
+                [InitializedDeclaration Const (Id "patata") BigInt (FloatLit 0)]
+                _)) -> True)

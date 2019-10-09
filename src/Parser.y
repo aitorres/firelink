@@ -245,7 +245,7 @@ TYPE
   : ID                                                                  { AliasType $1 }
   | bigInt                                                              { BigInt }
   | smallInt                                                            { SmallInt }
-  | float                                                               { Float }
+  | float                                                               { FloatT }
   | char                                                                { CharT }
   | bool                                                                { Bool }
   | ltelit EXPR array ofType TYPE                                       { Array $5 $2 }

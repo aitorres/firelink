@@ -28,7 +28,7 @@ data Declaration
 data Type
   = BigInt
   | SmallInt
-  | Float
+  | FloatT
   | CharT
   | Bool
   | StringType Expr
