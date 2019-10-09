@@ -348,10 +348,15 @@ scanTokens str = case runAlex str alexMonadScan of
         putStrLn $ "Alex error " ++ show e
         return Nothing
     Right userState -> case userState of
-        LexSuccess tokens -> return $ Just $ reverse tokens
+        LexSuccess tokens -> return $ Just $ map postProcess $ reverse tokens
         LexFailure errors -> do
             printLexErrors str $ reverse errors
             return Nothing
+
+postProcess :: Token -> Token
+postProcess (Token TkCharLit (Just s) p) = Token TkCharLit (Just $ f s) p
+            where f s = reverse $ tail $ reverse $ tail s
+postProcess a = a
 
 -- getAbstractToken :: Token -> AbstractToken
 -- getAbstractToken (Token t _ _) = t

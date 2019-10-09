@@ -53,7 +53,7 @@ spec = describe "Data types" $ do
         runTestForValidProgram (buildProgramWithType "sign")
             (\(Program _ _ (
                 CodeBlock
-                    [UninitializedDeclaration Const (Id "patata") Char]
+                    [UninitializedDeclaration Const (Id "patata") CharT]
                     _)) -> True)
     it "allows `<n>-miracle` as data type declaration" $
         runTestForValidProgram (buildProgramWithType "<2>-miracle")
@@ -118,7 +118,7 @@ spec = describe "Data types" $ do
                     [UninitializedDeclaration Const (Id "patata") (
                         Record [
                             StructItem (Id "opt1") BigInt,
-                            StructItem (Id "opt2") Char
+                            StructItem (Id "opt2") CharT
                             ])]
                     _)) -> True)
 
@@ -137,7 +137,7 @@ spec = describe "Data types" $ do
                     [UninitializedDeclaration Const (Id "patata") (
                         UnionStruct [
                             StructItem (Id "opt1") BigInt,
-                            StructItem (Id "opt2") Char
+                            StructItem (Id "opt2") CharT
                             ])]
                     _)) -> True)
     it "rejects empty `arrow to` as data type declaration" $

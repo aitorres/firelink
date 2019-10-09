@@ -17,10 +17,17 @@ buildProgramWithLiteral l = "\
 \ farewell ashen one"
 
 spec :: Spec
-spec = describe "Literal Values" $
-    it "accepts 123 as an expression" $
+spec = describe "Literal Values" $ do
+    it "accepts `123` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "123")
         (\(Program _ _ (
             CodeBlock
                 [InitializedDeclaration Const (Id "patata") BigInt (IntLit 123)]
+                _)) -> True)
+
+    it "accepts `|a|` as a literal" $
+        runTestForValidProgram (buildProgramWithLiteral "|a|")
+        (\(Program _ _ (
+            CodeBlock
+                [InitializedDeclaration Const (Id "patata") BigInt (CharLit 'a')]
                 _)) -> True)

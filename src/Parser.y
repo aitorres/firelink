@@ -169,7 +169,7 @@ EXPR :: { Expr }
 EXPR
   : intLit                                                              { IntLit $ (read (fromJust $1) :: Int) }
   | floatLit                                                            { FloatLit $ (read (fromJust $1) :: Float) }
-  | charLit                                                             { CharLit $ fromJust $1 }
+  | charLit                                                             { CharLit $ head $ fromJust $1 }
   | stringLit                                                           { StringLit $ fromJust $1 }
   | parensOpen EXPR parensClosed                                        { $2 }
   | ID accessor EXPR                                                    { Access $1 $3 }
@@ -240,7 +240,7 @@ TYPE
   | bigInt                                                              { BigInt }
   | smallInt                                                            { SmallInt }
   | float                                                               { Float }
-  | char                                                                { Char }
+  | char                                                                { CharT }
   | bool                                                                { Bool }
   | ltelit EXPR array ofType TYPE                                       { Array $5 $2 }
   | ltelit EXPR string                                                  { StringType $2 }

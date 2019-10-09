@@ -29,7 +29,7 @@ data Type
   = BigInt
   | SmallInt
   | Float
-  | Char
+  | CharT
   | Bool
   | StringType Expr
   | Array Type Expr
@@ -74,7 +74,7 @@ data Expr
   | Undiscovered
   | IntLit Int
   | FloatLit Float
-  | CharLit String
+  | CharLit Char
   | StringLit String
   | EvalFunc Id Params
   | Add Expr Expr
