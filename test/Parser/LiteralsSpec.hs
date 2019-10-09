@@ -24,6 +24,24 @@ spec = describe "Literal Values" $ do
             CodeBlock
                 [InitializedDeclaration Const (Id "patata") BigInt (IntLit 123)]
                 _)) -> True)
+    it "accepts `lit` as a literal" $
+        runTestForValidProgram (buildProgramWithLiteral "lit")
+        (\(Program _ _ (
+            CodeBlock
+                [InitializedDeclaration Const (Id "patata") BigInt TrueLit]
+                _)) -> True)
+    it "accepts `unlit` as a literal" $
+        runTestForValidProgram (buildProgramWithLiteral "unlit")
+        (\(Program _ _ (
+            CodeBlock
+                [InitializedDeclaration Const (Id "patata") BigInt FalseLit]
+                _)) -> True)
+    it "accepts `undiscovered` as a literal" $
+        runTestForValidProgram (buildProgramWithLiteral "undiscovered")
+        (\(Program _ _ (
+            CodeBlock
+                [InitializedDeclaration Const (Id "patata") BigInt UndiscoveredLit]
+                _)) -> True)
 
     it "accepts `|a|` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "|a|")

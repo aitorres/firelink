@@ -69,9 +69,9 @@ data Method
   deriving Show
 
 data Expr
-  = Lit
-  | Unlit
-  | Undiscovered
+  = TrueLit
+  | FalseLit
+  | UndiscoveredLit
   | IntLit Int
   | FloatLit Float
   | CharLit Char

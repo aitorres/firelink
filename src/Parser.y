@@ -63,6 +63,9 @@ import Grammar
   floatLit                                                              { Token TkFloatLit $$ _ }
   charLit                                                               { Token TkCharLit $$ _ }
   stringLit                                                             { Token TkStringLit $$ _ }
+  trueLit                                                               { Token TkLit _ _ }
+  falseLit                                                              { Token TkUnlit _ _ }
+  unknownLit                                                            { Token TkUndiscovered _ _ }
 
   functionBegin                                                         { Token TkInvocation _ _ }
   functionType                                                          { Token TkInvocationType _ _ }
@@ -171,6 +174,9 @@ EXPR
   | floatLit                                                            { FloatLit $ (read (fromJust $1) :: Float) }
   | charLit                                                             { CharLit $ head $ fromJust $1 }
   | stringLit                                                           { StringLit $ fromJust $1 }
+  | trueLit                                                             { TrueLit }
+  | falseLit                                                            { FalseLit }
+  | unknownLit                                                          { UndiscoveredLit }
   | parensOpen EXPR parensClosed                                        { $2 }
   | ID accessor EXPR                                                    { Access $1 $3 }
   | ID arrOpen EXPR arrClose                                            { Access $1 $3 }
