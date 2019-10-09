@@ -121,3 +121,22 @@ spec = describe "Data types" $ do
                             StructItem (Id "opt2") Char
                             ])]
                     _)) -> True)
+
+    it "rejects empty `link` as data type declaration" $
+        runTestForInvalidProgram (buildProgramWithType "link { }")
+    it "allows `link { opt1 of type humanity }` as data type declaration" $
+        runTestForValidProgram (buildProgramWithType "link { opt1 of type humanity }")
+            (\(Program _ _ (
+                CodeBlock
+                    [UninitializedDeclaration Const (Id "patata") (UnionStruct [StructItem (Id "opt1") BigInt])]
+                    _)) -> True)
+    it "allows `link { opt1 of type humanity, opt2 of type sign }` as data type declaration" $
+        runTestForValidProgram (buildProgramWithType "link { opt1 of type humanity, opt2 of type sign }")
+            (\(Program _ _ (
+                CodeBlock
+                    [UninitializedDeclaration Const (Id "patata") (
+                        UnionStruct [
+                            StructItem (Id "opt1") BigInt,
+                            StructItem (Id "opt2") Char
+                            ])]
+                    _)) -> True)

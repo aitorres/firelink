@@ -246,7 +246,7 @@ TYPE
   | ltelit EXPR string                                                  { StringType $2 }
   | set ofType TYPE                                                     { Set $3 }
   | enum brOpen ENUMITS brClose                                         { Enum $ reverse $3 }
-  | unionStruct brOpen STRUCTITS brClose                                { UnionStruct $3 }
+  | unionStruct brOpen STRUCTITS brClose                                { UnionStruct $ reverse $3 }
   | record  brOpen STRUCTITS brClose                                    { Record $ reverse $3 }
   | pointer TYPE                                                        { Pointer $2 }
 
