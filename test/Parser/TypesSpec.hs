@@ -86,10 +86,38 @@ spec = describe "Data types" $ do
 
     it "rejects empty `titanite` as data type declaration" $
         runTestForInvalidProgram (buildProgramWithType "titanite { }")
-
     it "allows `titanite { opt1 }` as data type declaration" $
         runTestForValidProgram (buildProgramWithType "titanite { opt1 }")
             (\(Program _ _ (
                 CodeBlock
                     [UninitializedDeclaration Const (Id "patata") (Enum [EnumItem (Id "opt1")])]
+                    _)) -> True)
+    it "allows `titanite { opt1, opt2 }` as data type declaration" $
+        runTestForValidProgram (buildProgramWithType "titanite { opt1, opt2 }")
+            (\(Program _ _ (
+                CodeBlock
+                    [UninitializedDeclaration Const (Id "patata") (
+                        Enum [
+                            EnumItem (Id "opt1"),
+                            EnumItem (Id "opt2")
+                            ])]
+                    _)) -> True)
+
+    it "rejects empty `bezel` as data type declaration" $
+        runTestForInvalidProgram (buildProgramWithType "bezel { }")
+    it "allows `bezel { opt1 of type humanity }` as data type declaration" $
+        runTestForValidProgram (buildProgramWithType "bezel { opt1 of type humanity }")
+            (\(Program _ _ (
+                CodeBlock
+                    [UninitializedDeclaration Const (Id "patata") (Record [StructItem (Id "opt1") BigInt])]
+                    _)) -> True)
+    it "allows `bezel { opt1 of type humanity, opt2 of type sign }` as data type declaration" $
+        runTestForValidProgram (buildProgramWithType "bezel { opt1 of type humanity, opt2 of type sign }")
+            (\(Program _ _ (
+                CodeBlock
+                    [UninitializedDeclaration Const (Id "patata") (
+                        Record [
+                            StructItem (Id "opt1") BigInt,
+                            StructItem (Id "opt2") Char
+                            ])]
                     _)) -> True)

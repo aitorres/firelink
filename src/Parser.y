@@ -245,9 +245,9 @@ TYPE
   | ltelit EXPR array ofType TYPE                                       { Array $5 $2 }
   | ltelit EXPR string                                                  { StringType $2 }
   | set ofType TYPE                                                     { Set $3 }
-  | enum brOpen ENUMITS brClose                                         { Enum $3 }
+  | enum brOpen ENUMITS brClose                                         { Enum $ reverse $3 }
   | unionStruct brOpen STRUCTITS brClose                                { UnionStruct $3 }
-  | record  brOpen STRUCTITS brClose                                    { Record $3 }
+  | record  brOpen STRUCTITS brClose                                    { Record $ reverse $3 }
   | pointer TYPE                                                        { Pointer $2 }
 
 ENUMITS :: { EnumItems }
