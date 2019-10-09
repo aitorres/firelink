@@ -12,7 +12,7 @@ spec = describe "ProgramStructure" $ do
         let program = "hello ashen one farewell ashen one"
         tokens <- scanTokens program
         let ast = parse $ fromJust tokens
-        isParseError ast `shouldSatisfy` id
+        isParseError ast `shouldBe` True
 
     it "accepts a program with an empty main" $ do
         let program = "\
@@ -23,6 +23,5 @@ spec = describe "ProgramStructure" $ do
 
         \ farewell ashen one"
         tokens <- scanTokens program
-        let ast = extractValidAST $ parse $ fromJust tokens
+        let ast = extractValidAST tokens
         ast `shouldSatisfy` (\(Program [] [] (CodeBlock [] [])) -> True)
-

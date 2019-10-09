@@ -1,7 +1,8 @@
 {
 module Lexer (
     alexMonadScan, scanTokens, filterComments,
-    AbstractToken (..), Token (..), AlexUserState(..), AlexPosn (..)
+    AbstractToken (..), Token (..), AlexUserState(..), AlexPosn (..),
+    Tokens
     ) where
 import Text.Printf (printf)
 import Data.List.Split (splitOn)
