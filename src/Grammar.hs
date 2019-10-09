@@ -96,6 +96,7 @@ data Expr
   | Or Expr Expr
   | Not Expr
   | Access Id Id
+  | IndexAccess Id Expr
   | IdExpr Id
   deriving Show
 
