@@ -83,3 +83,13 @@ spec = describe "Data types" $ do
                 CodeBlock
                     [UninitializedDeclaration Const (Id "patata") (Set BigInt)]
                     _)) -> True)
+
+    it "rejects empty `titanite` as data type declaration" $
+        runTestForInvalidProgram (buildProgramWithType "titanite { }")
+
+    it "allows `titanite { opt1 }` as data type declaration" $
+        runTestForValidProgram (buildProgramWithType "titanite { opt1 }")
+            (\(Program _ _ (
+                CodeBlock
+                    [UninitializedDeclaration Const (Id "patata") (Enum [EnumItem (Id "opt1")])]
+                    _)) -> True)
