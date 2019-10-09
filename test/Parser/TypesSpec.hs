@@ -140,3 +140,17 @@ spec = describe "Data types" $ do
                             StructItem (Id "opt2") Char
                             ])]
                     _)) -> True)
+    it "rejects empty `arrow to` as data type declaration" $
+        runTestForInvalidProgram (buildProgramWithType "arrow to")
+    it "allows `arrow to humanity` as data type declaration" $
+        runTestForValidProgram (buildProgramWithType "arrow to humanity")
+            (\(Program _ _ (
+                CodeBlock
+                    [UninitializedDeclaration Const (Id "patata") (Pointer BigInt)]
+                    _)) -> True)
+    it "allows `myAlias` as data type declaration" $
+        runTestForValidProgram (buildProgramWithType "myAlias")
+            (\(Program _ _ (
+                CodeBlock
+                    [UninitializedDeclaration Const (Id "patata") (AliasType (Id "myAlias"))]
+                    _)) -> True)
