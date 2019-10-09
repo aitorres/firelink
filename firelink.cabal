@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: ba59d8de2f7f8931cc549ed5a994d3d858907e7549aef097aeb027dbb23026c5
+-- hash: e7b54a18f1e2d2922942da489003a64206df6e1c04cbe66ac048c9566a1f8b63
 
 name:           firelink
 version:        0.0.2.0
@@ -80,6 +80,7 @@ test-suite lexer-tests
       Lexer.StringLiteralsSpec
       Lexer.StructuredTypesSpec
       Lexer.Utils
+      Parser.DeclarationSpec
       Parser.ProgramStructureSpec
       Parser.TypeAliasesSpec
       Parser.Utils

@@ -14,14 +14,11 @@ spec = describe "ProgramStructure" $ do
         let ast = parse $ fromJust tokens
         isParseError ast `shouldBe` True
 
-    it "accepts a program with an empty main" $ do
-        let program = "\
+    it "accepts a program with an empty main" $
+        runTestForValidProgram "\
         \ hello ashen one\
 
         \ traveling somewhere \
         \ you died \
 
-        \ farewell ashen one"
-        tokens <- scanTokens program
-        let ast = extractValidAST tokens
-        ast `shouldSatisfy` (\(Program [] [] (CodeBlock [] [])) -> True)
+        \ farewell ashen one" (\(Program [] [] (CodeBlock [] [])) -> True)

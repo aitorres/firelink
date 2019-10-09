@@ -1,7 +1,8 @@
 module Parser.Utils where
 
 import AST (AST (..))
-import Lexer (Tokens)
+import Lexer (Tokens, scanTokens)
+import Test.Hspec (shouldSatisfy, shouldBe)
 import Data.Maybe (fromJust)
 import Parser (parse, Program(..))
 
@@ -24,3 +25,15 @@ buildProgramWithEmptyMain a = "hello ashen one " ++ a ++ " \
     \  with orange saponite say @Hello world@ \
     \ you died \
     \ farewell ashen one"
+
+runTestForValidProgram programS predicate = do
+    let program = buildProgramWithEmptyMain programS
+    tokens <- scanTokens program
+    let ast = extractValidAST tokens
+    ast `shouldSatisfy` predicate
+
+runTestForInvalidProgram programS = do
+    let program = buildProgramWithEmptyMain programS
+    tokens <- scanTokens program
+    let ast = extractInvalidAST tokens
+    isParseError ast `shouldBe` True
