@@ -3,6 +3,7 @@ module Grammar where
 
 type Declarations = [Declaration]
 type Instructions = [Instruction]
+type Exprs = [Expr]
 type MethodDeclarations = [MethodDeclaration]
 type Methods = [Method]
 type Params = [Expr]
@@ -76,6 +77,7 @@ data Expr
   | FloatLit Float
   | CharLit Char
   | StringLit String
+  | ArrayLit [Expr]
   | EvalFunc Id Params
   | Add Expr Expr
   | Substract Expr Expr

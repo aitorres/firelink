@@ -176,6 +176,7 @@ EXPR
   | stringLit                                                           { StringLit $ fromJust $1 }
   | trueLit                                                             { TrueLit }
   | falseLit                                                            { FalseLit }
+  | arrOpen EXPRL arrClose                                              { ArrayLit $ reverse $2 }
   | unknownLit                                                          { UndiscoveredLit }
   | parensOpen EXPR parensClosed                                        { $2 }
   | ID accessor EXPR                                                    { Access $1 $3 }
@@ -197,6 +198,16 @@ EXPR
   | EXPR or EXPR                                                        { Or $1 $3 }
   | FUNCALL                                                             { EvalFunc (fst $1) (snd $1) }
   | ID                                                                  { IdExpr $1 }
+
+EXPRL :: { Exprs }
+EXPRL
+  : {- empty -}                                                         { [] }
+  | EXPRLNOTEMPTY                                                       { $1 }
+
+EXPRLNOTEMPTY :: { Exprs }
+EXPRLNOTEMPTY
+  : EXPR                                                                { [$1] }
+  | EXPRLNOTEMPTY comma EXPR                                           { $3:$1 }
 
 METHODS :: { Methods }
 METHODS
