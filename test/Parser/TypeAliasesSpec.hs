@@ -9,15 +9,37 @@ import Lexer
 spec :: Spec
 spec = describe "Type Aliases" $ do
     it "accepts a program with no type aliases" $
-        runTestForValidProgram "" (\(Program [] _ _) -> True)
+        runTestForValidProgram "\
+        \ hello ashen one \
+
+        \ traveling somewhere \
+        \   with orange saponite say @@ \
+        \ you died \
+
+        \ farewell ashen one" (\(Program [] _ _) -> True)
 
     it "accepts a program with one type alias" $
         runTestForValidProgram "\
-            \ requiring help of \
-            \   knight solaire humanity \
-            \ help received" (\(Program [Alias (Id "solaire") BigInt] _ _) -> True)
+        \ hello ashen one \
+
+        \ requiring help of \
+        \   knight solaire humanity \
+        \ help received \
+
+        \ traveling somewhere \
+        \   with orange saponite say @@ \
+        \ you died \
+
+        \ farewell ashen one" (\(Program [Alias (Id "solaire") BigInt] _ _) -> True)
 
     it "rejects when the alias list is empty" $
         runTestForInvalidProgram "\
+        \ hello ashen one \
         \ requiring help of \
-        \ help received"
+        \ help received \
+
+        \ traveling somewhere \
+        \   with orange saponite say @@ \
+        \ you died \
+
+        \ farewell ashen one"

@@ -19,21 +19,12 @@ extractInvalidAST m = case parse $ fromJust m of
     InvalidAST s -> InvalidAST s
 
 
-buildProgramWithEmptyMain :: String -> String
-buildProgramWithEmptyMain a = "hello ashen one " ++ a ++ " \
-    \ traveling somewhere \
-    \  with orange saponite say @Hello world@ \
-    \ you died \
-    \ farewell ashen one"
-
-runTestForValidProgram programS predicate = do
-    let program = buildProgramWithEmptyMain programS
+runTestForValidProgram program predicate = do
     tokens <- scanTokens program
     let ast = extractValidAST tokens
     ast `shouldSatisfy` predicate
 
-runTestForInvalidProgram programS = do
-    let program = buildProgramWithEmptyMain programS
+runTestForInvalidProgram program = do
     tokens <- scanTokens program
     let ast = extractInvalidAST tokens
     isParseError ast `shouldBe` True
