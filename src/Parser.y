@@ -25,7 +25,7 @@ import Grammar
 %left accessor
 %right arrOpen arrClose
 
-%left not UMINUS
+%left not
 
 %nonassoc lt lte gt gte eq neq granting
 

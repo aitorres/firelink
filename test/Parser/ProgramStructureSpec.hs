@@ -11,11 +11,11 @@ spec = describe "ProgramStructure" $ do
         \ hello ashen one \
         \ farewell ashen one"
 
-    it "accepts a program with an empty main" $
-        runTestForValidProgram "\
+    it "rejects a program with an empty main" $
+        runTestForInvalidProgram "\
         \ hello ashen one\
 
         \ traveling somewhere \
         \ you died \
 
-        \ farewell ashen one" (\(Program [] [] (CodeBlock [] [])) -> True)
+        \ farewell ashen one"
