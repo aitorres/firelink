@@ -130,3 +130,14 @@ spec = describe "Expressions" $ do
         runTestForExpr "1 eq 2 neq 3" $ Neq
                                         (Eq (IntLit 1) (IntLit 2))
                                         (IntLit 3)
+
+    it "accepts `lit and unlit` as an expression" $
+        runTestForExpr "lit and unlit" $ And TrueLit FalseLit
+    it "accepts `lit or unlit` as an expression" $
+        runTestForExpr "lit or unlit" $ Or TrueLit FalseLit
+    it "accepts `not unlit` as an expression" $
+        runTestForExpr "not unlit" $ Not FalseLit
+    it "accepts `lit and unlit and undiscovered` as an expression associating to the left `(lit and unlit) and undiscovered`" $
+        runTestForExpr "lit and unlit" $ And (And TrueLit FalseLit) UndiscoveredLit
+    it "accepts `not lit and unlit` as an expression and `not` has more precedence" $
+        runTestForExpr "not lit and unlit" $ Not $ And TrueLit FalseLit
