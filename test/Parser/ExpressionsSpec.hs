@@ -141,3 +141,11 @@ spec = describe "Expressions" $ do
         runTestForExpr "lit and unlit" $ And (And TrueLit FalseLit) UndiscoveredLit
     it "accepts `not lit and unlit` as an expression and `not` has more precedence" $
         runTestForExpr "not lit and unlit" $ Not $ And TrueLit FalseLit
+
+    it "accepts `ascii_of |n|` as an expression" $
+        runTestForExpr "ascii_of |n|" $ AsciiOf $ CharLit 'n'
+
+    it "accepts `ascii_of |n| + ascii_of |f|` as an expression and parses it as `(ascii_of |n|) + (ascii_of |f|)" $
+        runTestForExpr "ascii_of |n| + ascii_of |f|" $ Add
+                                                        (AsciiOf $ CharLit 'n')
+                                                        (AsciiOf $ CharLit 'f')

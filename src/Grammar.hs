@@ -98,6 +98,7 @@ data Expr
   | Access Id Id
   | IndexAccess Id Expr
   | IdExpr Id
+  | AsciiOf Expr
   deriving Show
 
 data Program

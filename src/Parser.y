@@ -140,6 +140,7 @@ import Grammar
   not                                                                   { Token TkNot _ _ }
   and                                                                   { Token TkAnd _ _ }
   or                                                                    { Token TkOr _ _ }
+  asciiOf                                                               { Token TkAsciiOf _ _ }
 
   arrOpen                                                               { Token TkArrayOpen _ _ }
   arrClose                                                              { Token TkArrayClose _ _ }
@@ -184,6 +185,7 @@ EXPR
   | ID arrOpen EXPR arrClose                                            { IndexAccess $1 $3 }
   | minus EXPR                                                          { Negative $2 }
   | not EXPR                                                            { Not $2 }
+  | asciiOf EXPR                                                        { AsciiOf $2 }
   | EXPR plus EXPR                                                      { Add $1 $3 }
   | EXPR minus EXPR                                                     { Substract $1 $3 }
   | EXPR mult EXPR                                                      { Multiply $1 $3 }
