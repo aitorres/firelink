@@ -16,245 +16,105 @@ buildProgramWithExpr e = "\
 
 \ farewell ashen one"
 
+runTestForExpr expr expr' = runTestForValidProgram (buildProgramWithExpr expr)
+    (\(Program _ _ (
+        CodeBlock
+            [InitializedDeclaration Const (Id "patata") BigInt expr']
+            _)) -> True)
+
 spec :: Spec
 spec = describe "Expressions" $ do
     it "accepts `1 + 2` as an expression" $
-        runTestForValidProgram (buildProgramWithExpr "1 + 2")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (Add (IntLit 1) (IntLit 2))]
-                _)) -> True)
+        runTestForExpr "1 + 2" $ Add (IntLit 1) (IntLit 2)
     it "accepts `1 + 2 + 3` as an expression and associates to the left" $
-        runTestForValidProgram (buildProgramWithExpr "1 + 2 + 3")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (Add (Add (IntLit 1) (IntLit 2)) (IntLit 3))]
-                _)) -> True)
+        runTestForExpr "1 + 2 + 3" $ Add (Add (IntLit 1) (IntLit 2)) (IntLit 3)
     it "accepts `1 - 2` as an expression" $
-        runTestForValidProgram (buildProgramWithExpr "1 - 2")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (Substract (IntLit 1) (IntLit 2))]
-                _)) -> True)
+        runTestForExpr "1 - 2" $Substract (IntLit 1) (IntLit 2)
     it "accepts `1 - 2 - 3` as an expression and associates to the left" $
-        runTestForValidProgram (buildProgramWithExpr "1 - 2 - 3")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (Substract (Substract (IntLit 1) (IntLit 2)) (IntLit 3))]
-                _)) -> True)
+        runTestForExpr "1 - 2 - 3" $ Substract
+                                        (Substract (IntLit 1) (IntLit 2))
+                                        (IntLit 3)
     it "accepts `1 - 2 + 3` as an expression and associates to the left (1 - 2) + 3" $
-        runTestForValidProgram (buildProgramWithExpr "1 - 2 + 3")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (Add (Substract (IntLit 1) (IntLit 2)) (IntLit 3))]
-                _)) -> True)
+        runTestForExpr "1 - 2 + 3" $ Add (Substract (IntLit 1) (IntLit 2)) (IntLit 3)
     it "accepts `1 + 2 - 3` as an expression and associates to the left (1 + 2) - 3" $
-        runTestForValidProgram (buildProgramWithExpr "1 + 2 - 3")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (Substract (Add (IntLit 1) (IntLit 2)) (IntLit 3))]
-                _)) -> True)
+        runTestForExpr "1 + 2 - 3" $ Substract (Add (IntLit 1) (IntLit 2)) (IntLit 3)
     it "accepts `1 * 2` as an expression" $
-        runTestForValidProgram (buildProgramWithExpr "1 * 2")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (Multiply (IntLit 1) (IntLit 2))]
-                _)) -> True)
+        runTestForExpr "1 * 2" $ Multiply (IntLit 1) (IntLit 2)
     it "accepts `1 * 2 * 3` as an expression and associates to the left" $
-        runTestForValidProgram (buildProgramWithExpr "1 * 2 * 3")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (Multiply (Multiply (IntLit 1) (IntLit 2)) (IntLit 3))]
-                _)) -> True)
+        runTestForExpr "1 * 2 * 3" $ Multiply (Multiply (IntLit 1) (IntLit 2)) (IntLit 3)
     it "accepts `1 * 2 + 3` as an expression and associates to the left" $
-        runTestForValidProgram (buildProgramWithExpr "1 * 2 + 3")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (
-                    Add
-                        (Multiply (IntLit 1) (IntLit 2))
-                        (IntLit 3)
-                        )]
-                _)) -> True)
+        runTestForExpr "1 * 2 + 3" $ Add
+                                        (Multiply (IntLit 1) (IntLit 2))
+                                        (IntLit 3)
     it "accepts `1 + 2 * 3` as an expression and associates to the left" $
-        runTestForValidProgram (buildProgramWithExpr "1 + 2 * 3")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (
-                    Add
-                        (IntLit 1)
-                        (Multiply (IntLit 2) (IntLit 3))
-                        )]
-                _)) -> True)
+        runTestForExpr "1 + 2 * 3" $ Add
+                                        (IntLit 1)
+                                        (Multiply (IntLit 2) (IntLit 3))
     it "accepts `1 / 2` as an expression" $
-        runTestForValidProgram (buildProgramWithExpr "1 / 2")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (Divide (IntLit 1) (IntLit 2))]
-                _)) -> True)
+        runTestForExpr "1 / 2" $ Divide (IntLit 1) (IntLit 2)
     it "accepts `1 / 2 / 3` as an expression and associates to the left" $
-        runTestForValidProgram (buildProgramWithExpr "1 / 2 / 3")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (
-                    Divide
-                        (Divide (IntLit 1) (IntLit 2))
-                        (IntLit 3)
-                        )]
-                _)) -> True)
+        runTestForExpr "1 / 2 / 3" $ Divide
+                                        (Divide (IntLit 1) (IntLit 2))
+                                        (IntLit 3)
     it "accepts `1 / 2 + 3` as an expression and associates to the left" $
-        runTestForValidProgram (buildProgramWithExpr "1 / 2 + 3")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (
-                    Add
-                        (Divide (IntLit 1) (IntLit 2))
-                        (IntLit 3)
-                        )]
-                _)) -> True)
+        runTestForExpr "1 / 2 + 3" $ Add
+                                        (Divide (IntLit 1) (IntLit 2))
+                                        (IntLit 3)
     it "accepts `1 + 2 / 3` as an expression and associates to the left" $
-        runTestForValidProgram (buildProgramWithExpr "1 + 2 / 3")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (
-                    Add
-                        (IntLit 1)
-                        (Divide (IntLit 2) (IntLit 3))
-                        )]
-                _)) -> True)
+        runTestForExpr "1 + 2 / 3" $ Add
+                                        (IntLit 1)
+                                        (Divide (IntLit 2) (IntLit 3))
     it "accepts `1 % 2` as an expression" $
-        runTestForValidProgram (buildProgramWithExpr "1 % 2")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (Mod (IntLit 1) (IntLit 2))]
-                _)) -> True)
+        runTestForExpr "1 % 2" $ Mod (IntLit 1) (IntLit 2)
     it "accepts `1 % 2 % 3` as an expression and associates to the left" $
-        runTestForValidProgram (buildProgramWithExpr "1 % 2 % 3")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (
-                    Mod
-                        (Mod (IntLit 1) (IntLit 2))
-                        (IntLit 3)
-                        )]
-                _)) -> True)
+        runTestForExpr "1 % 2 % 3" $ Mod
+                                        (Mod (IntLit 1) (IntLit 2))
+                                        (IntLit 3)
     it "accepts `1 % 2 + 3` as an expression and associates to the left" $
-        runTestForValidProgram (buildProgramWithExpr "1 % 2 + 3")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (
-                    Add
-                        (Mod (IntLit 1) (IntLit 2))
-                        (IntLit 3)
-                        )]
-                _)) -> True)
+        runTestForExpr "1 % 2 + 3" $ Add
+                                        (Mod (IntLit 1) (IntLit 2))
+                                        (IntLit 3)
     it "accepts `1 + 2 % 3` as an expression and parse % as more precedent" $
-        runTestForValidProgram (buildProgramWithExpr "1 + 2 % 3")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (
-                    Add
-                        (IntLit 1)
-                        (Mod (IntLit 2) (IntLit 3))
-                        )]
-                _)) -> True)
+        runTestForExpr "1 + 2 % 3" $ Add
+                                        (IntLit 1)
+                                        (Mod (IntLit 2) (IntLit 3))
     it "accepts `- 1` as an expression and associates to the left" $
-        runTestForValidProgram (buildProgramWithExpr "- 1")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (
-                    Negative
-                        (IntLit 1))]
-                _)) -> True)
+        runTestForExpr "- 1" $ Negative (IntLit 1)
     it "rejects `- - 1` as an expression and associates to the left" $
-        runTestForValidProgram (buildProgramWithExpr "- - 1")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (
-                    Negative
-                        (Negative (IntLit 1)))]
-                _)) -> True)
+        runTestForExpr "- - 1" $ Negative $ Negative $ IntLit 1
     it "accepts `1 lt 2` as an expression and associates to the left" $
-        runTestForValidProgram (buildProgramWithExpr "1 lt 2")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (
-                    Lt (IntLit 1) (IntLit 2))]
-                _)) -> True)
+        runTestForExpr "1 lt 2" $ Lt (IntLit 1) (IntLit 2)
     it "accepts `1 lt 2 + 3` as an expression and associates to the right (1 lt (2 + 3))" $
-        runTestForValidProgram (buildProgramWithExpr "1 lt 2 + 3")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (
-                    Lt (IntLit 1) (Add (IntLit 2) (IntLit 3)))]
-                _)) -> True)
+        runTestForExpr "1 lt 2 + 3" $ Lt
+                                        (IntLit 1)
+                                        (Add (IntLit 2) (IntLit 3))
     it "accepts `1 lte 2` as an expression and associates to the left" $
-        runTestForValidProgram (buildProgramWithExpr "1 lte 2")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (
-                    Lte (IntLit 1) (IntLit 2))]
-                _)) -> True)
+        runTestForExpr "1 lte 2" $ Lte (IntLit 1) (IntLit 2)
     it "accepts `1 lte 2 + 3` as an expression and associates to the right (1 lte (2 + 3))" $
-        runTestForValidProgram (buildProgramWithExpr "1 lte 2 + 3")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (
-                    Lte (IntLit 1) (Add (IntLit 2) (IntLit 3)))]
-                _)) -> True)
+        runTestForExpr "1 lte 2 + 3" $ Lte
+                                        (IntLit 1)
+                                        (Add (IntLit 2) (IntLit 3))
     it "accepts `1 gt 2` as an expression and associates to the left" $
-        runTestForValidProgram (buildProgramWithExpr "1 gt 2")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (
-                    Gt (IntLit 1) (IntLit 2))]
-                _)) -> True)
+        runTestForExpr "1 gt 2" $ Gt (IntLit 1) (IntLit 2)
     it "accepts `1 gt 2 + 3` as an expression and associates to the right (1 gt (2 + 3))" $
-        runTestForValidProgram (buildProgramWithExpr "1 gt 2 + 3")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (
-                    Gt (IntLit 1) (Add (IntLit 2) (IntLit 3)))]
-                _)) -> True)
+        runTestForExpr "1 gt 2 + 3" $ Gt
+                                        (IntLit 1)
+                                        (Add (IntLit 2) (IntLit 3))
     it "accepts `1 gte 2` as an expression and associates to the left" $
-        runTestForValidProgram (buildProgramWithExpr "1 gte 2")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (
-                    Gte (IntLit 1) (IntLit 2))]
-                _)) -> True)
+        runTestForExpr "1 gte 2" $ Gte (IntLit 1) (IntLit 2)
     it "accepts `1 gte 2 + 3` as an expression and associates to the right (1 gte (2 + 3))" $
-        runTestForValidProgram (buildProgramWithExpr "1 gte 2 + 3")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (
-                    Gte (IntLit 1) (Add (IntLit 2) (IntLit 3)))]
-                _)) -> True)
+        runTestForExpr "1 gte 2 + 3" $ Gte
+                                        (IntLit 1)
+                                        (Add (IntLit 2) (IntLit 3))
     it "accepts `1 eq 2` as an expression and associates to the left" $
-        runTestForValidProgram (buildProgramWithExpr "1 eq 2")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (
-                    Eq (IntLit 1) (IntLit 2))]
-                _)) -> True)
+        runTestForExpr "1 eq 2" $ Eq (IntLit 1) (IntLit 2)
     it "accepts `1 eq 2 + 3` as an expression and associates to the right (1 eq (2 + 3))" $
-        runTestForValidProgram (buildProgramWithExpr "1 eq 2 + 3")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (
-                    Eq (IntLit 1) (Add (IntLit 2) (IntLit 3)))]
-                _)) -> True)
+        runTestForExpr "1 eq 2 + 3" $ Eq
+                                        (IntLit 1)
+                                        (Add (IntLit 2) (IntLit 3))
     it "accepts `1 neq 2` as an expression and associates to the left" $
-        runTestForValidProgram (buildProgramWithExpr "1 neq 2")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (
-                    Neq (IntLit 1) (IntLit 2))]
-                _)) -> True)
+        runTestForExpr "1 neq 2" $ Neq (IntLit 1) (IntLit 2)
     it "accepts `1 neq 2 + 3` as an expression and associates to the right (1 neq (2 + 3))" $
-        runTestForValidProgram (buildProgramWithExpr "1 neq 2 + 3")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (
-                    Neq (IntLit 1) (Add (IntLit 2) (IntLit 3)))]
-                _)) -> True)
+        runTestForExpr "1 neq 2 + 3" $ Neq
+                                        (IntLit 1)
+                                        (Add (IntLit 2) (IntLit 3))
