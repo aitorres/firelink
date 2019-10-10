@@ -149,3 +149,11 @@ spec = describe "Expressions" $ do
         runTestForExpr "ascii_of |n| + ascii_of |f|" $ Add
                                                         (AsciiOf $ CharLit 'n')
                                                         (AsciiOf $ CharLit 'f')
+
+    it "accepts `<$$> >-< @@` as an expression" $
+        runTestForExpr "<$$> >-< @@" $ ColConcat (ArrayLit []) (StringLit "")
+    it "accepts `<$$> >-< @@ >-< {$$}` as an expression and should associate to the left `(<$$> >-< @@) >-< {$$}`" $
+        runTestForExpr "<$$> >-< @@" $ ColConcat
+                                            (ColConcat (ArrayLit []) (StringLit ""))
+                                            (SetLit [])
+

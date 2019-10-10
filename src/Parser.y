@@ -141,6 +141,7 @@ import Grammar
   and                                                                   { Token TkAnd _ _ }
   or                                                                    { Token TkOr _ _ }
   asciiOf                                                               { Token TkAsciiOf _ _ }
+  colConcat                                                             { Token TkConcat _ _ }
 
   arrOpen                                                               { Token TkArrayOpen _ _ }
   arrClose                                                              { Token TkArrayClose _ _ }
@@ -199,6 +200,7 @@ EXPR
   | EXPR neq EXPR                                                       { Neq $1 $3 }
   | EXPR and EXPR                                                       { And $1 $3 }
   | EXPR or EXPR                                                        { Or $1 $3 }
+  | EXPR colConcat EXPR                                                 { Or $1 $3 }
   | FUNCALL                                                             { EvalFunc (fst $1) (snd $1) }
   | ID                                                                  { IdExpr $1 }
 

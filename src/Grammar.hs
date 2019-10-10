@@ -99,6 +99,7 @@ data Expr
   | IndexAccess Id Expr
   | IdExpr Id
   | AsciiOf Expr
+  | ColConcat Expr Expr
   deriving Show
 
 data Program
