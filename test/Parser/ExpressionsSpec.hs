@@ -112,9 +112,21 @@ spec = describe "Expressions" $ do
         runTestForExpr "1 eq 2 + 3" $ Eq
                                         (IntLit 1)
                                         (Add (IntLit 2) (IntLit 3))
+    it "accepts `1 eq 2 eq 3 as an expression and associates to the left (1 eq 2) eq 3" $
+        runTestForExpr "1 eq 2 eq 3" $ Eq
+                                        (Eq (IntLit 1) (IntLit 2))
+                                        (IntLit 3)
     it "accepts `1 neq 2` as an expression and associates to the left" $
         runTestForExpr "1 neq 2" $ Neq (IntLit 1) (IntLit 2)
     it "accepts `1 neq 2 + 3` as an expression and associates to the right (1 neq (2 + 3))" $
         runTestForExpr "1 neq 2 + 3" $ Neq
                                         (IntLit 1)
                                         (Add (IntLit 2) (IntLit 3))
+    it "accepts `1 neq 2 neq 3 as an expression and associates to the left (1 neq 2) neq 3" $
+        runTestForExpr "1 neq 2 neq 3" $ Neq
+                                        (Neq (IntLit 1) (IntLit 2))
+                                        (IntLit 3)
+    it "accepts `1 eq 2 neq 3 as an expression and associates to the left (1 eq 2) neq 3" $
+        runTestForExpr "1 eq 2 neq 3" $ Neq
+                                        (Eq (IntLit 1) (IntLit 2))
+                                        (IntLit 3)
