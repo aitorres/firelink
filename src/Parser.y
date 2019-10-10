@@ -142,6 +142,10 @@ import Grammar
   or                                                                    { Token TkOr _ _ }
   asciiOf                                                               { Token TkAsciiOf _ _ }
   colConcat                                                             { Token TkConcat _ _ }
+  union                                                                 { Token TkUnion _ _ }
+  intersect                                                             { Token TkIntersect _ _ }
+  diff                                                                  { Token TkDiff _ _ }
+  size                                                                  { Token TkSize _ _ }
 
   arrOpen                                                               { Token TkArrayOpen _ _ }
   arrClose                                                              { Token TkArrayClose _ _ }
@@ -187,6 +191,7 @@ EXPR
   | minus EXPR                                                          { Negative $2 }
   | not EXPR                                                            { Not $2 }
   | asciiOf EXPR                                                        { AsciiOf $2 }
+  | size EXPR                                                           { SetSize $2 }
   | EXPR plus EXPR                                                      { Add $1 $3 }
   | EXPR minus EXPR                                                     { Substract $1 $3 }
   | EXPR mult EXPR                                                      { Multiply $1 $3 }
@@ -201,6 +206,9 @@ EXPR
   | EXPR and EXPR                                                       { And $1 $3 }
   | EXPR or EXPR                                                        { Or $1 $3 }
   | EXPR colConcat EXPR                                                 { Or $1 $3 }
+  | EXPR union EXPR                                                     { SetUnion $1 $3 }
+  | EXPR intersect EXPR                                                 { SetIntersect $1 $3 }
+  | EXPR diff EXPR                                                      { SetDiff $1 $3 }
   | FUNCALL                                                             { EvalFunc (fst $1) (snd $1) }
   | ID                                                                  { IdExpr $1 }
 

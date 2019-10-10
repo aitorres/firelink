@@ -156,4 +156,11 @@ spec = describe "Expressions" $ do
         runTestForExpr "<$$> >-< @@" $ ColConcat
                                             (ColConcat (ArrayLit []) (StringLit ""))
                                             (SetLit [])
-
+    it "accepts `lit union lit` as an expression" $
+        runTestForExpr "lit union lit" $ SetUnion TrueLit TrueLit
+    it "accepts `lit intersect lit` as an expression" $
+        runTestForExpr "lit intersect lit" $ SetIntersect TrueLit TrueLit
+    it "accepts `lit diff lit` as an expression" $
+        runTestForExpr "lit diff lit" $ SetDiff TrueLit TrueLit
+    it "accepts `size lit` as an expression" $
+        runTestForExpr "size lit" $ SetSize TrueLit

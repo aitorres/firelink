@@ -100,6 +100,10 @@ data Expr
   | IdExpr Id
   | AsciiOf Expr
   | ColConcat Expr Expr
+  | SetUnion Expr Expr
+  | SetIntersect Expr Expr
+  | SetDiff Expr Expr
+  | SetSize Expr
   deriving Show
 
 data Program
