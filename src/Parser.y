@@ -307,8 +307,8 @@ ID
 
 CODEBLOCK :: { CodeBlock }
 CODEBLOCK
-  : instructionsBegin DECLARS INSTRL instructionsEnd                    { CodeBlock $2 $3 }
-  | instructionsBegin INSTRL instructionsEnd                            { CodeBlock [] $2 }
+  : instructionsBegin DECLARS INSTRL instructionsEnd                    { CodeBlock $2 $ reverse $3 }
+  | instructionsBegin INSTRL instructionsEnd                            { CodeBlock [] $ reverse $2 }
 
 DECLARS :: { Declarations }
 DECLARS
