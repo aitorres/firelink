@@ -343,7 +343,7 @@ INSTR
   | returnWith EXPR                                                     { InstReturnWith $2 }
   | print EXPR                                                          { InstPrint $2 }
   | read ID                                                             { InstRead $2 }
-  | whileBegin EXPR covenantIsActive CODEBLOCK whileEnd                 { InstWhile $2 $4 }
+  | whileBegin EXPR covenantIsActive colon CODEBLOCK whileEnd           { InstWhile $2 $5 }
   | ifBegin IFCASES ELSECASE ifEnd                                      { InstIf (reverse ($3 : $2)) }
   | ifBegin IFCASES ifEnd                                               { InstIf (reverse $2) }
   | switchBegin ID SWITCHCASES DEFAULTCASE switchEnd                    { InstSwitch $2 (reverse ($4 : $3)) }
