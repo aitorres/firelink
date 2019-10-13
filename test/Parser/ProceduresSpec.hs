@@ -1,4 +1,4 @@
-module FunctionsSpec where
+module ProceduresSpec where
 
 import Test.Hspec
 import Grammar
@@ -6,7 +6,7 @@ import Utils
 
 spec :: Spec
 spec = do
-    describe "Functions declarations" $ do
+    describe "Procedures declarations" $ do
         let buildProgram c = "\
         \ hello ashen one \
         \   " ++ c ++ " \
@@ -15,57 +15,53 @@ spec = do
         \ you died \
         \ farewell ashen one"
 
-        it "accepts no-args functions" $
+        it "accepts no-args procedures" $
             runTestForValidProgram (buildProgram "\
-            \ invocation fun \
-            \ with skill of type humanity \
+            \ spell fun \
             \   traveling somewhere \
             \   with orange saponite say @@ \
             \   you died \
-            \ after this return to your world") (\(Program _ [
-                Function (Id "fun") [] BigInt _
+            \ ashen estus flask consumed") (\(Program _ [
+                Procedure (Id "fun") [] _
             ] _) -> True)
-        it "accepts 1 val-arg functions" $
+        it "accepts 1 val-arg procedure" $
             runTestForValidProgram (buildProgram "\
-            \ invocation fun \
+            \ spell fun \
             \ requesting \
             \   val a of type sign \
-            \ with skill of type humanity \
             \   traveling somewhere \
             \   with orange saponite say @@ \
             \   you died \
-            \ after this return to your world") (\(Program _ [
-                Function (Id "fun") [
+            \ ashen estus flask consumed") (\(Program _ [
+                Procedure (Id "fun") [
                     MethodDeclaration Val (Id "a") CharT
-                ] BigInt _
+                ] _
             ] _) -> True)
-        it "accepts 1 ref-arg functions" $
+        it "accepts 1 ref-arg procedures" $
             runTestForValidProgram (buildProgram "\
-            \ invocation fun \
+            \ spell fun \
             \ requesting \
             \   ref a of type sign \
-            \ with skill of type humanity \
             \   traveling somewhere \
             \   with orange saponite say @@ \
             \   you died \
-            \ after this return to your world") (\(Program _ [
-                Function (Id "fun") [
+            \ ashen estus flask consumed") (\(Program _ [
+                Procedure (Id "fun") [
                     MethodDeclaration Ref (Id "a") CharT
-                ] BigInt _
+                ] _
             ] _) -> True)
-        it "accepts several args functions" $
+        it "accepts several args procedures" $
             runTestForValidProgram (buildProgram "\
-            \ invocation fun \
+            \ spell fun \
             \ requesting \
             \   val a of type sign, \
             \   ref b of type bonfire \
-            \ with skill of type humanity \
             \   traveling somewhere \
             \   with orange saponite say @@ \
             \   you died \
-            \ after this return to your world") (\(Program _ [
-                Function (Id "fun") [
+            \ ashen estus flask consumed") (\(Program _ [
+                Procedure (Id "fun") [
                     MethodDeclaration Ref (Id "b") BoolT,
                     MethodDeclaration Val (Id "a") CharT
-                ] BigInt _
+                ] _
             ] _) -> True)
