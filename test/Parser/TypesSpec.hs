@@ -41,7 +41,7 @@ spec = describe "Data types" $ do
         runTestForValidProgram (buildProgramWithType "bonfire")
             (\(Program _ _ (
                 CodeBlock
-                    [UninitializedDeclaration Const (Id "patata") Bool]
+                    [UninitializedDeclaration Const (Id "patata") BoolT]
                     _)) -> True)
     it "allows `hollow` as data type declaration" $
         runTestForValidProgram (buildProgramWithType "hollow")

@@ -31,7 +31,7 @@ data Type
   | SmallInt
   | FloatT
   | CharT
-  | Bool
+  | BoolT
   | StringType Expr
   | Array Type Expr
   | Set Type

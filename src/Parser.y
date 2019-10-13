@@ -278,7 +278,7 @@ TYPE
   | smallInt                                                            { SmallInt }
   | float                                                               { FloatT }
   | char                                                                { CharT }
-  | bool                                                                { Bool }
+  | bool                                                                { BoolT }
   | ltelit EXPR array ofType TYPE                                       { Array $5 $2 }
   | ltelit EXPR string                                                  { StringType $2 }
   | set ofType TYPE                                                     { Set $3 }
