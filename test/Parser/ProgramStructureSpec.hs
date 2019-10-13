@@ -20,24 +20,30 @@ spec = describe "ProgramStructure" $ do
 
         \ farewell ashen one"
 
-    it "accepts program with only 1 instruction" $
+
+    it "accepts a program with both aliases and functions" $
         runTestForValidProgram "\
-        \ hello ashen one \
+        \ hello ashen one\
+
+        \ requiring help of \
+        \   knight solaire humanity, \
+        \   knight fourKings hollow \
+        \ help received \
+
+        \ invocation f \
+        \ with skill of type sign \
+        \ traveling somewhere \
+        \   go back \
+        \ you died \
+        \ after this return to your world \
 
         \ traveling somewhere \
         \   go back \
         \ you died \
 
-        \ farewell ashen one" (\(Program _ _ (CodeBlock _ [InstReturn])) -> True)
-    it "accepts program with only 2+ instruction" $
-        runTestForValidProgram "\
-        \ hello ashen one \
-
-        \ traveling somewhere \
-        \   with orange saponite say @hello world@ \\ \
-        \   transpose into patata \
-        \ you died \
-
-        \ farewell ashen one" (\(Program _ _ (CodeBlock _ [
-            InstPrint (StringLit "hello world"),
-            InstRead (Id "patata")])) -> True)
+        \ farewell ashen one" (\(Program [
+            Alias (Id "fourKings") FloatT,
+            Alias (Id "solaire") BigInt
+            ] [
+                Function (Id "f") [] CharT (CodeBlock _ [InstReturn])
+            ] _) -> True)

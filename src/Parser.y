@@ -172,7 +172,7 @@ ALIASES
 
 ALIASL :: { AliasList }
 ALIASL
-  : ALIASL ALIAS                                                        { $2 : $1 }
+  : ALIASL comma ALIAS                                                  { $3 : $1 }
   | ALIAS                                                               { [$1] }
 
 ALIAS :: { Alias }
