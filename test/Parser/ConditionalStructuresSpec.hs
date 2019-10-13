@@ -126,3 +126,36 @@ spec = do
             \   traveling somewhere \
             \       with orange saponite say @hello@ \
             \   you died "
+        it "accepts swith statement with several non-default cases" $
+            runTestForValidProgram (buildProgram "\
+            \ 1: \
+            \   traveling somewhere \
+            \       with orange saponite say @hello@ \
+            \   you died \
+            \ 2: \
+            \   traveling somewhere \
+            \       with orange saponite say @bye@ \
+            \   you died") (\(Program _ _ (CodeBlock _ [InstSwitch (Id "a") [
+                    Case (IntLit 1) (CodeBlock _ [InstPrint (StringLit "hello")]),
+                    Case (IntLit 2) (CodeBlock _ [InstPrint (StringLit "bye")])
+                ]])) -> True)
+
+        it "accepts swith statement with several non-default cases and one default" $
+            runTestForValidProgram (buildProgram "\
+            \ 1: \
+            \   traveling somewhere \
+            \       with orange saponite say @hello@ \
+            \   you died \
+            \ 2: \
+            \   traveling somewhere \
+            \       with orange saponite say @bye@ \
+            \   you died \
+            \ empty dungeon: \
+            \   traveling somewhere \
+            \       with orange saponite say @empty@ \
+            \   you died") (\(Program _ _ (CodeBlock _ [InstSwitch (Id "a") [
+                    Case (IntLit 1) (CodeBlock _ [InstPrint (StringLit "hello")]),
+                    Case (IntLit 2) (CodeBlock _ [InstPrint (StringLit "bye")]),
+                    DefaultCase (CodeBlock _ [InstPrint (StringLit "empty")])
+                ]])) -> True)
+
