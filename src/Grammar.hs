@@ -95,7 +95,7 @@ data Expr
   | And Expr Expr
   | Or Expr Expr
   | Not Expr
-  | Access Id Id
+  | Access Expr Id
   | IndexAccess Id Expr
   | IdExpr Id
   | AsciiOf Expr

@@ -164,3 +164,20 @@ spec = describe "Expressions" $ do
         runTestForExpr "lit diff lit" $ SetDiff TrueLit TrueLit
     it "accepts `size lit` as an expression" $
         runTestForExpr "size lit" $ SetSize TrueLit
+
+    it "accepts `lit union lit union lit` as an expression and associates to the left" $
+        runTestForExpr "lit union lit union lit" $ SetUnion (SetUnion TrueLit TrueLit) TrueLit
+    it "accepts `lit intersect lit intersect lit` as an expression and associates to the left" $
+        runTestForExpr "lit intersect lit intersect lit" $ SetIntersect (SetIntersect TrueLit TrueLit) TrueLit
+    it "accepts `lit diff lit diff lit` as an expression" $
+        runTestForExpr "lit union lit" $ SetDiff (SetDiff TrueLit TrueLit) TrueLit
+    it "accepts `lit diff lit union lit` as an expression" $
+        runTestForExpr "lit union lit" $ SetDiff TrueLit (SetUnion TrueLit TrueLit)
+
+    it "accepts `lit union lit intersect lit` as an expression and associates to the left" $
+        runTestForExpr "lit union lit intersect lit" $ SetIntersect (SetUnion TrueLit TrueLit) TrueLit
+    it "accepts `lit intersect lit union lit` as an expression and associates to the left" $
+        runTestForExpr "lit intersect lit union lit" $ SetUnion (SetIntersect TrueLit TrueLit) TrueLit
+
+    it "accepts `a ~> b` as an expression" $
+        runTestForExpr "a ~> b" $ Access (IdExpr $ Id "a") $ Id "b"
