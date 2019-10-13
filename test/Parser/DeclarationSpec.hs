@@ -28,6 +28,25 @@ spec = describe "Declarations for new scopes" $ do
 
         \ farewell ashen one"
 
+    it "accepts several declarations in the same block" $
+        runTestForValidProgram "\
+        \ hello ashen one \
+
+        \ traveling somewhere \
+        \   with \
+        \      const patata of type humanity, \
+        \      var banana of type sign \
+        \   in your inventory \
+        \   with orange saponite say @Hello world@ \
+        \ you died \
+
+        \ farewell ashen one" (\(Program _ _ (
+            CodeBlock [
+                    UninitializedDeclaration Const (Id "patata") BigInt,
+                    UninitializedDeclaration Var (Id "banana") CharT
+                ]
+                _)) -> True)
+
     it "accepts `const` declarations" $
         runTestForValidProgram "\
         \ hello ashen one \

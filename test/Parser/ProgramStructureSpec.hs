@@ -20,6 +20,43 @@ spec = describe "ProgramStructure" $ do
 
         \ farewell ashen one"
 
+    it "accepts a program with no aliases but with functions" $
+        runTestForValidProgram "\
+        \ hello ashen one\
+
+        \ invocation f \
+        \ with skill of type sign \
+        \ traveling somewhere \
+        \   go back \
+        \ you died \
+        \ after this return to your world \
+
+        \ traveling somewhere \
+        \   go back \
+        \ you died \
+
+        \ farewell ashen one" (\(Program [] [
+            Function (Id "f") [] CharT (CodeBlock _ [InstReturn])
+        ] _) -> True)
+
+    it "accepts a program with both aliases and functions" $
+        runTestForValidProgram "\
+        \ hello ashen one\
+
+        \ requiring help of \
+        \   knight solaire humanity, \
+        \   knight fourKings hollow \
+        \ help received \
+
+        \ traveling somewhere \
+        \   go back \
+        \ you died \
+
+        \ farewell ashen one" (\(Program [
+            Alias (Id "fourKings") FloatT,
+            Alias (Id "solaire") BigInt
+            ] [] _) -> True)
+
 
     it "accepts a program with both aliases and functions" $
         runTestForValidProgram "\

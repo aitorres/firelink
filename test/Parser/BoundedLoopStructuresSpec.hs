@@ -28,5 +28,5 @@ spec = describe "Bounded loop structures" $ do
         \       with orange saponite say @hello@ \
         \   you died \
         \ max level reached") (\(Program _ _ (CodeBlock _ [
-            InstFor (Id "aa") (IntLit 2) (IntLit 123) _
+            InstFor (Id "aa") (IntLit 2) (IntLit 123) (CodeBlock _ _)
         ])) -> True)

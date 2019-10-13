@@ -189,6 +189,9 @@ spec = describe "Expressions" $ do
     it "accepts `(a)` as an expression" $
         runTestForExpr "(a)" $ IdExpr $ Id "a"
 
+    it "accepts `(a + b)` as an expresion" $
+        runTestForExpr "(a + b)" $ Add (IdExpr $ Id "a") $ IdExpr $ Id "b"
+
     it "accepts `a<$i$>` as an expression" $
         runTestForExpr "a<$i$>" $ IndexAccess (IdExpr $ Id "a") $ IdExpr $ Id "i"
     it "accepts `a+b<$i$>` as an expression" $
@@ -206,3 +209,6 @@ spec = describe "Expressions" $ do
         runTestForInvalidProgram "aim a a"
     it "rejects `recover a a` as an expresion" $
         runTestForInvalidProgram "recover a a"
+
+    it "accepts function invocation as an expression" $
+        runTestForExpr "summon f" $ InstCallFunc (Id "f") []

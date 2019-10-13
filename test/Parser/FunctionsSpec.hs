@@ -15,6 +15,25 @@ spec = do
         \ you died \
         \ farewell ashen one"
 
+        it "accepts 2+ functions" $
+            runTestForValidProgram (buildProgram "\
+            \ invocation fun \
+            \ with skill of type humanity \
+            \   traveling somewhere \
+            \   with orange saponite say @@ \
+            \   you died \
+            \ after this return to your world\
+
+            \ invocation hi \
+            \ with skill of type sign \
+            \   traveling somewhere \
+            \   with orange saponite say @@ \
+            \   you died \
+            \ after this return to your world")  (\(Program _ [
+                Function (Id "hi") [] CharT _,
+                Function (Id "fun") [] BigInt _
+            ] _) -> True)
+
         it "accepts no-args functions" $
             runTestForValidProgram (buildProgram "\
             \ invocation fun \

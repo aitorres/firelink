@@ -312,7 +312,7 @@ CODEBLOCK
 
 DECLARS :: { Declarations }
 DECLARS
-  : with DECLARSL declarend                                             { $2 }
+  : with DECLARSL declarend                                             { reverse $2 }
 
 DECLARSL :: { Declarations }
 DECLARSL
