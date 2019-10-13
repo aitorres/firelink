@@ -13,7 +13,7 @@ import Grammar
 %error                                                                  { parseErrors }
 %monad                                                                  { AST }
 
-%nonassoc lt lte gt gte
+%nonassoc lt lte gt gte size asciiOf
 
 %left eq neq
 %left plus minus
@@ -21,10 +21,13 @@ import Grammar
 
 %left and or
 
-%left accessor
+%left colConcat
+%left diff
+%left union intersect
+
 %right arrOpen arrClose
 
-%left not
+%left not accessor
 
 
 %token
@@ -186,7 +189,7 @@ EXPR
   | setOpen EXPRL setClose                                              { SetLit $ reverse $2 }
   | unknownLit                                                          { UndiscoveredLit }
   | parensOpen EXPR parensClosed                                        { $2 }
-  | ID accessor ID                                                      { Access (IdExpr $1) $3 }
+  | EXPR accessor ID                                                    { Access $1 $3 }
   | ID arrOpen EXPR arrClose                                            { IndexAccess $1 $3 }
   | minus EXPR                                                          { Negative $2 }
   | not EXPR                                                            { Not $2 }
