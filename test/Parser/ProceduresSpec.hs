@@ -65,3 +65,30 @@ spec = do
                     MethodDeclaration Ref (Id "b") BoolT
                 ] _
             ] _) -> True)
+    describe "Procedure calls" $ do
+        let buildProgram c = "\
+        \ hello ashen one \
+        \ traveling somewhere \
+        \   " ++ c ++ " \
+        \ you died \
+        \ farewell ashen one"
+
+
+        it "allows calling no-args procedures" $
+            runTestForValidProgram (buildProgram "\
+            \ cast f") (\(Program _ _ (CodeBlock _ [
+                InstCallProc (Id "f") []
+                ])) -> True)
+
+        it "allows calling 1-args procedures" $
+            runTestForValidProgram (buildProgram "\
+            \ cast f offering lit to the estus flask") (\(Program _ _ (CodeBlock _ [
+                InstCallProc (Id "f") [TrueLit]
+                ])) -> True)
+
+        it "allows calling 2-args procedures" $
+            runTestForValidProgram (buildProgram "\
+            \ cast f offering lit, unlit to the estus flask") (\(Program _ _ (CodeBlock _ [
+                InstCallProc (Id "f") [TrueLit, FalseLit]
+                ])) -> True)
+

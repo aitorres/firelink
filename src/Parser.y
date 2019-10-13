@@ -381,7 +381,7 @@ FUNCPARS :: { Params }
   | {- empty -}                                                         { [] }
 
 PROCPARS :: { Params }
-  : offering PARSLIST toTheEstusFlask                                   { $2 }
+  : offering PARSLIST toTheEstusFlask                                   { reverse $2 }
   | {- empty -}                                                         { [] }
 
 PARSLIST :: { Params }
