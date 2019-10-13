@@ -49,5 +49,21 @@ spec = describe "Classic Selection" $ do
             GuardedCase
                 TrueLit
                 (CodeBlock _ [InstPrint (StringLit "hello world")]),
+            GuardedCase FalseLit (CodeBlock _ [InstPrint (StringLit "goodbye")])
+            ]])) -> True)
+
+    it "accepts a selection block with an if and else statment" $
+        runTestForValidProgram (buildProgram "\
+        \ lit: \
+        \   traveling somewhere \
+        \       with orange saponite say @hello world@ \
+        \   you died \
+        \ liar!: \
+        \   traveling somewhere \
+        \       with orange saponite say @goodbye@ \
+        \   you died") (\(Program _ _ (CodeBlock _ [InstIf [
+            GuardedCase
+                TrueLit
+                (CodeBlock _ [InstPrint (StringLit "hello world")]),
             ElseCase (CodeBlock _ [InstPrint (StringLit "goodbye")])
             ]])) -> True)
