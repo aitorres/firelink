@@ -65,6 +65,22 @@ spec = do
                     MethodDeclaration Ref (Id "b") BoolT
                 ] _
             ] _) -> True)
+        it "accepts several args procedures" $
+            runTestForValidProgram (buildProgram "\
+            \ spell fun \
+            \ requesting \
+            \   val a of type sign, \
+            \   ref b of type bonfire \
+            \   traveling somewhere \
+            \   go back \
+            \   you died \
+            \ ashen estus flask consumed") (\(Program _ [
+                Procedure (Id "fun") [
+                    MethodDeclaration Val (Id "a") CharT,
+                    MethodDeclaration Ref (Id "b") BoolT
+                ] (CodeBlock _ [InstReturn])
+            ] _) -> True)
+
     describe "Procedure calls" $ do
         let buildProgram c = "\
         \ hello ashen one \

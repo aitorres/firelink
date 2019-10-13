@@ -69,6 +69,24 @@ spec = do
                     MethodDeclaration Ref (Id "b") BoolT
                 ] BigInt _
             ] _) -> True)
+        it "accepts functions with return statements" $
+            runTestForValidProgram (buildProgram "\
+            \ invocation fun \
+            \ requesting \
+            \   val a of type sign, \
+            \   ref b of type bonfire \
+            \ with skill of type humanity \
+            \   traveling somewhere \
+            \   go back with lit \
+            \   you died \
+            \ after this return to your world") (\(Program _ [
+                Function (Id "fun") [
+                    MethodDeclaration Val (Id "a") CharT,
+                    MethodDeclaration Ref (Id "b") BoolT
+                ] BigInt (CodeBlock _ [
+                    InstReturnWith TrueLit
+                ])
+            ] _) -> True)
     describe "Function calls" $ do
         let buildProgram c = "\
         \ hello ashen one \
