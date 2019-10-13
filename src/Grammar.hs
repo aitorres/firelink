@@ -133,7 +133,7 @@ data IfCase
   deriving Show
 
 data SwitchCase
-  = IdCase Id CodeBlock
+  = Case Expr CodeBlock
   | DefaultCase CodeBlock
   deriving Show
 

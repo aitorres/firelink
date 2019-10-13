@@ -371,7 +371,7 @@ SWITCHCASES :: { SwitchCases }
   | SWITCHCASE                                                          { [$1] }
 
 SWITCHCASE :: { SwitchCase }
-  : ID colon CODEBLOCK                                                  { IdCase $1 $3 }
+  : EXPR colon CODEBLOCK                                                { Case $1 $3 }
 
 DEFAULTCASE :: { SwitchCase }
   : switchDefault colon CODEBLOCK                                       { DefaultCase $3 }
