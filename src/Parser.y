@@ -190,7 +190,7 @@ EXPR
   | unknownLit                                                          { UndiscoveredLit }
   | parensOpen EXPR parensClosed                                        { $2 }
   | EXPR accessor ID                                                    { Access $1 $3 }
-  | ID arrOpen EXPR arrClose                                            { IndexAccess $1 $3 }
+  | EXPR arrOpen EXPR arrClose                                          { IndexAccess $1 $3 }
   | minus EXPR                                                          { Negative $2 }
   | not EXPR                                                            { Not $2 }
   | asciiOf EXPR                                                        { AsciiOf $2 }

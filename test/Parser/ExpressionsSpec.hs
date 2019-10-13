@@ -185,3 +185,15 @@ spec = describe "Expressions" $ do
         runTestForExpr "a ~> b ~> c" $ Access (Access (IdExpr $ Id "a") $ Id "b") $ Id "c"
     it "accepts `a + b ~> c` as an expression" $
         runTestForExpr "a + b ~> c" $ Access (Add (IdExpr $ Id "a") $ IdExpr $Id "b") $ Id "c"
+
+    it "accepts `(a)` as an expression" $
+        runTestForExpr "(a)" $ IdExpr $ Id "a"
+
+    it "accepts `a<$i$>` as an expression" $
+        runTestForExpr "a<$i$>" $ IndexAccess (IdExpr $ Id "a") $ IdExpr $ Id "i"
+    it "accepts `a+b<$i$>` as an expression" $
+        runTestForExpr "a+b<$i$>" $ IndexAccess
+                                        (Add (IdExpr $ Id "a") $ IdExpr $ Id "b")
+                                        $ IdExpr $ Id "i"
+    it "rejects `a<$$>` as an expression" $
+        runTestForInvalidProgram "a<$$>"
