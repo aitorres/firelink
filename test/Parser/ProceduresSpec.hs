@@ -61,7 +61,7 @@ spec = do
             \   you died \
             \ ashen estus flask consumed") (\(Program _ [
                 Procedure (Id "fun") [
-                    MethodDeclaration Ref (Id "b") BoolT,
-                    MethodDeclaration Val (Id "a") CharT
+                    MethodDeclaration Val (Id "a") CharT,
+                    MethodDeclaration Ref (Id "b") BoolT
                 ] _
             ] _) -> True)

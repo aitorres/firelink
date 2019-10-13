@@ -254,7 +254,7 @@ PROC
 
 METHODPARS :: { MethodDeclarations }
 METHODPARS
-  : paramRequest PARS                                                   { $2 }
+  : paramRequest PARS                                                   { reverse $2 }
   | {- empty -}                                                         { [] }
 
 PARS :: { MethodDeclarations }
@@ -377,7 +377,7 @@ DEFAULTCASE :: { SwitchCase }
   : switchDefault colon CODEBLOCK                                       { DefaultCase $3 }
 
 FUNCPARS :: { Params }
-  : granting PARSLIST toTheKnight                                       { $2 }
+  : granting PARSLIST toTheKnight                                       { reverse $2 }
   | {- empty -}                                                         { [] }
 
 PROCPARS :: { Params }

@@ -65,7 +65,34 @@ spec = do
             \   you died \
             \ after this return to your world") (\(Program _ [
                 Function (Id "fun") [
-                    MethodDeclaration Ref (Id "b") BoolT,
-                    MethodDeclaration Val (Id "a") CharT
+                    MethodDeclaration Val (Id "a") CharT,
+                    MethodDeclaration Ref (Id "b") BoolT
                 ] BigInt _
             ] _) -> True)
+    describe "Function calls" $ do
+        let buildProgram c = "\
+        \ hello ashen one \
+        \ traveling somewhere \
+        \   " ++ c ++ " \
+        \ you died \
+        \ farewell ashen one"
+
+
+        it "allows calling no-args functions" $
+            runTestForValidProgram (buildProgram "\
+            \ summon f") (\(Program _ _ (CodeBlock _ [
+                InstCallFunc (Id "f") []
+                ])) -> True)
+
+        it "allows calling 1-args functions" $
+            runTestForValidProgram (buildProgram "\
+            \ summon f granting lit to the knight") (\(Program _ _ (CodeBlock _ [
+                InstCallFunc (Id "f") [TrueLit]
+                ])) -> True)
+
+        it "allows calling 2-args functions" $
+            runTestForValidProgram (buildProgram "\
+            \ summon f granting lit, unlit to the knight") (\(Program _ _ (CodeBlock _ [
+                InstCallFunc (Id "f") [TrueLit, FalseLit]
+                ])) -> True)
+
