@@ -115,9 +115,9 @@ tokens :-
 
     abyss                                 { makeToken TkNull }
     arrow\ to                             { makeToken TkPointer }
-    aim\ a                                { makeToken TkAimA }
-    throw\ a                              { makeToken TkThrowA }
-    recover\ a                            { makeToken TkRecoverA }
+    aim\ a                                { makeToken TkRequestMemory }
+    throw\ a                              { makeToken TkAccessMemory }
+    recover\ a                            { makeToken TkFreeMemory }
 
     knight                                { makeToken TkAlias }
     requiring\ help\ of                   { makeToken TkAliasListBegin }
@@ -213,7 +213,7 @@ data AbstractToken = TkId | TkConst | TkVar | TkOfType | TkAsig
     -- Unions
     | TkUnionStruct
     -- Null, pointer stuff
-    | TkNull | TkPointer | TkAimA | TkThrowA | TkRecoverA
+    | TkNull | TkPointer | TkRequestMemory | TkAccessMemory | TkFreeMemory
     -- Type Aliases
     | TkAlias | TkAliasListBegin | TkAliasListEnd
 

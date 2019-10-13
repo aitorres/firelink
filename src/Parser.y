@@ -13,7 +13,7 @@ import Grammar
 %error                                                                  { parseErrors }
 %monad                                                                  { AST }
 
-%nonassoc lt lte gt gte size asciiOf
+%nonassoc lt lte gt gte size asciiOf memAccessor
 
 %left eq neq
 %left plus minus
@@ -67,6 +67,7 @@ import Grammar
   trueLit                                                               { Token TkLit _ _ }
   falseLit                                                              { Token TkUnlit _ _ }
   unknownLit                                                            { Token TkUndiscovered _ _ }
+  nullLit                                                               { Token TkNull _ _ }
 
   functionBegin                                                         { Token TkInvocation _ _ }
   functionType                                                          { Token TkInvocationType _ _ }
@@ -156,6 +157,7 @@ import Grammar
   setClose                                                              { Token TkSetClose _ _ }
 
   accessor                                                              { Token TkAccessor _ _ }
+  memAccessor                                                           { Token TkAccessMemory _ _ }
 
 %%
 
@@ -185,12 +187,14 @@ EXPR
   | stringLit                                                           { StringLit $ fromJust $1 }
   | trueLit                                                             { TrueLit }
   | falseLit                                                            { FalseLit }
+  | nullLit                                                             { NullLit }
   | arrOpen EXPRL arrClose                                              { ArrayLit $ reverse $2 }
   | setOpen EXPRL setClose                                              { SetLit $ reverse $2 }
   | unknownLit                                                          { UndiscoveredLit }
   | parensOpen EXPR parensClosed                                        { $2 }
   | EXPR accessor ID                                                    { Access $1 $3 }
   | EXPR arrOpen EXPR arrClose                                          { IndexAccess $1 $3 }
+  | memAccessor EXPR                                                    { MemAccess $2 }
   | minus EXPR                                                          { Negative $2 }
   | not EXPR                                                            { Not $2 }
   | asciiOf EXPR                                                        { AsciiOf $2 }

@@ -73,6 +73,7 @@ data Expr
   = TrueLit
   | FalseLit
   | UndiscoveredLit
+  | NullLit
   | IntLit Int
   | FloatLit Float
   | CharLit Char
@@ -97,6 +98,7 @@ data Expr
   | Not Expr
   | Access Expr Id
   | IndexAccess Expr Expr
+  | MemAccess Expr
   | IdExpr Id
   | AsciiOf Expr
   | ColConcat Expr Expr

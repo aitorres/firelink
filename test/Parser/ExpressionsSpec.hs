@@ -197,3 +197,12 @@ spec = describe "Expressions" $ do
                                         $ IdExpr $ Id "i"
     it "rejects `a<$$>` as an expression" $
         runTestForInvalidProgram "a<$$>"
+
+    it "accepts `abyss` as an expression" $
+        runTestForExpr "abyss" NullLit
+    it "accepts `throw a a` as an expression" $
+        runTestForExpr "throw a a" $ MemAccess $ IdExpr $ Id "a"
+    it "rejects `aim a a` as an expression" $
+        runTestForInvalidProgram "aim a a"
+    it "rejects `recover a a` as an expresion" $
+        runTestForInvalidProgram "recover a a"
