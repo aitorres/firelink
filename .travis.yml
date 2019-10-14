@@ -4,7 +4,7 @@ sudo: false
 cache:
   directories:
   - $HOME/.stack
-
+if: branch IN (master, develop)
 before_install:
 # Download and unpack the stack executable
 - mkdir -p ~/.local/bin
