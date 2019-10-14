@@ -13,8 +13,10 @@ import Grammar
 %error                                                                  { parseErrors }
 %monad                                                                  { AST }
 
-%nonassoc lt lte gt gte size asciiOf memAccessor
+%nonassoc lt lte gt gte size memAccessor
+%right arrOpen arrClose
 
+%left accessor
 %left eq neq
 %left plus minus
 %left mult div mod
@@ -25,9 +27,8 @@ import Grammar
 %left diff
 %left union intersect
 
-%right arrOpen arrClose
 
-%left not accessor
+%left not asciiOf
 
 
 %token
@@ -212,7 +213,7 @@ EXPR
   | EXPR neq EXPR                                                       { Neq $1 $3 }
   | EXPR and EXPR                                                       { And $1 $3 }
   | EXPR or EXPR                                                        { Or $1 $3 }
-  | EXPR colConcat EXPR                                                 { Or $1 $3 }
+  | EXPR colConcat EXPR                                                 { ColConcat $1 $3 }
   | EXPR union EXPR                                                     { SetUnion $1 $3 }
   | EXPR intersect EXPR                                                 { SetIntersect $1 $3 }
   | EXPR diff EXPR                                                      { SetDiff $1 $3 }

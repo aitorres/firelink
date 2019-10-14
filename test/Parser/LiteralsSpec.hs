@@ -18,6 +18,12 @@ buildProgramWithLiteral l = "\
 
 spec :: Spec
 spec = describe "Literal Values" $ do
+    it "accepts `abyss` as a literal" $
+        runTestForValidProgram (buildProgramWithLiteral "abyss")
+        (\(Program _ _ (
+            CodeBlock
+                [InitializedDeclaration Const (Id "patata") BigInt NullLit]
+                _)) -> True)
     it "accepts `123` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "123")
         (\(Program _ _ (
