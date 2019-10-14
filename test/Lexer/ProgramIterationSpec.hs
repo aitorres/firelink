@@ -1,146 +1,127 @@
-module ProgramMethodsSpec where
+module ProgramIterationSpec where
 
 import Test.Hspec
 import Lexer
+import Utils (getAbstractToken)
 
 spec :: Spec
 spec = describe "Lexer" $ do
-  it "accepts `spell` as a valid token for comments" $ do
-    let x = "spell"
+  it "accepts `upgrading` as a valid token" $ do
+    let x = "upgrading"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkSpell
+        atok `shouldBe` TkFor
       Nothing ->
         error "rejected as an invalid token"
 
-  it "accepts `ashen estus flask consumed` as a valid token" $ do
-    let x = "ashen estus flask consumed"
+  it "accepts `with` as a valid token" $ do
+    let x = "with"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkSpellEnd
+        atok `shouldBe` TkWith
       Nothing ->
         error "rejected as an invalid token"
 
-  it "accepts `cast` as a valid token" $ do
-    let x = "cast"
+  it "accepts `soul` as a valid token" $ do
+    let x = "soul"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkCast
+        atok `shouldBe` TkSoul
       Nothing ->
         error "rejected as an invalid token"
 
-  it "accepts `offering` as a valid token" $ do
-    let x = "offering"
+  it "accepts `souls` as a valid token" $ do
+    let x = "souls"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkOffering
+        atok `shouldBe` TkSoul
       Nothing ->
         error "rejected as an invalid token"
 
-  it "accepts `invocation` as a valid token" $ do
-    let x = "invocation"
+  it "accepts `until level` as a valid token" $ do
+    let x = "until level"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkInvocation
+        atok `shouldBe` TkLevel
       Nothing ->
         error "rejected as an invalid token"
 
-  it "accepts `requesting` as a valid token" $ do
-    let x = "requesting"
+  it "accepts `max level reached` as a valid token" $ do
+    let x = "max level reached"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkRequesting
+        atok `shouldBe` TkEndFor
       Nothing ->
         error "rejected as an invalid token"
 
-  it "accepts `with skill of type` as a valid token" $ do
-    let x = "with skill of type"
+  it "accepts `repairing` as a valid token" $ do
+    let x = "repairing"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkInvocationType
+        atok `shouldBe` TkForEach
       Nothing ->
         error "rejected as an invalid token"
 
-  it "accepts `after this return to your world` as a valid token" $ do
-    let x = "after this return to your world"
+  it "accepts `with titanite from` as a valid token" $ do
+    let x = "with titanite from"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkInvocationEnd
+        atok `shouldBe` TkWithTitaniteFrom
       Nothing ->
         error "rejected as an invalid token"
 
-  it "accepts `val` as a valid token" $ do
-    let x = "val"
+  it "accepts `weaponry repaired` as a valid token" $ do
+    let x = "weaponry repaired"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkVal
+        atok `shouldBe` TkEndForEach
       Nothing ->
         error "rejected as an invalid token"
 
-  it "accepts `ref` as a valid token" $ do
-    let x = "ref"
+  it "accepts `while the` as a valid token" $ do
+    let x = "while the"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkRef
+        atok `shouldBe` TkWhile
       Nothing ->
         error "rejected as an invalid token"
 
-  it "accepts `go back` as a valid token" $ do
-    let x = "go back"
+  it "accepts `covenant is active` as a valid token" $ do
+    let x = "covenant is active"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkReturn
+        atok `shouldBe` TkCovenantIsActive
       Nothing ->
         error "rejected as an invalid token"
 
-  it "accepts `go back with` as a valid token" $ do
-    let x = "go back with"
+  it "accepts `covenant left` as a valid token" $ do
+    let x = "covenant left"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkReturnWith
-      Nothing ->
-        error "rejected as an invalid token"
-
-  it "accepts `summon` as a valid token" $ do
-    let x = "summon"
-    s <- scanTokens x
-    case s of
-      Just toks -> do
-        let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkSummon
-      Nothing ->
-        error "rejected as an invalid token"
-
-  it "accepts `granting` as a valid token" $ do
-    let x = "granting"
-    s <- scanTokens x
-    case s of
-      Just toks -> do
-        let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkGranting
+        atok `shouldBe` TkEndWhile
       Nothing ->
         error "rejected as an invalid token"

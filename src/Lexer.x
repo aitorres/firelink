@@ -1,11 +1,14 @@
 {
 module Lexer (
-    alexMonadScan, scanTokens, getAbstractToken, filterComments,
-    AbstractToken (..), Token (..), AlexUserState(..), AlexPosn (..)
+    alexMonadScan, scanTokens, filterComments,
+    AbstractToken (..), Token (..), AlexUserState(..), AlexPosn (..),
+    Tokens
     ) where
 import Text.Printf (printf)
 import Data.List.Split (splitOn)
 import Data.List (intercalate)
+import Data.List.Extra (replace)
+
 }
 %wrapper "monadUserState"
 
@@ -112,9 +115,9 @@ tokens :-
 
     abyss                                 { makeToken TkNull }
     arrow\ to                             { makeToken TkPointer }
-    aim\ a                                { makeToken TkAimA }
-    throw\ a                              { makeToken TkThrowA }
-    recover\ a                            { makeToken TkRecoverA }
+    aim\ a                                { makeToken TkRequestMemory }
+    throw\ a                              { makeToken TkAccessMemory }
+    recover\ a                            { makeToken TkFreeMemory }
 
     knight                                { makeToken TkAlias }
     requiring\ help\ of                   { makeToken TkAliasListBegin }
@@ -210,7 +213,7 @@ data AbstractToken = TkId | TkConst | TkVar | TkOfType | TkAsig
     -- Unions
     | TkUnionStruct
     -- Null, pointer stuff
-    | TkNull | TkPointer | TkAimA | TkThrowA | TkRecoverA
+    | TkNull | TkPointer | TkRequestMemory | TkAccessMemory | TkFreeMemory
     -- Type Aliases
     | TkAlias | TkAliasListBegin | TkAliasListEnd
 
@@ -347,13 +350,31 @@ scanTokens str = case runAlex str alexMonadScan of
         putStrLn $ "Alex error " ++ show e
         return Nothing
     Right userState -> case userState of
-        LexSuccess tokens -> return $ Just $ reverse tokens
+        LexSuccess tokens -> return $ Just $ map postProcess $ reverse tokens
         LexFailure errors -> do
             printLexErrors str $ reverse errors
             return Nothing
 
-getAbstractToken :: Token -> AbstractToken
-getAbstractToken (Token t _ _) = t
+removeFirstAndLast :: [a] -> [a]
+removeFirstAndLast = reverse . tail . reverse . tail
+
+postProcess :: Token -> Token
+postProcess (Token TkCharLit (Just s) p) = Token TkCharLit (Just $ f s) p
+    where
+        f s = if head a == '\\' then mapEscaped $ last a else a
+        a = removeFirstAndLast s
+        mapEscaped 'n' = "\n"
+        mapEscaped 't' = "\t"
+        mapEscaped '\\' = "\\"
+        mapEscaped '|' = "\n"
+postProcess (Token TkStringLit (Just s) p) = Token TkStringLit (Just cleanedString) p
+    where
+        pp = removeFirstAndLast s
+        cleanedString = replace "\\@" "@" pp
+postProcess a = a
+
+-- getAbstractToken :: Token -> AbstractToken
+-- getAbstractToken (Token t _ _) = t
 
 filterComments :: [Token] -> [Token]
 filterComments =

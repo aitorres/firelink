@@ -1,106 +1,97 @@
-module StringLiteralsSpec where
+module ProgramStructureSpec where
 
 import Test.Hspec
 import Lexer
+import Utils (getAbstractToken)
 
 spec :: Spec
 spec = describe "Lexer" $ do
-  it "accepts `@@` as a valid string literal" $ do
-    let x = "@@"
+  it "accepts `--` as a valid token for comments" $ do
+    let x = "--"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkStringLit
+        atok `shouldBe` TkComment
       Nothing ->
         error "rejected as an invalid token"
 
-  it "accepts `@ @` as a valid string literal" $ do
-    let x = "@ @"
+  it "accepts `hello ashen one` as a valid token" $ do
+    let x = "hello ashen one"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkStringLit
+        atok `shouldBe` TkProgramBegin
       Nothing ->
         error "rejected as an invalid token"
 
-  it "accepts `@test@` as a valid string literal" $ do
-    let x = "@test@"
+  it "accepts `farewell ashen one` as a valid token" $ do
+    let x = "farewell ashen one"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkStringLit
+        atok `shouldBe` TkProgramEnd
       Nothing ->
         error "rejected as an invalid token"
 
-  it "accepts `@test one@` as a valid string literal" $ do
-    let x = "@test one@"
+  it "accepts `in your inventory` as a valid token" $ do
+    let x = "in your inventory"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkStringLit
+        atok `shouldBe` TkDeclarationEnd
       Nothing ->
         error "rejected as an invalid token"
 
-  it "accepts `@\t@` as a valid string literal" $ do
-    let x = "@\t@"
+  it "accepts `traveling somewhere` as a valid token" $ do
+    let x = "traveling somewhere"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkStringLit
+        atok `shouldBe` TkInstructionBegin
       Nothing ->
         error "rejected as an invalid token"
 
-  it "accepts `@   @` as a valid string literal" $ do
-    let x = "@   @"
+  it "accepts `you died` as a valid token" $ do
+    let x = "you died"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkStringLit
+        atok `shouldBe` TkInstructionEnd
       Nothing ->
         error "rejected as an invalid token"
 
-  it "accepts `@123123@` as a valid string literal" $ do
-    let x = "@123123@"
+  it "accepts `\\` as a valid token" $ do
+    let x = "\\"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkStringLit
+        atok `shouldBe` TkSeq
       Nothing ->
         error "rejected as an invalid token"
 
-  it "accepts `@asdf .-,- 123@` as a valid string literal" $ do
-    let x = "@asdf .-,- 123@"
+  it "accepts `with orange saponite say` as a valid token" $ do
+    let x = "with orange saponite say"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkStringLit
+        atok `shouldBe` TkPrint
       Nothing ->
         error "rejected as an invalid token"
 
-  it "accepts `@\\n@` as a valid string literal" $ do
-    let x = "@\\n@"
+  it "accepts `transpose into` as a valid token" $ do
+    let x = "transpose into"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkStringLit
-      Nothing ->
-        error "rejected as an invalid token"
-
-  it "accepts `@lorem ipsum@` as a valid string literal" $ do
-    let x = "@lorem ipsum@"
-    s <- scanTokens x
-    case s of
-      Just toks -> do
-        let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkStringLit
+        atok `shouldBe` TkRead
       Nothing ->
         error "rejected as an invalid token"

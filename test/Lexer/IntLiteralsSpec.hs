@@ -2,6 +2,7 @@ module IntLiteralsSpec where
 
 import Test.Hspec
 import Lexer
+import Utils (getAbstractToken)
 
 spec :: Spec
 spec = describe "Lexer" $ do

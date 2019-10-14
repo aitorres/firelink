@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 5be4aada91bf781116988818c6c34260f97885f7231783df8e02166e27f10a17
+-- hash: 3593f924dcf02ea0b7c7ac437e18e8e47b84359288b86c67958b995dd3801047
 
 name:           firelink
 version:        0.0.2.0
@@ -28,6 +28,7 @@ source-repository head
 library
   exposed-modules:
       AST
+      Grammar
       Lexer
       Lib
       Parser
@@ -43,6 +44,7 @@ library
   build-depends:
       array
     , base >=4.7 && <5
+    , extra
     , split
   default-language: Haskell2010
 
@@ -56,6 +58,7 @@ executable firelink-exe
   build-depends:
       array
     , base >=4.7 && <5
+    , extra
     , firelink
     , split
   default-language: Haskell2010
@@ -79,13 +82,47 @@ test-suite lexer-tests
       SpecialTypesSpec
       StringLiteralsSpec
       StructuredTypesSpec
+      Utils
       Paths_firelink
   hs-source-dirs:
-      test/lexer
+      test/Lexer
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
     , base >=4.7 && <5
+    , extra
+    , firelink
+    , hspec
+    , hspec-discover
+    , split
+  default-language: Haskell2010
+
+test-suite parser-tests
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      BoundedLoopStructuresSpec
+      ConditionalStructuresSpec
+      DeclarationSpec
+      ExpressionsSpec
+      ForEachLoopStructuresSpec
+      FunctionsSpec
+      InstructionsSpec
+      LiteralsSpec
+      ProceduresSpec
+      ProgramStructureSpec
+      TypeAliasesSpec
+      TypesSpec
+      UnboundedLoopStructuresSpec
+      Utils
+      Paths_firelink
+  hs-source-dirs:
+      test/Parser
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      array
+    , base >=4.7 && <5
+    , extra
     , firelink
     , hspec
     , hspec-discover

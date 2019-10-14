@@ -1,9 +1,11 @@
 {
-module Parser (parse) where
+module Parser (
+  parse) where
 
 import Lexer (Token (..), AbstractToken (..), AlexPosn (..))
 import AST (AST)
 import Data.Maybe
+import Grammar
 }
 
 %name                                                                     parse
@@ -11,21 +13,23 @@ import Data.Maybe
 %error                                                                  { parseErrors }
 %monad                                                                  { AST }
 
-%left comma
+%nonassoc lt lte gt gte size memAccessor
+%right arrOpen arrClose
 
-%left granting offering
-
+%left accessor
+%left eq neq
 %left plus minus
 %left mult div mod
 
 %left and or
 
-%left accessor
-%right arrOpen arrClose
+%left colConcat
+%left diff
+%left union intersect
 
-%left not UMINUS
 
-%nonassoc lt lte gt gte eq neq granting
+%left not asciiOf
+
 
 %token
   programBegin                                                          { Token TkProgramBegin _ _ }
@@ -61,6 +65,10 @@ import Data.Maybe
   floatLit                                                              { Token TkFloatLit $$ _ }
   charLit                                                               { Token TkCharLit $$ _ }
   stringLit                                                             { Token TkStringLit $$ _ }
+  trueLit                                                               { Token TkLit _ _ }
+  falseLit                                                              { Token TkUnlit _ _ }
+  unknownLit                                                            { Token TkUndiscovered _ _ }
+  nullLit                                                               { Token TkNull _ _ }
 
   functionBegin                                                         { Token TkInvocation _ _ }
   functionType                                                          { Token TkInvocationType _ _ }
@@ -137,11 +145,20 @@ import Data.Maybe
   not                                                                   { Token TkNot _ _ }
   and                                                                   { Token TkAnd _ _ }
   or                                                                    { Token TkOr _ _ }
+  asciiOf                                                               { Token TkAsciiOf _ _ }
+  colConcat                                                             { Token TkConcat _ _ }
+  union                                                                 { Token TkUnion _ _ }
+  intersect                                                             { Token TkIntersect _ _ }
+  diff                                                                  { Token TkDiff _ _ }
+  size                                                                  { Token TkSize _ _ }
 
   arrOpen                                                               { Token TkArrayOpen _ _ }
   arrClose                                                              { Token TkArrayClose _ _ }
+  setOpen                                                               { Token TkSetOpen _ _ }
+  setClose                                                              { Token TkSetClose _ _ }
 
   accessor                                                              { Token TkAccessor _ _ }
+  memAccessor                                                           { Token TkAccessMemory _ _ }
 
 %%
 
@@ -156,7 +173,7 @@ ALIASES
 
 ALIASL :: { AliasList }
 ALIASL
-  : ALIASL ALIAS                                                        { $2 : $1 }
+  : ALIASL comma ALIAS                                                  { $3 : $1 }
   | ALIAS                                                               { [$1] }
 
 ALIAS :: { Alias }
@@ -167,13 +184,22 @@ EXPR :: { Expr }
 EXPR
   : intLit                                                              { IntLit $ (read (fromJust $1) :: Int) }
   | floatLit                                                            { FloatLit $ (read (fromJust $1) :: Float) }
-  | charLit                                                             { CharLit $ fromJust $1 }
+  | charLit                                                             { CharLit $ head $ fromJust $1 }
   | stringLit                                                           { StringLit $ fromJust $1 }
+  | trueLit                                                             { TrueLit }
+  | falseLit                                                            { FalseLit }
+  | nullLit                                                             { NullLit }
+  | arrOpen EXPRL arrClose                                              { ArrayLit $ reverse $2 }
+  | setOpen EXPRL setClose                                              { SetLit $ reverse $2 }
+  | unknownLit                                                          { UndiscoveredLit }
   | parensOpen EXPR parensClosed                                        { $2 }
-  | ID accessor EXPR                                                    { Access $1 $3 }
-  | ID arrOpen EXPR arrClose                                            { Access $1 $3 }
+  | EXPR accessor ID                                                    { Access $1 $3 }
+  | EXPR arrOpen EXPR arrClose                                          { IndexAccess $1 $3 }
+  | memAccessor EXPR                                                    { MemAccess $2 }
   | minus EXPR                                                          { Negative $2 }
   | not EXPR                                                            { Not $2 }
+  | asciiOf EXPR                                                        { AsciiOf $2 }
+  | size EXPR                                                           { SetSize $2 }
   | EXPR plus EXPR                                                      { Add $1 $3 }
   | EXPR minus EXPR                                                     { Substract $1 $3 }
   | EXPR mult EXPR                                                      { Multiply $1 $3 }
@@ -187,8 +213,22 @@ EXPR
   | EXPR neq EXPR                                                       { Neq $1 $3 }
   | EXPR and EXPR                                                       { And $1 $3 }
   | EXPR or EXPR                                                        { Or $1 $3 }
+  | EXPR colConcat EXPR                                                 { ColConcat $1 $3 }
+  | EXPR union EXPR                                                     { SetUnion $1 $3 }
+  | EXPR intersect EXPR                                                 { SetIntersect $1 $3 }
+  | EXPR diff EXPR                                                      { SetDiff $1 $3 }
   | FUNCALL                                                             { EvalFunc (fst $1) (snd $1) }
   | ID                                                                  { IdExpr $1 }
+
+EXPRL :: { Exprs }
+EXPRL
+  : {- empty -}                                                         { [] }
+  | EXPRLNOTEMPTY                                                       { $1 }
+
+EXPRLNOTEMPTY :: { Exprs }
+EXPRLNOTEMPTY
+  : EXPR                                                                { [$1] }
+  | EXPRLNOTEMPTY comma EXPR                                           { $3:$1 }
 
 METHODS :: { Methods }
 METHODS
@@ -215,7 +255,7 @@ PROC
 
 METHODPARS :: { MethodDeclarations }
 METHODPARS
-  : paramRequest PARS                                                   { $2 }
+  : paramRequest PARS                                                   { reverse $2 }
   | {- empty -}                                                         { [] }
 
 PARS :: { MethodDeclarations }
@@ -237,15 +277,15 @@ TYPE
   : ID                                                                  { AliasType $1 }
   | bigInt                                                              { BigInt }
   | smallInt                                                            { SmallInt }
-  | float                                                               { Float }
-  | char                                                                { Char }
-  | bool                                                                { Bool }
-  | ltelit EXPR array                                                   { Array $2 }
+  | float                                                               { FloatT }
+  | char                                                                { CharT }
+  | bool                                                                { BoolT }
+  | ltelit EXPR array ofType TYPE                                       { Array $5 $2 }
   | ltelit EXPR string                                                  { StringType $2 }
-  | set                                                                 { Set }
-  | enum brOpen ENUMITS brClose                                         { Enum $3 }
-  | unionStruct brOpen STRUCTITS brClose                                { UnionStruct $3 }
-  | record  brOpen STRUCTITS brClose                                    { Record $3 }
+  | set ofType TYPE                                                     { Set $3 }
+  | enum brOpen ENUMITS brClose                                         { Enum $ reverse $3 }
+  | unionStruct brOpen STRUCTITS brClose                                { UnionStruct $ reverse $3 }
+  | record  brOpen STRUCTITS brClose                                    { Record $ reverse $3 }
   | pointer TYPE                                                        { Pointer $2 }
 
 ENUMITS :: { EnumItems }
@@ -268,12 +308,12 @@ ID
 
 CODEBLOCK :: { CodeBlock }
 CODEBLOCK
-  : instructionsBegin DECLARS INSTRL instructionsEnd                    { CodeBlock $2 $3 }
-  | instructionsBegin INSTRL instructionsEnd                            { CodeBlock [] $2 }
+  : instructionsBegin DECLARS INSTRL instructionsEnd                    { CodeBlock $2 $ reverse $3 }
+  | instructionsBegin INSTRL instructionsEnd                            { CodeBlock [] $ reverse $2 }
 
 DECLARS :: { Declarations }
 DECLARS
-  : with DECLARSL declarend                                             { $2 }
+  : with DECLARSL declarend                                             { reverse $2 }
 
 DECLARSL :: { Declarations }
 DECLARSL
@@ -304,7 +344,7 @@ INSTR
   | returnWith EXPR                                                     { InstReturnWith $2 }
   | print EXPR                                                          { InstPrint $2 }
   | read ID                                                             { InstRead $2 }
-  | whileBegin EXPR covenantIsActive CODEBLOCK whileEnd                 { InstWhile $2 $4 }
+  | whileBegin EXPR covenantIsActive colon CODEBLOCK whileEnd           { InstWhile $2 $5 }
   | ifBegin IFCASES ELSECASE ifEnd                                      { InstIf (reverse ($3 : $2)) }
   | ifBegin IFCASES ifEnd                                               { InstIf (reverse $2) }
   | switchBegin ID SWITCHCASES DEFAULTCASE switchEnd                    { InstSwitch $2 (reverse ($4 : $3)) }
@@ -332,17 +372,17 @@ SWITCHCASES :: { SwitchCases }
   | SWITCHCASE                                                          { [$1] }
 
 SWITCHCASE :: { SwitchCase }
-  : ID colon CODEBLOCK                                                  { IdCase $1 $3 }
+  : EXPR colon CODEBLOCK                                                { Case $1 $3 }
 
 DEFAULTCASE :: { SwitchCase }
   : switchDefault colon CODEBLOCK                                       { DefaultCase $3 }
 
 FUNCPARS :: { Params }
-  : granting PARSLIST toTheKnight                                       { $2 }
+  : granting PARSLIST toTheKnight                                       { reverse $2 }
   | {- empty -}                                                         { [] }
 
 PROCPARS :: { Params }
-  : offering PARSLIST toTheEstusFlask                                   { $2 }
+  : offering PARSLIST toTheEstusFlask                                   { reverse $2 }
   | {- empty -}                                                         { [] }
 
 PARSLIST :: { Params }
@@ -363,131 +403,4 @@ parseErrors errors =
       msg = header ++ "Unexpected token \x1b[1m\x1b[31m" ++ name ++ "\x1b[0m at " ++ position ++ endmsg
   in  fail msg
 
-type Declarations = [Declaration]
-type Instructions = [Instruction]
-type MethodDeclarations = [MethodDeclaration]
-type Methods = [Method]
-type Params = [Expr]
-type AliasList = [Alias]
-type EnumItems = [EnumItem]
-type IfCases = [IfCase]
-type SwitchCases = [SwitchCase]
-type StructItems = [StructItem]
-
-data Id
-  = Id String
-  deriving Show
-
-data Alias
-  = Alias Id Type
-  deriving Show
-
-data Declaration
-  = UninitializedDeclaration VarType Id Type
-  | InitializedDeclaration VarType Id Type Expr
-  deriving Show
-
-data Type
-  = BigInt
-  | SmallInt
-  | Float
-  | Char
-  | Bool
-  | StringType Expr
-  | Array Expr
-  | Set
-  | Enum EnumItems
-  | Record StructItems
-  | UnionStruct StructItems
-  | Pointer Type
-  | AliasType Id
-  deriving Show
-
-data EnumItem
-  = EnumItem Id
-  deriving Show
-
-data StructItem
-  = StructItem Id Type
-  deriving Show
-
-data VarType
-  = Const
-  | Var
-  deriving Show
-
-data MethodDeclaration
-   = MethodDeclaration ParamType Id Type
-   deriving Show
-
-data ParamType
-  = Val
-  | Ref
-  deriving Show
-
-data Method
-  = Function Id MethodDeclarations Type CodeBlock
-  | Procedure Id MethodDeclarations CodeBlock
-  deriving Show
-
-data Expr
-  = Lit
-  | Unlit
-  | Undiscovered
-  | IntLit Int
-  | FloatLit Float
-  | CharLit String
-  | StringLit String
-  | EvalFunc Id Params
-  | Add Expr Expr
-  | Substract Expr Expr
-  | Multiply Expr Expr
-  | Divide Expr Expr
-  | Mod Expr Expr
-  | Negative Expr
-  | Lt Expr Expr
-  | Gt Expr Expr
-  | Lte Expr Expr
-  | Gte Expr Expr
-  | Eq Expr Expr
-  | Neq Expr Expr
-  | And Expr Expr
-  | Or Expr Expr
-  | Not Expr
-  | Access Id Expr
-  | IdExpr Id
-  deriving Show
-
-data Program
-  = Program AliasList Methods CodeBlock
-  deriving Show
-
-data Instruction
-  = InstAsig Id Expr
-  | InstCallProc Id Params
-  | InstCallFunc Id Params
-  | InstReturn
-  | InstReturnWith Expr
-  | InstPrint Expr
-  | InstRead Id
-  | InstIf IfCases
-  | InstForEach Id Id CodeBlock
-  | InstFor Id Expr Expr CodeBlock
-  | InstSwitch Id SwitchCases
-  | InstWhile Expr CodeBlock
-  deriving Show
-
-data IfCase
-  = GuardedCase Expr CodeBlock
-  | ElseCase CodeBlock
-  deriving Show
-
-data SwitchCase
-  = IdCase Id CodeBlock
-  | DefaultCase CodeBlock
-  deriving Show
-
-data CodeBlock
-  = CodeBlock Declarations Instructions
-  deriving Show
 }

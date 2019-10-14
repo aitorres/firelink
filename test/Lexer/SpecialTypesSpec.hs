@@ -1,71 +1,57 @@
-module IdSpec where
+module SpecialTypesSpec where
 
 import Test.Hspec
 import Lexer
+import Utils (getAbstractToken)
 
 spec :: Spec
 spec = describe "Lexer" $ do
-  it "accepts `a` as a valid id" $ do
-    let x = "a"
+  it "accepts `abyss` as a valid token for comments" $ do
+    let x = "abyss"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkId
+        atok `shouldBe` TkNull
       Nothing ->
         error "rejected as an invalid token"
 
-  it "accepts `b` as a valid id" $ do
-    let x = "b"
+  it "accepts `arrow to` as a valid token for comments" $ do
+    let x = "arrow to"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkId
+        atok `shouldBe` TkPointer
       Nothing ->
         error "rejected as an invalid token"
 
-  it "accepts `testy` as a valid id" $ do
-    let x = "testy"
+  it "accepts `knight` as a valid token for comments" $ do
+    let x = "knight"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkId
+        atok `shouldBe` TkAlias
       Nothing ->
         error "rejected as an invalid token"
 
-  it "accepts `test123` as a valid id" $ do
-    let x = "test123"
+  it "accepts `requiring help of` as a valid token for comments" $ do
+    let x = "requiring help of"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkId
+        atok `shouldBe` TkAliasListBegin
       Nothing ->
         error "rejected as an invalid token"
 
-  it "accepts `test_123` as a valid id" $ do
-    let x = "test_123"
+  it "accepts `help received` as a valid token for comments" $ do
+    let x = "help received"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkId
+        atok `shouldBe` TkAliasListEnd
       Nothing ->
         error "rejected as an invalid token"
-
-  it "rejects `T` as a valid token" $ do
-    let x = "T"
-    s <- scanTokens x
-    s `shouldBe` Nothing
-
-  it "rejects `Test` as a valid token" $ do
-    let x = "Test"
-    s <- scanTokens x
-    s `shouldBe` Nothing
-
-  it "rejects `_test` as a valid token" $ do
-    let x = "_test"
-    s <- scanTokens x
-    s `shouldBe` Nothing

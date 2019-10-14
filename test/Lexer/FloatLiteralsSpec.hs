@@ -1,56 +1,58 @@
-module SpecialTypesSpec where
+module FloatLiteralsSpec where
 
 import Test.Hspec
 import Lexer
+import Utils (getAbstractToken)
 
 spec :: Spec
 spec = describe "Lexer" $ do
-  it "accepts `abyss` as a valid token for comments" $ do
-    let x = "abyss"
+
+  it "accepts `0.0` as a valid float literal" $ do
+    let x = "0.0"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkNull
+        atok `shouldBe` TkFloatLit
       Nothing ->
         error "rejected as an invalid token"
 
-  it "accepts `arrow to` as a valid token for comments" $ do
-    let x = "arrow to"
+  it "accepts `1.0` as a valid float literal" $ do
+    let x = "1.0"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkPointer
+        atok `shouldBe` TkFloatLit
       Nothing ->
         error "rejected as an invalid token"
 
-  it "accepts `knight` as a valid token for comments" $ do
-    let x = "knight"
+  it "accepts `1.55` as a valid float literal" $ do
+    let x = "1.55"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkAlias
+        atok `shouldBe` TkFloatLit
       Nothing ->
         error "rejected as an invalid token"
 
-  it "accepts `requiring help of` as a valid token for comments" $ do
-    let x = "requiring help of"
+  it "accepts `1000000000000000000.55` as a valid float literal" $ do
+    let x = "1000000000000000000.55"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkAliasListBegin
+        atok `shouldBe` TkFloatLit
       Nothing ->
         error "rejected as an invalid token"
 
-  it "accepts `help received` as a valid token for comments" $ do
-    let x = "help received"
+  it "accepts `1.100000000000000000000000000006` as a valid float literal" $ do
+    let x = "1.100000000000000000000000000006"
     s <- scanTokens x
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkAliasListEnd
+        atok `shouldBe` TkFloatLit
       Nothing ->
         error "rejected as an invalid token"

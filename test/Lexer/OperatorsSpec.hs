@@ -2,6 +2,7 @@ module OperatorsSpec where
 
 import Test.Hspec
 import Lexer
+import Utils (getAbstractToken)
 
 spec :: Spec
 spec = describe "Lexer" $ do
@@ -208,7 +209,7 @@ spec = describe "Lexer" $ do
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkAimA
+        atok `shouldBe` TkRequestMemory
       Nothing ->
         error "rejected as an invalid token"
 
@@ -218,7 +219,7 @@ spec = describe "Lexer" $ do
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkThrowA
+        atok `shouldBe` TkAccessMemory
       Nothing ->
         error "rejected as an invalid token"
 
@@ -228,7 +229,7 @@ spec = describe "Lexer" $ do
     case s of
       Just toks -> do
         let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkRecoverA
+        atok `shouldBe` TkFreeMemory
       Nothing ->
         error "rejected as an invalid token"
 
