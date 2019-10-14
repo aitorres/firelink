@@ -443,3 +443,9 @@ spec = describe "Expressions" $ do
         runTestForInvalidProgram "aim a a"
     it "rejects `recover a a` as an expresion" $
         runTestForInvalidProgram "recover a a"
+
+    it "accepts `summon f` a an expression" $
+        runTestForExpr "summon f" (\(Program _ _ (
+            CodeBlock
+                [InitializedDeclaration _ _ _ (EvalFunc (Id "f") [])]
+                _)) -> True)

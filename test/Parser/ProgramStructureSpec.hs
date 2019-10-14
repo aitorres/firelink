@@ -84,3 +84,18 @@ spec = describe "ProgramStructure" $ do
             ] [
                 Function (Id "f") [] CharT (CodeBlock _ [InstReturn])
             ] _) -> True)
+
+    it "accepts a program with no aliases but with functions" $
+        runTestForValidProgram "\
+        \ hello ashen one\
+
+        \ traveling somewhere \
+        \ with \
+        \   var i of type humanity \
+        \ in your inventory \
+        \   go back \
+        \ you died \
+
+        \ farewell ashen one" (\(Program [] [] (CodeBlock [
+            UninitializedDeclaration Var (Id "i") BigInt
+        ] [InstReturn])) -> True)
