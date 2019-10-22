@@ -24,7 +24,7 @@ spec = describe "Unbounded looping" $ do
             \ traveling somewhere \
             \   with orange saponite say @@ \
             \ you died \
-        \ covenant left")  (\(Program _ _ (
-            CodeBlock _ [
-                InstWhile FalseLit (CodeBlock _ _)
+        \ covenant left")  (\(Program (
+            CodeBlock [
+                InstWhile FalseLit (CodeBlock _)
                 ])) -> True)

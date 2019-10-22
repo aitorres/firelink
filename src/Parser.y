@@ -164,7 +164,7 @@ import Grammar
 
 PROGRAM :: { Program }
 PROGRAM
-  : programBegin ALIASES METHODS CODEBLOCK programEnd                   { Program $2 $3 $4 }
+  : programBegin ALIASES METHODS CODEBLOCK programEnd                   { Program $4 }
 
 ALIASES :: { AliasList }
 ALIASES
@@ -308,8 +308,8 @@ ID
 
 CODEBLOCK :: { CodeBlock }
 CODEBLOCK
-  : instructionsBegin DECLARS INSTRL instructionsEnd                    { CodeBlock $2 $ reverse $3 }
-  | instructionsBegin INSTRL instructionsEnd                            { CodeBlock [] $ reverse $2 }
+  : instructionsBegin DECLARS INSTRL instructionsEnd                    { CodeBlock $ reverse $3 }
+  | instructionsBegin INSTRL instructionsEnd                            { CodeBlock $ reverse $2 }
 
 DECLARS :: { Declarations }
 DECLARS

@@ -27,7 +27,7 @@ spec = describe "Loops over structures" $ do
         \ traveling somewhere \
         \   with orange saponite say @@ \
         \ you died \
-        \ weaponry repaired") (\(Program _ _ (
-            CodeBlock _ [
-                InstForEach (Id "a") (Id "b") (CodeBlock _ [InstPrint (StringLit "")])
+        \ weaponry repaired") (\(Program (
+            CodeBlock [
+                InstForEach (Id "a") (Id "b") (CodeBlock [InstPrint (StringLit "")])
                 ])) -> True)

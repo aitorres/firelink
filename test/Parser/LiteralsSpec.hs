@@ -8,10 +8,7 @@ buildProgramWithLiteral l = "\
 \ hello ashen one \
 
 \ traveling somewhere \
-\   with \
-\      const patata of type humanity <<= " ++ l ++ " \
-\   in your inventory \
-\   with orange saponite say @Hello world@ \
+\   go back with " ++ l ++ " \
 \ you died \
 
 \ farewell ashen one"
@@ -20,137 +17,95 @@ spec :: Spec
 spec = describe "Literal Values" $ do
     it "accepts `abyss` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "abyss")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt NullLit]
-                _)) -> True)
+        (\(Program (
+            CodeBlock [InstReturnWith NullLit])) -> True)
     it "accepts `123` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "123")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (IntLit 123)]
-                _)) -> True)
+        (\(Program (
+            CodeBlock [InstReturnWith (IntLit 123)])) -> True)
     it "accepts `lit` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "lit")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt TrueLit]
-                _)) -> True)
+        (\(Program (
+            CodeBlock [InstReturnWith TrueLit])) -> True)
     it "accepts `unlit` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "unlit")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt FalseLit]
-                _)) -> True)
+        (\(Program (
+            CodeBlock [InstReturnWith FalseLit])) -> True)
     it "accepts `undiscovered` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "undiscovered")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt UndiscoveredLit]
-                _)) -> True)
+        (\(Program (
+            CodeBlock [InstReturnWith UndiscoveredLit])) -> True)
 
     it "accepts `|a|` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "|a|")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (CharLit 'a')]
-                _)) -> True)
+        (\(Program (
+            CodeBlock [InstReturnWith (CharLit 'a')])) -> True)
 
     it "accepts `|\\n|` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "|\\n|")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (CharLit '\n')]
-                _)) -> True)
+        (\(Program (
+            CodeBlock [InstReturnWith (CharLit '\n')])) -> True)
     it "accepts `@@` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "@@")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (StringLit "")]
-                _)) -> True)
+        (\(Program (
+            CodeBlock [InstReturnWith (StringLit "")])) -> True)
     it "accepts `@hello@` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "@hello@")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (StringLit "hello")]
-                _)) -> True)
+        (\(Program (
+            CodeBlock [InstReturnWith (StringLit "hello")])) -> True)
     it "accepts `@\\@@` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "@\\@@")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (StringLit "@")]
-                _)) -> True)
+        (\(Program (
+            CodeBlock [InstReturnWith (StringLit "@")])) -> True)
     it "accepts `1.123` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "1.123")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (FloatLit 1.123)]
-                _)) -> True)
+        (\(Program (
+            CodeBlock [InstReturnWith (FloatLit 1.123)])) -> True)
     it "accepts `0.0` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "0.0")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (FloatLit 0)]
-                _)) -> True)
+        (\(Program (
+            CodeBlock [InstReturnWith (FloatLit 0)])) -> True)
 
     -- array literals
     it "accepts `<$$>` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "<$$>")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (ArrayLit [])]
-                _)) -> True)
+        (\(Program (
+            CodeBlock [InstReturnWith (ArrayLit [])])) -> True)
     it "accepts `<$1$>` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "<$1$>")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (ArrayLit [IntLit 1])]
-                _)) -> True)
+        (\(Program (
+            CodeBlock [InstReturnWith (ArrayLit [IntLit 1])])) -> True)
     it "rejects `<$1,$>` as a literal" $
         runTestForInvalidProgram (buildProgramWithLiteral "<$1,$>")
     it "rejects `<$,1$>` as a literal" $
         runTestForInvalidProgram (buildProgramWithLiteral "<$,1$>")
     it "accepts `<$1, 2$>` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "<$1, 2$>")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (ArrayLit [IntLit 1, IntLit 2])]
-                _)) -> True)
+        (\(Program (
+            CodeBlock [InstReturnWith (ArrayLit [IntLit 1, IntLit 2])])) -> True)
     it "accepts `<$<$$>$>` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "<$<$$>$>")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (ArrayLit [ArrayLit []])]
-                _)) -> True)
+        (\(Program (
+            CodeBlock [InstReturnWith (ArrayLit [ArrayLit []])])) -> True)
 
     -- set literals
     it "accepts `{$$}` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "{$$}")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (SetLit [])]
-                _)) -> True)
+        (\(Program (
+            CodeBlock [InstReturnWith (SetLit [])])) -> True)
     it "accepts `{$1$}` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "{$1$}")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (
-                    SetLit [IntLit  1])]
-                _)) -> True)
+        (\(Program (
+            CodeBlock [InstReturnWith (SetLit [IntLit  1])])) -> True)
     it "rejects `{$1,$}` as a literal" $
         runTestForInvalidProgram (buildProgramWithLiteral "{$1,$}")
     it "rejects `{$,1$}` as a literal" $
         runTestForInvalidProgram (buildProgramWithLiteral "{$,1$}")
     it "accepts `{$1, 2$}` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "{$1, 2$}")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (
-                    SetLit [IntLit 1, IntLit 2])]
-                _)) -> True)
+        (\(Program (
+            CodeBlock [InstReturnWith (SetLit [IntLit 1, IntLit 2])])) -> True)
     it "accepts `{${$$}$}` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "{${$$}$}")
-        (\(Program _ _ (
-            CodeBlock
-                [InitializedDeclaration Const (Id "patata") BigInt (SetLit [SetLit []])]
-                _)) -> True)
+        (\(Program (
+            CodeBlock [InstReturnWith (SetLit [SetLit []])])) -> True)

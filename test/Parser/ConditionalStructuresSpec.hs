@@ -32,10 +32,10 @@ spec = do
             \ lit: \
             \   traveling somewhere \
             \       with orange saponite say @hello world@ \
-            \ you died") (\(Program _ _ (CodeBlock _ [InstIf [
+            \ you died") (\(Program (CodeBlock [InstIf [
                 GuardedCase
                     TrueLit
-                    (CodeBlock _ [InstPrint (StringLit "hello world")])
+                    (CodeBlock [InstPrint (StringLit "hello world")])
                 ]])) -> True)
 
         it "accepts a selection block with sevearal if/elseif statments and parses them in order" $
@@ -47,11 +47,11 @@ spec = do
             \ unlit: \
             \   traveling somewhere \
             \       with orange saponite say @goodbye@ \
-            \   you died") (\(Program _ _ (CodeBlock _ [InstIf [
+            \   you died") (\(Program (CodeBlock [InstIf [
                 GuardedCase
                     TrueLit
-                    (CodeBlock _ [InstPrint (StringLit "hello world")]),
-                GuardedCase FalseLit (CodeBlock _ [InstPrint (StringLit "goodbye")])
+                    (CodeBlock [InstPrint (StringLit "hello world")]),
+                GuardedCase FalseLit (CodeBlock [InstPrint (StringLit "goodbye")])
                 ]])) -> True)
 
         it "accepts a selection block with an if and else statment" $
@@ -63,11 +63,11 @@ spec = do
             \ liar!: \
             \   traveling somewhere \
             \       with orange saponite say @goodbye@ \
-            \   you died") (\(Program _ _ (CodeBlock _ [InstIf [
+            \   you died") (\(Program (CodeBlock [InstIf [
                 GuardedCase
                     TrueLit
-                    (CodeBlock _ [InstPrint (StringLit "hello world")]),
-                ElseCase (CodeBlock _ [InstPrint (StringLit "goodbye")])
+                    (CodeBlock [InstPrint (StringLit "hello world")]),
+                ElseCase (CodeBlock [InstPrint (StringLit "goodbye")])
                 ]])) -> True)
         it "rejects a selection block with more than 1 else statment" $
             runTestForInvalidProgram $ buildProgram "\
@@ -108,8 +108,8 @@ spec = do
             \ 1: \
             \   traveling somewhere \
             \       with orange saponite say @hello@ \
-            \   you died") (\(Program _ _ (CodeBlock _ [InstSwitch (Id "a") [
-                    Case (IntLit 1) (CodeBlock _ [InstPrint (StringLit "hello")])
+            \   you died") (\(Program (CodeBlock [InstSwitch (Id "a") [
+                    Case (IntLit 1) (CodeBlock [InstPrint (StringLit "hello")])
                 ]])) -> True)
 
         it "rejects switch statement with more than 1 default" $
@@ -135,9 +135,9 @@ spec = do
             \ 2: \
             \   traveling somewhere \
             \       with orange saponite say @bye@ \
-            \   you died") (\(Program _ _ (CodeBlock _ [InstSwitch (Id "a") [
-                    Case (IntLit 1) (CodeBlock _ [InstPrint (StringLit "hello")]),
-                    Case (IntLit 2) (CodeBlock _ [InstPrint (StringLit "bye")])
+            \   you died") (\(Program (CodeBlock [InstSwitch (Id "a") [
+                    Case (IntLit 1) (CodeBlock [InstPrint (StringLit "hello")]),
+                    Case (IntLit 2) (CodeBlock [InstPrint (StringLit "bye")])
                 ]])) -> True)
 
         it "accepts swith statement with several non-default cases and one default" $
@@ -153,9 +153,9 @@ spec = do
             \ empty dungeon: \
             \   traveling somewhere \
             \       with orange saponite say @empty@ \
-            \   you died") (\(Program _ _ (CodeBlock _ [InstSwitch (Id "a") [
-                    Case (IntLit 1) (CodeBlock _ [InstPrint (StringLit "hello")]),
-                    Case (IntLit 2) (CodeBlock _ [InstPrint (StringLit "bye")]),
-                    DefaultCase (CodeBlock _ [InstPrint (StringLit "empty")])
+            \   you died") (\(Program (CodeBlock [InstSwitch (Id "a") [
+                    Case (IntLit 1) (CodeBlock [InstPrint (StringLit "hello")]),
+                    Case (IntLit 2) (CodeBlock [InstPrint (StringLit "bye")]),
+                    DefaultCase (CodeBlock [InstPrint (StringLit "empty")])
                 ]])) -> True)
 

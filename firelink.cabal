@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 3593f924dcf02ea0b7c7ac437e18e8e47b84359288b86c67958b995dd3801047
+-- hash: 600ee4d5421302ecdeb803ef3790bc2c6d533f4438ae6fb0f7cc748b5f18c953
 
 name:           firelink
 version:        0.0.2.0
@@ -32,6 +32,7 @@ library
       Lexer
       Lib
       Parser
+      SymTable
   other-modules:
       Paths_firelink
   hs-source-dirs:
@@ -44,7 +45,9 @@ library
   build-depends:
       array
     , base >=4.7 && <5
+    , containers
     , extra
+    , mtl
     , split
   default-language: Haskell2010
 
@@ -58,8 +61,10 @@ executable firelink-exe
   build-depends:
       array
     , base >=4.7 && <5
+    , containers
     , extra
     , firelink
+    , mtl
     , split
   default-language: Haskell2010
 
@@ -90,10 +95,12 @@ test-suite lexer-tests
   build-depends:
       array
     , base >=4.7 && <5
+    , containers
     , extra
     , firelink
     , hspec
     , hspec-discover
+    , mtl
     , split
   default-language: Haskell2010
 
@@ -103,16 +110,11 @@ test-suite parser-tests
   other-modules:
       BoundedLoopStructuresSpec
       ConditionalStructuresSpec
-      DeclarationSpec
       ExpressionsSpec
       ForEachLoopStructuresSpec
-      FunctionsSpec
       InstructionsSpec
       LiteralsSpec
-      ProceduresSpec
       ProgramStructureSpec
-      TypeAliasesSpec
-      TypesSpec
       UnboundedLoopStructuresSpec
       Utils
       Paths_firelink
@@ -122,9 +124,11 @@ test-suite parser-tests
   build-depends:
       array
     , base >=4.7 && <5
+    , containers
     , extra
     , firelink
     , hspec
     , hspec-discover
+    , mtl
     , split
   default-language: Haskell2010

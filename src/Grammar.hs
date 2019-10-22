@@ -108,8 +108,8 @@ data Expr
   | SetSize Expr
   deriving Show
 
-data Program
-  = Program AliasList Methods CodeBlock
+newtype Program
+  = Program CodeBlock
   deriving Show
 
 data Instruction
@@ -137,6 +137,6 @@ data SwitchCase
   | DefaultCase CodeBlock
   deriving Show
 
-data CodeBlock
-  = CodeBlock Declarations Instructions
+newtype CodeBlock
+  = CodeBlock Instructions
   deriving Show
