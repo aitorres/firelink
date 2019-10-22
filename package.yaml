@@ -24,6 +24,8 @@ dependencies:
 - array
 - split
 - extra
+- mtl
+- containers
 
 library:
   source-dirs: src
