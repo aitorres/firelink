@@ -166,19 +166,19 @@ PROGRAM :: { Program }
 PROGRAM
   : programBegin ALIASES METHODS CODEBLOCK programEnd                   { Program $4 }
 
-ALIASES :: { AliasList }
+ALIASES :: { [Int] }
 ALIASES
-  : aliasListBegin ALIASL aliasListEnd                                  { $2 }
+  : aliasListBegin ALIASL aliasListEnd                                  { [] }
   | {- empty -}                                                         { [] }
 
-ALIASL :: { AliasList }
+ALIASL :: { [Int] }
 ALIASL
-  : ALIASL comma ALIAS                                                  { $3 : $1 }
-  | ALIAS                                                               { [$1] }
+  : ALIASL comma ALIAS                                                  { [] }
+  | ALIAS                                                               { [] }
 
-ALIAS :: { Alias }
+ALIAS :: { [Int] }
 ALIAS
-  : alias ID TYPE                                                       { Alias $2 $3 }
+  : alias ID TYPE                                                       { [] }
 
 EXPR :: { Expr }
 EXPR
@@ -230,77 +230,77 @@ EXPRLNOTEMPTY
   : EXPR                                                                { [$1] }
   | EXPRLNOTEMPTY comma EXPR                                           { $3:$1 }
 
-METHODS :: { Methods }
+METHODS :: { [Int] }
 METHODS
   : {- empty -}                                                         { [] }
-  | METHODL                                                             { $1 }
+  | METHODL                                                             { [] }
 
-METHODL :: { Methods }
+METHODL :: { [Int] }
 METHODL
-  : METHODL METHOD                                                      { $2 : $1 }
-  | METHOD                                                              { [$1] }
+  : METHODL METHOD                                                      { [] }
+  | METHOD                                                              { [] }
 
-METHOD :: { Method }
+METHOD :: { [Int] }
 METHOD
-  : FUNC                                                                { $1 }
-  | PROC                                                                { $1 }
+  : FUNC                                                                { [] }
+  | PROC                                                                { [] }
 
-FUNC :: { Method }
+FUNC :: { [Int] }
 FUNC
-  : functionBegin ID METHODPARS functionType TYPE CODEBLOCK functionEnd { Function $2 $3 $5 $6 }
+  : functionBegin ID METHODPARS functionType TYPE CODEBLOCK functionEnd { [] }
 
-PROC :: { Method }
+PROC :: { [Int] }
 PROC
-  : procedureBegin ID METHODPARS CODEBLOCK procedureEnd                 { Procedure $2 $3 $4 }
+  : procedureBegin ID METHODPARS CODEBLOCK procedureEnd                 { [] }
 
-METHODPARS :: { MethodDeclarations }
+METHODPARS :: { [Int] }
 METHODPARS
-  : paramRequest PARS                                                   { reverse $2 }
+  : paramRequest PARS                                                   { [] }
   | {- empty -}                                                         { [] }
 
-PARS :: { MethodDeclarations }
+PARS :: { [Int] }
 PARS
-  : PARS comma PAR                                                      { $3 : $1 }
-  | PAR                                                                 { [$1] }
+  : PARS comma PAR                                                      { [] }
+  | PAR                                                                 { [] }
 
-PAR :: { MethodDeclaration }
+PAR :: { [Int] }
 PAR
-  : PARTYPE ID ofType TYPE                                              { MethodDeclaration $1 $2 $4 }
+  : PARTYPE ID ofType TYPE                                              { [] }
 
-PARTYPE :: { ParamType }
+PARTYPE :: { [Int] }
 PARTYPE
-  : parVal                                                              { Val }
-  | parRef                                                              { Ref }
+  : parVal                                                              { [] }
+  | parRef                                                              { [] }
 
-TYPE :: { Type }
+TYPE :: { [Int] }
 TYPE
-  : ID                                                                  { AliasType $1 }
-  | bigInt                                                              { BigInt }
-  | smallInt                                                            { SmallInt }
-  | float                                                               { FloatT }
-  | char                                                                { CharT }
-  | bool                                                                { BoolT }
-  | ltelit EXPR array ofType TYPE                                       { Array $5 $2 }
-  | ltelit EXPR string                                                  { StringType $2 }
-  | set ofType TYPE                                                     { Set $3 }
-  | enum brOpen ENUMITS brClose                                         { Enum $ reverse $3 }
-  | unionStruct brOpen STRUCTITS brClose                                { UnionStruct $ reverse $3 }
-  | record  brOpen STRUCTITS brClose                                    { Record $ reverse $3 }
-  | pointer TYPE                                                        { Pointer $2 }
+  : ID                                                                  { [] }
+  | bigInt                                                              { [] }
+  | smallInt                                                            { [] }
+  | float                                                               { [] }
+  | char                                                                { [] }
+  | bool                                                                { [] }
+  | ltelit EXPR array ofType TYPE                                       { [] }
+  | ltelit EXPR string                                                  { [] }
+  | set ofType TYPE                                                     { [] }
+  | enum brOpen ENUMITS brClose                                         { [] }
+  | unionStruct brOpen STRUCTITS brClose                                { [] }
+  | record  brOpen STRUCTITS brClose                                    { [] }
+  | pointer TYPE                                                        { [] }
 
-ENUMITS :: { EnumItems }
+ENUMITS :: { [Int] }
 ENUMITS
-  : ENUMITS comma ID                                                    { (EnumItem $3) : $1 }
-  | ID                                                                  { [EnumItem $1] }
+  : ENUMITS comma ID                                                    { [] }
+  | ID                                                                  { [] }
 
-STRUCTITS :: { StructItems }
+STRUCTITS :: { [Int] }
 STRUCTITS
-  : STRUCTITS comma STRUCTIT                                            { $3 : $1 }
-  | STRUCTIT                                                            { [$1] }
+  : STRUCTITS comma STRUCTIT                                            { [] }
+  | STRUCTIT                                                            { [] }
 
-STRUCTIT :: { StructItem }
+STRUCTIT :: { [Int] }
 STRUCTIT
-  : ID ofType TYPE                                                      { StructItem $1 $3 }
+  : ID ofType TYPE                                                      { [] }
 
 ID :: { Id }
 ID
@@ -311,24 +311,24 @@ CODEBLOCK
   : instructionsBegin DECLARS INSTRL instructionsEnd                    { CodeBlock $ reverse $3 }
   | instructionsBegin INSTRL instructionsEnd                            { CodeBlock $ reverse $2 }
 
-DECLARS :: { Declarations }
+DECLARS :: { [Int] }
 DECLARS
-  : with DECLARSL declarend                                             { reverse $2 }
+  : with DECLARSL declarend                                             { [] }
 
-DECLARSL :: { Declarations }
+DECLARSL :: { [Int] }
 DECLARSL
-  : DECLARSL comma DECLAR                                               { $3 : $1 }
-  | DECLAR                                                              { [$1] }
+  : DECLARSL comma DECLAR                                               { [] }
+  | DECLAR                                                              { [] }
 
-VARTYPE :: { VarType }
+VARTYPE :: { [Int] }
 VARTYPE
-  : const                                                               { Const }
-  | var                                                                 { Var }
+  : const                                                               { [] }
+  | var                                                                 { [] }
 
-DECLAR :: { Declaration }
+DECLAR :: { [Int] }
 DECLAR
-  : VARTYPE ID ofType TYPE                                              { UninitializedDeclaration $1 $2 $4 }
-  | VARTYPE ID ofType TYPE asig EXPR                                    { InitializedDeclaration $1 $2 $4 $6 }
+  : VARTYPE ID ofType TYPE                                              { [] }
+  | VARTYPE ID ofType TYPE asig EXPR                                    { [] }
 
 INSTRL :: { Instructions }
 INSTRL
