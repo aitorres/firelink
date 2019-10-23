@@ -4,25 +4,6 @@ import qualified Control.Monad.RWS as RWS
 import qualified Data.Map.Strict as Map
 import Grammar (Id)
 
-
-type StructItem = (Id, Type)
-type StructItems = [StructItem]
-
-data Type
-    = BigInt
-    | SmallInt
-    | FloatT
-    | CharT
-    | BoolT
-    | StringType
-    | Array Type
-    | Set DictionaryEntry
-    | Enum [DictionaryEntry]
-    | Record [DictionaryEntry]
-    | UnionStruct [DictionaryEntry]
-    | Pointer [DictionaryEntry]
-    deriving Show
-
 type SemanticError = String
 type Scope = Int
 type Stack = [Scope]
@@ -37,15 +18,18 @@ data Category = Variable
     | UnionItem
     | RefParam
     | ValueParam
+    | Constructor
     deriving Show
 
+data Extra = FuncParams [DictionaryEntry]
+    | Size Int
 
 data DictionaryEntry = DictionaryEntry {
-    name :: EntryName,
+    name :: String,
     category :: Category,
-    scope :: Int,
+    scope :: Scope,
     entryType :: Maybe DictionaryEntry,
-    extra :: []
+    extra :: [Extra]
     }
 
 type Dictionary = Map.Map String [DictionaryEntry]
