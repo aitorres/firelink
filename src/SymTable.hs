@@ -40,7 +40,7 @@ type Dictionary = Map.Map String DictionaryEntries
 
 type SymTable = (Dictionary, ScopeStack, Int)
 
-type ParserState = RWS.RWST () [SemanticError] SymTable IO
+type ParserMonad = RWS.RWST () [SemanticError] SymTable IO
 
 findChain :: String -> Dictionary -> DictionaryEntries
 findChain = Map.findWithDefault []
@@ -58,7 +58,7 @@ findBest name entries (s:ss) = case filter (\d -> scope d == s) entries of
     [a] -> Just a
     s -> error $ "For some reason there was more than 1 symbol with the same name on the same scope" ++ show s
 
-dictLookup :: String -> ParserState (Maybe DictionaryEntry)
+dictLookup :: String -> ParserMonad (Maybe DictionaryEntry)
 dictLookup n = do
     (dict, stack, _) <- RWS.get
     let chain = filter (\d -> name d == n) $ findChain n dict
@@ -70,25 +70,25 @@ dictLookup n = do
             je@(Just entry) -> je
             _ -> Nothing)
 
-addEntry :: DictionaryEntry -> ParserState ()
+addEntry :: DictionaryEntry -> ParserMonad ()
 addEntry d@DictionaryEntry{name=n} = do
     (dict, st, cs) <- RWS.get
     let chains = findChain n dict
     RWS.put (Map.insert n (d:chains) dict, st, cs)
 
-enterScope :: Scope -> ParserState ()
+enterScope :: Scope -> ParserMonad ()
 enterScope scope = do
     (dict, st, cs) <- RWS.get
     RWS.put (dict, scope:st, cs)
 
-exitScope :: ParserState ()
+exitScope :: ParserMonad ()
 exitScope = do
     (dict, st, cs) <- RWS.get
     case st of
         [] -> RWS.put (dict, [], cs)
         _:s -> RWS.put (dict, s, cs)
 
-updateActualScope :: ParserState ()
+updateActualScope :: ParserMonad ()
 updateActualScope = do
     (dict, st, cs) <- RWS.get
     RWS.put (dict, st, cs + 1)

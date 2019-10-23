@@ -3,7 +3,7 @@ module Parser (
   parse) where
 
 import Lexer (Token (..), AbstractToken (..), AlexPosn (..))
-import AST (AST)
+import SymTable (ParserState)
 import Data.Maybe
 import Grammar
 }
