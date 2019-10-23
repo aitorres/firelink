@@ -69,3 +69,26 @@ dictLookup n = do
         Nothing -> case pervasive of
             je@(Just entry) -> je
             _ -> Nothing)
+
+addEntry :: DictionaryEntry -> ParserState ()
+addEntry d@DictionaryEntry{name=n} = do
+    (dict, st, cs) <- RWS.get
+    let chains = findChain n dict
+    RWS.put (Map.insert n (d:chains) dict, st, cs)
+
+enterScope :: Scope -> ParserState ()
+enterScope scope = do
+    (dict, st, cs) <- RWS.get
+    RWS.put (dict, scope:st, cs)
+
+exitScope :: ParserState ()
+exitScope = do
+    (dict, st, cs) <- RWS.get
+    case st of
+        [] -> RWS.put (dict, [], cs)
+        _:s -> RWS.put (dict, s, cs)
+
+updateActualScope :: ParserState ()
+updateActualScope = do
+    (dict, st, cs) <- RWS.get
+    RWS.put (dict, st, cs + 1)
