@@ -3,7 +3,7 @@ module Parser (
   parse) where
 
 import Lexer (Token (..), AbstractToken (..), AlexPosn (..))
-import SymTable (ParserState)
+import SymTable (ParserMonad)
 import Data.Maybe
 import Grammar
 }
@@ -11,7 +11,7 @@ import Grammar
 %name                                                                     parse
 %tokentype                                                              { Token }
 %error                                                                  { parseErrors }
-%monad                                                                  { AST }
+%monad                                                                  { ParserMonad }
 
 %nonassoc lt lte gt gte size memAccessor
 %right arrOpen arrClose
@@ -391,7 +391,7 @@ PARSLIST :: { Params }
 
 {
 
-parseErrors :: [Token] -> AST a
+parseErrors :: [Token] -> ParserMonad a
 parseErrors errors =
   let (Token abst _ (AlexPn _ l c)) = errors !! 0
       name = show abst

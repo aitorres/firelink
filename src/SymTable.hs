@@ -92,3 +92,6 @@ updateActualScope :: ParserMonad ()
 updateActualScope = do
     (dict, st, cs) <- RWS.get
     RWS.put (dict, st, cs + 1)
+
+initialState :: SymTable
+initialState = (Map.empty, [0], 0)
