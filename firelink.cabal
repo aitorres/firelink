@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 24dfb820c2012b79256f43d4a4758e39bc72ce3191317c4938856bdcc5263496
+-- hash: 28ddafbca7ed2ea318e2222b918920f393715eedf120b83c780e2408a5874d1c
 
 name:           firelink
 version:        0.0.2.0
@@ -119,6 +119,28 @@ test-suite parser-tests
       Paths_firelink
   hs-source-dirs:
       test/Parser
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      array
+    , base >=4.7 && <5
+    , containers
+    , extra
+    , firelink
+    , hspec
+    , hspec-discover
+    , mtl
+    , split
+  default-language: Haskell2010
+
+test-suite semantic-tests
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      InitialTableSpec
+      Utils
+      Paths_firelink
+  hs-source-dirs:
+      test/Semantic
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array

@@ -93,5 +93,10 @@ updateActualScope = do
     (dict, st, cs) <- RWS.get
     RWS.put (dict, st, cs + 1)
 
+smallInt = "int"
+bigInt = "bigInt"
+
 initialState :: SymTable
-initialState = (Map.empty, [0], 0)
+initialState = (Map.fromList l, [0], 0)
+    where l = [
+            (smallInt, [DictionaryEntry smallInt Type 0 Nothing []])]
