@@ -6,6 +6,7 @@ import Lexer (Token (..), AbstractToken (..), AlexPosn (..))
 import SymTable (ParserMonad)
 import Data.Maybe
 import Grammar
+import qualified Control.Monad.RWS as RWS
 }
 
 %name                                                                     parse
