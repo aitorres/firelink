@@ -19,7 +19,7 @@ data Category = Variable
     | RefParam
     | ValueParam
     | Constructor
-    deriving Show
+    deriving (Eq, Show)
 
 data Extra = FuncParams [DictionaryEntry]
     | Size Int

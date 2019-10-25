@@ -20,5 +20,9 @@ spec = describe "Initial table" $
     it "Should contain `int`" $ do
         tokens <- L.scanTokens program
         (_, (dict, _, _), _) <- RWS.runRWST (P.parse $ fromJust tokens) () ST.initialState
-        let intEntry = head $ ST.findChain "int" dict
-        ST.name intEntry `shouldBe` "int"
+        let entry = head $ ST.findChain "int" dict
+        ST.name entry `shouldBe` "int"
+        ST.category entry `shouldBe` ST.Type
+        ST.scope entry `shouldBe` 0
+        ST.entryType entry `shouldSatisfy` (\Nothing -> True)
+        ST.extra entry `shouldSatisfy` null
