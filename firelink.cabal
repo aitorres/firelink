@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 28ddafbca7ed2ea318e2222b918920f393715eedf120b83c780e2408a5874d1c
+-- hash: 26c9513615d7d1aafeb27056deb4dce2c61d62830a68fc70eaa15a95c16d3497
 
 name:           firelink
 version:        0.0.2.0
@@ -56,7 +56,7 @@ executable firelink-exe
       Paths_firelink
   hs-source-dirs:
       app
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
     , base >=4.7 && <5
@@ -90,7 +90,7 @@ test-suite lexer-tests
       Paths_firelink
   hs-source-dirs:
       test/Lexer
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
     , base >=4.7 && <5
@@ -119,7 +119,7 @@ test-suite parser-tests
       Paths_firelink
   hs-source-dirs:
       test/Parser
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
     , base >=4.7 && <5
@@ -141,7 +141,7 @@ test-suite semantic-tests
       Paths_firelink
   hs-source-dirs:
       test/Semantic
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
     , base >=4.7 && <5

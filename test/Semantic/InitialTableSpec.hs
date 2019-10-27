@@ -1,13 +1,13 @@
 module InitialTableSpec where
 
 import Test.Hspec
-import qualified Grammar as G
 import qualified SymTable as ST
 import qualified Lexer as L
 import qualified Parser as P
 import qualified Control.Monad.RWS as RWS
 import Data.Maybe (fromJust)
 
+program :: String
 program = "\
 \ hello ashen one \
 \ traveling somewhere \
@@ -15,6 +15,7 @@ program = "\
 \ you died \
 \ farewell ashen one"
 
+testEntryExistence :: String -> ST.Category -> IO ()
 testEntryExistence e cat = do
     tokens <- L.scanTokens program
     (_, (dict, _, _), _) <- RWS.runRWST (P.parse $ fromJust tokens) () ST.initialState
