@@ -56,7 +56,8 @@ findBest _ _ [] = Nothing
 findBest name entries (s:ss) = case filter (\d -> scope d == s) entries of
     [] -> findBest name entries ss
     [a] -> Just a
-    s -> error $ "For some reason there was more than 1 symbol with the same name on the same scope" ++ show s
+    s -> error $ "For some reason there was more than 1 \
+    \symbol with the same name on the same scope" ++ show s
 
 dictLookup :: String -> ParserMonad (Maybe DictionaryEntry)
 dictLookup n = do
@@ -92,14 +93,6 @@ updateActualScope :: ParserMonad ()
 updateActualScope = do
     (dict, st, cs) <- RWS.get
     RWS.put (dict, st, cs + 1)
-
-smallInt = "int"
-bigInt = "bigInt"
-char = "char"
-bool3 = "3bool"
-array = "array"
-string = "string"
-set = "set"
 
 initialState :: SymTable
 initialState = (Map.fromList l, [0], 0)
