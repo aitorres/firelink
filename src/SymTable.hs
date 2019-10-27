@@ -95,8 +95,21 @@ updateActualScope = do
 
 smallInt = "int"
 bigInt = "bigInt"
+char = "char"
+bool3 = "3bool"
+array = "array"
+string = "string"
+set = "set"
 
 initialState :: SymTable
 initialState = (Map.fromList l, [0], 0)
-    where l = [
-            (smallInt, [DictionaryEntry smallInt Type 0 Nothing []])]
+    where l = [("int", [DictionaryEntry "int" Type 0 Nothing []])
+            , ("bigInt", [DictionaryEntry "bigInt" Type 0 Nothing []])
+            , ("float", [DictionaryEntry "float" Type 0 Nothing []])
+            , ("char", [DictionaryEntry "char" Type 0 Nothing []])
+            , ("3bool", [DictionaryEntry "3bool" Type 0 Nothing []])
+            , ("array", [DictionaryEntry "array" Constructor 0 Nothing []])
+            , ("string", [DictionaryEntry "string" Constructor 0 Nothing []])
+            , ("set", [DictionaryEntry "set" Constructor 0 Nothing []])
+            , ("pointer", [DictionaryEntry "pointer" Constructor 0 Nothing []])
+            ]
