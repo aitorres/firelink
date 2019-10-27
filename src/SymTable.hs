@@ -81,9 +81,9 @@ addEntry d@DictionaryEntry{name=n} = do
     RWS.put (Map.insert n (d:chains) dict, st, cs)
 
 enterScope :: Scope -> ParserMonad ()
-enterScope scope = do
+enterScope s = do
     (dict, st, cs) <- RWS.get
-    RWS.put (dict, scope:st, cs)
+    RWS.put (dict, s:st, cs)
 
 exitScope :: ParserMonad ()
 exitScope = do

@@ -1,5 +1,6 @@
 module Grammar where
 
+import Lexer (Token)
 
 type Instructions = [Instruction]
 type Exprs = [Expr]
@@ -8,7 +9,7 @@ type IfCases = [IfCase]
 type SwitchCases = [SwitchCase]
 
 newtype Id
-  = Id String
+  = Id Token
   deriving Show
 
 data Expr
@@ -82,3 +83,8 @@ data SwitchCase
 newtype CodeBlock
   = CodeBlock Instructions
   deriving Show
+
+
+data Type
+  = Simple Token (Maybe Expr)
+  | Compound Token Type (Maybe Expr)

@@ -3,16 +3,16 @@ module Parser (
   parse) where
 
 import Lexer (Token (..), AbstractToken (..), AlexPosn (..))
-import SymTable (ParserMonad)
+import qualified SymTable as ST
 import Data.Maybe
-import Grammar
+import qualified Grammar as G
 import qualified Control.Monad.RWS as RWS
 }
 
 %name                                                                     parse
 %tokentype                                                              { Token }
 %error                                                                  { parseErrors }
-%monad                                                                  { ParserMonad }
+%monad                                                                  { ST.ParserMonad }
 
 %nonassoc lt lte gt gte size memAccessor
 %right arrOpen arrClose
@@ -40,7 +40,7 @@ import qualified Control.Monad.RWS as RWS
   aliasListEnd                                                          { Token TkAliasListEnd _ _ }
   alias                                                                 { Token TkAlias _ _ }
 
-  id                                                                    { Token TkId $$ _ }
+  id                                                                    { Token TkId _ _ }
 
   ofType                                                                { Token TkOfType _ _ }
 
@@ -163,9 +163,9 @@ import qualified Control.Monad.RWS as RWS
 
 %%
 
-PROGRAM :: { Program }
+PROGRAM :: { G.Program }
 PROGRAM
-  : programBegin ALIASES METHODS CODEBLOCK programEnd                   { Program $4 }
+  : programBegin ALIASES METHODS CODEBLOCK programEnd                   { G.Program $4 }
 
 ALIASES :: { [Int] }
 ALIASES
@@ -181,52 +181,52 @@ ALIAS :: { [Int] }
 ALIAS
   : alias ID TYPE                                                       { [] }
 
-EXPR :: { Expr }
+EXPR :: { G.Expr }
 EXPR
-  : intLit                                                              { IntLit $ (read (fromJust $1) :: Int) }
-  | floatLit                                                            { FloatLit $ (read (fromJust $1) :: Float) }
-  | charLit                                                             { CharLit $ head $ fromJust $1 }
-  | stringLit                                                           { StringLit $ fromJust $1 }
-  | trueLit                                                             { TrueLit }
-  | falseLit                                                            { FalseLit }
-  | nullLit                                                             { NullLit }
-  | arrOpen EXPRL arrClose                                              { ArrayLit $ reverse $2 }
-  | setOpen EXPRL setClose                                              { SetLit $ reverse $2 }
-  | unknownLit                                                          { UndiscoveredLit }
+  : intLit                                                              { G.IntLit $ (read (fromJust $1) :: Int) }
+  | floatLit                                                            { G.FloatLit $ (read (fromJust $1) :: Float) }
+  | charLit                                                             { G.CharLit $ head $ fromJust $1 }
+  | stringLit                                                           { G.StringLit $ fromJust $1 }
+  | trueLit                                                             { G.TrueLit }
+  | falseLit                                                            { G.FalseLit }
+  | nullLit                                                             { G.NullLit }
+  | arrOpen EXPRL arrClose                                              { G.ArrayLit $ reverse $2 }
+  | setOpen EXPRL setClose                                              { G.SetLit $ reverse $2 }
+  | unknownLit                                                          { G.UndiscoveredLit }
   | parensOpen EXPR parensClosed                                        { $2 }
-  | EXPR accessor ID                                                    { Access $1 $3 }
-  | EXPR arrOpen EXPR arrClose                                          { IndexAccess $1 $3 }
-  | memAccessor EXPR                                                    { MemAccess $2 }
-  | minus EXPR                                                          { Negative $2 }
-  | not EXPR                                                            { Not $2 }
-  | asciiOf EXPR                                                        { AsciiOf $2 }
-  | size EXPR                                                           { SetSize $2 }
-  | EXPR plus EXPR                                                      { Add $1 $3 }
-  | EXPR minus EXPR                                                     { Substract $1 $3 }
-  | EXPR mult EXPR                                                      { Multiply $1 $3 }
-  | EXPR div EXPR                                                       { Divide $1 $3 }
-  | EXPR mod EXPR                                                       { Mod $1 $3 }
-  | EXPR lt EXPR                                                        { Lt $1 $3 }
-  | EXPR gt EXPR                                                        { Gt $1 $3 }
-  | EXPR lte EXPR                                                       { Lte $1 $3 }
-  | EXPR gte EXPR                                                       { Gte $1 $3 }
-  | EXPR eq EXPR                                                        { Eq $1 $3 }
-  | EXPR neq EXPR                                                       { Neq $1 $3 }
-  | EXPR and EXPR                                                       { And $1 $3 }
-  | EXPR or EXPR                                                        { Or $1 $3 }
-  | EXPR colConcat EXPR                                                 { ColConcat $1 $3 }
-  | EXPR union EXPR                                                     { SetUnion $1 $3 }
-  | EXPR intersect EXPR                                                 { SetIntersect $1 $3 }
-  | EXPR diff EXPR                                                      { SetDiff $1 $3 }
-  | FUNCALL                                                             { EvalFunc (fst $1) (snd $1) }
-  | ID                                                                  { IdExpr $1 }
+  | EXPR accessor ID                                                    { G.Access $1 $3 }
+  | EXPR arrOpen EXPR arrClose                                          { G.IndexAccess $1 $3 }
+  | memAccessor EXPR                                                    { G.MemAccess $2 }
+  | minus EXPR                                                          { G.Negative $2 }
+  | not EXPR                                                            { G.Not $2 }
+  | asciiOf EXPR                                                        { G.AsciiOf $2 }
+  | size EXPR                                                           { G.SetSize $2 }
+  | EXPR plus EXPR                                                      { G.Add $1 $3 }
+  | EXPR minus EXPR                                                     { G.Substract $1 $3 }
+  | EXPR mult EXPR                                                      { G.Multiply $1 $3 }
+  | EXPR div EXPR                                                       { G.Divide $1 $3 }
+  | EXPR mod EXPR                                                       { G.Mod $1 $3 }
+  | EXPR lt EXPR                                                        { G.Lt $1 $3 }
+  | EXPR gt EXPR                                                        { G.Gt $1 $3 }
+  | EXPR lte EXPR                                                       { G.Lte $1 $3 }
+  | EXPR gte EXPR                                                       { G.Gte $1 $3 }
+  | EXPR eq EXPR                                                        { G.Eq $1 $3 }
+  | EXPR neq EXPR                                                       { G.Neq $1 $3 }
+  | EXPR and EXPR                                                       { G.And $1 $3 }
+  | EXPR or EXPR                                                        { G.Or $1 $3 }
+  | EXPR colConcat EXPR                                                 { G.ColConcat $1 $3 }
+  | EXPR union EXPR                                                     { G.SetUnion $1 $3 }
+  | EXPR intersect EXPR                                                 { G.SetIntersect $1 $3 }
+  | EXPR diff EXPR                                                      { G.SetDiff $1 $3 }
+  | FUNCALL                                                             { G.EvalFunc (fst $1) (snd $1) }
+  | ID                                                                  { G.IdExpr $1 }
 
-EXPRL :: { Exprs }
+EXPRL :: { G.Exprs }
 EXPRL
   : {- empty -}                                                         { [] }
   | EXPRLNOTEMPTY                                                       { $1 }
 
-EXPRLNOTEMPTY :: { Exprs }
+EXPRLNOTEMPTY :: { G.Exprs }
 EXPRLNOTEMPTY
   : EXPR                                                                { [$1] }
   | EXPRLNOTEMPTY comma EXPR                                           { $3:$1 }
@@ -273,21 +273,18 @@ PARTYPE
   : parVal                                                              { [] }
   | parRef                                                              { [] }
 
-TYPE :: { [Int] }
+TYPE :: { G.Type }
 TYPE
-  : ID                                                                  { [] }
-  | bigInt                                                              { [] }
-  | smallInt                                                            { [] }
-  | float                                                               { [] }
-  | char                                                                { [] }
-  | bool                                                                { [] }
-  | ltelit EXPR array ofType TYPE                                       { [] }
-  | ltelit EXPR string                                                  { [] }
-  | set ofType TYPE                                                     { [] }
-  | enum brOpen ENUMITS brClose                                         { [] }
-  | unionStruct brOpen STRUCTITS brClose                                { [] }
-  | record  brOpen STRUCTITS brClose                                    { [] }
-  | pointer TYPE                                                        { [] }
+  : ID                                                                  { let G.Id t = $1 in G.Simple t Nothing }
+  | bigInt                                                              { G.Simple $1 Nothing }
+  | smallInt                                                            { G.Simple $1 Nothing }
+  | float                                                               { G.Simple $1 Nothing }
+  | char                                                                { G.Simple $1 Nothing }
+  | bool                                                                { G.Simple $1 Nothing }
+  | ltelit EXPR array ofType TYPE                                       { G.Compound $3 $5 (Just $2) }
+  | ltelit EXPR string                                                  { G.Simple $3 (Just $2) }
+  | set ofType TYPE                                                     { G.Compound $1 $3 Nothing }
+  | pointer TYPE                                                        { G.Compound $1 $2 Nothing }
 
 ENUMITS :: { [Int] }
 ENUMITS
@@ -303,96 +300,98 @@ STRUCTIT :: { [Int] }
 STRUCTIT
   : ID ofType TYPE                                                      { [] }
 
-ID :: { Id }
+ID :: { G.Id }
 ID
-  : id                                                                  { Id $ fromJust $1 }
+  : id                                                                  { G.Id $1 }
 
-CODEBLOCK :: { CodeBlock }
+CODEBLOCK :: { G.CodeBlock }
 CODEBLOCK
-  : instructionsBegin DECLARS INSTRL instructionsEnd                    { CodeBlock $ reverse $3 }
-  | instructionsBegin INSTRL instructionsEnd                            { CodeBlock $ reverse $2 }
+  : instructionsBegin DECLARS INSTRL instructionsEnd                    { G.CodeBlock $3 }
+  | instructionsBegin INSTRL instructionsEnd                            { G.CodeBlock $2 }
 
-DECLARS :: { [Int] }
+DECLARS :: { [Declaration] }
 DECLARS
-  : with DECLARSL declarend                                             { [] }
+  : with DECLARSL declarend                                             { reverse $2 }
 
-DECLARSL :: { [Int] }
+DECLARSL :: { [Declaration] }
 DECLARSL
-  : DECLARSL comma DECLAR                                               { [] }
-  | DECLAR                                                              { [] }
+  : DECLARSL comma DECLAR                                               { $3:$1 }
+  | DECLAR                                                              { [$1] }
 
-VARTYPE :: { [Int] }
+VARTYPE :: { ST.Category }
 VARTYPE
-  : const                                                               { [] }
-  | var                                                                 { [] }
+  : const                                                               { ST.Constant }
+  | var                                                                 { ST.Variable }
 
-DECLAR :: { [Int] }
+DECLAR :: { Declaration }
 DECLAR
-  : VARTYPE ID ofType TYPE                                              { [] }
-  | VARTYPE ID ofType TYPE asig EXPR                                    { [] }
+  : VARTYPE ID ofType TYPE                                              { ($1, $2, $4, Nothing) }
+  | VARTYPE ID ofType TYPE asig EXPR                                    { ($1, $2, $4, Just $6) }
 
-INSTRL :: { Instructions }
+INSTRL :: { G.Instructions }
 INSTRL
   : INSTRL seq INSTR                                                    { $3 : $1 }
   | INSTR                                                               { [$1] }
 
-INSTR :: { Instruction }
+INSTR :: { G.Instruction }
 INSTR
-  : ID asig EXPR                                                        { InstAsig $1 $3 }
-  | cast ID PROCPARS                                                    { InstCallProc $2 $3 }
-  | FUNCALL                                                             { InstCallFunc (fst $1) (snd $1) }
-  | return                                                              { InstReturn }
-  | returnWith EXPR                                                     { InstReturnWith $2 }
-  | print EXPR                                                          { InstPrint $2 }
-  | read ID                                                             { InstRead $2 }
-  | whileBegin EXPR covenantIsActive colon CODEBLOCK whileEnd           { InstWhile $2 $5 }
-  | ifBegin IFCASES ELSECASE ifEnd                                      { InstIf (reverse ($3 : $2)) }
-  | ifBegin IFCASES ifEnd                                               { InstIf (reverse $2) }
-  | switchBegin ID SWITCHCASES DEFAULTCASE switchEnd                    { InstSwitch $2 (reverse ($4 : $3)) }
-  | switchBegin ID SWITCHCASES switchEnd                                { InstSwitch $2 (reverse $3) }
-  | forBegin ID with EXPR souls untilLevel EXPR CODEBLOCK forEnd        { InstFor $2 $4 $7 $8 }
-  | forEachBegin ID withTitaniteFrom ID CODEBLOCK forEachEnd            { InstForEach $2 $4 $5 }
+  : ID asig EXPR                                                        { G.InstAsig $1 $3 }
+  | cast ID PROCPARS                                                    { G.InstCallProc $2 $3 }
+  | FUNCALL                                                             { G.InstCallFunc (fst $1) (snd $1) }
+  | return                                                              { G.InstReturn }
+  | returnWith EXPR                                                     { G.InstReturnWith $2 }
+  | print EXPR                                                          { G.InstPrint $2 }
+  | read ID                                                             { G.InstRead $2 }
+  | whileBegin EXPR covenantIsActive colon CODEBLOCK whileEnd           { G.InstWhile $2 $5 }
+  | ifBegin IFCASES ELSECASE ifEnd                                      { G.InstIf (reverse ($3 : $2)) }
+  | ifBegin IFCASES ifEnd                                               { G.InstIf (reverse $2) }
+  | switchBegin ID SWITCHCASES DEFAULTCASE switchEnd                    { G.InstSwitch $2 (reverse ($4 : $3)) }
+  | switchBegin ID SWITCHCASES switchEnd                                { G.InstSwitch $2 (reverse $3) }
+  | forBegin ID with EXPR souls untilLevel EXPR CODEBLOCK forEnd        { G.InstFor $2 $4 $7 $8 }
+  | forEachBegin ID withTitaniteFrom ID CODEBLOCK forEachEnd            { G.InstForEach $2 $4 $5 }
 
-FUNCALL :: { (Id, Params) }
+FUNCALL :: { (G.Id, G.Params) }
 FUNCALL
   : summon ID FUNCPARS                                                  { ($2, $3) }
 
-IFCASES :: { IfCases }
+IFCASES :: { G.IfCases }
 IFCASES
   : IFCASES IFCASE                                                      { $2 : $1 }
   | IFCASE                                                              { [$1] }
 
-IFCASE :: { IfCase }
-  : EXPR colon CODEBLOCK                                                { GuardedCase $1 $3 }
+IFCASE :: { G.IfCase }
+  : EXPR colon CODEBLOCK                                                { G.GuardedCase $1 $3 }
 
-ELSECASE :: { IfCase }
-  : else colon CODEBLOCK                                                { ElseCase $3 }
+ELSECASE :: { G.IfCase }
+  : else colon CODEBLOCK                                                { G.ElseCase $3 }
 
-SWITCHCASES :: { SwitchCases }
+SWITCHCASES :: { G.SwitchCases }
   : SWITCHCASES SWITCHCASE                                              { $2 : $1 }
   | SWITCHCASE                                                          { [$1] }
 
-SWITCHCASE :: { SwitchCase }
-  : EXPR colon CODEBLOCK                                                { Case $1 $3 }
+SWITCHCASE :: { G.SwitchCase }
+  : EXPR colon CODEBLOCK                                                { G.Case $1 $3 }
 
-DEFAULTCASE :: { SwitchCase }
-  : switchDefault colon CODEBLOCK                                       { DefaultCase $3 }
+DEFAULTCASE :: { G.SwitchCase }
+  : switchDefault colon CODEBLOCK                                       { G.DefaultCase $3 }
 
-FUNCPARS :: { Params }
+FUNCPARS :: { G.Params }
   : granting PARSLIST toTheKnight                                       { reverse $2 }
   | {- empty -}                                                         { [] }
 
-PROCPARS :: { Params }
+PROCPARS :: { G.Params }
   : offering PARSLIST toTheEstusFlask                                   { reverse $2 }
   | {- empty -}                                                         { [] }
 
-PARSLIST :: { Params }
+PARSLIST :: { G.Params }
   : PARSLIST comma EXPR                                                 { $3 : $1 }
   | EXPR                                                                { [$1] }
 
 {
 
-parseErrors :: [Token] -> ParserMonad a
+type Declaration = (ST.Category, G.Id, G.Type, Maybe G.Expr)
+
+parseErrors :: [Token] -> ST.ParserMonad a
 parseErrors errors =
   let (Token abst _ (AlexPn _ l c)) = errors !! 0
       name = show abst

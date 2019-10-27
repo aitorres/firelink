@@ -1,7 +1,7 @@
 module Utils where
 
 import qualified SymTable as ST
-import Lexer (Tokens, scanTokens)
+import Lexer (scanTokens)
 import qualified Test.Hspec as TH
 import Data.Maybe (fromJust)
 import Parser
@@ -13,8 +13,7 @@ extractSymTable
     -> IO (G.Program, ST.SymTable, ST.SemanticErrors)
 extractSymTable program = do
     tokens <- scanTokens program
-    a <- RWS.runRWST (parse $ fromJust tokens) () ST.initialState
-    return a
+    RWS.runRWST (parse $ fromJust tokens) () ST.initialState
 
 runTestForInvalidProgram :: String -> IO ()
 runTestForInvalidProgram program = do
