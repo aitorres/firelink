@@ -5,14 +5,19 @@ import Lexer (Tokens, scanTokens)
 import qualified Test.Hspec as TH
 import Data.Maybe (fromJust)
 import Parser
-import Grammar
+import qualified Grammar as G
 import qualified Control.Monad.RWS as RWS
 
-extractSymTable program predicate = do
+extractSymTable
+    :: String
+    -> IO (G.Program, ST.SymTable, ST.SemanticErrors)
+extractSymTable program = do
     tokens <- scanTokens program
-    (ast, _, _) <- RWS.runRWST (parse $ fromJust tokens) () ST.initialState
-    ast `TH.shouldSatisfy` predicate
+    a <- RWS.runRWST (parse $ fromJust tokens) () ST.initialState
+    return a
 
+runTestForInvalidProgram :: String -> IO ()
 runTestForInvalidProgram program = do
     tokens <- scanTokens program
     RWS.runRWST (parse $ fromJust tokens) () ST.initialState `TH.shouldThrow` TH.anyException
+
