@@ -2,7 +2,7 @@ module Utils where
 
 import qualified SymTable as ST
 import Lexer (scanTokens)
-import qualified Test.Hspec as TH
+import Test.Hspec
 import Data.Maybe (fromJust)
 import Parser
 import qualified Grammar as G
@@ -28,5 +28,5 @@ extractConstructorFromExtra (_:ss) = extractConstructorFromExtra ss
 runTestForInvalidProgram :: String -> IO ()
 runTestForInvalidProgram program = do
     tokens <- scanTokens program
-    RWS.runRWST (parse $ fromJust tokens) () ST.initialState `TH.shouldThrow` TH.anyException
+    RWS.runRWST (parse $ fromJust tokens) () ST.initialState `shouldThrow` anyException
 
