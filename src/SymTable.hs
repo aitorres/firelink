@@ -3,6 +3,7 @@ module SymTable where
 import qualified Control.Monad.RWS as RWS
 import qualified Data.Map.Strict as Map
 import qualified Lexer as L
+import qualified Grammar as G
 
 type Scope = Int
 type ScopeStack = [Scope]
@@ -26,15 +27,16 @@ data Category = Variable
     deriving (Eq, Show)
 
 data Extra = FuncParams DictionaryEntries
-    | Size Int
+    | Size G.Expr
+    | ConstructedBy DictionaryEntry
     deriving Show
 
 data DictionaryEntry = DictionaryEntry
-    { name :: String
-    , category :: Category
-    , scope :: Scope
-    , entryType :: Maybe DictionaryEntry
-    , extra :: [Extra]
+    { name :: !String
+    , category :: !Category
+    , scope :: !Scope
+    , entryType :: !(Maybe DictionaryEntry)
+    , extra :: ![Extra]
     } deriving Show
 
 type DictionaryEntries = [DictionaryEntry]
@@ -93,14 +95,23 @@ exitScope = do
         [] -> RWS.put (dict, [], cs)
         _:s -> RWS.put (dict, s, cs)
 
+smallHumanity :: String
 smallHumanity = "small humanity"
+humanity :: String
 humanity = "humanity"
+hollow :: String
 hollow = "hollow"
+sign :: String
 sign = "sign"
+bonfire :: String
 bonfire = "bonfire"
+chest :: String
 chest = ">-chest"
+miracle :: String
 miracle = ">-miracle"
+set :: String
 set = "set"
+arrowTo :: String
 arrowTo = "arrow to"
 
 initialState :: SymTable
@@ -123,4 +134,5 @@ tokensToEntryName (L.Token at _ _) = case at of
     L.TkFloat -> hollow
     L.TkChar -> sign
     L.TkBool -> bonfire
-    _ -> error "hola"
+    L.TkString -> miracle
+    a -> error $ "Token " ++ show a ++ "doesn't map to anything"
