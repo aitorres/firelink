@@ -28,13 +28,12 @@ testEntryExistence e cat = do
 
 spec :: Spec
 spec = describe "Initial table" $ do
-    it "Should contain `int`" $ testEntryExistence "int" ST.Type
-    it "Should contain `bigInt`" $ testEntryExistence "bigInt" ST.Type
-    it "Should contain `float`" $ testEntryExistence "float" ST.Type
-    it "Should contain `char`" $ testEntryExistence "char" ST.Type
-    it "Should contain `3bool`" $ testEntryExistence "3bool" ST.Type
-    it "Should contain `array`" $ testEntryExistence "array" ST.Constructor
-    it "Should contain `string`" $ testEntryExistence "string" ST.Constructor
+    it "Should contain `small humanity`" $ testEntryExistence "small humanity" ST.Type
+    it "Should contain `humanity`" $ testEntryExistence "humanity" ST.Type
+    it "Should contain `hollow`" $ testEntryExistence "hollow" ST.Type
+    it "Should contain `sign`" $ testEntryExistence "sign" ST.Type
+    it "Should contain `bonfire`" $ testEntryExistence "bonfire" ST.Type
+    it "Should contain `>-chest`" $ testEntryExistence ">-chest" ST.Constructor
+    it "Should contain `>-miracle`" $ testEntryExistence ">-miracle" ST.Constructor
     it "Should contain `set`" $ testEntryExistence "set" ST.Constructor
-    it "Should contain `string`" $ testEntryExistence "string" ST.Constructor
-    it "Should contain `pointer`" $ testEntryExistence "pointer" ST.Constructor
+    it "Should contain `arrow to`" $ testEntryExistence "arrow to" ST.Constructor

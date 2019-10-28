@@ -2,13 +2,13 @@ module SymTable where
 
 import qualified Control.Monad.RWS as RWS
 import qualified Data.Map.Strict as Map
-import Lexer (AlexPosn)
+import qualified Lexer as L
 
 type Scope = Int
 type ScopeStack = [Scope]
 
 
-data SemanticError = SemanticError String AlexPosn
+data SemanticError = SemanticError String L.AlexPosn
     deriving Show
 type SemanticErrors = [SemanticError]
 
@@ -80,10 +80,11 @@ addEntry d@DictionaryEntry{name=n} = do
     let chains = findChain n dict
     RWS.put (Map.insert n (d:chains) dict, st, cs)
 
-enterScope :: Scope -> ParserMonad ()
-enterScope s = do
+enterScope :: ParserMonad ()
+enterScope = do
     (dict, st, cs) <- RWS.get
-    RWS.put (dict, s:st, cs)
+    let cs' = cs + 1
+    RWS.put (dict, cs':st, cs')
 
 exitScope :: ParserMonad ()
 exitScope = do
@@ -92,20 +93,30 @@ exitScope = do
         [] -> RWS.put (dict, [], cs)
         _:s -> RWS.put (dict, s, cs)
 
-updateActualScope :: ParserMonad ()
-updateActualScope = do
-    (dict, st, cs) <- RWS.get
-    RWS.put (dict, st, cs + 1)
+smallHumanity = "small humanity"
+humanity = "humanity"
+hollow = "hollow"
+sign = "sign"
+bonfire = "bonfire"
+chest = ">-chest"
+miracle = ">-miracle"
+set = "set"
+arrowTo = "arrow to"
 
 initialState :: SymTable
 initialState = (Map.fromList l, [0], 0)
-    where l = [("int", [DictionaryEntry "int" Type 0 Nothing []])
-            , ("bigInt", [DictionaryEntry "bigInt" Type 0 Nothing []])
-            , ("float", [DictionaryEntry "float" Type 0 Nothing []])
-            , ("char", [DictionaryEntry "char" Type 0 Nothing []])
-            , ("3bool", [DictionaryEntry "3bool" Type 0 Nothing []])
-            , ("array", [DictionaryEntry "array" Constructor 0 Nothing []])
-            , ("string", [DictionaryEntry "string" Constructor 0 Nothing []])
-            , ("set", [DictionaryEntry "set" Constructor 0 Nothing []])
-            , ("pointer", [DictionaryEntry "pointer" Constructor 0 Nothing []])
+    where l = [(smallHumanity, [DictionaryEntry smallHumanity Type 0 Nothing []])
+            , (humanity, [DictionaryEntry humanity Type 0 Nothing []])
+            , (hollow, [DictionaryEntry hollow Type 0 Nothing []])
+            , (sign, [DictionaryEntry sign Type 0 Nothing []])
+            , (bonfire, [DictionaryEntry bonfire Type 0 Nothing []])
+            , (chest, [DictionaryEntry chest Constructor 0 Nothing []])
+            , (miracle, [DictionaryEntry miracle Constructor 0 Nothing []])
+            , (set, [DictionaryEntry set Constructor 0 Nothing []])
+            , (arrowTo, [DictionaryEntry arrowTo Constructor 0 Nothing []])
             ]
+
+tokensToEntryName :: L.Token -> String
+tokensToEntryName (L.Token at _ _) = case at of
+    L.TkBigInt -> humanity
+    _ -> error "hola"

@@ -309,9 +309,9 @@ CODEBLOCK
   : instructionsBegin DECLARS INSTRL instructionsEnd                    { G.CodeBlock $3 }
   | instructionsBegin INSTRL instructionsEnd                            { G.CodeBlock $2 }
 
-DECLARS :: { [Declaration] }
+DECLARS :: { () }
 DECLARS
-  : with DECLARSL declarend                                             { reverse $2 }
+  : with DECLARSL declarend                                             {% ST.enterScope >> addIdsToSymTable (reverse $2) }
 
 DECLARSL :: { [Declaration] }
 DECLARSL
@@ -403,4 +403,30 @@ parseErrors errors =
       msg = header ++ "Unexpected token \x1b[1m\x1b[31m" ++ name ++ "\x1b[0m at " ++ position ++ endmsg
   in  fail msg
 
+addIdsToSymTable :: [Declaration] -> ST.ParserMonad ()
+addIdsToSymTable = RWS.mapM_ addIdToSymTable
+
+addIdToSymTable :: Declaration -> ST.ParserMonad ()
+addIdToSymTable (c, (G.Id (Token _ (Just idName) posn)), t, me) = do
+  maybeIdEntry <- ST.dictLookup idName
+  maybeTypeEntry <- findTypeOnEntryTable t
+  (_, _, currScope) <- RWS.get
+  case maybeIdEntry of
+    -- The name doesn't exists on the table, we just add it
+    Nothing -> ST.addEntry (
+      ST.DictionaryEntry
+        { ST.name = idName
+        , ST.category = c
+        , ST.scope = currScope
+        , ST.entryType = maybeTypeEntry
+        , ST.extra = []})
+
+findTypeOnEntryTable :: G.Type -> ST.ParserMonad (Maybe ST.DictionaryEntry)
+findTypeOnEntryTable (G.Simple tk@(Token _ _ ap) mSize) = do
+  maybeEntry <- ST.dictLookup $ ST.tokensToEntryName tk
+  case maybeEntry of
+    Nothing -> do
+      RWS.tell [ST.SemanticError ("Type " ++ (show tk) ++ " not found") ap]
+      return maybeEntry
+    _ -> return maybeEntry
 }
