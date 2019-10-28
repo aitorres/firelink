@@ -52,4 +52,4 @@ spec = describe "Variable Declarations" $ do
         let size = U.extractSizeFromExtra $ ST.extra entry
         let constructor = U.extractConstructorFromExtra $ ST.extra entry
         size `shouldSatisfy` (\(G.IntLit 1) -> True)
-        constructor `shouldSatisfy` (\(ST.DictionaryEntry{ST.name=">-miracle"}) -> True)
+        constructor `shouldSatisfy` (\ST.DictionaryEntry{ST.name=">-miracle"} -> True)
