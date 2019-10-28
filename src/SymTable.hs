@@ -119,4 +119,8 @@ initialState = (Map.fromList l, [0], 0)
 tokensToEntryName :: L.Token -> String
 tokensToEntryName (L.Token at _ _) = case at of
     L.TkBigInt -> humanity
+    L.TkSmallInt -> smallHumanity
+    L.TkFloat -> hollow
+    L.TkChar -> sign
+    L.TkBool -> bonfire
     _ -> error "hola"
