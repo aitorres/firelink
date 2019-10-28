@@ -26,9 +26,11 @@ data Category = Variable
     | Constructor
     deriving (Eq, Show)
 
-data Extra = FuncParams DictionaryEntries
-    | Size G.Expr
-    | ConstructedBy DictionaryEntry
+data Extra = FuncParams DictionaryEntries -- TODO: See if this is going to be necessary
+    | Recursive Extra -- For sets
+    | Compound G.Expr DictionaryEntry -- For strings
+    | CompoundRec G.Expr Extra -- For arrays
+    | Simple DictionaryEntry -- For non-composite types
     deriving Show
 
 data DictionaryEntry = DictionaryEntry

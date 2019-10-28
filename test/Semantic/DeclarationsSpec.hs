@@ -48,8 +48,12 @@ spec = describe "Variable Declarations" $ do
         let (p, t, s) = ("<1>-miracle", ">-miracle", 1)
         testSimple p t s
         entry <- commonTest p t s
-        ST.extra entry `shouldSatisfy` (\l -> length l == 2)
-        let size = U.extractSizeFromExtra $ ST.extra entry
-        let constructor = U.extractConstructorFromExtra $ ST.extra entry
-        size `shouldSatisfy` (\(G.IntLit 1) -> True)
-        constructor `shouldSatisfy` (\ST.DictionaryEntry{ST.name=">-miracle"} -> True)
+        ST.extra entry `shouldSatisfy` (\l -> length l == 1)
+        let (ST.Compound e et) = U.extractCompoundFromExtra $ ST.extra entry
+        e `shouldSatisfy` (\(G.IntLit 1) -> True)
+        et `shouldSatisfy` (\ST.DictionaryEntry{ST.name=">-miracle"} -> True)
+    -- IT "allows declare variables of recursive type `<n>-chest of type humanity" $ do
+    --     let (p, t, s) = ("<1>-chest of type humanity", ">-chest", 1)
+    --     testSimple p t s
+    --     entry <- commonTest p t s
+    --     ST.extra entry `shouldSatisfy` (\l -> length l == )

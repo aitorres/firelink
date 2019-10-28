@@ -444,6 +444,6 @@ findTypeOnEntryTable (G.Simple tk@(L.Token _ _ ap) mSize) = do
 buildExtra :: Declaration -> ST.ParserMonad [ST.Extra]
 buildExtra (_, _, t@(G.Simple (L.Token L.TkString _ _) (Just e)), _) = do
   t' <- fromJust <$> findTypeOnEntryTable t
-  return [ST.Size e, ST.ConstructedBy t']
+  return [ST.Compound e t']
 buildExtra (_, _, _, _) = return []
 }
