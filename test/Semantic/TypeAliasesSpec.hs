@@ -44,3 +44,9 @@ spec = describe "Variable Declarations" $ do
     it "allows to define aliases to data types with size (strings alikes)" $
         test "knight x <12>-miracle" 1 U.extractCompoundFromExtra
             (\(ST.Compound ">-miracle" (G.IntLit 12)) -> True)
+    it "allows to define aliases to recursive data types (no size) (set alike)" $
+        test "knight x armor of type humanity" 1 U.extractRecursiveFromExtra
+            (\(ST.Recursive "armor" (ST.Simple "humanity")) -> True)
+    it "allows to define aliases to recursive data types (with size) (arrays alike)" $
+        test "knight x <10>-chest of type sign" 1 U.extractCompoundRecFromExtra
+            (\(ST.CompoundRec ">-chest" (G.IntLit 10) (ST.Simple "sign")) -> True)
