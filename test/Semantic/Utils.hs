@@ -15,6 +15,11 @@ extractSymTable program = do
     tokens <- scanTokens program
     RWS.runRWST (parse $ fromJust tokens) () ST.initialState
 
+extractDictionary :: String -> IO ST.SymTable
+extractDictionary program = do
+    (_, d, _) <- extractSymTable program
+    return d
+
 extractCompoundFromExtra :: [ST.Extra] -> ST.Extra
 extractCompoundFromExtra [] = error "The `extra` array doesn't have any `Compound` item"
 extractCompoundFromExtra (s@(ST.Compound _ _): _) = s

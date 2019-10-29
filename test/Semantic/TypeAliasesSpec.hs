@@ -18,69 +18,75 @@ program e = "hello ashen one\
 \ you died \
 \ farewell ashen one"
 
-test' :: String -> ST.Scope -> ([ST.Extra] -> ST.Extra) -> (ST.Extra -> Bool) -> IO ST.Dictionary
-test' prog scope extractor predicate = do
-    let varName = "x"
-    (_, (dict, _, _), _) <- U.extractSymTable prog
+type TestFunction a b
+    = a
+    -> ST.DictionaryEntry
+    -> ([ST.Extra] -> ST.Extra)
+    -> (ST.Extra -> Bool)
+    -> IO b
+
+test' :: TestFunction ST.Dictionary ()
+test' dict expectedEntry extractor predicate = do
+    let varName = ST.name expectedEntry
     let chain = filter (\d -> ST.name d == varName) $ ST.findChain varName dict
     chain `shouldNotSatisfy` null
-    let entry = head chain
-    ST.name entry `shouldBe` varName
-    ST.category entry `shouldBe` ST.Type
-    ST.scope entry `shouldBe` scope
-    ST.entryType entry `shouldSatisfy` (\Nothing -> True)
-    let extra' = ST.extra entry
-    extra' `shouldSatisfy` (==1) . length
+    let actualEntry = head chain
+    ST.name actualEntry `shouldBe` varName
+    ST.category actualEntry `shouldBe` ST.category expectedEntry
+    ST.scope actualEntry `shouldBe` ST.scope expectedEntry
+    ST.entryType actualEntry `shouldBe` ST.entryType expectedEntry
+    let extra' = ST.extra actualEntry
+    extra' `shouldNotSatisfy` null
     extractor extra' `shouldSatisfy` predicate
+
+test :: TestFunction String ST.Dictionary
+test prog expectedEntry extractor predicate = do
+    (_, (dict, _, _), _) <- U.extractSymTable $ program prog
+    test' dict expectedEntry extractor predicate
     return dict
 
-test :: String -> ST.Scope -> ([ST.Extra] -> ST.Extra) -> (ST.Extra -> Bool) -> IO ST.Dictionary
-test = test' . program
+testVoid :: TestFunction String ()
+testVoid prog expectedEntry extractor predicate = RWS.void $ test prog expectedEntry extractor predicate
 
+alias :: ST.DictionaryEntry
+alias = ST.DictionaryEntry
+    { ST.scope = 1
+    , ST.category = ST.Type
+    , ST.entryType = Nothing
+    , ST.name = "x"
+    , ST.extra = []
+    }
 
 spec :: Spec
 spec = describe "Variable Declarations" $ do
     it "allows to define aliases to just primitive types" $
-        RWS.void $ test "knight x humanity" 1 U.extractSimpleFromExtra
-            (\(ST.Simple "humanity") -> True)
+        testVoid "knight x humanity" alias U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
     it "allows to define aliases to data types with size (strings alikes)" $
-        RWS.void $ test "knight x <12>-miracle" 1 U.extractCompoundFromExtra
-            (\(ST.Compound ">-miracle" (G.IntLit 12)) -> True)
+        testVoid "knight x <12>-miracle" alias U.extractCompoundFromExtra (\(ST.Compound ">-miracle" (G.IntLit 12)) -> True)
     it "allows to define aliases to recursive data types (no size) (set alike)" $
-        RWS.void $ test "knight x armor of type humanity" 1 U.extractRecursiveFromExtra
+        testVoid "knight x armor of type humanity" alias U.extractRecursiveFromExtra
             (\(ST.Recursive "armor" (ST.Simple "humanity")) -> True)
     it "allows to define aliases to recursive data types (with size) (arrays alike)" $
-        RWS.void $ test "knight x <10>-chest of type sign" 1 U.extractCompoundRecFromExtra
+        testVoid "knight x <10>-chest of type sign" alias U.extractCompoundRecFromExtra
             (\(ST.CompoundRec ">-chest" (G.IntLit 10) (ST.Simple "sign")) -> True)
     it "allows to define aliases to custom user defined record data types" $ do
-        dict <- test "knight x bezel { y of type humanity }" 1 U.extractRecordFieldsFromExtra
+        dict <- test "knight x bezel { y of type humanity }" alias U.extractRecordFieldsFromExtra
             (\(ST.RecordFields 2) -> True)
-        let varName = "y"
-        let scope = 2
-        let chain = filter (\d -> ST.scope d == scope) $ filter (\d -> ST.name d == varName) $ ST.findChain varName dict
-        chain `shouldNotSatisfy` null
-        let entry = head chain
-        ST.name entry `shouldBe` varName
-        ST.category entry `shouldBe` ST.RecordItem
-        ST.scope entry `shouldBe` scope
-        ST.entryType entry `shouldBe` Just "humanity"
+        test' dict alias
+            { ST.name="y"
+            , ST.category=ST.RecordItem
+            , ST.scope=2
+            , ST.entryType=Just "humanity"} U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
     it "allows to define aliases to custom user defined record data types with more than 1 field" $ do
-        dict <- test "knight x bezel { y of type humanity, z of type sign }" 1 U.extractRecordFieldsFromExtra
+        dict <- test "knight x bezel { y of type humanity, z of type sign }" alias U.extractRecordFieldsFromExtra
             (\(ST.RecordFields 2) -> True)
-        let varName = "y"
-        let scope = 2
-        let chain = filter (\d -> ST.scope d == scope) $ filter (\d -> ST.name d == varName) $ ST.findChain varName dict
-        chain `shouldNotSatisfy` null
-        let entry = head chain
-        ST.name entry `shouldBe` varName
-        ST.category entry `shouldBe` ST.RecordItem
-        ST.scope entry `shouldBe` scope
-        ST.entryType entry `shouldBe` Just "humanity"
-        let varName' = "z"
-        let chain' = filter (\d -> ST.scope d == scope) $ filter (\d -> ST.name d == varName') $ ST.findChain varName' dict
-        chain' `shouldNotSatisfy` null
-        let entry' = head chain'
-        ST.name entry' `shouldBe` varName'
-        ST.category entry' `shouldBe` ST.RecordItem
-        ST.scope entry' `shouldBe` scope
-        ST.entryType entry' `shouldBe` Just "sign"
+        test' dict alias
+            { ST.name="y"
+            , ST.category=ST.RecordItem
+            , ST.scope=2
+            , ST.entryType=Just "humanity"} U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
+        test' dict alias
+            { ST.name="z"
+            , ST.category=ST.RecordItem
+            , ST.scope=2
+            , ST.entryType=Just "sign"} U.extractSimpleFromExtra (\(ST.Simple "sign") -> True)
