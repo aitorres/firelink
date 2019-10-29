@@ -28,9 +28,8 @@ data Category = Variable
 
 
 
-data Extra = FuncParams DictionaryEntries -- TODO: See if this is going to be necessary
-
-    | Recursive -- For sets alike
+data Extra
+    = Recursive -- For sets alike
         String -- (pointer to) constructor
         Extra -- Type perse
 

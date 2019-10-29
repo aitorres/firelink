@@ -169,17 +169,17 @@ PROGRAM
 
 ALIASES :: { () }
 ALIASES
-  : aliasListBegin ALIASL aliasListEnd                                  {% addTypeAliasesToSymTable $ reverse $2 }
+  : aliasListBegin ALIASL aliasListEnd                                  {% addIdsToSymTable $ reverse $2 }
   | {- empty -}                                                         { () }
 
-ALIASL :: { [AliasDeclaration] }
+ALIASL :: { [NameDeclaration] }
 ALIASL
   : ALIASL comma ALIAS                                                  { $3:$1 }
   | ALIAS                                                               { [$1] }
 
-ALIAS :: { AliasDeclaration }
+ALIAS :: { NameDeclaration }
 ALIAS
-  : alias ID TYPE                                                       { ($2, $3) }
+  : alias ID TYPE                                                       { (ST.Type, $2, $3) }
 
 EXPR :: { G.Expr }
 EXPR
@@ -314,7 +314,7 @@ DECLARS :: { () }
 DECLARS
   : with DECLARSL declarend                                             {% addIdsToSymTable $ reverse $2 }
 
-DECLARSL :: { [IdDeclaration] }
+DECLARSL :: { [NameDeclaration] }
 DECLARSL
   : DECLARSL comma DECLAR                                               { $3:$1 }
   | DECLAR                                                              { [$1] }
@@ -324,10 +324,10 @@ VARTYPE
   : const                                                               { ST.Constant }
   | var                                                                 { ST.Variable }
 
-DECLAR :: { IdDeclaration }
+DECLAR :: { NameDeclaration }
 DECLAR
-  : VARTYPE ID ofType TYPE                                              { ($1, $2, $4, Nothing) }
-  | VARTYPE ID ofType TYPE asig EXPR                                    { ($1, $2, $4, Just $6) }
+  : VARTYPE ID ofType TYPE                                              { ($1, $2, $4) }
+  | VARTYPE ID ofType TYPE asig EXPR                                    { ($1, $2, $4) }
 
 INSTRL :: { G.Instructions }
 INSTRL
@@ -390,7 +390,7 @@ PARSLIST :: { G.Params }
 
 {
 
-type IdDeclaration = (ST.Category, G.Id, G.Type, Maybe G.Expr)
+type NameDeclaration = (ST.Category, G.Id, G.Type)
 type AliasDeclaration = (G.Id, G.Type)
 type RecordItem = AliasDeclaration
 
@@ -415,70 +415,14 @@ parseErrors errors =
       msg = header ++ "Unexpected token \x1b[1m\x1b[31m" ++ name ++ "\x1b[0m at " ++ position ++ endmsg
   in  fail msg
 
-addRecordItemsToSymTable :: [RecordItem] -> ST.ParserMonad ()
-addRecordItemsToSymTable items = do
-  ST.enterScope
-  RWS.mapM_ addRecordItemToSymTable items
-  ST.exitScope
-
-addRecordItemToSymTable :: RecordItem -> ST.ParserMonad ()
-addRecordItemToSymTable ri@(G.Id (L.Token _ (Just idName) _), t) = do
-  maybeIdEntry <- ST.dictLookup idName
-  maybeTypeEntry <- findTypeOnEntryTable t
-  (_, _, currScope) <- RWS.get
-  case maybeIdEntry of
-    -- The name doesn't exists on the table, we just add it
-    Nothing -> do
-      ex <- buildExtraForType t
-      ST.addEntry (
-        ST.DictionaryEntry
-          { ST.name = idName
-          , ST.category = ST.RecordItem
-          , ST.scope = currScope
-          , ST.entryType = ST.name <$> maybeTypeEntry
-          , ST.extra = ex
-          })
-      -- To add the record params to the dictionary
-      case extractFieldsForNewScope t of
-        [] -> return ()
-        s ->  addRecordItemsToSymTable s
-
-addTypeAliasesToSymTable :: [AliasDeclaration] -> ST.ParserMonad ()
-addTypeAliasesToSymTable ads = do
-  ST.enterScope
-  RWS.mapM_ addTypeAliasToSymTable ads
-  ST.exitScope
-
-addTypeAliasToSymTable :: AliasDeclaration -> ST.ParserMonad ()
-addTypeAliasToSymTable ad@(G.Id (L.Token _ (Just idName) _), t) = do
-  maybeIdEntry <- ST.dictLookup idName
-  maybeTypeEntry <- findTypeOnEntryTable t
-  (_, _, currScope) <- RWS.get
-  case maybeIdEntry of
-    -- The name doesn't exists on the table, we just add it
-    Nothing -> do
-      ex <- buildExtraForType t
-      ST.addEntry (
-        ST.DictionaryEntry
-          { ST.name = idName
-          , ST.category = ST.Type
-          , ST.scope = currScope
-          , ST.entryType = Nothing
-          , ST.extra = ex
-          })
-      -- To add the record params to the dictionary
-      case extractFieldsForNewScope t of
-        [] -> return ()
-        s ->  addRecordItemsToSymTable s
-
-addIdsToSymTable :: [IdDeclaration] -> ST.ParserMonad ()
+addIdsToSymTable :: [NameDeclaration] -> ST.ParserMonad ()
 addIdsToSymTable ids = do
   ST.enterScope
   RWS.mapM_ addIdToSymTable ids
   ST.exitScope
 
-addIdToSymTable :: IdDeclaration -> ST.ParserMonad ()
-addIdToSymTable d@(c, (G.Id (L.Token at (Just idName) _)), t, me) = do
+addIdToSymTable :: NameDeclaration -> ST.ParserMonad ()
+addIdToSymTable d@(c, (G.Id (L.Token at (Just idName) _)), t) = do
   maybeIdEntry <- ST.dictLookup idName
   maybeTypeEntry <- findTypeOnEntryTable t
   (_, _, currScope) <- RWS.get
@@ -494,6 +438,10 @@ addIdToSymTable d@(c, (G.Id (L.Token at (Just idName) _)), t, me) = do
           , ST.entryType = ST.name <$> maybeTypeEntry
           , ST.extra = ex
           })
+      -- To add the record params to the dictionary
+      case extractFieldsForNewScope t of
+        [] -> return ()
+        s ->  addIdsToSymTable $ map (\(a, b) -> (ST.RecordItem, a, b)) s
 
 
 findTypeOnEntryTable :: G.Type -> ST.ParserMonad (Maybe ST.DictionaryEntry)

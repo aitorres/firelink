@@ -60,17 +60,22 @@ alias = ST.DictionaryEntry
 spec :: Spec
 spec = describe "Variable Declarations" $ do
     it "allows to define aliases to just primitive types" $
-        testVoid "knight x humanity" alias U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
+        testVoid "knight x humanity" alias{ST.entryType = Just "humanity"}
+            U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
     it "allows to define aliases to data types with size (strings alikes)" $
-        testVoid "knight x <12>-miracle" alias U.extractCompoundFromExtra (\(ST.Compound ">-miracle" (G.IntLit 12)) -> True)
+        testVoid "knight x <12>-miracle" alias{ST.entryType = Just ">-miracle"}
+            U.extractCompoundFromExtra (\(ST.Compound ">-miracle" (G.IntLit 12)) -> True)
     it "allows to define aliases to recursive data types (no size) (set alike)" $
-        testVoid "knight x armor of type humanity" alias U.extractRecursiveFromExtra
+        testVoid "knight x armor of type humanity" alias{ST.entryType = Just "armor"}
+            U.extractRecursiveFromExtra
             (\(ST.Recursive "armor" (ST.Simple "humanity")) -> True)
     it "allows to define aliases to recursive data types (with size) (arrays alike)" $
-        testVoid "knight x <10>-chest of type sign" alias U.extractCompoundRecFromExtra
+        testVoid "knight x <10>-chest of type sign" alias{ST.entryType = Just ">-chest"}
+            U.extractCompoundRecFromExtra
             (\(ST.CompoundRec ">-chest" (G.IntLit 10) (ST.Simple "sign")) -> True)
     it "allows to define aliases to custom user defined record data types" $ do
-        dict <- test "knight x bezel { y of type humanity }" alias U.extractRecordFieldsFromExtra
+        dict <- test "knight x bezel { y of type humanity }" alias{ST.entryType = Just "bezel"}
+            U.extractRecordFieldsFromExtra
             (\(ST.RecordFields 2) -> True)
         test' dict alias
             { ST.name="y"
@@ -78,7 +83,8 @@ spec = describe "Variable Declarations" $ do
             , ST.scope=2
             , ST.entryType=Just "humanity"} U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
     it "allows to define aliases to custom user defined record data types with more than 1 field" $ do
-        dict <- test "knight x bezel { y of type humanity, z of type sign }" alias U.extractRecordFieldsFromExtra
+        dict <- test "knight x bezel { y of type humanity, z of type sign }"
+            alias{ST.entryType = Just "bezel"} U.extractRecordFieldsFromExtra
             (\(ST.RecordFields 2) -> True)
         test' dict alias
             { ST.name="y"
