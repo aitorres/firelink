@@ -34,6 +34,14 @@ commonTest programType symType s = commonTest' (program programType) symType s "
 testSimple :: String -> String -> ST.Scope -> IO ()
 testSimple p t s = RWS.void $ commonTest p t s
 
+testCompound :: String -> String -> ST.Scope -> ([ST.Extra] -> ST.Extra) -> (ST.Extra -> Bool) -> IO ()
+testCompound p t s extractor predicate = do
+    testSimple p t s
+    entry <- commonTest p t s
+    let extra' = ST.extra entry
+    extra' `shouldSatisfy` (\l -> length l == 1)
+    print extra'
+    extractor extra' `shouldSatisfy` predicate
 
 spec :: Spec
 spec = describe "Variable Declarations" $ do
@@ -47,86 +55,48 @@ spec = describe "Variable Declarations" $ do
         testSimple "sign" "sign" 1
     it "allows to declare variables of type `bonfire`" $
         testSimple "bonfire" "bonfire" 1
-    it "allows to declare variables of type `<n>-miracle`" $ do
-        let (p, t, s) = ("<1>-miracle", ">-miracle", 1)
-        testSimple p t s
-        entry <- commonTest p t s
-        ST.extra entry `shouldSatisfy` (\l -> length l == 1)
-        let (ST.Compound et e) = U.extractCompoundFromExtra $ ST.extra entry
-        e `shouldSatisfy` (\(G.IntLit 1) -> True)
-        et `shouldBe` ">-miracle"
-    it "allows to declare variables of recursive type `<n>-chest of type humanity" $ do
-        let (p, t, s) = ("<1>-chest of type humanity", ">-chest", 1)
-        testSimple p t s
-        entry <- commonTest p t s
-        ST.extra entry `shouldSatisfy` (\l -> length l == 1)
-        let (ST.CompoundRec constructor e (ST.Simple dt)) = U.extractCompoundRecFromExtra $ ST.extra entry
-        constructor `shouldBe` ">-chest"
-        e `shouldSatisfy` (\(G.IntLit 1) -> True)
-        dt `shouldBe` "humanity"
-    it "allows to declare variables of recursive type `<n>-chest of type <m>-chest of type humanity" $ do
-        let (p, t, s) = ("<1>-chest of type <2>-chest of type humanity", ">-chest", 1)
-        testSimple p t s
-        entry <- commonTest p t s
-        let extra' = ST.extra entry
-        extra' `shouldSatisfy` (\l -> length l == 1)
-        U.extractCompoundRecFromExtra extra' `shouldSatisfy`
-            (\(ST.CompoundRec
+    it "allows to declare variables of type `<n>-miracle`" $
+        testCompound "<1>-miracle" ">-miracle" 1
+            U.extractCompoundFromExtra (\(ST.Compound ">-miracle" (G.IntLit 1)) -> True)
+    it "allows to declare variables of recursive type `<n>-chest of type humanity" $
+        testCompound "<1>-chest of type humanity" ">-chest" 1
+        U.extractCompoundRecFromExtra (\(ST.CompoundRec ">-chest"
+            (G.IntLit 1)
+            (ST.Simple "humanity")) -> True)
+    it "allows to declare variables of recursive type `<n>-chest of type <m>-chest of type humanity" $
+        testCompound "<1>-chest of type <2>-chest of type humanity" ">-chest" 1
+            U.extractCompoundRecFromExtra (\(ST.CompoundRec
                 ">-chest"
                 (G.IntLit 1)
                 (ST.CompoundRec
                     ">-chest"
                     (G.IntLit 2)
                     (ST.Simple "humanity"))) -> True)
-    it "allows to declare variables of recursive type `<n>-chest of type <n>-miracle" $ do
-        let (p, t, s) = ("<1>-chest of type <2>-miracle", ">-chest", 1)
-        testSimple p t s
-        entry <- commonTest p t s
-        let extra' = ST.extra entry
-        extra' `shouldSatisfy` (\l -> length l == 1)
-        print extra'
-        U.extractCompoundRecFromExtra extra' `shouldSatisfy`
-            (\(ST.CompoundRec
+    it "allows to declare variables of recursive type `<n>-chest of type <n>-miracle" $
+        testCompound "<1>-chest of type <2>-miracle" ">-chest" 1
+            U.extractCompoundRecFromExtra (\(ST.CompoundRec
                 ">-chest"
                 (G.IntLit 1)
                 (ST.Compound
                     ">-miracle"
                     (G.IntLit 2))) -> True)
-    it "allows to declare variables of recursive type `armor of type sign" $ do
-        let (p, t, s) = ("armor of type sign", "armor", 1)
-        testSimple p t s
-        entry <- commonTest p t s
-        let extra' = ST.extra entry
-        extra' `shouldSatisfy` (\l -> length l == 1)
-        print extra'
-        U.extractRecursiveFromExtra extra' `shouldSatisfy`
-            (\(ST.Recursive
+    it "allows to declare variables of recursive type `armor of type sign" $
+        testCompound "armor of type sign" "armor" 1
+            U.extractRecursiveFromExtra (\(ST.Recursive
                 "armor"
                 (ST.Simple
                     "sign")) -> True)
-    it "allows to declare variables of recursive type `armor of type <n>-chest of type sign" $ do
-        let (p, t, s) = ("armor of type <1>-chest of type sign", "armor", 1)
-        testSimple p t s
-        entry <- commonTest p t s
-        let extra' = ST.extra entry
-        extra' `shouldSatisfy` (\l -> length l == 1)
-        print extra'
-        U.extractRecursiveFromExtra extra' `shouldSatisfy`
-            (\(ST.Recursive
+    it "allows to declare variables of recursive type `armor of type <n>-chest of type sign" $
+        testCompound "armor of type <1>-chest of type sign" "armor" 1
+            U.extractRecursiveFromExtra (\(ST.Recursive
                 "armor"
                 (ST.CompoundRec
                     ">-chest"
                     (G.IntLit 1)
                     (ST.Simple "sign"))) -> True)
-    it "allows declare variables of recursive type `armor of type armor of type sign" $ do
-        let (p, t, s) = ("armor of type armor of type sign", "armor", 1)
-        testSimple p t s
-        entry <- commonTest p t s
-        let extra' = ST.extra entry
-        extra' `shouldSatisfy` (\l -> length l == 1)
-        print extra'
-        U.extractRecursiveFromExtra extra' `shouldSatisfy`
-            (\(ST.Recursive
+    it "allows declare variables of recursive type `armor of type armor of type sign" $
+        testCompound "armor of type armor of type sign" "armor" 1
+            U.extractRecursiveFromExtra (\(ST.Recursive
                 "armor"
                 (ST.Recursive
                     "armor"
