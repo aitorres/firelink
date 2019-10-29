@@ -30,6 +30,12 @@ extractRecursiveFromExtra [] = error "The `extra` array doesn't have any `Recurs
 extractRecursiveFromExtra (s@ST.Recursive{} : _) = s
 extractRecursiveFromExtra (_:ss) = extractRecursiveFromExtra ss
 
+extractSimpleFromExtra :: [ST.Extra] -> ST.Extra
+extractSimpleFromExtra [] = error "The `extra` array doesn't have any `Simple` item"
+extractSimpleFromExtra (s@ST.Simple{} : _) = s
+extractSimpleFromExtra (_:ss) = extractRecursiveFromExtra ss
+
+
 
 runTestForInvalidProgram :: String -> IO ()
 runTestForInvalidProgram program = do
