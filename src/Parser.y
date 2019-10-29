@@ -417,7 +417,6 @@ addIdToSymTable d@(c, (G.Id (L.Token at (Just idName) posn)), t, me) = do
   maybeIdEntry <- ST.dictLookup idName
   maybeTypeEntry <- findTypeOnEntryTable t
   (_, _, currScope) <- RWS.get
-  RWS.lift $ print d
   case maybeIdEntry of
     -- The name doesn't exists on the table, we just add it
     Nothing -> do
