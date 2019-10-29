@@ -63,3 +63,23 @@ spec = describe "Variable Declarations" $ do
         ST.category entry `shouldBe` ST.RecordItem
         ST.scope entry `shouldBe` scope
         ST.entryType entry `shouldBe` Just "humanity"
+    it "allows to define aliases to custom user defined record data types with more than 1 field" $ do
+        dict <- test "knight x bezel { y of type humanity, z of type sign }" 1 U.extractRecordFieldsFromExtra
+            (\(ST.RecordFields 2) -> True)
+        let varName = "y"
+        let scope = 2
+        let chain = filter (\d -> ST.scope d == scope) $ filter (\d -> ST.name d == varName) $ ST.findChain varName dict
+        chain `shouldNotSatisfy` null
+        let entry = head chain
+        ST.name entry `shouldBe` varName
+        ST.category entry `shouldBe` ST.RecordItem
+        ST.scope entry `shouldBe` scope
+        ST.entryType entry `shouldBe` Just "humanity"
+        let varName' = "z"
+        let chain' = filter (\d -> ST.scope d == scope) $ filter (\d -> ST.name d == varName') $ ST.findChain varName' dict
+        chain' `shouldNotSatisfy` null
+        let entry = head chain'
+        ST.name entry `shouldBe` varName'
+        ST.category entry `shouldBe` ST.RecordItem
+        ST.scope entry `shouldBe` scope
+        ST.entryType entry `shouldBe` Just "sign"
