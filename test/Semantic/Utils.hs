@@ -50,3 +50,34 @@ runTestForInvalidProgram program = do
     tokens <- scanTokens program
     RWS.runRWST (parse $ fromJust tokens) () ST.initialState `shouldThrow` anyException
 
+
+type TestFunction a b
+    = a
+    -> ST.DictionaryEntry
+    -> ([ST.Extra] -> ST.Extra)
+    -> (ST.Extra -> Bool)
+    -> IO b
+
+testEntry :: TestFunction ST.Dictionary ()
+testEntry dict expectedEntry extractor predicate = do
+    let varName = ST.name expectedEntry
+    let chain = filter (\d -> ST.name d == varName) $ ST.findChain varName dict
+    chain `shouldNotSatisfy` null
+    let actualEntry = head chain
+    ST.name actualEntry `shouldBe` varName
+    ST.category actualEntry `shouldBe` ST.category expectedEntry
+    ST.scope actualEntry `shouldBe` ST.scope expectedEntry
+    ST.entryType actualEntry `shouldBe` ST.entryType expectedEntry
+    let extra' = ST.extra actualEntry
+    extra' `shouldNotSatisfy` null
+    extractor extra' `shouldSatisfy` predicate
+
+test :: TestFunction String ST.Dictionary
+test prog expectedEntry extractor predicate = do
+    print prog
+    (_, (dict, _, _), _) <- extractSymTable prog
+    testEntry dict expectedEntry extractor predicate
+    return dict
+
+testVoid :: TestFunction String ()
+testVoid prog expectedEntry extractor predicate = RWS.void $ test prog expectedEntry extractor predicate

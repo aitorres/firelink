@@ -4,7 +4,6 @@ import Test.Hspec
 import qualified Utils as U
 import qualified SymTable as ST
 import qualified Grammar as G
-import qualified Control.Monad.RWS as RWS
 
 program :: String -> String
 program e = "hello ashen one\
@@ -18,35 +17,11 @@ program e = "hello ashen one\
 \ you died \
 \ farewell ashen one"
 
-type TestFunction a b
-    = a
-    -> ST.DictionaryEntry
-    -> ([ST.Extra] -> ST.Extra)
-    -> (ST.Extra -> Bool)
-    -> IO b
+test :: U.TestFunction String ST.Dictionary
+test prog = U.test (program prog)
 
-test' :: TestFunction ST.Dictionary ()
-test' dict expectedEntry extractor predicate = do
-    let varName = ST.name expectedEntry
-    let chain = filter (\d -> ST.name d == varName) $ ST.findChain varName dict
-    chain `shouldNotSatisfy` null
-    let actualEntry = head chain
-    ST.name actualEntry `shouldBe` varName
-    ST.category actualEntry `shouldBe` ST.category expectedEntry
-    ST.scope actualEntry `shouldBe` ST.scope expectedEntry
-    ST.entryType actualEntry `shouldBe` ST.entryType expectedEntry
-    let extra' = ST.extra actualEntry
-    extra' `shouldNotSatisfy` null
-    extractor extra' `shouldSatisfy` predicate
-
-test :: TestFunction String ST.Dictionary
-test prog expectedEntry extractor predicate = do
-    (_, (dict, _, _), _) <- U.extractSymTable $ program prog
-    test' dict expectedEntry extractor predicate
-    return dict
-
-testVoid :: TestFunction String ()
-testVoid prog expectedEntry extractor predicate = RWS.void $ test prog expectedEntry extractor predicate
+testVoid :: U.TestFunction String ()
+testVoid prog = U.testVoid (program prog)
 
 alias :: ST.DictionaryEntry
 alias = ST.DictionaryEntry
@@ -77,7 +52,7 @@ spec = describe "Variable Declarations" $ do
         dict <- test "knight x bezel { y of type humanity }" alias{ST.entryType = Just "bezel"}
             U.extractRecordFieldsFromExtra
             (\(ST.RecordFields 2) -> True)
-        test' dict alias
+        U.testEntry dict alias
             { ST.name="y"
             , ST.category=ST.RecordItem
             , ST.scope=2
@@ -86,12 +61,12 @@ spec = describe "Variable Declarations" $ do
         dict <- test "knight x bezel { y of type humanity, z of type sign }"
             alias{ST.entryType = Just "bezel"} U.extractRecordFieldsFromExtra
             (\(ST.RecordFields 2) -> True)
-        test' dict alias
+        U.testEntry dict alias
             { ST.name="y"
             , ST.category=ST.RecordItem
             , ST.scope=2
             , ST.entryType=Just "humanity"} U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
-        test' dict alias
+        U.testEntry dict alias
             { ST.name="z"
             , ST.category=ST.RecordItem
             , ST.scope=2
