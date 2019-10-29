@@ -26,10 +26,23 @@ data Category = Variable
     | Constructor
     deriving (Eq, Show)
 
+
+
 data Extra = FuncParams DictionaryEntries -- TODO: See if this is going to be necessary
-    | Recursive Extra -- For sets
-    | Compound G.Expr DictionaryEntry -- For strings
-    | CompoundRec G.Expr Extra -- For arrays
+
+    | Recursive -- For sets alike
+        DictionaryEntry -- constructor
+        Extra -- Type perse
+
+    | Compound -- For strings alike
+        DictionaryEntry -- Constructor
+        G.Expr -- Size
+
+    | CompoundRec -- For arrays alike
+        DictionaryEntry -- constructor
+        G.Expr -- Size
+        Extra -- Type perse
+
     | Simple DictionaryEntry -- For non-composite types
     deriving Show
 
@@ -137,4 +150,5 @@ tokensToEntryName (L.Token at _ _) = case at of
     L.TkChar -> sign
     L.TkBool -> bonfire
     L.TkString -> miracle
+    L.TkArray -> chest
     a -> error $ "Token " ++ show a ++ "doesn't map to anything"

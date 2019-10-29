@@ -433,6 +433,8 @@ addIdToSymTable d@(c, (G.Id (L.Token at (Just idName) posn)), t, me) = do
           })
 
 findTypeOnEntryTable :: G.Type -> ST.ParserMonad (Maybe ST.DictionaryEntry)
+
+-- For simple data types
 findTypeOnEntryTable (G.Simple tk@(L.Token _ _ ap) mSize) = do
   maybeEntry <- ST.dictLookup $ ST.tokensToEntryName tk
   case maybeEntry of
@@ -441,9 +443,27 @@ findTypeOnEntryTable (G.Simple tk@(L.Token _ _ ap) mSize) = do
       return maybeEntry
     _ -> return maybeEntry
 
+-- For compound data types, this extracts the constructor
+findTypeOnEntryTable (G.Compound tk@(L.Token _ _ ap) _ mSize) = do
+  ST.dictLookup $ ST.tokensToEntryName tk
+
+
 buildExtra :: Declaration -> ST.ParserMonad [ST.Extra]
+
+-- For string alike data types
 buildExtra (_, _, t@(G.Simple (L.Token L.TkString _ _) (Just e)), _) = do
   t' <- fromJust <$> findTypeOnEntryTable t
-  return [ST.Compound e t']
+  return [ST.Compound t' e]
+
+-- For array alike data types
+buildExtra (_, _,
+  t@(G.Compound (L.Token L.TkArray _ _) tt@(G.Simple _ _) (Just e)),
+  _) = do
+  maybeTypeEntry <- findTypeOnEntryTable tt
+  constructor <- fromJust <$> findTypeOnEntryTable t -- This call should never fail
+  case maybeTypeEntry of
+    Just t -> return [ST.CompoundRec constructor e (ST.Simple t)]
+
+-- For anything else
 buildExtra (_, _, _, _) = return []
 }

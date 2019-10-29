@@ -16,9 +16,14 @@ extractSymTable program = do
     RWS.runRWST (parse $ fromJust tokens) () ST.initialState
 
 extractCompoundFromExtra :: [ST.Extra] -> ST.Extra
-extractCompoundFromExtra [] = error "The `extra` array doesn't have any `ConstructedBy e` item"
+extractCompoundFromExtra [] = error "The `extra` array doesn't have any `Compound` item"
 extractCompoundFromExtra (s@(ST.Compound _ _): _) = s
 extractCompoundFromExtra (_:ss) = extractCompoundFromExtra ss
+
+extractCompoundRecFromExtra :: [ST.Extra] -> ST.Extra
+extractCompoundRecFromExtra [] = error "The `extra` array doesn't have any `CompoundRec` item"
+extractCompoundRecFromExtra (s@(ST.CompoundRec _ _ _) : _) = s
+extractCompoundRecFromExtra (_:ss) = extractCompoundRecFromExtra ss
 
 runTestForInvalidProgram :: String -> IO ()
 runTestForInvalidProgram program = do
