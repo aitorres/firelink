@@ -132,6 +132,8 @@ arrowTo :: String
 arrowTo = "arrow to"
 bezel :: String
 bezel = "bezel"
+link :: String
+link = "link"
 
 initialState :: SymTable
 initialState = (Map.fromList l, [0], 0)
@@ -145,6 +147,7 @@ initialState = (Map.fromList l, [0], 0)
             , (armor, [DictionaryEntry armor Constructor 0 Nothing []])
             , (arrowTo, [DictionaryEntry arrowTo Constructor 0 Nothing []])
             , (bezel, [DictionaryEntry bezel Constructor 0 Nothing []])
+            , (link, [DictionaryEntry link Constructor 0 Nothing []])
             ]
 
 tokensToEntryName :: L.Token -> String
@@ -158,4 +161,5 @@ tokensToEntryName (L.Token at _ _) = case at of
     L.TkArray -> chest
     L.TkSet -> armor
     L.TkRecord -> bezel
+    L.TkUnionStruct -> link
     a -> error $ "Token " ++ show a ++ "doesn't map to anything"

@@ -286,6 +286,7 @@ TYPE
   | set ofType TYPE                                                     { G.Compound $1 $3 Nothing }
   | pointer TYPE                                                        { G.Compound $1 $2 Nothing }
   | record brOpen STRUCTITS brClose                                     { G.Record $1 $ reverse $3 }
+  | unionStruct brOpen STRUCTITS brClose                                { G.Record $1 $ reverse $3 }
 
 ENUMITS :: { [Int] }
 ENUMITS

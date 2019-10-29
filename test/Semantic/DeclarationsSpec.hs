@@ -109,7 +109,20 @@ spec = describe "Variable Declarations" $ do
             , ST.category=ST.RecordItem
             , ST.scope=2
             , ST.entryType=Just "sign"} U.extractSimpleFromExtra (\(ST.Simple "sign") -> True)
-
+    it "allows declare `union` type variables" $ do
+        dict <- test "link { y of type humanity, z of type sign }"
+            varEntry{ST.entryType = Just "link"} U.extractRecordFieldsFromExtra
+            (\(ST.RecordFields 2) -> True)
+        U.testEntry dict varEntry
+            { ST.name="y"
+            , ST.category=ST.RecordItem
+            , ST.scope=2
+            , ST.entryType=Just "humanity"} U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
+        U.testEntry dict varEntry
+            { ST.name="z"
+            , ST.category=ST.RecordItem
+            , ST.scope=2
+            , ST.entryType=Just "sign"} U.extractSimpleFromExtra (\(ST.Simple "sign") -> True)
 
     it "allows to declare 2 or more variables" $ do
         let p = "hello ashen one \
