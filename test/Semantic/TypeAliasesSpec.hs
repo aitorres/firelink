@@ -37,6 +37,7 @@ test' prog scope extractor predicate = do
 test :: String -> ST.Scope -> ([ST.Extra] -> ST.Extra) -> (ST.Extra -> Bool) -> IO ST.Dictionary
 test = test' . program
 
+
 spec :: Spec
 spec = describe "Variable Declarations" $ do
     it "allows to define aliases to just primitive types" $
@@ -78,8 +79,8 @@ spec = describe "Variable Declarations" $ do
         let varName' = "z"
         let chain' = filter (\d -> ST.scope d == scope) $ filter (\d -> ST.name d == varName') $ ST.findChain varName' dict
         chain' `shouldNotSatisfy` null
-        let entry = head chain'
-        ST.name entry `shouldBe` varName'
-        ST.category entry `shouldBe` ST.RecordItem
-        ST.scope entry `shouldBe` scope
-        ST.entryType entry `shouldBe` Just "sign"
+        let entry' = head chain'
+        ST.name entry' `shouldBe` varName'
+        ST.category entry' `shouldBe` ST.RecordItem
+        ST.scope entry' `shouldBe` scope
+        ST.entryType entry' `shouldBe` Just "sign"
