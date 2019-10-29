@@ -25,7 +25,7 @@ commonTest' p symType s varName = do
     ST.name entry `shouldBe` varName
     ST.category entry `shouldBe` ST.Variable
     ST.scope entry `shouldBe` s
-    ST.entryType entry `shouldSatisfy` (\(Just d) -> ST.name d == symType)
+    ST.entryType entry `shouldSatisfy` (\(Just d) -> d == symType)
     return entry
 
 commonTest :: String -> String -> ST.Scope -> IO ST.DictionaryEntry
@@ -54,16 +54,16 @@ spec = describe "Variable Declarations" $ do
         ST.extra entry `shouldSatisfy` (\l -> length l == 1)
         let (ST.Compound et e) = U.extractCompoundFromExtra $ ST.extra entry
         e `shouldSatisfy` (\(G.IntLit 1) -> True)
-        et `shouldSatisfy` (\ST.DictionaryEntry{ST.name=">-miracle"} -> True)
+        et `shouldBe` ">-miracle"
     it "allows to declare variables of recursive type `<n>-chest of type humanity" $ do
         let (p, t, s) = ("<1>-chest of type humanity", ">-chest", 1)
         testSimple p t s
         entry <- commonTest p t s
         ST.extra entry `shouldSatisfy` (\l -> length l == 1)
         let (ST.CompoundRec constructor e (ST.Simple dt)) = U.extractCompoundRecFromExtra $ ST.extra entry
-        constructor `shouldSatisfy` (\ST.DictionaryEntry{ST.name=">-chest"} -> True)
+        constructor `shouldBe` ">-chest"
         e `shouldSatisfy` (\(G.IntLit 1) -> True)
-        dt `shouldSatisfy` (\ST.DictionaryEntry{ST.name="humanity"} -> True)
+        dt `shouldBe` "humanity"
     it "allows to declare variables of recursive type `<n>-chest of type <m>-chest of type humanity" $ do
         let (p, t, s) = ("<1>-chest of type <2>-chest of type humanity", ">-chest", 1)
         testSimple p t s
@@ -72,12 +72,12 @@ spec = describe "Variable Declarations" $ do
         extra' `shouldSatisfy` (\l -> length l == 1)
         U.extractCompoundRecFromExtra extra' `shouldSatisfy`
             (\(ST.CompoundRec
-                ST.DictionaryEntry{ST.name=">-chest"}
+                ">-chest"
                 (G.IntLit 1)
                 (ST.CompoundRec
-                    ST.DictionaryEntry{ST.name=">-chest"}
+                    ">-chest"
                     (G.IntLit 2)
-                    (ST.Simple ST.DictionaryEntry{ST.name="humanity"}))) -> True)
+                    (ST.Simple "humanity"))) -> True)
     it "allows to declare variables of recursive type `<n>-chest of type <n>-miracle" $ do
         let (p, t, s) = ("<1>-chest of type <2>-miracle", ">-chest", 1)
         testSimple p t s
@@ -87,10 +87,10 @@ spec = describe "Variable Declarations" $ do
         print extra'
         U.extractCompoundRecFromExtra extra' `shouldSatisfy`
             (\(ST.CompoundRec
-                ST.DictionaryEntry{ST.name=">-chest"}
+                ">-chest"
                 (G.IntLit 1)
                 (ST.Compound
-                    ST.DictionaryEntry{ST.name=">-miracle"}
+                    ">-miracle"
                     (G.IntLit 2))) -> True)
     it "allows to declare variables of recursive type `armor of type sign" $ do
         let (p, t, s) = ("armor of type sign", "armor", 1)
@@ -101,9 +101,9 @@ spec = describe "Variable Declarations" $ do
         print extra'
         U.extractRecursiveFromExtra extra' `shouldSatisfy`
             (\(ST.Recursive
-                ST.DictionaryEntry{ST.name="armor"}
+                "armor"
                 (ST.Simple
-                    ST.DictionaryEntry{ST.name="sign"})) -> True)
+                    "sign")) -> True)
     it "allows to declare variables of recursive type `armor of type <n>-chest of type sign" $ do
         let (p, t, s) = ("armor of type <1>-chest of type sign", "armor", 1)
         testSimple p t s
@@ -113,11 +113,11 @@ spec = describe "Variable Declarations" $ do
         print extra'
         U.extractRecursiveFromExtra extra' `shouldSatisfy`
             (\(ST.Recursive
-                ST.DictionaryEntry{ST.name="armor"}
+                "armor"
                 (ST.CompoundRec
-                    ST.DictionaryEntry{ST.name=">-chest"}
+                    ">-chest"
                     (G.IntLit 1)
-                    (ST.Simple ST.DictionaryEntry{ST.name="sign"}))) -> True)
+                    (ST.Simple "sign"))) -> True)
     it "allows declare variables of recursive type `armor of type armor of type sign" $ do
         let (p, t, s) = ("armor of type armor of type sign", "armor", 1)
         testSimple p t s
@@ -127,10 +127,10 @@ spec = describe "Variable Declarations" $ do
         print extra'
         U.extractRecursiveFromExtra extra' `shouldSatisfy`
             (\(ST.Recursive
-                ST.DictionaryEntry{ST.name="armor"}
+                "armor"
                 (ST.Recursive
-                    ST.DictionaryEntry{ST.name="armor"}
-                    (ST.Simple ST.DictionaryEntry{ST.name="sign"}))) -> True)
+                    "armor"
+                    (ST.Simple "sign"))) -> True)
 
     it "allows to declare 2 or more variables" $
         let p = "hello ashen one\

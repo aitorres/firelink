@@ -31,27 +31,27 @@ data Category = Variable
 data Extra = FuncParams DictionaryEntries -- TODO: See if this is going to be necessary
 
     | Recursive -- For sets alike
-        DictionaryEntry -- constructor
+        String -- (pointer to) constructor
         Extra -- Type perse
 
     | Compound -- For strings alike
-        DictionaryEntry -- Constructor
+        String -- (pointer to) Constructor
         G.Expr -- Size
 
     | CompoundRec -- For arrays alike
-        DictionaryEntry -- constructor
+        String -- (pointer to) constructor
         G.Expr -- Size
         Extra -- Type perse
 
-    | Simple DictionaryEntry -- For non-composite types
+    | Simple String -- For non-composite types
     deriving Show
 
 data DictionaryEntry = DictionaryEntry
-    { name :: !String
-    , category :: !Category
-    , scope :: !Scope
-    , entryType :: !(Maybe DictionaryEntry)
-    , extra :: ![Extra]
+    { name :: !String -- ^ Entry name
+    , category :: !Category -- ^ Category of the entry
+    , scope :: !Scope -- ^ Current scope at entry insertion
+    , entryType :: !(Maybe String) -- (pointer to another) entry
+    , extra :: ![Extra] -- extra data semantic to the real dictionary
     } deriving Show
 
 type DictionaryEntries = [DictionaryEntry]

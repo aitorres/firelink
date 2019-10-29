@@ -427,7 +427,7 @@ addIdToSymTable d@(c, (G.Id (L.Token at (Just idName) posn)), t, me) = do
           { ST.name = idName
           , ST.category = c
           , ST.scope = currScope
-          , ST.entryType = maybeTypeEntry
+          , ST.entryType = ST.name <$> maybeTypeEntry
           , ST.extra = ex
           })
 
@@ -451,24 +451,24 @@ buildExtraForType :: G.Type -> ST.ParserMonad [ST.Extra]
 
 -- For string alike data types
 buildExtraForType t@(G.Simple (L.Token L.TkString _ _) (Just e)) = do
-  t' <- fromJust <$> findTypeOnEntryTable t
+  t' <- (ST.name . fromJust) <$> findTypeOnEntryTable t
   return [ST.Compound t' e]
 
 -- For array alike data types
 buildExtraForType t@(G.Compound _ tt@(G.Simple _ _) maybeExpr) = do
   maybeTypeEntry <- findTypeOnEntryTable tt
-  constructor <- fromJust <$> findTypeOnEntryTable t -- This call should never fail
+  constructor <- (ST.name . fromJust) <$> findTypeOnEntryTable t -- This call should never fail
   case maybeTypeEntry of
     Just t -> do
       extras <- buildExtraForType tt
-      let newExtra = if null extras then (ST.Simple t) else (head extras)
+      let newExtra = if null extras then (ST.Simple $ ST.name t) else (head extras)
       return (case maybeExpr of
         Just e -> [ST.CompoundRec constructor e newExtra]
         Nothing -> [ST.Recursive constructor newExtra])
 
 buildExtraForType t@(G.Compound _ tt@(G.Compound _ _ _) maybeExpr) = do
   extra' <- head <$> buildExtraForType tt
-  constructor <- fromJust <$> findTypeOnEntryTable t -- This call should never fail
+  constructor <- (ST.name . fromJust) <$> findTypeOnEntryTable t -- This call should never fail
   return $ case maybeExpr of
     Just e -> [ST.CompoundRec constructor e extra']
     Nothing -> [ST.Recursive constructor extra']

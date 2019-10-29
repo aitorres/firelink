@@ -30,5 +30,5 @@ spec = describe "Variable Declarations" $
         let extra' = ST.extra entry
         extra' `shouldSatisfy` (==1) . length
         U.extractSimpleFromExtra extra' `shouldSatisfy`
-            (\(ST.Simple ST.DictionaryEntry{ST.name="humanity"}) -> True)
+            (\(ST.Simple "humanity") -> True)
 
