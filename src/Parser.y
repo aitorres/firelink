@@ -413,7 +413,7 @@ addIdsToSymTable :: [Declaration] -> ST.ParserMonad ()
 addIdsToSymTable = RWS.mapM_ addIdToSymTable
 
 addIdToSymTable :: Declaration -> ST.ParserMonad ()
-addIdToSymTable d@(c, (G.Id (L.Token at (Just idName) posn)), t, me) = do
+addIdToSymTable d@(c, (G.Id (L.Token _ (Just idName) _)), t, me) = do
   maybeIdEntry <- ST.dictLookup idName
   maybeTypeEntry <- findTypeOnEntryTable t
   (_, _, currScope) <- RWS.get
@@ -434,7 +434,7 @@ addIdToSymTable d@(c, (G.Id (L.Token at (Just idName) posn)), t, me) = do
 findTypeOnEntryTable :: G.Type -> ST.ParserMonad (Maybe ST.DictionaryEntry)
 
 -- For simple data types
-findTypeOnEntryTable (G.Simple tk@(L.Token _ _ ap) mSize) = do
+findTypeOnEntryTable (G.Simple tk mSize) = do
   maybeEntry <- ST.dictLookup $ ST.tokensToEntryName tk
   case maybeEntry of
     Nothing -> do
@@ -443,14 +443,14 @@ findTypeOnEntryTable (G.Simple tk@(L.Token _ _ ap) mSize) = do
     _ -> return maybeEntry
 
 -- For compound data types, this extracts the constructor
-findTypeOnEntryTable (G.Compound tk@(L.Token _ _ ap) _ _) = do
+findTypeOnEntryTable (G.Compound tk _ _) = do
   ST.dictLookup $ ST.tokensToEntryName tk
 
 
 buildExtraForType :: G.Type -> ST.ParserMonad [ST.Extra]
 
 -- For string alike data types
-buildExtraForType t@(G.Simple (L.Token L.TkString _ _) (Just e)) = do
+buildExtraForType t@(G.Simple _ (Just e)) = do
   t' <- (ST.name . fromJust) <$> findTypeOnEntryTable t
   return [ST.Compound t' e]
 
