@@ -18,7 +18,7 @@ data Category = Variable
     | Type
     | Procedure
     | Function
-    | StructItem
+    | RecordItem
     | EnumItem
     | UnionItem
     | RefParam
@@ -42,6 +42,9 @@ data Extra = FuncParams DictionaryEntries -- TODO: See if this is going to be ne
         String -- (pointer to) constructor
         G.Expr -- Size
         Extra -- Type perse
+
+    | RecordFields -- For the record data type
+        Scope -- We only need the scope where the fields live
 
     | Simple String -- For non-composite types
     deriving Show
