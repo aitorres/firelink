@@ -460,7 +460,10 @@ buildExtraForType t@(G.Compound (L.Token L.TkArray _ _) tt@(G.Simple _ _) (Just 
   maybeTypeEntry <- findTypeOnEntryTable tt
   constructor <- fromJust <$> findTypeOnEntryTable t -- This call should never fail
   case maybeTypeEntry of
-    Just t -> return [ST.CompoundRec constructor e (ST.Simple t)]
+    Just t -> do
+      extras <- buildExtraForType tt
+      let newExtra = if null extras then (ST.Simple t) else (head extras)
+      return [ST.CompoundRec constructor e newExtra]
 
 buildExtraForType t@(G.Compound (L.Token L.TkArray _ _) tt@(G.Compound _ _ _) (Just e)) = do
   extra' <- head <$> buildExtraForType tt
