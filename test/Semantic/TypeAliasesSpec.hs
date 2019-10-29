@@ -3,7 +3,6 @@ module TypeAliasesSpec where
 import Test.Hspec
 import qualified Utils as U
 import qualified SymTable as ST
-import qualified Control.Monad.RWS as RWS
 
 program :: String -> String
 program e = "hello ashen one\
