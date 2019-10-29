@@ -33,9 +33,12 @@ extractRecursiveFromExtra (_:ss) = extractRecursiveFromExtra ss
 extractSimpleFromExtra :: [ST.Extra] -> ST.Extra
 extractSimpleFromExtra [] = error "The `extra` array doesn't have any `Simple` item"
 extractSimpleFromExtra (s@ST.Simple{} : _) = s
-extractSimpleFromExtra (_:ss) = extractRecursiveFromExtra ss
+extractSimpleFromExtra (_:ss) = extractSimpleFromExtra ss
 
-
+extractRecordFieldsFromExtra :: [ST.Extra] -> ST.Extra
+extractRecordFieldsFromExtra [] = error "The `extra` array doesn't have any `Simple` item"
+extractRecordFieldsFromExtra (s@ST.RecordFields{} : _) = s
+extractRecordFieldsFromExtra (_:ss) = extractRecordFieldsFromExtra ss
 
 runTestForInvalidProgram :: String -> IO ()
 runTestForInvalidProgram program = do
