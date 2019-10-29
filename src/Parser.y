@@ -444,7 +444,7 @@ findTypeOnEntryTable (G.Simple tk@(L.Token _ _ ap) mSize) = do
     _ -> return maybeEntry
 
 -- For compound data types, this extracts the constructor
-findTypeOnEntryTable (G.Compound tk@(L.Token _ _ ap) _ mSize) = do
+findTypeOnEntryTable (G.Compound tk@(L.Token _ _ ap) _ _) = do
   ST.dictLookup $ ST.tokensToEntryName tk
 
 
@@ -456,19 +456,23 @@ buildExtraForType t@(G.Simple (L.Token L.TkString _ _) (Just e)) = do
   return [ST.Compound t' e]
 
 -- For array alike data types
-buildExtraForType t@(G.Compound (L.Token L.TkArray _ _) tt@(G.Simple _ _) (Just e)) = do
+buildExtraForType t@(G.Compound _ tt@(G.Simple _ _) maybeExpr) = do
   maybeTypeEntry <- findTypeOnEntryTable tt
   constructor <- fromJust <$> findTypeOnEntryTable t -- This call should never fail
   case maybeTypeEntry of
     Just t -> do
       extras <- buildExtraForType tt
       let newExtra = if null extras then (ST.Simple t) else (head extras)
-      return [ST.CompoundRec constructor e newExtra]
+      return (case maybeExpr of
+        Just e -> [ST.CompoundRec constructor e newExtra]
+        Nothing -> [ST.Recursive constructor newExtra])
 
-buildExtraForType t@(G.Compound (L.Token L.TkArray _ _) tt@(G.Compound _ _ _) (Just e)) = do
+buildExtraForType t@(G.Compound _ tt@(G.Compound _ _ _) maybeExpr) = do
   extra' <- head <$> buildExtraForType tt
   constructor <- fromJust <$> findTypeOnEntryTable t -- This call should never fail
-  return [ST.CompoundRec constructor e extra']
+  return $ case maybeExpr of
+    Just e -> [ST.CompoundRec constructor e extra']
+    Nothing -> [ST.Recursive constructor extra']
 
 
 -- For anything else

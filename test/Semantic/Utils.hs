@@ -22,8 +22,14 @@ extractCompoundFromExtra (_:ss) = extractCompoundFromExtra ss
 
 extractCompoundRecFromExtra :: [ST.Extra] -> ST.Extra
 extractCompoundRecFromExtra [] = error "The `extra` array doesn't have any `CompoundRec` item"
-extractCompoundRecFromExtra (s@(ST.CompoundRec _ _ _) : _) = s
+extractCompoundRecFromExtra (s@ST.CompoundRec{} : _) = s
 extractCompoundRecFromExtra (_:ss) = extractCompoundRecFromExtra ss
+
+extractRecursiveFromExtra :: [ST.Extra] -> ST.Extra
+extractRecursiveFromExtra [] = error "The `extra` array doesn't have any `Recursive` item"
+extractRecursiveFromExtra (s@ST.Recursive{} : _) = s
+extractRecursiveFromExtra (_:ss) = extractRecursiveFromExtra ss
+
 
 runTestForInvalidProgram :: String -> IO ()
 runTestForInvalidProgram program = do

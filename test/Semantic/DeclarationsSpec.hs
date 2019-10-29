@@ -90,3 +90,15 @@ spec = describe "Variable Declarations" $ do
                 (ST.Compound
                     ST.DictionaryEntry{ST.name=">-miracle"}
                     (G.IntLit 2))) -> True)
+    it "allows declare variables of recursive type `armor of type sign" $ do
+        let (p, t, s) = ("armor of type sign", "armor", 1)
+        testSimple p t s
+        entry <- commonTest p t s
+        let extra' = ST.extra entry
+        extra' `shouldSatisfy` (\l -> length l == 1)
+        print extra'
+        U.extractRecursiveFromExtra extra' `shouldSatisfy`
+            (\(ST.Recursive
+                ST.DictionaryEntry{ST.name="armor"}
+                (ST.Simple
+                    ST.DictionaryEntry{ST.name="sign"})) -> True)

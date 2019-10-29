@@ -124,8 +124,8 @@ chest :: String
 chest = ">-chest"
 miracle :: String
 miracle = ">-miracle"
-set :: String
-set = "set"
+armor :: String
+armor = "armor"
 arrowTo :: String
 arrowTo = "arrow to"
 
@@ -138,7 +138,7 @@ initialState = (Map.fromList l, [0], 0)
             , (bonfire, [DictionaryEntry bonfire Type 0 Nothing []])
             , (chest, [DictionaryEntry chest Constructor 0 Nothing []])
             , (miracle, [DictionaryEntry miracle Constructor 0 Nothing []])
-            , (set, [DictionaryEntry set Constructor 0 Nothing []])
+            , (armor, [DictionaryEntry armor Constructor 0 Nothing []])
             , (arrowTo, [DictionaryEntry arrowTo Constructor 0 Nothing []])
             ]
 
@@ -151,4 +151,5 @@ tokensToEntryName (L.Token at _ _) = case at of
     L.TkBool -> bonfire
     L.TkString -> miracle
     L.TkArray -> chest
+    L.TkSet -> armor
     a -> error $ "Token " ++ show a ++ "doesn't map to anything"

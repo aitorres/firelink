@@ -35,5 +35,5 @@ spec = describe "Initial table" $ do
     it "Should contain `bonfire`" $ testEntryExistence "bonfire" ST.Type
     it "Should contain `>-chest`" $ testEntryExistence ">-chest" ST.Constructor
     it "Should contain `>-miracle`" $ testEntryExistence ">-miracle" ST.Constructor
-    it "Should contain `set`" $ testEntryExistence "set" ST.Constructor
+    it "Should contain `armor`" $ testEntryExistence "armor" ST.Constructor
     it "Should contain `arrow to`" $ testEntryExistence "arrow to" ST.Constructor
