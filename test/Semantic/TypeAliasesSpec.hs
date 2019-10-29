@@ -63,5 +63,3 @@ spec = describe "Variable Declarations" $ do
         ST.category entry `shouldBe` ST.RecordItem
         ST.scope entry `shouldBe` scope
         ST.entryType entry `shouldBe` Just "humanity"
-        let extra' = ST.extra entry
-        extra' `shouldSatisfy` null

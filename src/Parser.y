@@ -169,7 +169,7 @@ PROGRAM
 
 ALIASES :: { () }
 ALIASES
-  : aliasListBegin ALIASL aliasListEnd                                  {% ST.enterScope >> addTypeAliasesToSymTable (reverse $2) }
+  : aliasListBegin ALIASL aliasListEnd                                  {% addTypeAliasesToSymTable $ reverse $2 }
   | {- empty -}                                                         { () }
 
 ALIASL :: { [AliasDeclaration] }
@@ -285,20 +285,21 @@ TYPE
   | ltelit EXPR string                                                  { G.Simple $3 (Just $2) }
   | set ofType TYPE                                                     { G.Compound $1 $3 Nothing }
   | pointer TYPE                                                        { G.Compound $1 $2 Nothing }
+  | record brOpen STRUCTITS brClose                                     { G.Record $1 $ reverse $3 }
 
 ENUMITS :: { [Int] }
 ENUMITS
   : ENUMITS comma ID                                                    { [] }
   | ID                                                                  { [] }
 
-STRUCTITS :: { [Int] }
+STRUCTITS :: { [RecordItem] }
 STRUCTITS
-  : STRUCTITS comma STRUCTIT                                            { [] }
-  | STRUCTIT                                                            { [] }
+  : STRUCTITS comma STRUCTIT                                            { $3:$1 }
+  | STRUCTIT                                                            { [$1] }
 
-STRUCTIT :: { [Int] }
+STRUCTIT :: { RecordItem }
 STRUCTIT
-  : ID ofType TYPE                                                      { [] }
+  : ID ofType TYPE                                                      { ($1, $3) }
 
 ID :: { G.Id }
 ID
@@ -311,7 +312,7 @@ CODEBLOCK
 
 DECLARS :: { () }
 DECLARS
-  : with DECLARSL declarend                                             {% ST.enterScope >> addIdsToSymTable (reverse $2) }
+  : with DECLARSL declarend                                             {% addIdsToSymTable $ reverse $2 }
 
 DECLARSL :: { [IdDeclaration] }
 DECLARSL
@@ -391,12 +392,16 @@ PARSLIST :: { G.Params }
 
 type IdDeclaration = (ST.Category, G.Id, G.Type, Maybe G.Expr)
 type AliasDeclaration = (G.Id, G.Type)
+type RecordItem = AliasDeclaration
 
 constructorTokens :: [L.AbstractToken]
 constructorTokens =
   [ L.TkString
   ]
 
+extractFieldsForNewScope :: G.Type -> [RecordItem]
+extractFieldsForNewScope (G.Record _ s) = s
+extractFieldsForNewScope _ = []
 
 parseErrors :: [L.Token] -> ST.ParserMonad a
 parseErrors errors =
@@ -410,8 +415,39 @@ parseErrors errors =
       msg = header ++ "Unexpected token \x1b[1m\x1b[31m" ++ name ++ "\x1b[0m at " ++ position ++ endmsg
   in  fail msg
 
+addRecordItemsToSymTable :: [RecordItem] -> ST.ParserMonad ()
+addRecordItemsToSymTable items = do
+  ST.enterScope
+  RWS.mapM_ addRecordItemToSymTable items
+  ST.exitScope
+
+addRecordItemToSymTable :: RecordItem -> ST.ParserMonad ()
+addRecordItemToSymTable ri@(G.Id (L.Token _ (Just idName) _), t) = do
+  maybeIdEntry <- ST.dictLookup idName
+  maybeTypeEntry <- findTypeOnEntryTable t
+  (_, _, currScope) <- RWS.get
+  case maybeIdEntry of
+    -- The name doesn't exists on the table, we just add it
+    Nothing -> do
+      ex <- buildExtraForType t
+      ST.addEntry (
+        ST.DictionaryEntry
+          { ST.name = idName
+          , ST.category = ST.RecordItem
+          , ST.scope = currScope
+          , ST.entryType = ST.name <$> maybeTypeEntry
+          , ST.extra = ex
+          })
+      -- To add the record params to the dictionary
+      case extractFieldsForNewScope t of
+        [] -> return ()
+        s ->  addRecordItemsToSymTable s
+
 addTypeAliasesToSymTable :: [AliasDeclaration] -> ST.ParserMonad ()
-addTypeAliasesToSymTable = RWS.mapM_ addTypeAliasToSymTable
+addTypeAliasesToSymTable ads = do
+  ST.enterScope
+  RWS.mapM_ addTypeAliasToSymTable ads
+  ST.exitScope
 
 addTypeAliasToSymTable :: AliasDeclaration -> ST.ParserMonad ()
 addTypeAliasToSymTable ad@(G.Id (L.Token _ (Just idName) _), t) = do
@@ -430,10 +466,16 @@ addTypeAliasToSymTable ad@(G.Id (L.Token _ (Just idName) _), t) = do
           , ST.entryType = Nothing
           , ST.extra = ex
           })
-
+      -- To add the record params to the dictionary
+      case extractFieldsForNewScope t of
+        [] -> return ()
+        s ->  addRecordItemsToSymTable s
 
 addIdsToSymTable :: [IdDeclaration] -> ST.ParserMonad ()
-addIdsToSymTable = RWS.mapM_ addIdToSymTable
+addIdsToSymTable ids = do
+  ST.enterScope
+  RWS.mapM_ addIdToSymTable ids
+  ST.exitScope
 
 addIdToSymTable :: IdDeclaration -> ST.ParserMonad ()
 addIdToSymTable d@(c, (G.Id (L.Token at (Just idName) _)), t, me) = do
@@ -469,6 +511,9 @@ findTypeOnEntryTable (G.Simple tk@(L.Token _ _ ap) mSize) = do
 findTypeOnEntryTable (G.Compound tk _ _) = do
   ST.dictLookup $ ST.tokensToEntryName tk
 
+-- For record alike data types (unions and structs), this extracts their constructor
+findTypeOnEntryTable (G.Record tk _) = ST.dictLookup $ ST.tokensToEntryName tk
+
 
 buildExtraForType :: G.Type -> ST.ParserMonad [ST.Extra]
 
@@ -498,7 +543,9 @@ buildExtraForType t@(G.Compound _ tt@(G.Compound _ _ _) maybeExpr) = do
     Just e -> [ST.CompoundRec constructor e extra']
     Nothing -> [ST.Recursive constructor extra']
 
-
+buildExtraForType t@(G.Record tk _) = do
+  (_, _, currScope) <- RWS.get
+  return [ST.RecordFields $ currScope + 1]
 -- For anything else
 buildExtraForType _ = return []
 }

@@ -88,4 +88,5 @@ newtype CodeBlock
 data Type
   = Simple Token (Maybe Expr)
   | Compound Token Type (Maybe Expr)
+  | Record Token [(Id, Type)]
   deriving Show
