@@ -18,7 +18,7 @@ program e = "hello ashen one\
 
 spec :: Spec
 spec = describe "Variable Declarations" $
-    it "allows defining one alias" $ do
+    it "allows defining aliases to just primitive types" $ do
         (_, (dict, _, _), _) <- U.extractSymTable $ program "knight x humanity"
         let chain = filter (\d -> ST.name d == "x") $ ST.findChain "x" dict
         chain `shouldNotSatisfy` null

@@ -167,19 +167,19 @@ PROGRAM :: { G.Program }
 PROGRAM
   : programBegin ALIASES METHODS CODEBLOCK programEnd                   { G.Program $4 }
 
-ALIASES :: { [Int] }
+ALIASES :: { () }
 ALIASES
-  : aliasListBegin ALIASL aliasListEnd                                  { [] }
-  | {- empty -}                                                         { [] }
+  : aliasListBegin ALIASL aliasListEnd                                  {% ST.enterScope >> addTypeAliasesToSymTable (reverse $2) }
+  | {- empty -}                                                         { () }
 
-ALIASL :: { [Int] }
+ALIASL :: { [AliasDeclaration] }
 ALIASL
-  : ALIASL comma ALIAS                                                  { [] }
-  | ALIAS                                                               { [] }
+  : ALIASL comma ALIAS                                                  { $3:$1 }
+  | ALIAS                                                               { [$1] }
 
-ALIAS :: { [Int] }
+ALIAS :: { AliasDeclaration }
 ALIAS
-  : alias ID TYPE                                                       { [] }
+  : alias ID TYPE                                                       { ($2, $3) }
 
 EXPR :: { G.Expr }
 EXPR
@@ -313,7 +313,7 @@ DECLARS :: { () }
 DECLARS
   : with DECLARSL declarend                                             {% ST.enterScope >> addIdsToSymTable (reverse $2) }
 
-DECLARSL :: { [Declaration] }
+DECLARSL :: { [IdDeclaration] }
 DECLARSL
   : DECLARSL comma DECLAR                                               { $3:$1 }
   | DECLAR                                                              { [$1] }
@@ -323,7 +323,7 @@ VARTYPE
   : const                                                               { ST.Constant }
   | var                                                                 { ST.Variable }
 
-DECLAR :: { Declaration }
+DECLAR :: { IdDeclaration }
 DECLAR
   : VARTYPE ID ofType TYPE                                              { ($1, $2, $4, Nothing) }
   | VARTYPE ID ofType TYPE asig EXPR                                    { ($1, $2, $4, Just $6) }
@@ -389,7 +389,8 @@ PARSLIST :: { G.Params }
 
 {
 
-type Declaration = (ST.Category, G.Id, G.Type, Maybe G.Expr)
+type IdDeclaration = (ST.Category, G.Id, G.Type, Maybe G.Expr)
+type AliasDeclaration = (G.Id, G.Type)
 
 constructorTokens :: [L.AbstractToken]
 constructorTokens =
@@ -409,11 +410,11 @@ parseErrors errors =
       msg = header ++ "Unexpected token \x1b[1m\x1b[31m" ++ name ++ "\x1b[0m at " ++ position ++ endmsg
   in  fail msg
 
-addIdsToSymTable :: [Declaration] -> ST.ParserMonad ()
-addIdsToSymTable = RWS.mapM_ addIdToSymTable
+addTypeAliasesToSymTable :: [AliasDeclaration] -> ST.ParserMonad ()
+addTypeAliasesToSymTable = RWS.mapM_ addTypeAliasToSymTable
 
-addIdToSymTable :: Declaration -> ST.ParserMonad ()
-addIdToSymTable d@(c, (G.Id (L.Token _ (Just idName) _)), t, me) = do
+addTypeAliasToSymTable :: AliasDeclaration -> ST.ParserMonad ()
+addTypeAliasToSymTable ad@(G.Id (L.Token _ (Just idName) _), t) = do
   maybeIdEntry <- ST.dictLookup idName
   maybeTypeEntry <- findTypeOnEntryTable t
   (_, _, currScope) <- RWS.get
@@ -421,7 +422,28 @@ addIdToSymTable d@(c, (G.Id (L.Token _ (Just idName) _)), t, me) = do
     -- The name doesn't exists on the table, we just add it
     Nothing -> do
       ex <- buildExtraForType t
+      ST.addEntry (
+        ST.DictionaryEntry
+          { ST.name = idName
+          , ST.category = ST.Type
+          , ST.scope = currScope
+          , ST.entryType = Nothing
+          , ST.extra = ex
+          })
 
+
+addIdsToSymTable :: [IdDeclaration] -> ST.ParserMonad ()
+addIdsToSymTable = RWS.mapM_ addIdToSymTable
+
+addIdToSymTable :: IdDeclaration -> ST.ParserMonad ()
+addIdToSymTable d@(c, (G.Id (L.Token at (Just idName) _)), t, me) = do
+  maybeIdEntry <- ST.dictLookup idName
+  maybeTypeEntry <- findTypeOnEntryTable t
+  (_, _, currScope) <- RWS.get
+  case maybeIdEntry of
+    -- The name doesn't exists on the table, we just add it
+    Nothing -> do
+      ex <- buildExtraForType t
       ST.addEntry (
         ST.DictionaryEntry
           { ST.name = idName
@@ -431,10 +453,11 @@ addIdToSymTable d@(c, (G.Id (L.Token _ (Just idName) _)), t, me) = do
           , ST.extra = ex
           })
 
+
 findTypeOnEntryTable :: G.Type -> ST.ParserMonad (Maybe ST.DictionaryEntry)
 
 -- For simple data types
-findTypeOnEntryTable (G.Simple tk mSize) = do
+findTypeOnEntryTable (G.Simple tk@(L.Token _ _ ap) mSize) = do
   maybeEntry <- ST.dictLookup $ ST.tokensToEntryName tk
   case maybeEntry of
     Nothing -> do
@@ -450,9 +473,11 @@ findTypeOnEntryTable (G.Compound tk _ _) = do
 buildExtraForType :: G.Type -> ST.ParserMonad [ST.Extra]
 
 -- For string alike data types
-buildExtraForType t@(G.Simple _ (Just e)) = do
+buildExtraForType t@(G.Simple _ maybeSize) = do
   t' <- (ST.name . fromJust) <$> findTypeOnEntryTable t
-  return [ST.Compound t' e]
+  return [case maybeSize of
+    Just e -> ST.Compound t' e
+    Nothing -> ST.Simple t']
 
 -- For array alike data types
 buildExtraForType t@(G.Compound _ tt@(G.Simple _ _) maybeExpr) = do
