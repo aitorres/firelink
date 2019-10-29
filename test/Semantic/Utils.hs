@@ -74,7 +74,6 @@ testEntry dict expectedEntry extractor predicate = do
 
 test :: TestFunction String ST.Dictionary
 test prog expectedEntry extractor predicate = do
-    print prog
     (_, (dict, _, _), _) <- extractSymTable prog
     testEntry dict expectedEntry extractor predicate
     return dict
