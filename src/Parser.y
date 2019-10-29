@@ -421,7 +421,7 @@ addIdToSymTable d@(c, (G.Id (L.Token at (Just idName) posn)), t, me) = do
   case maybeIdEntry of
     -- The name doesn't exists on the table, we just add it
     Nothing -> do
-      ex <- buildExtra d
+      ex <- buildExtraForType t
 
       ST.addEntry (
         ST.DictionaryEntry
@@ -448,22 +448,26 @@ findTypeOnEntryTable (G.Compound tk@(L.Token _ _ ap) _ mSize) = do
   ST.dictLookup $ ST.tokensToEntryName tk
 
 
-buildExtra :: Declaration -> ST.ParserMonad [ST.Extra]
+buildExtraForType :: G.Type -> ST.ParserMonad [ST.Extra]
 
 -- For string alike data types
-buildExtra (_, _, t@(G.Simple (L.Token L.TkString _ _) (Just e)), _) = do
+buildExtraForType t@(G.Simple (L.Token L.TkString _ _) (Just e)) = do
   t' <- fromJust <$> findTypeOnEntryTable t
   return [ST.Compound t' e]
 
 -- For array alike data types
-buildExtra (_, _,
-  t@(G.Compound (L.Token L.TkArray _ _) tt@(G.Simple _ _) (Just e)),
-  _) = do
+buildExtraForType t@(G.Compound (L.Token L.TkArray _ _) tt@(G.Simple _ _) (Just e)) = do
   maybeTypeEntry <- findTypeOnEntryTable tt
   constructor <- fromJust <$> findTypeOnEntryTable t -- This call should never fail
   case maybeTypeEntry of
     Just t -> return [ST.CompoundRec constructor e (ST.Simple t)]
 
+buildExtraForType t@(G.Compound (L.Token L.TkArray _ _) tt@(G.Compound _ _ _) (Just e)) = do
+  extra' <- head <$> buildExtraForType tt
+  constructor <- fromJust <$> findTypeOnEntryTable t -- This call should never fail
+  return [ST.CompoundRec constructor e extra']
+
+
 -- For anything else
-buildExtra (_, _, _, _) = return []
+buildExtraForType _ = return []
 }
