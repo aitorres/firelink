@@ -419,8 +419,8 @@ parseErrors errors =
 addIdsToSymTable :: [NameDeclaration] -> ST.ParserMonad ()
 addIdsToSymTable ids = do
   currScope <- ST.enterScope
+  (dict, stack, _) <- RWS.get
   RWS.mapM_ (addIdToSymTable currScope) ids
-  ST.exitScope
 
 addIdToSymTable :: ST.Scope -> NameDeclaration -> ST.ParserMonad ()
 addIdToSymTable currScope d@(c, (G.Id (L.Token at (Just idName) _)), t) = do
@@ -441,7 +441,9 @@ addIdToSymTable currScope d@(c, (G.Id (L.Token at (Just idName) _)), t) = do
       -- To add the record params to the dictionary
       case extractFieldsForNewScope t of
         [] -> return ()
-        s ->  addIdsToSymTable $ map (\(a, b) -> (ST.RecordItem, a, b)) s
+        s ->  do
+          addIdsToSymTable $ map (\(a, b) -> (ST.RecordItem, a, b)) s
+          ST.exitScope
 
 
 findTypeOnEntryTable :: G.Type -> ST.ParserMonad (Maybe ST.DictionaryEntry)
