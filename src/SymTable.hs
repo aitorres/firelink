@@ -88,9 +88,9 @@ dictLookup n = do
     let pervasive = findPervasive n chain
     let best = findBest n chain stack
     return (case best of
-        je@(Just entry) -> je
+        je@(Just _) -> je
         Nothing -> case pervasive of
-            je@(Just entry) -> je
+            je@(Just _) -> je
             _ -> Nothing)
 
 addEntry :: DictionaryEntry -> ParserMonad ()
