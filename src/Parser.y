@@ -419,7 +419,7 @@ parseErrors errors =
 addIdsToSymTable :: [NameDeclaration] -> ST.ParserMonad ()
 addIdsToSymTable ids = do
   currScope <- ST.enterScope
-  (dict, stack, _) <- RWS.get
+  (dict, _, _) <- RWS.get
   RWS.mapM_ (addIdToSymTable currScope) ids
 
 addIdToSymTable :: ST.Scope -> NameDeclaration -> ST.ParserMonad ()
@@ -428,22 +428,37 @@ addIdToSymTable currScope d@(c, (G.Id (L.Token at (Just idName) _)), t) = do
   maybeTypeEntry <- findTypeOnEntryTable t
   case maybeIdEntry of
     -- The name doesn't exists on the table, we just add it
-    Nothing -> do
-      ex <- buildExtraForType t
-      ST.addEntry (
-        ST.DictionaryEntry
-          { ST.name = idName
-          , ST.category = c
-          , ST.scope = currScope
-          , ST.entryType = ST.name <$> maybeTypeEntry
-          , ST.extra = ex
-          })
-      -- To add the record params to the dictionary
-      case extractFieldsForNewScope t of
-        [] -> return ()
-        s ->  do
-          addIdsToSymTable $ map (\(a, b) -> (ST.RecordItem, a, b)) s
-          ST.exitScope
+    Nothing -> insertIdToEntry t
+      ST.DictionaryEntry
+        { ST.name = idName
+        , ST.category = c
+        , ST.scope = currScope
+        , ST.entryType = ST.name <$> maybeTypeEntry
+        , ST.extra = []
+        }
+
+    -- The name does exists on the table, we just add it depending on the scope
+    Just entry -> do
+      let scope = ST.scope entry
+      insertIdToEntry t ST.DictionaryEntry
+        { ST.name = idName
+        , ST.category = c
+        , ST.scope = currScope
+        , ST.entryType = ST.name <$> maybeTypeEntry
+        , ST.extra = []
+        }
+
+
+insertIdToEntry :: G.Type -> ST.DictionaryEntry -> ST.ParserMonad ()
+insertIdToEntry t entry = do
+  ex <- buildExtraForType t
+  ST.addEntry entry{ST.extra = ex}
+  -- To add the record params to the dictionary
+  case extractFieldsForNewScope t of
+    [] -> return ()
+    s ->  do
+      addIdsToSymTable $ map (\(a, b) -> (ST.RecordItem, a, b)) s
+      ST.exitScope
 
 
 findTypeOnEntryTable :: G.Type -> ST.ParserMonad (Maybe ST.DictionaryEntry)
