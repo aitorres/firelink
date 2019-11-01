@@ -61,12 +61,13 @@ type TestFunction a b
 testEntry :: TestFunction ST.Dictionary ()
 testEntry dict expectedEntry extractor predicate = do
     let varName = ST.name expectedEntry
-    let chain = filter (\d -> ST.name d == varName) $ ST.findChain varName dict
+    let scope = ST.scope expectedEntry
+    let chain = filter (\d -> ST.scope d == scope ) $ filter (\d -> ST.name d == varName) $ ST.findChain varName dict
     chain `shouldNotSatisfy` null
     let actualEntry = head chain
     ST.name actualEntry `shouldBe` varName
     ST.category actualEntry `shouldBe` ST.category expectedEntry
-    ST.scope actualEntry `shouldBe` ST.scope expectedEntry
+    ST.scope actualEntry `shouldBe` scope
     ST.entryType actualEntry `shouldBe` ST.entryType expectedEntry
     let extra' = ST.extra actualEntry
     extra' `shouldNotSatisfy` null
