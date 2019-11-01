@@ -418,15 +418,14 @@ parseErrors errors =
 
 addIdsToSymTable :: [NameDeclaration] -> ST.ParserMonad ()
 addIdsToSymTable ids = do
-  ST.enterScope
-  RWS.mapM_ addIdToSymTable ids
+  currScope <- ST.enterScope
+  RWS.mapM_ (addIdToSymTable currScope) ids
   ST.exitScope
 
-addIdToSymTable :: NameDeclaration -> ST.ParserMonad ()
-addIdToSymTable d@(c, (G.Id (L.Token at (Just idName) _)), t) = do
+addIdToSymTable :: ST.Scope -> NameDeclaration -> ST.ParserMonad ()
+addIdToSymTable currScope d@(c, (G.Id (L.Token at (Just idName) _)), t) = do
   maybeIdEntry <- ST.dictLookup idName
   maybeTypeEntry <- findTypeOnEntryTable t
-  (_, _, currScope) <- RWS.get
   case maybeIdEntry of
     -- The name doesn't exists on the table, we just add it
     Nothing -> do

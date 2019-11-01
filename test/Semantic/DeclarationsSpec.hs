@@ -159,10 +159,9 @@ spec = describe "Variable Declarations" $ do
 
         \ farewell ashen one"
         (_, (dict, _, _), _) <- U.extractSymTable p
-
         U.testEntry dict varEntry
             { ST.name = "y", ST.entryType = Just "bezel" }
             U.extractRecordFieldsFromExtra (\(ST.RecordFields 2) -> True)
         U.testEntry dict varEntry
-            { ST.name = "b", ST.entryType = Just "bezel" }
+            { ST.name = "b", ST.entryType = Just "humanity" }
             U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)

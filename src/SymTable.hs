@@ -99,11 +99,12 @@ addEntry d@DictionaryEntry{name=n} = do
     let chains = findChain n dict
     RWS.put (Map.insert n (d:chains) dict, st, cs)
 
-enterScope :: ParserMonad ()
+enterScope :: ParserMonad Scope
 enterScope = do
     (dict, st, cs) <- RWS.get
     let cs' = cs + 1
     RWS.put (dict, cs':st, cs')
+    return cs'
 
 exitScope :: ParserMonad ()
 exitScope = do
