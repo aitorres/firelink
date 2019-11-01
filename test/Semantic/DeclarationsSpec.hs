@@ -144,3 +144,25 @@ spec = describe "Variable Declarations" $ do
             (\(ST.Simple "sign") -> True)
         U.testEntry dict varEntry{ST.entryType = Just "humanity", ST.name = "y"}
             U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
+    it "allows to declare record and simple var (in that order)" $ do
+        let p = "hello ashen one \
+
+        \ traveling somewhere \
+
+        \ with \
+        \ var y of type bezel { z of type sign, a of type bonfire }, \
+        \ var b of type humanity \
+        \ in your inventory \
+
+        \ go back \
+        \ you died \
+
+        \ farewell ashen one"
+        (_, (dict, _, _), _) <- U.extractSymTable p
+
+        U.testEntry dict varEntry
+            { ST.name = "y", ST.entryType = Just "bezel" }
+            U.extractRecordFieldsFromExtra (\(ST.RecordFields 2) -> True)
+        U.testEntry dict varEntry
+            { ST.name = "b", ST.entryType = Just "bezel" }
+            U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
