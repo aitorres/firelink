@@ -233,7 +233,7 @@ spec = do
             U.testEntry dict varEntry
                 { ST.entryType = Just "sign", ST.scope = 2 }
                 U.extractSimpleFromExtra (\(ST.Simple "sign") -> True)
-        it "rejects to declare the same variable name in the same scope" $ do
+        it "allows to declare record with already used name properties" $ do
             let p = "hello ashen one\n \
 
             \ traveling somewhere\n \
@@ -262,3 +262,56 @@ spec = do
             U.testEntry dict varEntry
                 { ST.entryType = Just "humanity", ST.scope = 3, ST.category = ST.RecordItem }
                 U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
+    describe "Checks that variable is declared before it is already used" $ do
+        it "Allows to use already declared variables" $ do
+            let p = "hello ashen one \
+
+            \ traveling somewhere \
+
+            \ with \
+            \   var x of type humanity \
+            \ in your inventory \
+            \ with orange saponite say x \
+            \ you died \
+
+            \ farewell ashen one"
+            (_, (_, _, _), errors) <- U.extractSymTable p
+            errors `shouldSatisfy` null
+        it "Allows to use already declared variables that were declared in another scope in the same scope chain" $ do
+            let p = "hello ashen one\n\
+
+            \ traveling somewhere\n\
+
+            \ with \
+            \   var x of type humanity\n\
+            \ in your inventory\n\
+
+            \while the lit covenant is active:\n\
+            \traveling somewhere\n\
+            \   with orange saponite say x\n\
+            \you died\n\
+            \covenant left\n\
+            \ you died\n\
+
+            \ farewell ashen one\n"
+            (_, (_, _, _), errors) <- U.extractSymTable p
+            errors `shouldSatisfy` null
+
+        it "Rejects to use not declared variables in any scope" $ do
+            let p = "hello ashen one\n\
+
+            \ traveling somewhere\n\
+
+            \ with\n\
+            \   var x of type humanity\n\
+            \ in your inventory\n\
+            \   with orange saponite say y\n\
+            \ you died \
+
+            \ farewell ashen one"
+            (_, (_, _, _), errors) <- U.extractSymTable p
+            errors `shouldNotSatisfy` null
+            let ST.SemanticError _ (L.Token _ (Just varName) pn) = head errors
+            varName `shouldBe` "y"
+            L.row pn `shouldBe` 6
+            L.col pn `shouldBe` 29
