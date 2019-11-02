@@ -5,6 +5,7 @@ import Utils
 import Grammar
 import Lexer
 
+buildProgram :: String -> String
 buildProgram c = "\
     \ hello ashen one \
 

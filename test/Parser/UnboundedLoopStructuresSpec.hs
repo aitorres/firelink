@@ -4,6 +4,7 @@ import Test.Hspec
 import Utils
 import Grammar
 
+buildProgram :: String -> String
 buildProgram c = "\
     \ hello ashen one \
 

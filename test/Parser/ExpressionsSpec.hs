@@ -5,6 +5,7 @@ import Utils
 import Grammar
 import Lexer
 
+buildProgramWithExpr :: String -> String
 buildProgramWithExpr e = "\
 \ hello ashen one \
 
@@ -14,6 +15,7 @@ buildProgramWithExpr e = "\
 
 \ farewell ashen one"
 
+runTestForExpr :: String -> (Program -> Bool) -> IO ()
 runTestForExpr expr = runTestForValidProgram (buildProgramWithExpr expr)
 
 spec :: Spec
