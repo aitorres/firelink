@@ -3,6 +3,7 @@ module InstructionsSpec where
 import Test.Hspec
 import Grammar
 import Utils
+import Lexer
 
 buildProgram s = "\
 \ hello ashen one \
@@ -27,16 +28,20 @@ spec = describe "Instructions" $ do
         \ hello ashen one \
 
         \ traveling somewhere \
+        \ with \
+        \   var patata of type humanity \
+        \ in your inventory \
+
         \   with orange saponite say @hello world@ \\ \
         \   transpose into patata \
         \ you died \
 
         \ farewell ashen one" (\(Program (CodeBlock [
             InstPrint (StringLit "hello world"),
-            InstRead (Id "patata")])) -> True)
+            InstRead (Id (Token _ (Just "patata") _))])) -> True)
 
     it "accepts assigning as an instruction" $
         runTestForValidProgram (buildProgram "a <<= 1")
         (\(Program (CodeBlock [
-            InstAsig (Id "a") (IntLit 1)
+            InstAsig (Id (Token _ (Just "a") _)) (IntLit 1)
         ])) -> True)

@@ -3,6 +3,7 @@ module ConditionalStructuresSpec where
 import Test.Hspec
 import Utils
 import Grammar
+import Lexer
 
 
 spec :: Spec
@@ -108,7 +109,7 @@ spec = do
             \ 1: \
             \   traveling somewhere \
             \       with orange saponite say @hello@ \
-            \   you died") (\(Program (CodeBlock [InstSwitch (Id "a") [
+            \   you died") (\(Program (CodeBlock [InstSwitch (Id (Token _ (Just "a") _)) [
                     Case (IntLit 1) (CodeBlock [InstPrint (StringLit "hello")])
                 ]])) -> True)
 
@@ -135,7 +136,7 @@ spec = do
             \ 2: \
             \   traveling somewhere \
             \       with orange saponite say @bye@ \
-            \   you died") (\(Program (CodeBlock [InstSwitch (Id "a") [
+            \   you died") (\(Program (CodeBlock [InstSwitch (Id (Token _ (Just "a") _)) [
                     Case (IntLit 1) (CodeBlock [InstPrint (StringLit "hello")]),
                     Case (IntLit 2) (CodeBlock [InstPrint (StringLit "bye")])
                 ]])) -> True)
@@ -153,7 +154,7 @@ spec = do
             \ empty dungeon: \
             \   traveling somewhere \
             \       with orange saponite say @empty@ \
-            \   you died") (\(Program (CodeBlock [InstSwitch (Id "a") [
+            \   you died") (\(Program (CodeBlock [InstSwitch (Id (Token _ (Just "a") _)) [
                     Case (IntLit 1) (CodeBlock [InstPrint (StringLit "hello")]),
                     Case (IntLit 2) (CodeBlock [InstPrint (StringLit "bye")]),
                     DefaultCase (CodeBlock [InstPrint (StringLit "empty")])
