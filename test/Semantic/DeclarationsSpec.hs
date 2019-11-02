@@ -4,6 +4,7 @@ import Test.Hspec
 import qualified Utils as U
 import qualified SymTable as ST
 import qualified Grammar as G
+import qualified Lexer as L
 
 program :: String -> String
 program e = "hello ashen one\
@@ -165,7 +166,7 @@ spec = do
             U.testEntry dict varEntry
                 { ST.name = "b", ST.entryType = Just "humanity" }
                 U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
-    describe "Checks for variable redeclarations and scope chain" $
+    describe "Checks for variable redeclarations and scope chain" $ do
         it "allows to declare the same variable name in a deeper level" $ do
             let p = "hello ashen one \
 
@@ -190,6 +191,42 @@ spec = do
 
             \ farewell ashen one"
             (_, (dict, _, _), _) <- U.extractSymTable p
+            U.testEntry dict varEntry
+                { ST.entryType = Just "humanity" }
+                U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
+            U.testEntry dict varEntry
+                { ST.entryType = Just "sign", ST.scope = 2 }
+                U.extractSimpleFromExtra (\(ST.Simple "sign") -> True)
+        it "rejects to declare the same variable name in the same scope" $ do
+            let p = "hello ashen one\n \
+
+            \ traveling somewhere\n \
+
+            \ with\n \
+            \   var x of type humanity,\n \
+            \   var x of type sign\n \
+            \ in your inventory\n \
+
+
+            \ trust your inventory \
+            \ lit: \
+            \   traveling somewhere \
+            \   with \
+            \       var x of type sign \
+            \   in your inventory \
+
+            \   go back \
+            \   you died \
+            \ inventory closed \
+            \ you died \
+
+            \ farewell ashen one"
+            (_, (dict, _, _), errors) <- U.extractSymTable p
+            errors `shouldNotSatisfy` null
+            let ST.SemanticError _ (L.Token _ (Just varName) pn) = head errors
+            varName `shouldBe` "x"
+            L.row pn `shouldBe` 5
+            L.col pn `shouldBe` 8
             U.testEntry dict varEntry
                 { ST.entryType = Just "humanity" }
                 U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
