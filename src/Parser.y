@@ -219,7 +219,9 @@ EXPR
   | EXPR intersect EXPR                                                 { G.SetIntersect $1 $3 }
   | EXPR diff EXPR                                                      { G.SetDiff $1 $3 }
   | FUNCALL                                                             { G.EvalFunc (fst $1) (snd $1) }
-  | ID                                                                  { G.IdExpr $1 }
+  | ID                                                                  {% do
+                                                                            checkIdAvailability $1
+                                                                            return $ G.IdExpr $1 }
 
 EXPRL :: { G.Exprs }
 EXPRL
@@ -462,6 +464,15 @@ insertIdToEntry t entry = do
       addIdsToSymTable $ map (\(a, b) -> (ST.RecordItem, a, b)) s
       ST.exitScope
 
+checkIdAvailability :: G.Id -> ST.ParserMonad ()
+checkIdAvailability (G.Id tk@(L.Token _ (Just idName) pn)) = do
+  maybeEntry <- ST.dictLookup idName
+  case maybeEntry of
+    Nothing -> do
+      RWS.tell $ [ST.SemanticError ("Name " ++ idName ++ " is not available on this scope") tk]
+      return ()
+    _ -> do
+      return ()
 
 findTypeOnEntryTable :: G.Type -> ST.ParserMonad (Maybe ST.DictionaryEntry)
 
