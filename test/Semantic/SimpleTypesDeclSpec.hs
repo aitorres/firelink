@@ -33,7 +33,7 @@ testVoid prog = U.testVoid (program prog)
 
 spec :: Spec
 spec = do
-    describe "Variable Declarations" $ do
+    describe "Simple type variable Declarations" $ do
         it "allows to declare variables of type `humanity`" $
             testVoid "humanity" varEntry{ST.entryType = Just "humanity"}
                 U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
@@ -96,34 +96,6 @@ spec = do
                     (ST.Recursive
                         "armor"
                         (ST.Simple "sign"))) -> True)
-        it "allows declare variable of `record` type" $ do
-            dict <- test "bezel { y of type humanity, z of type sign }"
-                varEntry{ST.entryType = Just "bezel"} U.extractRecordFieldsFromExtra
-                (\(ST.RecordFields 2) -> True)
-            U.testEntry dict varEntry
-                { ST.name="y"
-                , ST.category=ST.RecordItem
-                , ST.scope=2
-                , ST.entryType=Just "humanity"} U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
-            U.testEntry dict varEntry
-                { ST.name="z"
-                , ST.category=ST.RecordItem
-                , ST.scope=2
-                , ST.entryType=Just "sign"} U.extractSimpleFromExtra (\(ST.Simple "sign") -> True)
-        it "allows declare `union` type variables" $ do
-            dict <- test "link { y of type humanity, z of type sign }"
-                varEntry{ST.entryType = Just "link"} U.extractRecordFieldsFromExtra
-                (\(ST.RecordFields 2) -> True)
-            U.testEntry dict varEntry
-                { ST.name="y"
-                , ST.category=ST.RecordItem
-                , ST.scope=2
-                , ST.entryType=Just "humanity"} U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
-            U.testEntry dict varEntry
-                { ST.name="z"
-                , ST.category=ST.RecordItem
-                , ST.scope=2
-                , ST.entryType=Just "sign"} U.extractSimpleFromExtra (\(ST.Simple "sign") -> True)
         it "allows to declare 2 or more variables" $ do
             let p = "hello ashen one \
 
@@ -143,27 +115,6 @@ spec = do
             U.testEntry dict varEntry{ST.entryType = Just "sign"} U.extractSimpleFromExtra
                 (\(ST.Simple "sign") -> True)
             U.testEntry dict varEntry{ST.entryType = Just "humanity", ST.name = "y"}
-                U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
-        it "allows to declare record and simple var (in that order)" $ do
-            let p = "hello ashen one \
-
-            \ traveling somewhere \
-
-            \ with \
-            \ var y of type bezel { z of type sign, a of type bonfire }, \
-            \ var b of type humanity \
-            \ in your inventory \
-
-            \ go back \
-            \ you died \
-
-            \ farewell ashen one"
-            (_, (dict, _, _), _) <- U.extractSymTable p
-            U.testEntry dict varEntry
-                { ST.name = "y", ST.entryType = Just "bezel" }
-                U.extractRecordFieldsFromExtra (\(ST.RecordFields 2) -> True)
-            U.testEntry dict varEntry
-                { ST.name = "b", ST.entryType = Just "humanity" }
                 U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
     describe "Checks for variable redeclarations and scope chain" $ do
         it "allows to declare the same variable name in a deeper level" $ do
@@ -232,35 +183,6 @@ spec = do
             U.testEntry dict varEntry
                 { ST.entryType = Just "sign", ST.scope = 2 }
                 U.extractSimpleFromExtra (\(ST.Simple "sign") -> True)
-        it "allows to declare record with already used name properties" $ do
-            let p = "hello ashen one\n \
-
-            \ traveling somewhere\n \
-
-            \ with\n \
-            \   var x of type bezel { \
-            \         x of type bezel { \
-            \           x of type humanity \
-            \         } \
-            \       } \
-            \ in your inventory\n \
-
-            \ go back \
-
-            \ you died \
-
-            \ farewell ashen one"
-            (_, (dict, _, _), errors) <- U.extractSymTable p
-            errors `shouldSatisfy` null
-            U.testEntry dict varEntry
-                { ST.entryType = Just "bezel" }
-                U.extractRecordFieldsFromExtra (\(ST.RecordFields 2) -> True)
-            U.testEntry dict varEntry
-                { ST.entryType = Just "bezel", ST.scope = 2, ST.category = ST.RecordItem }
-                U.extractRecordFieldsFromExtra (\(ST.RecordFields 3) -> True)
-            U.testEntry dict varEntry
-                { ST.entryType = Just "humanity", ST.scope = 3, ST.category = ST.RecordItem }
-                U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
     describe "Checks that variable is declared before it is already used" $ do
         it "Allows to use already declared variables" $ do
             let p = "hello ashen one \
