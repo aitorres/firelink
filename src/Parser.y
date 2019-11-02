@@ -406,10 +406,10 @@ extractFieldsForNewScope _ = []
 
 parseErrors :: [L.Token] -> ST.ParserMonad a
 parseErrors errors =
-  let (L.Token abst _ (L.AlexPn _ l c)) = errors !! 0
+  let (L.Token abst _ pn) = errors !! 0
       name = show abst
-      line = show l
-      column = show c
+      line = show $ L.row pn
+      column = show $ L.col pn
       header = "\x1b[1m\x1b[31mYOU DIED!!\x1b[0m Parser error: "
       endmsg = "\n\nFix your syntax errors, ashen one."
       position = "line \x1b[1m\x1b[31m" ++ line ++ "\x1b[0m, column \x1b[1m\x1b[31m" ++ column ++ "\x1b[0m."
@@ -423,7 +423,7 @@ addIdsToSymTable ids = do
   RWS.mapM_ (addIdToSymTable currScope) ids
 
 addIdToSymTable :: ST.Scope -> NameDeclaration -> ST.ParserMonad ()
-addIdToSymTable currScope d@(c, (G.Id (L.Token at (Just idName) _)), t) = do
+addIdToSymTable currScope d@(c, (G.Id tk@(L.Token at (Just idName) _)), t) = do
   maybeIdEntry <- ST.dictLookup idName
   maybeTypeEntry <- findTypeOnEntryTable t
   case maybeIdEntry of
@@ -440,13 +440,15 @@ addIdToSymTable currScope d@(c, (G.Id (L.Token at (Just idName) _)), t) = do
     -- The name does exists on the table, we just add it depending on the scope
     Just entry -> do
       let scope = ST.scope entry
-      insertIdToEntry t ST.DictionaryEntry
+      if currScope /= scope
+      then insertIdToEntry t ST.DictionaryEntry
         { ST.name = idName
         , ST.category = c
         , ST.scope = currScope
         , ST.entryType = ST.name <$> maybeTypeEntry
         , ST.extra = []
         }
+      else RWS.tell $ [ST.SemanticError ("Name " ++ idName ++ " was already declared on this scope") tk]
 
 
 insertIdToEntry :: G.Type -> ST.DictionaryEntry -> ST.ParserMonad ()
@@ -464,11 +466,11 @@ insertIdToEntry t entry = do
 findTypeOnEntryTable :: G.Type -> ST.ParserMonad (Maybe ST.DictionaryEntry)
 
 -- For simple data types
-findTypeOnEntryTable (G.Simple tk@(L.Token _ _ ap) mSize) = do
+findTypeOnEntryTable (G.Simple tk mSize) = do
   maybeEntry <- ST.dictLookup $ ST.tokensToEntryName tk
   case maybeEntry of
     Nothing -> do
-      RWS.tell [ST.SemanticError ("Type " ++ (show tk) ++ " not found") ap]
+      RWS.tell [ST.SemanticError ("Type " ++ (show tk) ++ " not found") tk]
       return maybeEntry
     _ -> return maybeEntry
 

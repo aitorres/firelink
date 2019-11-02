@@ -9,7 +9,7 @@ type Scope = Int
 type ScopeStack = [Scope]
 
 
-data SemanticError = SemanticError String L.AlexPosn
+data SemanticError = SemanticError String L.Token
     deriving Show
 type SemanticErrors = [SemanticError]
 
