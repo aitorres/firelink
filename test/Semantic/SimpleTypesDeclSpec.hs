@@ -1,4 +1,4 @@
-module DeclarationsSpec where
+module SimpleTypesDeclSpec where
 
 import Test.Hspec
 import qualified Utils as U
@@ -124,7 +124,6 @@ spec = do
                 , ST.category=ST.RecordItem
                 , ST.scope=2
                 , ST.entryType=Just "sign"} U.extractSimpleFromExtra (\(ST.Simple "sign") -> True)
-
         it "allows to declare 2 or more variables" $ do
             let p = "hello ashen one \
 
@@ -296,7 +295,6 @@ spec = do
             \ farewell ashen one\n"
             (_, (_, _, _), errors) <- U.extractSymTable p
             errors `shouldSatisfy` null
-
         it "Rejects to use not declared variables in any scope" $ do
             let p = "hello ashen one\n\
 
