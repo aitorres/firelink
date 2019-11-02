@@ -233,3 +233,32 @@ spec = do
             U.testEntry dict varEntry
                 { ST.entryType = Just "sign", ST.scope = 2 }
                 U.extractSimpleFromExtra (\(ST.Simple "sign") -> True)
+        it "rejects to declare the same variable name in the same scope" $ do
+            let p = "hello ashen one\n \
+
+            \ traveling somewhere\n \
+
+            \ with\n \
+            \   var x of type bezel { \
+            \         x of type bezel { \
+            \           x of type humanity \
+            \         } \
+            \       } \
+            \ in your inventory\n \
+
+            \ go back \
+
+            \ you died \
+
+            \ farewell ashen one"
+            (_, (dict, _, _), errors) <- U.extractSymTable p
+            errors `shouldSatisfy` null
+            U.testEntry dict varEntry
+                { ST.entryType = Just "bezel" }
+                U.extractRecordFieldsFromExtra (\(ST.RecordFields 2) -> True)
+            U.testEntry dict varEntry
+                { ST.entryType = Just "bezel", ST.scope = 2, ST.category = ST.RecordItem }
+                U.extractRecordFieldsFromExtra (\(ST.RecordFields 3) -> True)
+            U.testEntry dict varEntry
+                { ST.entryType = Just "humanity", ST.scope = 3, ST.category = ST.RecordItem }
+                U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
