@@ -226,7 +226,7 @@ spec = do
             let ST.SemanticError _ (L.Token _ (Just varName) pn) = head errors
             varName `shouldBe` "x"
             L.row pn `shouldBe` 5
-            L.col pn `shouldBe` 8
+            L.col pn `shouldBe` 9
             U.testEntry dict varEntry
                 { ST.entryType = Just "humanity" }
                 U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
