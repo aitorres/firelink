@@ -310,8 +310,8 @@ ID
 
 CODEBLOCK :: { G.CodeBlock }
 CODEBLOCK
-  : instructionsBegin DECLARS INSTRL instructionsEnd                    { G.CodeBlock $3 }
-  | instructionsBegin INSTRL instructionsEnd                            { G.CodeBlock $2 }
+  : instructionsBegin DECLARS INSTRL instructionsEnd                    { G.CodeBlock $ reverse $3 }
+  | instructionsBegin INSTRL instructionsEnd                            { G.CodeBlock $ reverse $2 }
 
 DECLARS :: { () }
 DECLARS
