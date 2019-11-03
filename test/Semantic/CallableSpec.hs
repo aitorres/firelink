@@ -167,7 +167,7 @@ spec = describe "Functions/Procedures declarations" $ do
         varName `shouldBe` "x"
         L.row pn `shouldBe` 8
         L.col pn `shouldBe` 8
-    it "rejects to declare variables on the first scope of a function whose names are on the arg list" $ do
+    it "allows to declare variables on the second (2<=) scope of a function whose names are on the arg list" $ do
         let p = "hello ashen one\n\
 
         \invocation fun\n\
@@ -202,4 +202,42 @@ spec = describe "Functions/Procedures declarations" $ do
             { ST.scope = 3
             , ST.name = "x"
             , ST.entryType = Just "humanity"
+            } U.extractSimpleFromExtra (\(ST.Simple "sign") -> True)
+    it "allows to declare more than 1 function" $ do
+        let p = "hello ashen one\n\
+
+        \invocation fun1\n\
+        \with skill of type humanity\n\
+
+        \traveling somewhere\n\
+        \   go back with 1\n\
+        \you died\n\
+
+        \after this return to your world\n\
+
+        \invocation fun2\n\
+        \with skill of type sign\n\
+
+        \traveling somewhere\n\
+        \   go back with 1\n\
+        \you died\n\
+
+        \after this return to your world\n\
+
+
+        \ traveling somewhere \
+        \ with orange saponite say @hello world@ \
+        \ you died \
+        \ farewell ashen one"
+        (_, (dict, _, _), errors) <- U.extractSymTable p
+        errors `shouldSatisfy` null
+        U.testEntry dict varEntry
+            { ST.scope = 1
+            , ST.name = "fun1"
+            , ST.entryType = Just "humanity"
+            } U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
+        U.testEntry dict varEntry
+            { ST.scope = 1
+            , ST.name = "fu2"
+            , ST.entryType = Just "sign"
             } U.extractSimpleFromExtra (\(ST.Simple "sign") -> True)
