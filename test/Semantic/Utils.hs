@@ -51,16 +51,6 @@ extractCodeblockFromExtra [] = error "The `extra` array doesn't have any `Params
 extractCodeblockFromExtra (s@ST.CodeBlock{} : _) = s
 extractCodeblockFromExtra (_:ss) = extractCodeblockFromExtra ss
 
-extractValArgFromExtra :: Extractor
-extractValArgFromExtra [] = error "The `extra` array doesn't have any `ValArg` item"
-extractValArgFromExtra (s@ST.ValArg : _) = s
-extractValArgFromExtra (_:ss) = extractValArgFromExtra ss
-
-extractRefArgFromExtra :: Extractor
-extractRefArgFromExtra [] = error "The `extra` array doesn't have any `RefArg` item"
-extractRefArgFromExtra (s@ST.RefArg : _) = s
-extractRefArgFromExtra (_:ss) = extractRefArgFromExtra ss
-
 extractEmptyFunctionFromExtra :: Extractor
 extractEmptyFunctionFromExtra [] = error "The `extra` array doesn't have any `EmptyFunction` item"
 extractEmptyFunctionFromExtra (s@ST.EmptyFunction : _) = s

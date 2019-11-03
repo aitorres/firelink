@@ -61,11 +61,8 @@ spec = describe "Functions/Procedures declarations" $ do
         U.testEntry dict varEntry
             { ST.scope = 2
             , ST.name = "x"
+            , ST.category = ST.ValueParam
             } U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
-        U.testEntry dict varEntry
-            { ST.scope = 2
-            , ST.name = "x"
-            } U.extractValArgFromExtra (\ST.ValArg -> True)
     it "allows to declare functions with one ref argument" $ do
         let p = "hello ashen one\n\
 
@@ -87,7 +84,8 @@ spec = describe "Functions/Procedures declarations" $ do
         U.testEntry dict varEntry
             { ST.scope = 2
             , ST.name = "x"
-            } U.extractRefArgFromExtra (\ST.RefArg -> True)
+            , ST.category = ST.RefParam
+            } U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
     it "allows to declare functions with two or more arguments" $ do
         let p = "hello ashen one\n\
 
@@ -110,19 +108,12 @@ spec = describe "Functions/Procedures declarations" $ do
         U.testEntry dict varEntry
             { ST.scope = 2
             , ST.name = "x"
-            } U.extractRefArgFromExtra (\ST.RefArg -> True)
-        U.testEntry dict varEntry
-            { ST.scope = 2
-            , ST.name = "x"
+            , ST.category = ST.RefParam
             } U.extractArgPositionFromExtra (\(ST.ArgPosition 0)-> True)
-
         U.testEntry dict varEntry
             { ST.scope = 2
             , ST.name = "y"
-            } U.extractValArgFromExtra (\ST.ValArg -> True)
-        U.testEntry dict varEntry
-            { ST.scope = 2
-            , ST.name = "y"
+            , ST.category = ST.ValueParam
             } U.extractArgPositionFromExtra (\(ST.ArgPosition 1) -> True)
     it "rejects to declare functions with repeated arguments" $ do
         let p = "hello ashen one\n\
@@ -205,7 +196,7 @@ spec = describe "Functions/Procedures declarations" $ do
         \ with orange saponite say @hello world@ \
         \ you died \
         \ farewell ashen one"
-        (_, (_, _, _), errors) <- U.extractSymTable p
+        (_, (dict, _, _), errors) <- U.extractSymTable p
         errors `shouldSatisfy` null
         U.testEntry dict varEntry
             { ST.scope = 3

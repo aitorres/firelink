@@ -53,7 +53,6 @@ data Extra
 
     | Simple String -- For non-composite types
 
-    | ValArg | RefArg -- For argument declaration
     | ArgPosition Int -- For argument list position
     deriving Show
 
