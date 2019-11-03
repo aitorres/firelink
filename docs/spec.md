@@ -488,6 +488,50 @@ Dentro de la función, se puede utilizar la siguiente sintaxis para retornar una
 go back with <expresion>
 ```
 
+El _alcance_ de la lista de instrucciones inmediatas a la declaración de la función es el mismo que el de la declaración de sus argumentos, por lo tanto no se puede ocultar un argumento mediante la declaración de otra variable. Es decir, el siguiente fragmento de código es inválido:
+
+```firelink
+invocation fun
+requesting
+  val x of type sign -- esta variable fue declarada en el scope 'x'
+with skill of type humanity
+  traveling somewhere
+  with
+    const x of type <5>-miracle -- aquí seguimos en el mismo scope 'x'
+                                -- esto es un error :x:
+  in your inventory
+    go back with 42
+  you died
+
+after this return to your world
+```
+
+sin embargo, el siguiente fragmento es válido:
+
+```firelink
+invocation fun
+requesting
+  val x of type sign -- esta variable fue declarada en el scope 'x'
+with skill of type humanity
+
+  traveling somewhere
+
+    while the lit covenant is active:
+      traveling somewhere
+      with
+        val x of type humanity -- esta variable fue declarada en el scope 'y' (y != x)
+                               -- esto es válido :heavy_check_mark:
+      in your inventory
+        go back with 42
+      you died
+    covenant left
+
+  you died
+
+after this return to your world
+```
+
+
 #### Llamada a Funciones
 
 Dentro de un bloque de instrucciones, se puede realizar una llamada a una función de la siguiente manera:
@@ -536,6 +580,8 @@ Dentro del procedimiento, se puede utilizar la siguiente sintaxis para retornar 
 ```firelink
 go back
 ```
+
+El manejo del scope de los procedimientos es análogo al de las funciones (previamente descrito)
 
 #### Llamada a Procedimientos
 
