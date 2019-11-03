@@ -46,10 +46,15 @@ data Extra
              -- in order to construct itself
         Scope -- We only need the scope where the fields live
 
+    | EmptyFunction -- For functions/procs that doesn't have any arguments
+
     | CodeBlock -- For names that carries a codeblock ast
         G.CodeBlock
 
     | Simple String -- For non-composite types
+
+    | ValArg | RefArg -- For argument declaration
+    | ArgPosition Int -- For argument list position
     deriving Show
 
 data DictionaryEntry = DictionaryEntry

@@ -84,9 +84,12 @@ newtype CodeBlock
   = CodeBlock Instructions
   deriving Show
 
+data ArgType = Val | Ref
+  deriving Show
 
 data Type
   = Simple Token (Maybe Expr)
   | Compound Token Type (Maybe Expr)
   | Record Token [(Id, Type)]
+  | Callable Token [(ArgType, Id, Type)]
   deriving Show

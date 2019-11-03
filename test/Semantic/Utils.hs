@@ -51,6 +51,26 @@ extractCodeblockFromExtra [] = error "The `extra` array doesn't have any `Params
 extractCodeblockFromExtra (s@ST.CodeBlock{} : _) = s
 extractCodeblockFromExtra (_:ss) = extractCodeblockFromExtra ss
 
+extractValArgFromExtra :: Extractor
+extractValArgFromExtra [] = error "The `extra` array doesn't have any `ValArg` item"
+extractValArgFromExtra (s@ST.ValArg : _) = s
+extractValArgFromExtra (_:ss) = extractValArgFromExtra ss
+
+extractRefArgFromExtra :: Extractor
+extractRefArgFromExtra [] = error "The `extra` array doesn't have any `RefArg` item"
+extractRefArgFromExtra (s@ST.RefArg : _) = s
+extractRefArgFromExtra (_:ss) = extractRefArgFromExtra ss
+
+extractEmptyFunctionFromExtra :: Extractor
+extractEmptyFunctionFromExtra [] = error "The `extra` array doesn't have any `EmptyFunction` item"
+extractEmptyFunctionFromExtra (s@ST.EmptyFunction : _) = s
+extractEmptyFunctionFromExtra (_:ss) = extractEmptyFunctionFromExtra ss
+
+extractArgPositionFromExtra :: Extractor
+extractArgPositionFromExtra [] = error "The `extra` array doesn't have any `ArgPosition` item"
+extractArgPositionFromExtra (s@ST.ArgPosition{} : _) = s
+extractArgPositionFromExtra (_:ss) = extractArgPositionFromExtra ss
+
 runTestForInvalidProgram :: String -> IO ()
 runTestForInvalidProgram program = do
     tokens <- scanTokens program
