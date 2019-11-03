@@ -20,30 +20,36 @@ extractDictionary program = do
     (_, d, _) <- extractSymTable program
     return d
 
-extractCompoundFromExtra :: [ST.Extra] -> ST.Extra
+type Extractor = [ST.Extra] -> ST.Extra
+extractCompoundFromExtra :: Extractor
 extractCompoundFromExtra [] = error "The `extra` array doesn't have any `Compound` item"
 extractCompoundFromExtra (s@(ST.Compound _ _): _) = s
 extractCompoundFromExtra (_:ss) = extractCompoundFromExtra ss
 
-extractCompoundRecFromExtra :: [ST.Extra] -> ST.Extra
+extractCompoundRecFromExtra :: Extractor
 extractCompoundRecFromExtra [] = error "The `extra` array doesn't have any `CompoundRec` item"
 extractCompoundRecFromExtra (s@ST.CompoundRec{} : _) = s
 extractCompoundRecFromExtra (_:ss) = extractCompoundRecFromExtra ss
 
-extractRecursiveFromExtra :: [ST.Extra] -> ST.Extra
+extractRecursiveFromExtra :: Extractor
 extractRecursiveFromExtra [] = error "The `extra` array doesn't have any `Recursive` item"
 extractRecursiveFromExtra (s@ST.Recursive{} : _) = s
 extractRecursiveFromExtra (_:ss) = extractRecursiveFromExtra ss
 
-extractSimpleFromExtra :: [ST.Extra] -> ST.Extra
+extractSimpleFromExtra :: Extractor
 extractSimpleFromExtra [] = error "The `extra` array doesn't have any `Simple` item"
 extractSimpleFromExtra (s@ST.Simple{} : _) = s
 extractSimpleFromExtra (_:ss) = extractSimpleFromExtra ss
 
-extractRecordFieldsFromExtra :: [ST.Extra] -> ST.Extra
-extractRecordFieldsFromExtra [] = error "The `extra` array doesn't have any `Simple` item"
-extractRecordFieldsFromExtra (s@ST.RecordFields{} : _) = s
-extractRecordFieldsFromExtra (_:ss) = extractRecordFieldsFromExtra ss
+extractFieldsFromExtra :: Extractor
+extractFieldsFromExtra [] = error "The `extra` array doesn't have any `Fields` item"
+extractFieldsFromExtra (s@ST.Fields{} : _) = s
+extractFieldsFromExtra (_:ss) = extractFieldsFromExtra ss
+
+extractCodeblockFromExtra :: Extractor
+extractCodeblockFromExtra [] = error "The `extra` array doesn't have any `ParamsFields` item"
+extractCodeblockFromExtra (s@ST.CodeBlock{} : _) = s
+extractCodeblockFromExtra (_:ss) = extractCodeblockFromExtra ss
 
 runTestForInvalidProgram :: String -> IO ()
 runTestForInvalidProgram program = do
@@ -54,7 +60,7 @@ runTestForInvalidProgram program = do
 type TestFunction a b
     = a
     -> ST.DictionaryEntry
-    -> ([ST.Extra] -> ST.Extra)
+    -> Extractor
     -> (ST.Extra -> Bool)
     -> IO b
 

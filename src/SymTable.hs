@@ -42,8 +42,12 @@ data Extra
         G.Expr -- Size
         Extra -- Type perse
 
-    | RecordFields -- For the record data type
+    | Fields -- For functions or names that need to refer to another scope
+             -- in order to construct itself
         Scope -- We only need the scope where the fields live
+
+    | CodeBlock -- For names that carries a codeblock ast
+        G.CodeBlock
 
     | Simple String -- For non-composite types
     deriving Show

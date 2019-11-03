@@ -523,7 +523,7 @@ buildExtraForType t@(G.Compound _ tt@(G.Compound _ _ _) maybeExpr) = do
 
 buildExtraForType t@(G.Record tk _) = do
   (_, _, currScope) <- RWS.get
-  return [ST.RecordFields $ currScope + 1]
+  return [ST.Fields $ currScope + 1]
 -- For anything else
 buildExtraForType _ = return []
 }

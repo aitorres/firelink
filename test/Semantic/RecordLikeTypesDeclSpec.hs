@@ -34,8 +34,8 @@ spec =
     describe "Record like variable declarations" $ do
         it "allows declare variable of `record` type" $ do
             dict <- test "bezel { y of type humanity, z of type sign }"
-                varEntry{ST.entryType = Just "bezel"} U.extractRecordFieldsFromExtra
-                (\(ST.RecordFields 2) -> True)
+                varEntry{ST.entryType = Just "bezel"} U.extractFieldsFromExtra
+                (\(ST.Fields 2) -> True)
             U.testEntry dict varEntry
                 { ST.name="y"
                 , ST.category=ST.RecordItem
@@ -48,8 +48,8 @@ spec =
                 , ST.entryType=Just "sign"} U.extractSimpleFromExtra (\(ST.Simple "sign") -> True)
         it "allows declare `union` type variables" $ do
             dict <- test "link { y of type humanity, z of type sign }"
-                varEntry{ST.entryType = Just "link"} U.extractRecordFieldsFromExtra
-                (\(ST.RecordFields 2) -> True)
+                varEntry{ST.entryType = Just "link"} U.extractFieldsFromExtra
+                (\(ST.Fields 2) -> True)
             U.testEntry dict varEntry
                 { ST.name="y"
                 , ST.category=ST.RecordItem
@@ -77,7 +77,7 @@ spec =
             (_, (dict, _, _), _) <- U.extractSymTable p
             U.testEntry dict varEntry
                 { ST.name = "y", ST.entryType = Just "bezel" }
-                U.extractRecordFieldsFromExtra (\(ST.RecordFields 2) -> True)
+                U.extractFieldsFromExtra (\(ST.Fields 2) -> True)
             U.testEntry dict varEntry
                 { ST.name = "b", ST.entryType = Just "humanity" }
                 U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
@@ -103,10 +103,10 @@ spec =
             errors `shouldSatisfy` null
             U.testEntry dict varEntry
                 { ST.entryType = Just "bezel" }
-                U.extractRecordFieldsFromExtra (\(ST.RecordFields 2) -> True)
+                U.extractFieldsFromExtra (\(ST.Fields 2) -> True)
             U.testEntry dict varEntry
                 { ST.entryType = Just "bezel", ST.scope = 2, ST.category = ST.RecordItem }
-                U.extractRecordFieldsFromExtra (\(ST.RecordFields 3) -> True)
+                U.extractFieldsFromExtra (\(ST.Fields 3) -> True)
             U.testEntry dict varEntry
                 { ST.entryType = Just "humanity", ST.scope = 3, ST.category = ST.RecordItem }
                 U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)

@@ -50,8 +50,8 @@ spec = describe "Variable Declarations" $ do
             (\(ST.CompoundRec ">-chest" (G.IntLit 10) (ST.Simple "sign")) -> True)
     it "allows to define aliases to custom user defined record data types" $ do
         dict <- test "knight x bezel { y of type humanity }" alias{ST.entryType = Just "bezel"}
-            U.extractRecordFieldsFromExtra
-            (\(ST.RecordFields 2) -> True)
+            U.extractFieldsFromExtra
+            (\(ST.Fields 2) -> True)
         U.testEntry dict alias
             { ST.name="y"
             , ST.category=ST.RecordItem
@@ -59,8 +59,8 @@ spec = describe "Variable Declarations" $ do
             , ST.entryType=Just "humanity"} U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
     it "allows to define aliases to custom user defined record data types with more than 1 field" $ do
         dict <- test "knight x bezel { y of type humanity, z of type sign }"
-            alias{ST.entryType = Just "bezel"} U.extractRecordFieldsFromExtra
-            (\(ST.RecordFields 2) -> True)
+            alias{ST.entryType = Just "bezel"} U.extractFieldsFromExtra
+            (\(ST.Fields 2) -> True)
         U.testEntry dict alias
             { ST.name="y"
             , ST.category=ST.RecordItem
