@@ -16,7 +16,7 @@ varEntry = ST.DictionaryEntry
     }
 
 spec :: Spec
-spec =
+spec = do
     describe "Functions/Procedures declarations" $ do
         it "allows to declare functions with no arguments" $ do
             let p = "hello ashen one\n\
@@ -241,3 +241,65 @@ spec =
                 , ST.name = "fu2"
                 , ST.entryType = Just "sign"
                 } U.extractSimpleFromExtra (\(ST.Simple "sign") -> True)
+    describe "Functions/procedures calls" $ do
+        it "allows to call declared functions with no parameters" $ do
+            let p = "hello ashen one\n\
+
+            \invocation fun\n\
+            \with skill of type humanity\n\
+
+            \traveling somewhere\n\
+            \   go back 123\n\
+            \you died\n\
+
+            \after this return to your world\n\
+
+
+            \ traveling somewhere \
+            \ with orange saponite say summon fun \
+            \ you died \
+            \ farewell ashen one"
+            (_, (dict, _, _), errors) <- U.extractSymTable p
+            errors `shouldSatisfy` null
+        it "allows to call declared functions with parameters" $ do
+            let p = "hello ashen one\n\
+
+            \invocation fun\n\
+            \with skill of type humanity\n\
+
+            \traveling somewhere\n\
+            \   go back 123\n\
+            \you died\n\
+
+            \after this return to your world\n\
+
+
+            \ traveling somewhere \
+            \ with orange saponite say summon fun granting 1, 2, 3 \
+            \ you died \
+            \ farewell ashen one"
+            (_, (dict, _, _), errors) <- U.extractSymTable p
+            errors `shouldSatisfy` null
+        it "rejects to call non-declared functions" $ do
+            let p = "hello ashen one\n\
+
+            \invocation fun\n\
+            \with skill of type humanity\n\
+
+            \traveling somewhere\n\
+            \   go back 123\n\
+            \you died\n\
+
+            \after this return to your world\n\
+
+
+            \ traveling somewhere\n\
+            \   with orange saponite say summon fun2 granting 1, 2, 3\n\
+            \ you died \
+            \ farewell ashen one"
+            (_, (dict, _, _), errors) <- U.extractSymTable p
+            errors `shouldNotSatisfy` null
+            let ST.SemanticError _ (L.Token _ (Just varName) pn) = head errors
+            varName `shouldBe` "fun2"
+            L.row pn `shouldBe` 9
+            L.col pn `shouldBe` 36
