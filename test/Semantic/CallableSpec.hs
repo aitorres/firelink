@@ -249,7 +249,7 @@ spec = do
             \with skill of type humanity\n\
 
             \traveling somewhere\n\
-            \   go back 123\n\
+            \   go back with 123\n\
             \you died\n\
 
             \after this return to your world\n\
@@ -268,7 +268,7 @@ spec = do
             \with skill of type humanity\n\
 
             \traveling somewhere\n\
-            \   go back 123\n\
+            \   go back with 123\n\
             \you died\n\
 
             \after this return to your world\n\
@@ -287,7 +287,7 @@ spec = do
             \with skill of type humanity\n\
 
             \traveling somewhere\n\
-            \   go back 123\n\
+            \   go back with 123\n\
             \you died\n\
 
             \after this return to your world\n\
@@ -303,3 +303,50 @@ spec = do
             varName `shouldBe` "fun2"
             L.row pn `shouldBe` 9
             L.col pn `shouldBe` 36
+        it "allows recursion" $ do
+            let p = "hello ashen one\n\
+
+            \invocation fun\n\
+            \with skill of type humanity\n\
+
+            \traveling somewhere\n\
+            \   go back with summon fun\n\
+            \you died\n\
+
+            \after this return to your world\n\
+
+
+            \ traveling somewhere\n\
+            \   with orange saponite say summon fun\n\
+            \ you died \
+            \ farewell ashen one"
+            (_, (dict, _, _), errors) <- U.extractSymTable p
+            errors `shouldSatisfy` null
+        it "allows corecursion" $ do
+            let p = "hello ashen one\n\
+
+            \invocation fun\n\
+            \with skill of type humanity\n\
+
+            \traveling somewhere\n\
+            \   go back with summon fun1\n\
+            \you died\n\
+
+            \after this return to your world\n\
+
+            \invocation fun1\n\
+            \with skill of type humanity\n\
+
+            \traveling somewhere\n\
+            \   go back with summon fun\n\
+            \you died\n\
+
+            \after this return to your world\n\
+
+
+            \ traveling somewhere\n\
+            \   with orange saponite say summon fun\n\
+            \ you died \
+            \ farewell ashen one"
+            (_, (dict, _, _), errors) <- U.extractSymTable p
+            errors `shouldSatisfy` null
