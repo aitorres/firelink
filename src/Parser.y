@@ -397,11 +397,6 @@ type NameDeclaration = (ST.Category, G.Id, G.Type)
 type AliasDeclaration = (G.Id, G.Type)
 type RecordItem = AliasDeclaration
 
-constructorTokens :: [L.AbstractToken]
-constructorTokens =
-  [ L.TkString
-  ]
-
 extractFieldsForNewScope :: G.Type -> [RecordItem]
 extractFieldsForNewScope (G.Record _ s) = s
 extractFieldsForNewScope _ = []
