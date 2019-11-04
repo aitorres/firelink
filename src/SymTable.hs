@@ -107,12 +107,11 @@ addEntry d@DictionaryEntry{name=n} = do
     let chains = findChain n dict
     RWS.put (Map.insert n (d:chains) dict, st, cs)
 
-enterScope :: ParserMonad Scope
+enterScope :: ParserMonad ()
 enterScope = do
     (dict, st, cs) <- RWS.get
     let cs' = cs + 1
     RWS.put (dict, cs':st, cs')
-    return cs'
 
 exitScope :: ParserMonad ()
 exitScope = do
@@ -145,7 +144,7 @@ link :: String
 link = "link"
 
 initialState :: SymTable
-initialState = (Map.fromList l, [0], 0)
+initialState = (Map.fromList l, [1, 0], 0)
     where l = [(smallHumanity, [DictionaryEntry smallHumanity Type 0 Nothing []])
             , (humanity, [DictionaryEntry humanity Type 0 Nothing []])
             , (hollow, [DictionaryEntry hollow Type 0 Nothing []])

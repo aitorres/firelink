@@ -415,14 +415,14 @@ parseErrors errors =
 
 addIdsToSymTable :: [NameDeclaration] -> ST.ParserMonad ()
 addIdsToSymTable ids = do
-  currScope <- ST.enterScope
-  (dict, _, _) <- RWS.get
-  RWS.mapM_ (addIdToSymTable currScope) ids
+  ST.enterScope
+  RWS.mapM_ addIdToSymTable ids
 
-addIdToSymTable :: ST.Scope -> NameDeclaration -> ST.ParserMonad ()
-addIdToSymTable currScope d@(c, (G.Id tk@(L.Token at (Just idName) _)), t) = do
+addIdToSymTable :: NameDeclaration -> ST.ParserMonad ()
+addIdToSymTable d@(c, (G.Id tk@(L.Token at (Just idName) _)), t) = do
   maybeIdEntry <- ST.dictLookup idName
   maybeTypeEntry <- findTypeOnEntryTable t
+  (_, (currScope:_), _) <- RWS.get
   case maybeIdEntry of
     -- The name doesn't exists on the table, we just add it
     Nothing -> insertIdToEntry t
@@ -517,7 +517,7 @@ buildExtraForType t@(G.Compound _ tt@(G.Compound _ _ _) maybeExpr) = do
     Nothing -> [ST.Recursive constructor extra']
 
 buildExtraForType t@(G.Record tk _) = do
-  (_, _, currScope) <- RWS.get
+  (_, (currScope : _), _) <- RWS.get
   return [ST.Fields $ currScope + 1]
 -- For anything else
 buildExtraForType _ = return []
