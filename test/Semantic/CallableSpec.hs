@@ -259,7 +259,7 @@ spec = do
             \ with orange saponite say summon fun \
             \ you died \
             \ farewell ashen one"
-            (_, (dict, _, _), errors) <- U.extractSymTable p
+            (_, _, errors) <- U.extractSymTable p
             errors `shouldSatisfy` null
         it "allows to call declared functions with parameters" $ do
             let p = "hello ashen one\n\
@@ -278,7 +278,7 @@ spec = do
             \ with orange saponite say summon fun granting 1, 2, 3 \
             \ you died \
             \ farewell ashen one"
-            (_, (dict, _, _), errors) <- U.extractSymTable p
+            (_, _, errors) <- U.extractSymTable p
             errors `shouldSatisfy` null
         it "rejects to call non-declared functions" $ do
             let p = "hello ashen one\n\
@@ -297,7 +297,7 @@ spec = do
             \   with orange saponite say summon fun2 granting 1, 2, 3\n\
             \ you died \
             \ farewell ashen one"
-            (_, (dict, _, _), errors) <- U.extractSymTable p
+            (_, _, errors) <- U.extractSymTable p
             errors `shouldNotSatisfy` null
             let ST.SemanticError _ (L.Token _ (Just varName) pn) = head errors
             varName `shouldBe` "fun2"
@@ -320,7 +320,7 @@ spec = do
             \   with orange saponite say summon fun\n\
             \ you died \
             \ farewell ashen one"
-            (_, (dict, _, _), errors) <- U.extractSymTable p
+            (_, _, errors) <- U.extractSymTable p
             errors `shouldSatisfy` null
         it "allows corecursion" $ do
             let p = "hello ashen one\n\
@@ -348,5 +348,5 @@ spec = do
             \   with orange saponite say summon fun\n\
             \ you died \
             \ farewell ashen one"
-            (_, (dict, _, _), errors) <- U.extractSymTable p
+            (_, _, errors) <- U.extractSymTable p
             errors `shouldSatisfy` null

@@ -144,7 +144,7 @@ link :: String
 link = "link"
 
 initialState :: SymTable
-initialState = (Map.fromList l, [1, 0], 0)
+initialState = (Map.fromList l, [1, 0], 1)
     where l = [(smallHumanity, [DictionaryEntry smallHumanity Type 0 Nothing []])
             , (humanity, [DictionaryEntry humanity Type 0 Nothing []])
             , (hollow, [DictionaryEntry hollow Type 0 Nothing []])

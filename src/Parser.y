@@ -315,7 +315,7 @@ CODEBLOCK
 
 DECLARS :: { () }
 DECLARS
-  : with DECLARSL declarend                                             {% addIdsToSymTable $ reverse $2 }
+  : with DECLARSL declarend                                             {% addIdsToSymTable (reverse $2) >> ST.enterScope }
 
 DECLARSL :: { [NameDeclaration] }
 DECLARSL
@@ -414,9 +414,7 @@ parseErrors errors =
   in  fail msg
 
 addIdsToSymTable :: [NameDeclaration] -> ST.ParserMonad ()
-addIdsToSymTable ids = do
-  ST.enterScope
-  RWS.mapM_ addIdToSymTable ids
+addIdsToSymTable ids = RWS.mapM_ addIdToSymTable ids
 
 addIdToSymTable :: NameDeclaration -> ST.ParserMonad ()
 addIdToSymTable d@(c, (G.Id tk@(L.Token at (Just idName) _)), t) = do
@@ -456,6 +454,7 @@ insertIdToEntry t entry = do
   case extractFieldsForNewScope t of
     [] -> return ()
     s ->  do
+      ST.enterScope
       addIdsToSymTable $ map (\(a, b) -> (ST.RecordItem, a, b)) s
       ST.exitScope
 
@@ -517,7 +516,7 @@ buildExtraForType t@(G.Compound _ tt@(G.Compound _ _ _) maybeExpr) = do
     Nothing -> [ST.Recursive constructor extra']
 
 buildExtraForType t@(G.Record tk _) = do
-  (_, (currScope : _), _) <- RWS.get
+  (_, _, currScope) <- RWS.get
   return [ST.Fields $ currScope + 1]
 -- For anything else
 buildExtraForType _ = return []
