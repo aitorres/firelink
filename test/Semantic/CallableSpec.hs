@@ -201,7 +201,8 @@ spec = do
             U.testEntry dict varEntry
                 { ST.scope = 3
                 , ST.name = "x"
-                , ST.entryType = Just "humanity"
+                , ST.category = ST.Variable
+                , ST.entryType = Just "sign"
                 } U.extractSimpleFromExtra (\(ST.Simple "sign") -> True)
         it "allows to declare more than 1 function" $ do
             let p = "hello ashen one\n\
@@ -235,12 +236,12 @@ spec = do
                 { ST.scope = 1
                 , ST.name = "fun1"
                 , ST.entryType = Just "humanity"
-                } U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
+                } U.extractEmptyFunctionFromExtra (const True)
             U.testEntry dict varEntry
                 { ST.scope = 1
-                , ST.name = "fu2"
+                , ST.name = "fun2"
                 , ST.entryType = Just "sign"
-                } U.extractSimpleFromExtra (\(ST.Simple "sign") -> True)
+                } U.extractEmptyFunctionFromExtra (const True)
     describe "Functions/procedures calls" $ do
         it "allows to call declared functions with no parameters" $ do
             let p = "hello ashen one\n\

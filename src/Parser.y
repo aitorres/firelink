@@ -165,10 +165,10 @@ import qualified Control.Monad.RWS as RWS
 
 PROGRAM :: { G.Program }
 PROGRAM
-  : programBegin ALIASES METHODS MAIN programEnd                         { G.Program $4 }
+  : programBegin ALIASES METHODS NON_OPENER_CODEBLOCK programEnd        { G.Program $4 }
 
-MAIN :: { G.CodeBlock }
-MAIN
+NON_OPENER_CODEBLOCK :: { G.CodeBlock }
+NON_OPENER_CODEBLOCK
   : instructionsBegin DECLARS INSTRL instructionsEnd                     { G.CodeBlock $ reverse $3 }
   | instructionsBegin INSTRL instructionsEnd                             { G.CodeBlock $ reverse $2 }
 
@@ -247,19 +247,19 @@ EXPRLNOTEMPTY
 METHODS :: { () }
 METHODS
   : {- empty -}                                                         { () }
-  | METHODL                                                             {% do
+  | METHODL                                                             { () }
+
+METHODL :: { () }
+METHODL
+  : METHODL METHOD                                                      { () }
+  | METHOD                                                              { () }
+
+METHOD :: { () }
+METHOD
+  : FUNC                                                                {% do
                                                                           (dict, _, s) <- RWS.get
                                                                           RWS.put (dict, [1, 0], s) }
-
-METHODL :: { [Int] }
-METHODL
-  : METHODL METHOD                                                      { [] }
-  | METHOD                                                              { [] }
-
-METHOD :: { [Int] }
-METHOD
-  : FUNC                                                                { [] }
-  | PROC                                                                { [] }
+  | PROC                                                                { () }
 
 FUNCPREFIX :: { Maybe (ST.Scope, G.Id) }
 FUNCPREFIX
@@ -267,18 +267,16 @@ FUNCPREFIX
                                                                             a <- addFunction (ST.Function,
                                                                               $2, G.Callable (Just $5) $3)
                                                                             (dict, stack, _) <- RWS.get
-                                                                            RWS.lift $ print dict
-                                                                            RWS.lift $ print stack
                                                                             return a }
 FUNC :: { () }
 FUNC
-  : FUNCPREFIX CODEBLOCK functionEnd                                    {% case $1 of
+  : FUNCPREFIX NON_OPENER_CODEBLOCK functionEnd                         {% case $1 of
                                                                             Nothing -> return ()
                                                                             Just (s, i) -> updateCodeBlockOfFun s i $2 }
 
 PROC :: { [Int] }
 PROC
-  : procedureBegin ID METHODPARS CODEBLOCK procedureEnd                 { [] }
+  : procedureBegin ID METHODPARS NON_OPENER_CODEBLOCK procedureEnd      { [] }
 
 METHODPARS :: { [ArgDeclaration] }
 METHODPARS
@@ -386,7 +384,9 @@ INSTR
 
 FUNCALL :: { (G.Id, G.Params) }
 FUNCALL
-  : summon ID FUNCPARS                                                  { ($2, $3) }
+  : summon ID FUNCPARS                                                  {% do
+                                                                          checkIdAvailability $2
+                                                                          return ($2, $3) }
 
 IFCASES :: { G.IfCases }
 IFCASES
@@ -518,9 +518,6 @@ checkIdAvailability (G.Id tk@(L.Token _ (Just idName) pn)) = do
 addFunction :: NameDeclaration -> ST.ParserMonad (Maybe (ST.Scope, G.Id))
 addFunction d@(_, i@(G.Id tk@(L.Token _ (Just idName) _)), _) = do
   (dict, stack, currScope) <- RWS.get
-  RWS.lift $ print dict
-  RWS.lift $ print stack
-  RWS.lift $ print d
   maybeEntry <- ST.dictLookup idName
   case maybeEntry of
     Nothing -> do
@@ -537,7 +534,6 @@ addFunction d@(_, i@(G.Id tk@(L.Token _ (Just idName) _)), _) = do
 
 updateCodeBlockOfFun :: ST.Scope -> G.Id -> G.CodeBlock -> ST.ParserMonad ()
 updateCodeBlockOfFun currScope (G.Id tk@(L.Token _ (Just idName) _)) code = do
-  RWS.lift $ putStrLn $ "Current scope is " ++ show currScope
   let f x = (if and [ST.scope x == currScope, ST.name x == idName, ST.category x `elem` [ST.Function]]
             then let e = ST.extra x in x{ST.extra = (ST.CodeBlock code) : e}
             else x)
