@@ -78,8 +78,8 @@ testEntry :: TestFunction ST.Dictionary ()
 testEntry dict expectedEntry extractor predicate = do
     let varName = ST.name expectedEntry
     let scope = ST.scope expectedEntry
-    print dict
-    print expectedEntry
+    -- print dict
+    -- print expectedEntry
     let chain = filter (\d -> ST.scope d == scope ) $ filter (\d -> ST.name d == varName) $ ST.findChain varName dict
     chain `shouldNotSatisfy` null
     let actualEntry = head chain

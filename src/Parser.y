@@ -165,11 +165,19 @@ import qualified Control.Monad.RWS as RWS
 
 PROGRAM :: { G.Program }
 PROGRAM
-  : programBegin ALIASES METHODS CODEBLOCK programEnd                   { G.Program $4 }
+  : programBegin ALIASES METHODS MAIN programEnd                         { G.Program $4 }
+
+MAIN :: { G.CodeBlock }
+MAIN
+  : instructionsBegin DECLARS INSTRL instructionsEnd                     { G.CodeBlock $ reverse $3 }
+  | instructionsBegin INSTRL instructionsEnd                             { G.CodeBlock $ reverse $2 }
 
 ALIASES :: { () }
 ALIASES
-  : ALIASLISTBEGIN ALIASL aliasListEnd                                  {% addIdsToSymTable $ reverse $2 }
+  : aliasListBegin ALIASL aliasListEnd                                  {% do
+                                                                            addIdsToSymTable $ reverse $2
+                                                                            (dict, _, s) <- RWS.get
+                                                                            RWS.put (dict, [1, 0], s) }
   | {- empty -}                                                         { () }
 
 ALIASLISTBEGIN :: { () }
@@ -236,10 +244,12 @@ EXPRLNOTEMPTY
   : EXPR                                                                { [$1] }
   | EXPRLNOTEMPTY comma EXPR                                           { $3:$1 }
 
-METHODS :: { [Int] }
+METHODS :: { () }
 METHODS
-  : {- empty -}                                                         { [] }
-  | METHODL                                                             { [] }
+  : {- empty -}                                                         { () }
+  | METHODL                                                             {% do
+                                                                          (dict, _, s) <- RWS.get
+                                                                          RWS.put (dict, [1, 0], s) }
 
 METHODL :: { [Int] }
 METHODL
@@ -251,15 +261,20 @@ METHOD
   : FUNC                                                                { [] }
   | PROC                                                                { [] }
 
-FUNCPREFIX :: { Maybe G.Id }
+FUNCPREFIX :: { Maybe (ST.Scope, G.Id) }
 FUNCPREFIX
-  : functionBegin ID METHODPARS functionType TYPE                       {% addFunction (ST.Function,
-                                                                            $2, G.Callable (Just $5) $3) }
+  : functionBegin ID METHODPARS functionType TYPE                       {% do
+                                                                            a <- addFunction (ST.Function,
+                                                                              $2, G.Callable (Just $5) $3)
+                                                                            (dict, stack, _) <- RWS.get
+                                                                            RWS.lift $ print dict
+                                                                            RWS.lift $ print stack
+                                                                            return a }
 FUNC :: { () }
 FUNC
   : FUNCPREFIX CODEBLOCK functionEnd                                    {% case $1 of
                                                                             Nothing -> return ()
-                                                                            Just i -> updateCodeBlockOfFun i $2 }
+                                                                            Just (s, i) -> updateCodeBlockOfFun s i $2 }
 
 PROC :: { [Int] }
 PROC
@@ -500,28 +515,31 @@ checkIdAvailability (G.Id tk@(L.Token _ (Just idName) pn)) = do
     _ -> do
       return ()
 
-addFunction :: NameDeclaration -> ST.ParserMonad (Maybe G.Id)
+addFunction :: NameDeclaration -> ST.ParserMonad (Maybe (ST.Scope, G.Id))
 addFunction d@(_, i@(G.Id tk@(L.Token _ (Just idName) _)), _) = do
+  (dict, stack, currScope) <- RWS.get
+  RWS.lift $ print dict
+  RWS.lift $ print stack
+  RWS.lift $ print d
   maybeEntry <- ST.dictLookup idName
   case maybeEntry of
     Nothing -> do
       addIdToSymTable Nothing d
-      return $ Just i
+      return $ Just (currScope, i)
     Just entry -> do
-      (_, (currScope:_), _) <- RWS.get
       if ST.scope entry == currScope
       then do
         RWS.tell [ST.SemanticError ("Name " ++ idName ++ " was already declared on this scope") tk]
         return Nothing
       else do
         addIdToSymTable Nothing d
-        return $ Just i
+        return $ Just (currScope, i)
 
-updateCodeBlockOfFun :: G.Id -> G.CodeBlock -> ST.ParserMonad ()
-updateCodeBlockOfFun (G.Id tk@(L.Token _ (Just idName) _)) code = do
-  (_, (currScope:_), _) <- RWS.get
-  let f x = (if and [ST.scope x == currScope, ST.name x == idName]
-            then let ST.DictionaryEntry{ST.extra=e} = x in x{ST.extra = (ST.CodeBlock code) : e}
+updateCodeBlockOfFun :: ST.Scope -> G.Id -> G.CodeBlock -> ST.ParserMonad ()
+updateCodeBlockOfFun currScope (G.Id tk@(L.Token _ (Just idName) _)) code = do
+  RWS.lift $ putStrLn $ "Current scope is " ++ show currScope
+  let f x = (if and [ST.scope x == currScope, ST.name x == idName, ST.category x `elem` [ST.Function]]
+            then let e = ST.extra x in x{ST.extra = (ST.CodeBlock code) : e}
             else x)
   ST.updateEntry (\ds -> Just $ map f ds) idName
 
