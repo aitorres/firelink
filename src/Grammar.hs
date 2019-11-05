@@ -56,17 +56,17 @@ newtype Program
   deriving Show
 
 data Instruction
-  = InstAsig Id Expr
+  = InstAsig Expr Expr
   | InstCallProc Id Params
   | InstCallFunc Id Params
   | InstReturn
   | InstReturnWith Expr
   | InstPrint Expr
-  | InstRead Id
+  | InstRead Expr
   | InstIf IfCases
-  | InstForEach Id Id CodeBlock
+  | InstForEach Id Expr CodeBlock
   | InstFor Id Expr Expr CodeBlock
-  | InstSwitch Id SwitchCases
+  | InstSwitch Expr SwitchCases
   | InstWhile Expr CodeBlock
   deriving Show
 

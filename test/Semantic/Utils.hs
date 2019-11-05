@@ -20,6 +20,11 @@ extractDictionary program = do
     (_, d, _) <- extractSymTable program
     return d
 
+extractErrors :: String -> IO ST.SemanticErrors
+extractErrors program = do
+    (_, _, e) <- extractSymTable program
+    return e
+
 type Extractor = [ST.Extra] -> ST.Extra
 extractCompoundFromExtra :: Extractor
 extractCompoundFromExtra [] = error "The `extra` array doesn't have any `Compound` item"
