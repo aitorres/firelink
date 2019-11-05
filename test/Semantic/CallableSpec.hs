@@ -323,31 +323,31 @@ spec = do
             \ farewell ashen one"
             (_, _, errors) <- U.extractSymTable p
             errors `shouldSatisfy` null
-        it "allows corecursion" $ do
-            let p = "hello ashen one\n\
+        -- it "allows corecursion" $ do
+        --     let p = "hello ashen one\n\
 
-            \invocation fun\n\
-            \with skill of type humanity\n\
+        --     \invocation fun\n\
+        --     \with skill of type humanity\n\
 
-            \traveling somewhere\n\
-            \   go back with summon fun1\n\
-            \you died\n\
+        --     \traveling somewhere\n\
+        --     \   go back with summon fun1\n\
+        --     \you died\n\
 
-            \after this return to your world\n\
+        --     \after this return to your world\n\
 
-            \invocation fun1\n\
-            \with skill of type humanity\n\
+        --     \invocation fun1\n\
+        --     \with skill of type humanity\n\
 
-            \traveling somewhere\n\
-            \   go back with summon fun\n\
-            \you died\n\
+        --     \traveling somewhere\n\
+        --     \   go back with summon fun\n\
+        --     \you died\n\
 
-            \after this return to your world\n\
+        --     \after this return to your world\n\
 
 
-            \ traveling somewhere\n\
-            \   with orange saponite say summon fun\n\
-            \ you died \
-            \ farewell ashen one"
-            (_, _, errors) <- U.extractSymTable p
-            errors `shouldSatisfy` null
+        --     \ traveling somewhere\n\
+        --     \   with orange saponite say summon fun\n\
+        --     \ you died \
+        --     \ farewell ashen one"
+        --     (_, _, errors) <- U.extractSymTable p
+        --     errors `shouldSatisfy` null
