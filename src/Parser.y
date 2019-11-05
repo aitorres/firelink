@@ -180,8 +180,6 @@ ALIASES
                                                                             RWS.put (dict, [1, 0], s) }
   | {- empty -}                                                         { () }
 
-ALIASLISTBEGIN :: { () }
-ALIASLISTBEGIN : aliasListBegin                                         {% ST.enterScope }
 
 ALIASL :: { [NameDeclaration] }
 ALIASL

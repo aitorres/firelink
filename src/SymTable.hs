@@ -5,6 +5,8 @@ import qualified Data.Map.Strict as Map
 import qualified Lexer as L
 import qualified Grammar as G
 
+import Data.Maybe
+
 type Scope = Int
 type ScopeStack = [Scope]
 
@@ -167,7 +169,7 @@ initialState = (Map.fromList l, [1, 0], 1)
             ]
 
 tokensToEntryName :: L.Token -> String
-tokensToEntryName (L.Token at _ _) = case at of
+tokensToEntryName (L.Token at s _) = case at of
     L.TkBigInt -> humanity
     L.TkSmallInt -> smallHumanity
     L.TkFloat -> hollow
@@ -178,4 +180,5 @@ tokensToEntryName (L.Token at _ _) = case at of
     L.TkSet -> armor
     L.TkRecord -> bezel
     L.TkUnionStruct -> link
+    L.TkId -> fromJust s
     a -> error $ "Token " ++ show a ++ "doesn't map to anything"

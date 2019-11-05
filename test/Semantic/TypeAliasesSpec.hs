@@ -4,6 +4,7 @@ import Test.Hspec
 import qualified Utils as U
 import qualified SymTable as ST
 import qualified Grammar as G
+import qualified Lexer as L
 
 program :: String -> String
 program e = "hello ashen one\
@@ -71,3 +72,41 @@ spec = describe "Variable Declarations" $ do
             , ST.category=ST.RecordItem
             , ST.scope=2
             , ST.entryType=Just "sign"} U.extractSimpleFromExtra (\(ST.Simple "sign") -> True)
+    it "allows to use a type alias as a type on a declaration" $ do
+        let p = "hello ashen one\n\
+
+        \requiring help of\n\
+        \   knight x bezel { x of type humanity }\n\
+        \help received\n\
+
+        \traveling somewhere\n\
+        \with\n\
+        \   var y of type x\n\
+        \in your inventory\n\
+        \   go back\n\
+        \you died\n\
+        \ farewell ashen one\n"
+        (_, (dict, _, _), errors) <- U.extractSymTable p
+        errors `shouldSatisfy` null
+        U.testEntry dict alias
+            { ST.name = "y"
+            , ST.category = ST.Variable
+            , ST.entryType = Just "x"
+            , ST.scope = 1
+            } U.extractSimpleFromExtra (\(ST.Simple "x") -> True)
+    it "rejects to use a non-declared type alias as a type on a declaration" $ do
+        let p = "hello ashen one\n\
+
+        \traveling somewhere\n\
+        \with\n\
+        \   var y of type x\n\
+        \in your inventory\n\
+        \   go back\n\
+        \you died\n\
+        \ farewell ashen one\n"
+        (_, _, errors) <- U.extractSymTable p
+        errors `shouldNotSatisfy` null
+        let ST.SemanticError _ (L.Token _ (Just varName) pn) = head errors
+        varName `shouldBe` "x"
+        L.row pn `shouldBe` 4
+        L.col pn `shouldBe` 18
