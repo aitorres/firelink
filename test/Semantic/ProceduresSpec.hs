@@ -10,7 +10,7 @@ varEntry :: ST.DictionaryEntry
 varEntry = ST.DictionaryEntry
     { ST.scope = 1
     , ST.category = ST.Procedure
-    , ST.entryType = Just "humanity"
+    , ST.entryType = Nothing
     , ST.name = "fun"
     , ST.extra = []
     }
@@ -18,15 +18,14 @@ varEntry = ST.DictionaryEntry
 spec :: Spec
 spec = do
     describe "Procedures declarations" $ do
-        it "allows to declare functions with no arguments" $ do
+        it "allows to declare procedures with no arguments" $ do
             let p = "hello ashen one\n\
 
-            \invocation fun\n\
-            \with skill of type humanity\n\
+            \spell fun\n\
             \traveling somewhere\n\
-            \   go back with 1\n\
+            \   go back\n\
             \you died\n\
-            \after this return to your world\n\
+            \ashen estus flask consumed\n\
 
 
             \ traveling somewhere \
@@ -38,17 +37,17 @@ spec = do
                 (\(ST.CodeBlock (G.CodeBlock [G.InstReturnWith (G.IntLit 1)])) -> True)
             U.testEntry dict varEntry U.extractEmptyFunctionFromExtra
                 (\ST.EmptyFunction -> True)
-        it "allows to declare functions with one val argument" $ do
+        it "allows to declare procedures with one val argument" $ do
             let p = "hello ashen one\n\
 
-            \invocation fun\n\
+            \spell fun\n\
             \requesting\n\
             \   val x of type humanity\n\
-            \with skill of type humanity\n\
+            \to the estus flask\n\
             \traveling somewhere\n\
-            \   go back with 1\n\
+            \   go back\n\
             \you died\n\
-            \after this return to your world\n\
+            \ashen estus flask consumed\n\
 
 
             \ traveling somewhere \
@@ -63,17 +62,17 @@ spec = do
                 , ST.name = "x"
                 , ST.category = ST.ValueParam
                 } U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
-        it "allows to declare functions with one ref argument" $ do
+        it "allows to declare procedures with one ref argument" $ do
             let p = "hello ashen one\n\
 
-            \invocation fun\n\
+            \spell fun\n\
             \requesting\n\
             \   ref x of type humanity\n\
-            \with skill of type humanity\n\
+            \to the estus flask\n\
             \traveling somewhere\n\
-            \   go back with 1\n\
+            \   go back\n\
             \you died\n\
-            \after this return to your world\n\
+            \ashen estus flask consumed\n\
 
 
             \ traveling somewhere \
@@ -86,18 +85,18 @@ spec = do
                 , ST.name = "x"
                 , ST.category = ST.RefParam
                 } U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
-        it "allows to declare functions with two or more arguments" $ do
+        it "allows to declare procedures with two or more arguments" $ do
             let p = "hello ashen one\n\
 
-            \invocation fun\n\
+            \spell fun\n\
             \requesting\n\
             \   ref x of type humanity,\n\
             \   val y of type humanity\n\
-            \with skill of type humanity\n\
+            \to the estus flask\n\
             \traveling somewhere\n\
-            \   go back with 1\n\
+            \   go back\n\
             \you died\n\
-            \after this return to your world\n\
+            \ashen estus flask consumed\n\
 
 
             \ traveling somewhere \
@@ -115,18 +114,18 @@ spec = do
                 , ST.name = "y"
                 , ST.category = ST.ValueParam
                 } U.extractArgPositionFromExtra (\(ST.ArgPosition 1) -> True)
-        it "rejects to declare functions with repeated arguments" $ do
+        it "rejects to declare procedures with repeated arguments" $ do
             let p = "hello ashen one\n\
 
-            \invocation fun\n\
+            \spell fun\n\
             \requesting\n\
             \   ref x of type humanity,\n\
             \   val x of type sign\n\
-            \with skill of type humanity\n\
+            \to the estus flask\n\
             \traveling somewhere\n\
-            \   go back with 1\n\
+            \   go back\n\
             \you died\n\
-            \after this return to your world\n\
+            \ashen estus flask consumed\n\
 
 
             \ traveling somewhere \
@@ -142,19 +141,19 @@ spec = do
         it "rejects to declare variables on the first scope of a function whose names are on the arg list" $ do
             let p = "hello ashen one\n\
 
-            \invocation fun\n\
+            \spell fun\n\
             \requesting\n\
             \   ref x of type humanity\n\
-            \with skill of type humanity\n\
+            \to the estus flask\n\
 
             \traveling somewhere\n\
             \with\n\
             \   var x of type sign\n\
             \in your inventory\n\
-            \   go back with 1\n\
+            \   go back\n\
             \you died\n\
 
-            \after this return to your world\n\
+            \ashen estus flask consumed\n\
 
 
             \ traveling somewhere \
@@ -170,10 +169,10 @@ spec = do
         it "allows to declare variables on the second (2<=) scope of a function whose names are on the arg list" $ do
             let p = "hello ashen one\n\
 
-            \invocation fun\n\
+            \spell fun\n\
             \requesting\n\
             \   ref x of type humanity\n\
-            \with skill of type humanity\n\
+            \to the estus flask\n\
 
             \traveling somewhere\n\
 
@@ -183,13 +182,13 @@ spec = do
             \   with\n\
             \       var x of type sign\n\
             \   in your inventory\n\
-            \       go back with 1\n\
+            \       go back\n\
             \   you died\n\
 
             \   covenant left\n\
             \you died\n\
 
-            \after this return to your world\n\
+            \ashen estus flask consumed\n\
 
 
             \ traveling somewhere \
@@ -207,23 +206,22 @@ spec = do
         it "allows to declare more than 1 function" $ do
             let p = "hello ashen one\n\
 
-            \invocation fun1\n\
-            \with skill of type humanity\n\
+            \spell fun1\n\
 
             \traveling somewhere\n\
-            \   go back with 1\n\
+            \   go back\n\
             \you died\n\
 
-            \after this return to your world\n\
+            \ashen estus flask consumed\n\
 
-            \invocation fun2\n\
+            \spell fun2\n\
             \with skill of type sign\n\
 
             \traveling somewhere\n\
-            \   go back with 1\n\
+            \   go back\n\
             \you died\n\
 
-            \after this return to your world\n\
+            \ashen estus flask consumed\n\
 
 
             \ traveling somewhere \
@@ -243,17 +241,16 @@ spec = do
                 , ST.entryType = Just "sign"
                 } U.extractEmptyFunctionFromExtra (const True)
     describe "Functions calls" $ do
-        it "allows to call declared functions with no parameters" $ do
+        it "allows to call declared procedures with no parameters" $ do
             let p = "hello ashen one\n\
 
-            \invocation fun\n\
-            \with skill of type humanity\n\
+            \spell fun\n\
 
             \traveling somewhere\n\
-            \   go back with 123\n\
+            \   go back\n\
             \you died\n\
 
-            \after this return to your world\n\
+            \ashen estus flask consumed\n\
 
 
             \ traveling somewhere \
@@ -262,17 +259,16 @@ spec = do
             \ farewell ashen one"
             (_, _, errors) <- U.extractSymTable p
             errors `shouldSatisfy` null
-        it "allows to call declared functions with parameters" $ do
+        it "allows to call declared procedures with parameters" $ do
             let p = "hello ashen one\n\
 
-            \invocation fun\n\
-            \with skill of type humanity\n\
+            \spell fun\n\
 
             \traveling somewhere\n\
-            \   go back with 123\n\
+            \   go back\n\
             \you died\n\
 
-            \after this return to your world\n\
+            \ashen estus flask consumed\n\
 
 
             \ traveling somewhere\n\
@@ -281,17 +277,16 @@ spec = do
             \ farewell ashen one"
             (_, _, errors) <- U.extractSymTable p
             errors `shouldSatisfy` null
-        it "rejects to call non-declared functions" $ do
+        it "rejects to call non-declared procedures" $ do
             let p = "hello ashen one\n\
 
-            \invocation fun\n\
-            \with skill of type humanity\n\
+            \spell fun\n\
 
             \traveling somewhere\n\
-            \   go back with 123\n\
+            \   go back\n\
             \you died\n\
 
-            \after this return to your world\n\
+            \ashen estus flask consumed\n\
 
 
             \ traveling somewhere\n\
@@ -307,14 +302,13 @@ spec = do
         it "allows recursion" $ do
             let p = "hello ashen one\n\
 
-            \invocation fun\n\
-            \with skill of type humanity\n\
+            \spell fun\n\
 
             \traveling somewhere\n\
             \   go back with summon fun\n\
             \you died\n\
 
-            \after this return to your world\n\
+            \ashen estus flask consumed\n\
 
 
             \ traveling somewhere\n\
@@ -326,23 +320,23 @@ spec = do
         -- it "allows corecursion" $ do
         --     let p = "hello ashen one\n\
 
-        --     \invocation fun\n\
+        --     \spell fun\n\
         --     \with skill of type humanity\n\
 
         --     \traveling somewhere\n\
         --     \   go back with summon fun1\n\
         --     \you died\n\
 
-        --     \after this return to your world\n\
+        --     \ashen estus flask consumed\n\
 
-        --     \invocation fun1\n\
+        --     \spell fun1\n\
         --     \with skill of type humanity\n\
 
         --     \traveling somewhere\n\
         --     \   go back with summon fun\n\
         --     \you died\n\
 
-        --     \after this return to your world\n\
+        --     \ashen estus flask consumed\n\
 
 
         --     \ traveling somewhere\n\

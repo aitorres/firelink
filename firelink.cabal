@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: befa6e9a7a8e7786dd77763d8f2bd1f1fd2db7c54cc43cb0ff1c5558350285a7
+-- hash: 4398f036789ca2c9e20dc0102f71cfb2f49e0ffeabd3e7e0ec8c036d77035e52
 
 name:           firelink
 version:        0.0.2.0
@@ -136,8 +136,9 @@ test-suite semantic-tests
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      CallableSpec
+      FunctionsSpec
       InitialTableSpec
+      ProceduresSpec
       RecordLikeTypesDeclSpec
       SimpleTypesDeclSpec
       TypeAliasesSpec
