@@ -1,4 +1,4 @@
-module CallableSpec where
+module FunctionsSpec where
 
 import Test.Hspec
 import qualified Utils as U
@@ -17,7 +17,7 @@ varEntry = ST.DictionaryEntry
 
 spec :: Spec
 spec = do
-    describe "Functions/Procedures declarations" $ do
+    describe "Functions declarations" $ do
         it "allows to declare functions with no arguments" $ do
             let p = "hello ashen one\n\
 
@@ -242,7 +242,7 @@ spec = do
                 , ST.name = "fun2"
                 , ST.entryType = Just "sign"
                 } U.extractEmptyFunctionFromExtra (const True)
-    describe "Functions/procedures calls" $ do
+    describe "Functions calls" $ do
         it "allows to call declared functions with no parameters" $ do
             let p = "hello ashen one\n\
 
