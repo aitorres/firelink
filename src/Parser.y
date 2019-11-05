@@ -259,24 +259,34 @@ METHOD
   : FUNC                                                                {% do
                                                                           (dict, _, s) <- RWS.get
                                                                           RWS.put (dict, [1, 0], s) }
-  | PROC                                                                { () }
+  | PROC                                                                {% do
+                                                                          (dict, _, s) <- RWS.get
+                                                                          RWS.put (dict, [1, 0], s) }
 
 FUNCPREFIX :: { Maybe (ST.Scope, G.Id) }
 FUNCPREFIX
-  : functionBegin ID METHODPARS functionType TYPE                       {% do
-                                                                            a <- addFunction (ST.Function,
-                                                                              $2, G.Callable (Just $5) $3)
-                                                                            (dict, stack, _) <- RWS.get
-                                                                            return a }
+  : functionBegin ID METHODPARS functionType TYPE                       {% addFunction (ST.Function,
+                                                                              $2, G.Callable (Just $5) $3) }
 FUNC :: { () }
 FUNC
   : FUNCPREFIX NON_OPENER_CODEBLOCK functionEnd                         {% case $1 of
                                                                             Nothing -> return ()
                                                                             Just (s, i) -> updateCodeBlockOfFun s i $2 }
 
-PROC :: { [Int] }
+PROCPREFIX :: { Maybe (ST.Scope, G.Id) }
+PROCPREFIX
+  : procedureBegin ID PROCPARSDEC                                       {% addFunction (ST.Procedure,
+                                                                              $2, G.Callable Nothing $3) }
+PROC :: { () }
 PROC
-  : procedureBegin ID METHODPARS NON_OPENER_CODEBLOCK procedureEnd      { [] }
+  : PROCPREFIX NON_OPENER_CODEBLOCK procedureEnd                        {% case $1 of
+                                                                            Nothing -> return ()
+                                                                            Just (s, i) -> updateCodeBlockOfFun s i $2 }
+
+PROCPARSDEC :: { [ArgDeclaration] }
+PROCPARSDEC
+  : METHODPARS toTheEstusFlask                                          { $1 }
+  | {- empty -}                                                         { [] }
 
 METHODPARS :: { [ArgDeclaration] }
 METHODPARS
@@ -368,7 +378,9 @@ INSTRL
 INSTR :: { G.Instruction }
 INSTR
   : ID asig EXPR                                                        { G.InstAsig $1 $3 }
-  | cast ID PROCPARS                                                    { G.InstCallProc $2 $3 }
+  | cast ID PROCPARS                                                    {% do
+                                                                          checkIdAvailability $2
+                                                                          return $ G.InstCallProc $2 $3 }
   | FUNCALL                                                             { G.InstCallFunc (fst $1) (snd $1) }
   | return                                                              { G.InstReturn }
   | returnWith EXPR                                                     { G.InstReturnWith $2 }
@@ -534,7 +546,7 @@ addFunction d@(_, i@(G.Id tk@(L.Token _ (Just idName) _)), _) = do
 
 updateCodeBlockOfFun :: ST.Scope -> G.Id -> G.CodeBlock -> ST.ParserMonad ()
 updateCodeBlockOfFun currScope (G.Id tk@(L.Token _ (Just idName) _)) code = do
-  let f x = (if and [ST.scope x == currScope, ST.name x == idName, ST.category x `elem` [ST.Function]]
+  let f x = (if and [ST.scope x == currScope, ST.name x == idName, ST.category x `elem` [ST.Function, ST.Procedure]]
             then let e = ST.extra x in x{ST.extra = (ST.CodeBlock code) : e}
             else x)
   ST.updateEntry (\ds -> Just $ map f ds) idName
@@ -559,6 +571,8 @@ findTypeOnEntryTable (G.Record tk _) = ST.dictLookup $ ST.tokensToEntryName tk
 
 -- For functions
 findTypeOnEntryTable (G.Callable (Just t) _) = findTypeOnEntryTable t
+
+findTypeOnEntryTable (G.Callable Nothing _) = return Nothing
 
 buildExtraForType :: G.Type -> ST.ParserMonad [ST.Extra]
 

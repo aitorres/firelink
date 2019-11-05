@@ -34,7 +34,7 @@ spec = do
             \ farewell ashen one"
             (_, (dict, _, _), _) <- U.extractSymTable p
             U.testEntry dict varEntry U.extractCodeblockFromExtra
-                (\(ST.CodeBlock (G.CodeBlock [G.InstReturnWith (G.IntLit 1)])) -> True)
+                (\(ST.CodeBlock (G.CodeBlock [G.InstReturn])) -> True)
             U.testEntry dict varEntry U.extractEmptyFunctionFromExtra
                 (\ST.EmptyFunction -> True)
         it "allows to declare procedures with one val argument" $ do
@@ -61,6 +61,7 @@ spec = do
                 { ST.scope = 2
                 , ST.name = "x"
                 , ST.category = ST.ValueParam
+                , ST.entryType = Just "humanity"
                 } U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
         it "allows to declare procedures with one ref argument" $ do
             let p = "hello ashen one\n\
@@ -84,6 +85,7 @@ spec = do
                 { ST.scope = 2
                 , ST.name = "x"
                 , ST.category = ST.RefParam
+                , ST.entryType = Just "humanity"
                 } U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
         it "allows to declare procedures with two or more arguments" $ do
             let p = "hello ashen one\n\
@@ -108,11 +110,13 @@ spec = do
                 { ST.scope = 2
                 , ST.name = "x"
                 , ST.category = ST.RefParam
+                , ST.entryType = Just "humanity"
                 } U.extractArgPositionFromExtra (\(ST.ArgPosition 0)-> True)
             U.testEntry dict varEntry
                 { ST.scope = 2
                 , ST.name = "y"
                 , ST.category = ST.ValueParam
+                , ST.entryType = Just "humanity"
                 } U.extractArgPositionFromExtra (\(ST.ArgPosition 1) -> True)
         it "rejects to declare procedures with repeated arguments" $ do
             let p = "hello ashen one\n\
@@ -138,7 +142,7 @@ spec = do
             varName `shouldBe` "x"
             L.row pn `shouldBe` 5
             L.col pn `shouldBe` 8
-        it "rejects to declare variables on the first scope of a function whose names are on the arg list" $ do
+        it "rejects to declare variables on the first scope of a procedure whose names are on the arg list" $ do
             let p = "hello ashen one\n\
 
             \spell fun\n\
@@ -166,7 +170,7 @@ spec = do
             varName `shouldBe` "x"
             L.row pn `shouldBe` 8
             L.col pn `shouldBe` 8
-        it "allows to declare variables on the second (2<=) scope of a function whose names are on the arg list" $ do
+        it "allows to declare variables on the second (2<=) scope of a procedure whose names are on the arg list" $ do
             let p = "hello ashen one\n\
 
             \spell fun\n\
@@ -203,7 +207,7 @@ spec = do
                 , ST.category = ST.Variable
                 , ST.entryType = Just "sign"
                 } U.extractSimpleFromExtra (\(ST.Simple "sign") -> True)
-        it "allows to declare more than 1 function" $ do
+        it "allows to declare more than 1 procedure" $ do
             let p = "hello ashen one\n\
 
             \spell fun1\n\
@@ -215,7 +219,6 @@ spec = do
             \ashen estus flask consumed\n\
 
             \spell fun2\n\
-            \with skill of type sign\n\
 
             \traveling somewhere\n\
             \   go back\n\
@@ -233,12 +236,10 @@ spec = do
             U.testEntry dict varEntry
                 { ST.scope = 1
                 , ST.name = "fun1"
-                , ST.entryType = Just "humanity"
                 } U.extractEmptyFunctionFromExtra (const True)
             U.testEntry dict varEntry
                 { ST.scope = 1
                 , ST.name = "fun2"
-                , ST.entryType = Just "sign"
                 } U.extractEmptyFunctionFromExtra (const True)
     describe "Functions calls" $ do
         it "allows to call declared procedures with no parameters" $ do
@@ -290,29 +291,30 @@ spec = do
 
 
             \ traveling somewhere\n\
-            \   with orange saponite say summon fun2\n\
+            \   cast fun2\n\
             \ you died \
             \ farewell ashen one"
             (_, _, errors) <- U.extractSymTable p
             errors `shouldNotSatisfy` null
             let ST.SemanticError _ (L.Token _ (Just varName) pn) = head errors
             varName `shouldBe` "fun2"
-            L.row pn `shouldBe` 9
-            L.col pn `shouldBe` 36
+            L.row pn `shouldBe` 8
+            L.col pn `shouldBe` 9
         it "allows recursion" $ do
             let p = "hello ashen one\n\
 
             \spell fun\n\
 
             \traveling somewhere\n\
-            \   go back with summon fun\n\
+            \   cast fun \\\n\
+            \   go back\n\
             \you died\n\
 
             \ashen estus flask consumed\n\
 
 
             \ traveling somewhere\n\
-            \   with orange saponite say summon fun\n\
+            \   cast fun\n\
             \ you died \
             \ farewell ashen one"
             (_, _, errors) <- U.extractSymTable p
