@@ -2,7 +2,7 @@
 module Lexer (
     alexMonadScan, scanTokens, filterComments,
     AbstractToken (..), Token (..), AlexUserState(..), AlexPosn (..),
-    Tokens
+    Tokens, col, row
     ) where
 import Text.Printf (printf)
 import Data.List.Split (splitOn)
@@ -300,6 +300,12 @@ alexEOF = getUserState
 data AlexUserState = LexFailure [LexError]
     | LexSuccess [Token]
     deriving (Show)
+
+col :: AlexPosn -> Int
+col (AlexPn _ _ c) = c
+
+row :: AlexPosn -> Int
+row (AlexPn _ l _) = l
 
 alexInitUserState :: AlexUserState
 alexInitUserState = LexSuccess []

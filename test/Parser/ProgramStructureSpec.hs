@@ -35,9 +35,7 @@ spec = describe "ProgramStructure" $ do
         \   go back \
         \ you died \
 
-        \ farewell ashen one" (\(Program [] [
-            Function (Id "f") [] CharT (CodeBlock _ [InstReturn])
-        ] _) -> True)
+        \ farewell ashen one" (\(Program _) -> True)
 
     it "accepts a program with both aliases and functions" $
         runTestForValidProgram "\
@@ -52,10 +50,7 @@ spec = describe "ProgramStructure" $ do
         \   go back \
         \ you died \
 
-        \ farewell ashen one" (\(Program [
-            Alias (Id "fourKings") FloatT,
-            Alias (Id "solaire") BigInt
-            ] [] _) -> True)
+        \ farewell ashen one" (\(Program _) -> True)
 
 
     it "accepts a program with both aliases and functions" $
@@ -78,12 +73,7 @@ spec = describe "ProgramStructure" $ do
         \   go back \
         \ you died \
 
-        \ farewell ashen one" (\(Program [
-            Alias (Id "fourKings") FloatT,
-            Alias (Id "solaire") BigInt
-            ] [
-                Function (Id "f") [] CharT (CodeBlock _ [InstReturn])
-            ] _) -> True)
+        \ farewell ashen one" (\(Program _) -> True)
 
     it "accepts a program with no aliases but with functions" $
         runTestForValidProgram "\
@@ -96,6 +86,4 @@ spec = describe "ProgramStructure" $ do
         \   go back \
         \ you died \
 
-        \ farewell ashen one" (\(Program [] [] (CodeBlock [
-            UninitializedDeclaration Var (Id "i") BigInt
-        ] [InstReturn])) -> True)
+        \ farewell ashen one" (\(Program (CodeBlock [InstReturn])) -> True)

@@ -3,449 +3,386 @@ module ExpressionsSpec where
 import Test.Hspec
 import Utils
 import Grammar
+import Lexer
 
+buildProgramWithExpr :: String -> String
 buildProgramWithExpr e = "\
 \ hello ashen one \
 
 \ traveling somewhere \
-\   with \
-\      const patata of type humanity <<= " ++ e ++ " \
-\   in your inventory \
-\   with orange saponite say @Hello world@ \
+\   go back with " ++ e ++ " \
 \ you died \
 
 \ farewell ashen one"
 
+runTestForExpr :: String -> (Program -> Bool) -> IO ()
 runTestForExpr expr = runTestForValidProgram (buildProgramWithExpr expr)
 
 spec :: Spec
 spec = describe "Expressions" $ do
     it "accepts `1 + 2` as an expression" $
-        runTestForExpr "1 + 2" (\(Program _ _ (
+        runTestForExpr "1 + 2" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (Add (IntLit 1) (IntLit 2))]
-                _)) -> True)
+                [InstReturnWith (Add (IntLit 1) (IntLit 2))])) -> True)
     it "accepts `1 + 2 + 3` as an expression and associates to the left" $
-        runTestForExpr "1 + 2 + 3" (\(Program _ _ (
+        runTestForExpr "1 + 2 + 3" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (Add (Add (IntLit 1) (IntLit 2)) (IntLit 3))]
-                _)) -> True)
+                [InstReturnWith (Add (Add (IntLit 1) (IntLit 2)) (IntLit 3))])) -> True)
     it "accepts `1 - 2` as an expression" $
-        runTestForExpr "1 - 2" (\(Program _ _ (
+        runTestForExpr "1 - 2" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (Substract (IntLit 1) (IntLit 2))]
-                _)) -> True)
+                [InstReturnWith (Substract (IntLit 1) (IntLit 2))])) -> True)
     it "accepts `1 - 2 - 3` as an expression and associates to the left" $
-        runTestForExpr "1 - 2 - 3" (\(Program _ _ (
+        runTestForExpr "1 - 2 - 3" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (
+                [InstReturnWith (
                     Substract
                         (Substract (IntLit 1) (IntLit 2))
-                        (IntLit 3))]
-                _)) -> True)
+                        (IntLit 3))])) -> True)
     it "accepts `1 - 2 + 3` as an expression and associates to the left (1 - 2) + 3" $
-        runTestForExpr "1 - 2 + 3" (\(Program _ _ (
+        runTestForExpr "1 - 2 + 3" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (
+                [InstReturnWith (
                     Add
                         (Substract (IntLit 1) (IntLit 2))
-                        (IntLit 3))]
-                _)) -> True)
+                        (IntLit 3))])) -> True)
     it "accepts `1 + 2 - 3` as an expression and associates to the left (1 + 2) - 3" $
-        runTestForExpr "1 + 2 - 3" (\(Program _ _ (
+        runTestForExpr "1 + 2 - 3" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (
+                [InstReturnWith (
                     Substract
                         (Add (IntLit 1) (IntLit 2))
-                        (IntLit 3))]
-                _)) -> True)
+                        (IntLit 3))])) -> True)
     it "accepts `1 * 2` as an expression" $
-        runTestForExpr "1 * 2" (\(Program _ _ (
+        runTestForExpr "1 * 2" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (Multiply (IntLit 1) (IntLit 2))]
-                _)) -> True)
+                [InstReturnWith (Multiply (IntLit 1) (IntLit 2))])) -> True)
     it "accepts `1 * 2 * 3` as an expression and associates to the left" $
-        runTestForExpr "1 * 2 * 3" (\(Program _ _ (
+        runTestForExpr "1 * 2 * 3" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (
+                [InstReturnWith (
                     Multiply
                         (Multiply (IntLit 1) (IntLit 2))
-                        (IntLit 3))]
-                _)) -> True)
+                        (IntLit 3))])) -> True)
     it "accepts `1 * 2 + 3` as an expression and associates to the left" $
-        runTestForExpr "1 * 2 + 3" (\(Program _ _ (
+        runTestForExpr "1 * 2 + 3" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (
+                [InstReturnWith (
                     Add
                         (Multiply (IntLit 1) (IntLit 2))
-                        (IntLit 3))]
-                _)) -> True)
+                        (IntLit 3))])) -> True)
     it "accepts `1 + 2 * 3` as an expression and associates to the left" $
-        runTestForExpr "1 + 2 * 3" (\(Program _ _ (
+        runTestForExpr "1 + 2 * 3" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (
+                [InstReturnWith (
                     Add
                         (IntLit 1)
-                        (Multiply (IntLit 2) (IntLit 3)))]
-                _)) -> True)
+                        (Multiply (IntLit 2) (IntLit 3)))])) -> True)
     it "accepts `1 / 2` as an expression" $
-        runTestForExpr "1 / 2" (\(Program _ _ (
+        runTestForExpr "1 / 2" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (Divide (IntLit 1) (IntLit 2))]
-                _)) -> True)
+                [InstReturnWith (Divide (IntLit 1) (IntLit 2))])) -> True)
     it "accepts `1 / 2 / 3` as an expression and associates to the left" $
-        runTestForExpr "1 / 2 / 3" (\(Program _ _ (
+        runTestForExpr "1 / 2 / 3" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (
+                [InstReturnWith (
                     Divide
                         (Divide (IntLit 1) (IntLit 2))
-                        (IntLit 3))]
-                _)) -> True)
+                        (IntLit 3))])) -> True)
     it "accepts `1 / 2 + 3` as an expression and associates to the left" $
-        runTestForExpr "1 / 2 + 3" (\(Program _ _ (
+        runTestForExpr "1 / 2 + 3" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (
+                [InstReturnWith (
                     Add
                         (Divide (IntLit 1) (IntLit 2))
-                        (IntLit 3))]
-                _)) -> True)
+                        (IntLit 3))])) -> True)
     it "accepts `1 + 2 / 3` as an expression and associates to the left" $
-        runTestForExpr "1 + 2 / 3" (\(Program _ _ (
+        runTestForExpr "1 + 2 / 3" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (
+                [InstReturnWith (
                     Add
                         (IntLit 1)
-                        (Divide (IntLit 2) (IntLit 3)))]
-                _)) -> True)
+                        (Divide (IntLit 2) (IntLit 3)))])) -> True)
     it "accepts `1 % 2` as an expression" $
-        runTestForExpr "1 % 2" (\(Program _ _ (
+        runTestForExpr "1 % 2" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (Mod (IntLit 1) (IntLit 2))]
-                _)) -> True)
+                [InstReturnWith (Mod (IntLit 1) (IntLit 2))])) -> True)
     it "accepts `1 % 2 % 3` as an expression and associates to the left" $
-        runTestForExpr "1 % 2 % 3" (\(Program _ _ (
+        runTestForExpr "1 % 2 % 3" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (
+                [InstReturnWith (
                     Mod
                         (Mod (IntLit 1) (IntLit 2))
-                        (IntLit 3))]
-                _)) -> True)
+                        (IntLit 3))])) -> True)
     it "accepts `1 % 2 + 3` as an expression and associates to the left" $
-        runTestForExpr "1 % 2 + 3" (\(Program _ _ (
+        runTestForExpr "1 % 2 + 3" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (
+                [InstReturnWith (
                     Add
                         (Mod (IntLit 1) (IntLit 2))
-                        (IntLit 3))]
-                _)) -> True)
+                        (IntLit 3))])) -> True)
     it "accepts `1 + 2 % 3` as an expression and parse % as more precedent" $
-        runTestForExpr "1 + 2 % 3" (\(Program _ _ (
+        runTestForExpr "1 + 2 % 3" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (
+                [InstReturnWith (
                     Add
                         (IntLit 1)
-                        (Mod (IntLit 2) (IntLit 3)))]
-                _)) -> True)
+                        (Mod (IntLit 2) (IntLit 3)))])) -> True)
     it "accepts `- 1` as an expression and associates to the left" $
-        runTestForExpr "- 1" (\(Program _ _ (
+        runTestForExpr "- 1" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (Negative (IntLit 1))]
-                _)) -> True)
+                [InstReturnWith (Negative (IntLit 1))])) -> True)
     it "rejects `- - 1` as an expression and associates to the left" $
-        runTestForExpr "- - 1" (\(Program _ _ (
+        runTestForExpr "- - 1" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (Negative (Negative (IntLit 1)))]
-                _)) -> True)
+                [InstReturnWith (Negative (Negative (IntLit 1)))])) -> True)
     it "accepts `1 lt 2` as an expression and associates to the left" $
-        runTestForExpr "1 lt 2" (\(Program _ _ (
+        runTestForExpr "1 lt 2" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (Lt (IntLit 1) (IntLit 2))]
-                _)) -> True)
+                [InstReturnWith (Lt (IntLit 1) (IntLit 2))])) -> True)
     it "accepts `1 lt 2 + 3` as an expression and associates to the right (1 lt (2 + 3))" $
-        runTestForExpr "1 lt 2 + 3" (\(Program _ _ (
+        runTestForExpr "1 lt 2 + 3" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (
+                [InstReturnWith (
                     Lt
                         (IntLit 1)
-                        (Add (IntLit 2) (IntLit 3)))]
-                _)) -> True)
+                        (Add (IntLit 2) (IntLit 3)))])) -> True)
     it "accepts `1 lte 2` as an expression and associates to the left" $
-        runTestForExpr "1 lte 2" (\(Program _ _ (
+        runTestForExpr "1 lte 2" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (Lte (IntLit 1) (IntLit 2))]
-                _)) -> True)
+                [InstReturnWith (Lte (IntLit 1) (IntLit 2))])) -> True)
     it "accepts `1 lte 2 + 3` as an expression and associates to the right (1 lte (2 + 3))" $
-        runTestForExpr "1 lte 2 + 3" (\(Program _ _ (
+        runTestForExpr "1 lte 2 + 3" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (
+                [InstReturnWith (
                     Lte
                         (IntLit 1)
-                        (Add (IntLit 2) (IntLit 3)))]
-                _)) -> True)
+                        (Add (IntLit 2) (IntLit 3)))])) -> True)
     it "accepts `1 gt 2` as an expression and associates to the left" $
-        runTestForExpr "1 gt 2" (\(Program _ _ (
+        runTestForExpr "1 gt 2" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (Gt (IntLit 1) (IntLit 2))]
-                _)) -> True)
+                [InstReturnWith (Gt (IntLit 1) (IntLit 2))])) -> True)
     it "accepts `1 gt 2 + 3` as an expression and associates to the right (1 gt (2 + 3))" $
-        runTestForExpr "1 gt 2 + 3" (\(Program _ _ (
+        runTestForExpr "1 gt 2 + 3" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (
+                [InstReturnWith (
                     Gt
                         (IntLit 1)
-                        (Add (IntLit 2) (IntLit 3)))]
-                _)) -> True)
+                        (Add (IntLit 2) (IntLit 3)))])) -> True)
     it "accepts `1 gte 2` as an expression and associates to the left" $
-        runTestForExpr "1 gte 2" (\(Program _ _ (
+        runTestForExpr "1 gte 2" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (Gte (IntLit 1) (IntLit 2))]
-                _)) -> True)
+                [InstReturnWith (Gte (IntLit 1) (IntLit 2))])) -> True)
     it "accepts `1 gte 2 + 3` as an expression and associates to the right (1 gte (2 + 3))" $
-        runTestForExpr "1 gte 2 + 3" (\(Program _ _ (
+        runTestForExpr "1 gte 2 + 3" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (
+                [InstReturnWith (
                     Gte
                         (IntLit 1)
-                        (Add (IntLit 2) (IntLit 3)))]
-                _)) -> True)
+                        (Add (IntLit 2) (IntLit 3)))])) -> True)
     it "accepts `1 eq 2` as an expression and associates to the left" $
-        runTestForExpr "1 eq 2" (\(Program _ _ (
+        runTestForExpr "1 eq 2" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (Eq (IntLit 1) (IntLit 2))]
-                _)) -> True)
+                [InstReturnWith (Eq (IntLit 1) (IntLit 2))])) -> True)
     it "accepts `1 eq 2 + 3` as an expression and associates to the right (1 eq (2 + 3))" $
-        runTestForExpr "1 eq 2 + 3" (\(Program _ _ (
+        runTestForExpr "1 eq 2 + 3" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (
+                [InstReturnWith (
                     Eq
                         (IntLit 1)
-                        (Add (IntLit 2) (IntLit 3)))]
-                _)) -> True)
+                        (Add (IntLit 2) (IntLit 3)))])) -> True)
     it "accepts `1 eq 2 eq 3 as an expression and associates to the left (1 eq 2) eq 3" $
-        runTestForExpr "1 eq 2 eq 3" (\(Program _ _ (
+        runTestForExpr "1 eq 2 eq 3" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (
+                [InstReturnWith (
                     Eq
                         (Eq (IntLit 1) (IntLit 2))
-                        (IntLit 3))]
-                _)) -> True)
+                        (IntLit 3))])) -> True)
     it "accepts `1 neq 2` as an expression and associates to the left" $
-        runTestForExpr "1 neq 2" (\(Program _ _ (
+        runTestForExpr "1 neq 2" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (Neq (IntLit 1) (IntLit 2))]
-                _)) -> True)
+                [InstReturnWith (Neq (IntLit 1) (IntLit 2))])) -> True)
     it "accepts `1 neq 2 + 3` as an expression and associates to the right (1 neq (2 + 3))" $
-        runTestForExpr "1 neq 2 + 3" (\(Program _ _ (
+        runTestForExpr "1 neq 2 + 3" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (
+                [InstReturnWith (
                     Neq
                         (IntLit 1)
-                        (Add (IntLit 2) (IntLit 3)))]
-                _)) -> True)
+                        (Add (IntLit 2) (IntLit 3)))])) -> True)
     it "accepts `1 neq 2 neq 3 as an expression and associates to the left (1 neq 2) neq 3" $
-        runTestForExpr "1 neq 2 neq 3" (\(Program _ _ (
+        runTestForExpr "1 neq 2 neq 3" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (
+                [InstReturnWith (
                     Neq
                         (Neq (IntLit 1) (IntLit 2))
-                        (IntLit 3))]
-                _)) -> True)
+                        (IntLit 3))])) -> True)
     it "accepts `1 eq 2 neq 3 as an expression and associates to the left (1 eq 2) neq 3" $
-        runTestForExpr "1 eq 2 neq 3" (\(Program _ _ (
+        runTestForExpr "1 eq 2 neq 3" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (
+                [InstReturnWith (
                     Neq
                         (Eq (IntLit 1) (IntLit 2))
-                        (IntLit 3))]
-                _)) -> True)
+                        (IntLit 3))])) -> True)
 
     it "accepts `lit and unlit` as an expression" $
-        runTestForExpr "lit and unlit" (\(Program _ _ (
+        runTestForExpr "lit and unlit" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (And TrueLit FalseLit)]
-                _)) -> True)
+                [InstReturnWith (And TrueLit FalseLit)])) -> True)
     it "accepts `lit or unlit` as an expression" $
-        runTestForExpr "lit or unlit" (\(Program _ _ (
+        runTestForExpr "lit or unlit" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (Or TrueLit FalseLit)]
-                _)) -> True)
+                [InstReturnWith (Or TrueLit FalseLit)])) -> True)
     it "accepts `not unlit` as an expression" $
-        runTestForExpr "not unlit" (\(Program _ _ (
+        runTestForExpr "not unlit" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (Not FalseLit)]
-                _)) -> True)
+                [InstReturnWith (Not FalseLit)])) -> True)
     it "accepts `lit and unlit and undiscovered` as an expression associating to the left `(lit and unlit) and undiscovered`" $
-        runTestForExpr "lit and unlit and undiscovered" (\(Program _ _ (
+        runTestForExpr "lit and unlit and undiscovered" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (And (And TrueLit FalseLit) UndiscoveredLit)]
-                _)) -> True)
+                [InstReturnWith (And (And TrueLit FalseLit) UndiscoveredLit)])) -> True)
     it "accepts `not lit and unlit` as an expression and `not` has more precedence" $
-        runTestForExpr "not lit and unlit" (\(Program _ _ (
+        runTestForExpr "not lit and unlit" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _
-                    (And (Not TrueLit) FalseLit)]
-                _)) -> True)
+                [InstReturnWith
+                    (And (Not TrueLit) FalseLit)])) -> True)
 
     it "accepts `ascii_of |n|` as an expression" $
-        runTestForExpr "ascii_of |n|" (\(Program _ _ (
+        runTestForExpr "ascii_of |n|" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (AsciiOf (CharLit 'n'))]
-                _)) -> True)
+                [InstReturnWith (AsciiOf (CharLit 'n'))])) -> True)
 
     it "accepts `ascii_of |n| + ascii_of |f|` as an expression and parses it as `(ascii_of |n|) + (ascii_of |f|)" $
-        runTestForExpr "ascii_of |n| + ascii_of |f|" (\(Program _ _ (
+        runTestForExpr "ascii_of |n| + ascii_of |f|" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (
+                [InstReturnWith (
                     Add
                         (AsciiOf (CharLit 'n'))
-                        (AsciiOf (CharLit 'f')))]
-                _)) -> True)
+                        (AsciiOf (CharLit 'f')))])) -> True)
 
     it "accepts `<$$> >-< @@` as an expression" $
-        runTestForExpr "<$$> >-< @@" (\(Program _ _ (
+        runTestForExpr "<$$> >-< @@" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (ColConcat (ArrayLit []) (StringLit ""))]
-                _)) -> True)
+                [InstReturnWith (ColConcat (ArrayLit []) (StringLit ""))])) -> True)
     it "accepts `<$$> >-< @@ >-< {$$}` as an expression and should associate to the left `(<$$> >-< @@) >-< {$$}`" $
-        runTestForExpr "<$$> >-< @@ >-< {$$}" (\(Program _ _ (
+        runTestForExpr "<$$> >-< @@ >-< {$$}" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (
+                [InstReturnWith (
                     ColConcat
                         (ColConcat (ArrayLit []) (StringLit ""))
-                        (SetLit []))]
-                _)) -> True)
+                        (SetLit []))])) -> True)
     it "accepts `lit union lit` as an expression" $
-        runTestForExpr "lit union lit" (\(Program _ _ (
+        runTestForExpr "lit union lit" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (SetUnion TrueLit TrueLit)]
-                _)) -> True)
+                [InstReturnWith (SetUnion TrueLit TrueLit)])) -> True)
     it "accepts `lit intersect lit` as an expression" $
-        runTestForExpr "lit intersect lit" (\(Program _ _ (
+        runTestForExpr "lit intersect lit" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (SetIntersect TrueLit TrueLit)]
-                _)) -> True)
+                [InstReturnWith (SetIntersect TrueLit TrueLit)])) -> True)
     it "accepts `lit diff lit` as an expression" $
-        runTestForExpr "lit diff lit" (\(Program _ _ (
+        runTestForExpr "lit diff lit" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (SetDiff TrueLit TrueLit)]
-                _)) -> True)
+                [InstReturnWith (SetDiff TrueLit TrueLit)])) -> True)
     it "accepts `size lit` as an expression" $
-        runTestForExpr "size lit" (\(Program _ _ (
+        runTestForExpr "size lit" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (
-                    SetSize TrueLit)]
-                _)) -> True)
+                [InstReturnWith (
+                    SetSize TrueLit)])) -> True)
 
     it "accepts `lit union lit union lit` as an expression and associates to the left" $
-        runTestForExpr "lit union lit union lit" (\(Program _ _ (
+        runTestForExpr "lit union lit union lit" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (
-                    SetUnion (SetUnion TrueLit TrueLit) TrueLit)]
-                _)) -> True)
+                [InstReturnWith (
+                    SetUnion (SetUnion TrueLit TrueLit) TrueLit)])) -> True)
     it "accepts `lit intersect lit intersect lit` as an expression and associates to the left" $
-        runTestForExpr "lit intersect lit intersect lit" (\(Program _ _ (
+        runTestForExpr "lit intersect lit intersect lit" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (
-                    SetIntersect (SetIntersect TrueLit TrueLit) TrueLit)]
-                _)) -> True)
+                [InstReturnWith (
+                    SetIntersect (SetIntersect TrueLit TrueLit) TrueLit)])) -> True)
     it "accepts `lit diff lit diff lit` as an expression" $
-        runTestForExpr "lit diff lit diff lit" (\(Program _ _ (
+        runTestForExpr "lit diff lit diff lit" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (
-                    SetDiff (SetDiff TrueLit TrueLit) TrueLit)]
-                _)) -> True)
+                [InstReturnWith (
+                    SetDiff (SetDiff TrueLit TrueLit) TrueLit)])) -> True)
     it "accepts `lit diff lit union lit` as an expression" $
-        runTestForExpr "lit diff lit union lit" (\(Program _ _ (
+        runTestForExpr "lit diff lit union lit" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (
+                [InstReturnWith (
                     SetDiff
                         TrueLit
                         (SetUnion TrueLit TrueLit)
-                        )]
-                _)) -> True)
+                        )])) -> True)
 
     it "accepts `lit union lit intersect lit` as an expression and associates to the left" $
-        runTestForExpr "lit union lit intersect lit" (\(Program _ _ (
+        runTestForExpr "lit union lit intersect lit" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (
+                [InstReturnWith (
                     SetIntersect
                         (SetUnion TrueLit TrueLit)
                         TrueLit
-                        )]
-                _)) -> True)
+                        )])) -> True)
     it "accepts `lit intersect lit union lit` as an expression and associates to the left" $
-        runTestForExpr "lit intersect lit union lit" (\(Program _ _ (
+        runTestForExpr "lit intersect lit union lit" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (
+                [InstReturnWith (
                     SetUnion
                         (SetIntersect TrueLit TrueLit)
-                        TrueLit)]
-                _)) -> True)
+                        TrueLit)])) -> True)
 
     it "accepts `a ~> b` as an expression" $
-        runTestForExpr "a ~> b" (\(Program _ _ (
+        runTestForExpr "a ~> b" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (Access (IdExpr (Id "a")) (Id "b"))]
-                _)) -> True)
+                [InstReturnWith (Access (IdExpr (Id (Token _ (Just "a") _))) (Id (Token _ (Just "b") _)))])) -> True)
     it "accepts `a ~> b ~> c` as an expression" $
-        runTestForExpr "a ~> b ~> c" (\(Program _ _ (
+        runTestForExpr "a ~> b ~> c" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (
+                [InstReturnWith (
                     Access
-                        (Access (IdExpr (Id "a")) (Id "b"))
-                        (Id "c"))]
-                _)) -> True)
+                        (Access (IdExpr (Id (Token _ (Just "a") _))) (Id (Token _ (Just "b") _)))
+                        (Id (Token _ (Just "c") _)))])) -> True)
     it "accepts `a + b ~> c` as an expression" $
-        runTestForExpr "a + b ~> c" (\(Program _ _ (
+        runTestForExpr "a + b ~> c" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (
+                [InstReturnWith (
                     Access
-                        (Add (IdExpr (Id "a")) (IdExpr (Id "b")))
-                        (Id "c"))]
-                _)) -> True)
+                        (Add (IdExpr (Id (Token _ (Just "a") _))) (IdExpr (Id (Token _ (Just "b") _))))
+                        (Id (Token _ (Just "c") _)))])) -> True)
 
     it "accepts `(a)` as an expression" $
-        runTestForExpr "(a)" (\(Program _ _ (
+        runTestForExpr "(a)" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (IdExpr (Id "a"))]
-                _)) -> True)
+                [InstReturnWith (IdExpr (Id (Token _ (Just "a") _)))])) -> True)
 
     it "accepts `a<$i$>` as an expression" $
-        runTestForExpr "a<$i$>" (\(Program _ _ (
+        runTestForExpr "a<$i$>" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (
+                [InstReturnWith (
                     IndexAccess
-                        (IdExpr (Id "a"))
-                        (IdExpr (Id "i")))]
-                _)) -> True)
+                        (IdExpr (Id (Token _ (Just "a") _)))
+                        (IdExpr (Id (Token _ (Just "i") _))))])) -> True)
     it "accepts `a+b<$i$>` as an expression" $
-        runTestForExpr "a+b<$i$>" (\(Program _ _ (
+        runTestForExpr "a+b<$i$>" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (
+                [InstReturnWith (
                     IndexAccess
-                        (Add (IdExpr (Id "a")) (IdExpr (Id "b")))
-                        (IdExpr (Id "i")))]
-                _)) -> True)
+                        (Add (IdExpr (Id (Token _ (Just "a") _))) (IdExpr (Id (Token _ (Just "b") _))))
+                        (IdExpr (Id (Token _ (Just "i") _))))])) -> True)
     it "rejects `a<$$>` as an expression" $
         runTestForInvalidProgram "a<$$>"
 
     it "accepts `abyss` as an expression" $
-        runTestForExpr "abyss" (\(Program _ _ (
+        runTestForExpr "abyss" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ NullLit]
-                _)) -> True)
+                [InstReturnWith NullLit])) -> True)
     it "accepts `throw a a` as an expression" $
-        runTestForExpr "throw a a" (\(Program _ _ (
+        runTestForExpr "throw a a" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (MemAccess (IdExpr (Id "a")))]
-                _)) -> True)
+                [InstReturnWith (MemAccess (IdExpr (Id (Token _ (Just "a") _))))])) -> True)
     it "rejects `aim a a` as an expression" $
         runTestForInvalidProgram "aim a a"
     it "rejects `recover a a` as an expresion" $
         runTestForInvalidProgram "recover a a"
 
     it "accepts `summon f` a an expression" $
-        runTestForExpr "summon f" (\(Program _ _ (
+        runTestForExpr "summon f" (\(Program (
             CodeBlock
-                [InitializedDeclaration _ _ _ (EvalFunc (Id "f") [])]
-                _)) -> True)
+                [InstReturnWith (EvalFunc (Id (Token _ (Just "f") _)) [])])) -> True)

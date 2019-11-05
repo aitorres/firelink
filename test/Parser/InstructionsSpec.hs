@@ -3,7 +3,9 @@ module InstructionsSpec where
 import Test.Hspec
 import Grammar
 import Utils
+import Lexer
 
+buildProgram :: String -> String
 buildProgram s = "\
 \ hello ashen one \
 \   traveling somewhere \
@@ -21,22 +23,26 @@ spec = describe "Instructions" $ do
         \   go back \
         \ you died \
 
-        \ farewell ashen one" (\(Program _ _ (CodeBlock _ [InstReturn])) -> True)
+        \ farewell ashen one" (\(Program (CodeBlock [InstReturn])) -> True)
     it "accepts program with only 2+ instruction" $
         runTestForValidProgram "\
         \ hello ashen one \
 
         \ traveling somewhere \
+        \ with \
+        \   var patata of type humanity \
+        \ in your inventory \
+
         \   with orange saponite say @hello world@ \\ \
         \   transpose into patata \
         \ you died \
 
-        \ farewell ashen one" (\(Program _ _ (CodeBlock _ [
+        \ farewell ashen one" (\(Program (CodeBlock [
             InstPrint (StringLit "hello world"),
-            InstRead (Id "patata")])) -> True)
+            InstRead (Id (Token _ (Just "patata") _))])) -> True)
 
     it "accepts assigning as an instruction" $
         runTestForValidProgram (buildProgram "a <<= 1")
-        (\(Program _ _ (CodeBlock _ [
-            InstAsig (Id "a") (IntLit 1)
+        (\(Program (CodeBlock [
+            InstAsig (Id (Token _ (Just "a") _)) (IntLit 1)
         ])) -> True)

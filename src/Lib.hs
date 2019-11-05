@@ -1,8 +1,10 @@
 module Lib
     ( mainFunc
     ) where
+import qualified Control.Monad.RWS as RWS
 import Lexer (Token (..), AlexUserState(..), alexMonadScan, scanTokens, filterComments)
 import Parser (parse)
+import qualified SymTable as ST
 import System.Environment (getArgs)
 import System.IO (openFile, IOMode(..), hGetContents)
 
@@ -21,7 +23,7 @@ mainFunc = do
         case tokens of
             Just validTokens -> do
                 let programTokens = filterComments validTokens
-                let parsedProgram = parse programTokens
-                putStrLn $ show parsedProgram
+                parsedProgram <- RWS.runRWST (parse programTokens) () ST.initialState
+                print parsedProgram
             Nothing ->
                 putStrLn "Fix your lexical mistakes, ashen one."

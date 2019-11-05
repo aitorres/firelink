@@ -24,6 +24,8 @@ dependencies:
 - array
 - split
 - extra
+- mtl
+- containers
 
 library:
   source-dirs: src
@@ -37,6 +39,7 @@ executables:
     main:                Main.hs
     source-dirs:         app
     ghc-options:
+    - -Wall
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
@@ -48,6 +51,7 @@ tests:
     main:                Spec.hs
     source-dirs:         test/Lexer
     ghc-options:
+    - -Wall
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
@@ -59,6 +63,19 @@ tests:
     main:                Spec.hs
     source-dirs:         test/Parser
     ghc-options:
+    - -Wall
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - firelink
+    - hspec
+    - hspec-discover
+  semantic-tests:
+    main:                Spec.hs
+    source-dirs:         test/Semantic
+    ghc-options:
+    - -Wall
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N

@@ -1,72 +1,15 @@
 module Grammar where
 
+import Lexer (Token)
 
-type Declarations = [Declaration]
 type Instructions = [Instruction]
 type Exprs = [Expr]
-type MethodDeclarations = [MethodDeclaration]
-type Methods = [Method]
 type Params = [Expr]
-type AliasList = [Alias]
-type EnumItems = [EnumItem]
 type IfCases = [IfCase]
 type SwitchCases = [SwitchCase]
-type StructItems = [StructItem]
 
 newtype Id
-  = Id String
-  deriving Show
-
-data Alias
-  = Alias Id Type
-  deriving Show
-
-data Declaration
-  = UninitializedDeclaration VarType Id Type
-  | InitializedDeclaration VarType Id Type Expr
-  deriving Show
-
-data Type
-  = BigInt
-  | SmallInt
-  | FloatT
-  | CharT
-  | BoolT
-  | StringType Expr
-  | Array Type Expr
-  | Set Type
-  | Enum EnumItems
-  | Record StructItems
-  | UnionStruct StructItems
-  | Pointer Type
-  | AliasType Id
-  deriving Show
-
-newtype EnumItem
-  = EnumItem Id
-  deriving Show
-
-data StructItem
-  = StructItem Id Type
-  deriving Show
-
-data VarType
-  = Const
-  | Var
-  deriving Show
-
-data MethodDeclaration
-   = MethodDeclaration ParamType Id Type
-   deriving Show
-
-data ParamType
-  = Val
-  | Ref
-  deriving Show
-
-data Method
-  = Function Id MethodDeclarations Type CodeBlock
-  | Procedure Id MethodDeclarations CodeBlock
+  = Id Token
   deriving Show
 
 data Expr
@@ -108,8 +51,8 @@ data Expr
   | SetSize Expr
   deriving Show
 
-data Program
-  = Program AliasList Methods CodeBlock
+newtype Program
+  = Program CodeBlock
   deriving Show
 
 data Instruction
@@ -137,6 +80,16 @@ data SwitchCase
   | DefaultCase CodeBlock
   deriving Show
 
-data CodeBlock
-  = CodeBlock Declarations Instructions
+newtype CodeBlock
+  = CodeBlock Instructions
+  deriving Show
+
+data ArgType = Val | Ref
+  deriving (Show, Eq)
+
+data Type
+  = Simple Token (Maybe Expr)
+  | Compound Token Type (Maybe Expr)
+  | Record Token [(Id, Type)]
+  | Callable (Maybe Type) [(ArgType, Id, Type)]
   deriving Show

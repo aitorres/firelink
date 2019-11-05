@@ -3,7 +3,9 @@ module ForEachLoopStructuresSpec where
 import Test.Hspec
 import Utils
 import Grammar
+import Lexer
 
+buildProgram :: String -> String
 buildProgram c = "\
     \ hello ashen one \
 
@@ -27,7 +29,8 @@ spec = describe "Loops over structures" $ do
         \ traveling somewhere \
         \   with orange saponite say @@ \
         \ you died \
-        \ weaponry repaired") (\(Program _ _ (
-            CodeBlock _ [
-                InstForEach (Id "a") (Id "b") (CodeBlock _ [InstPrint (StringLit "")])
+        \ weaponry repaired") (\(Program (
+            CodeBlock [
+                InstForEach (Id (Token _ (Just "a") _)) (Id (Token _ (Just "b") _))
+                    (CodeBlock [InstPrint (StringLit "")])
                 ])) -> True)

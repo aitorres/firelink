@@ -3,7 +3,9 @@ module BoundedLoopStructuresSpec where
 import Test.Hspec
 import Utils
 import Grammar
+import Lexer
 
+buildProgram :: String -> String
 buildProgram c = "\
     \ hello ashen one \
 
@@ -27,6 +29,6 @@ spec = describe "Bounded loop structures" $ do
         \   traveling somewhere \
         \       with orange saponite say @hello@ \
         \   you died \
-        \ max level reached") (\(Program _ _ (CodeBlock _ [
-            InstFor (Id "aa") (IntLit 2) (IntLit 123) (CodeBlock _ _)
+        \ max level reached") (\(Program (CodeBlock [
+            InstFor (Id (Token _ (Just "aa") _)) (IntLit 2) (IntLit 123) (CodeBlock _)
         ])) -> True)
