@@ -343,9 +343,11 @@ spec = describe "Expressions" $ do
         runTestForExpr "a + b ~> c" (\(Program (
             CodeBlock
                 [InstReturnWith (
-                    Access
-                        (Add (IdExpr (Id (Token _ (Just "a") _))) (IdExpr (Id (Token _ (Just "b") _))))
-                        (Id (Token _ (Just "c") _)))])) -> True)
+                    Add
+                        (IdExpr (Id (Token _ (Just "a") _)))
+                        (Access
+                            (IdExpr (Id (Token _ (Just "b") _)))
+                            (Id (Token _ (Just "c") _))))])) -> True)
 
     it "accepts `(a)` as an expression" $
         runTestForExpr "(a)" (\(Program (
@@ -363,9 +365,11 @@ spec = describe "Expressions" $ do
         runTestForExpr "a+b<$i$>" (\(Program (
             CodeBlock
                 [InstReturnWith (
-                    IndexAccess
-                        (Add (IdExpr (Id (Token _ (Just "a") _))) (IdExpr (Id (Token _ (Just "b") _))))
-                        (IdExpr (Id (Token _ (Just "i") _))))])) -> True)
+                    Add
+                        (IdExpr (Id (Token _ (Just "a") _)))
+                        (IndexAccess
+                            (IdExpr (Id (Token _ (Just "b") _)))
+                            (IdExpr (Id (Token _ (Just "i") _)))))])) -> True)
     it "rejects `a<$$>` as an expression" $
         runTestForInvalidProgram "a<$$>"
 
