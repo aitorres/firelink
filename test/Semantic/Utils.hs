@@ -47,7 +47,7 @@ extractFieldsFromExtra (s@ST.Fields{} : _) = s
 extractFieldsFromExtra (_:ss) = extractFieldsFromExtra ss
 
 extractCodeblockFromExtra :: Extractor
-extractCodeblockFromExtra [] = error "The `extra` array doesn't have any `ParamsFields` item"
+extractCodeblockFromExtra [] = error "The `extra` array doesn't have any `CodeBlock` item"
 extractCodeblockFromExtra (s@ST.CodeBlock{} : _) = s
 extractCodeblockFromExtra (_:ss) = extractCodeblockFromExtra ss
 
@@ -78,8 +78,8 @@ testEntry :: TestFunction ST.Dictionary ()
 testEntry dict expectedEntry extractor predicate = do
     let varName = ST.name expectedEntry
     let scope = ST.scope expectedEntry
-    print dict
-    print expectedEntry
+    -- print dict
+    -- print expectedEntry
     let chain = filter (\d -> ST.scope d == scope ) $ filter (\d -> ST.name d == varName) $ ST.findChain varName dict
     chain `shouldNotSatisfy` null
     let actualEntry = head chain

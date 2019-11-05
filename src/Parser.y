@@ -248,32 +248,38 @@ METHOD
   : FUNC                                                                { [] }
   | PROC                                                                { [] }
 
-FUNC :: { [Int] }
+FUNCPREFIX :: { Maybe G.Id }
+FUNCPREFIX
+  : functionBegin ID METHODPARS functionType TYPE                       {% addFunction (ST.Function,
+                                                                            $2, G.Callable (Just $5) $3) }
+FUNC :: { () }
 FUNC
-  : functionBegin ID METHODPARS functionType TYPE CODEBLOCK functionEnd { [] }
+  : FUNCPREFIX CODEBLOCK functionEnd                                    {% case $1 of
+                                                                            Nothing -> return ()
+                                                                            Just i -> updateCodeBlockOfFun i $2 }
 
 PROC :: { [Int] }
 PROC
   : procedureBegin ID METHODPARS CODEBLOCK procedureEnd                 { [] }
 
-METHODPARS :: { [Int] }
+METHODPARS :: { [ArgDeclaration] }
 METHODPARS
-  : paramRequest PARS                                                   { [] }
+  : paramRequest PARS                                                   { reverse $2 }
   | {- empty -}                                                         { [] }
 
-PARS :: { [Int] }
+PARS :: { [ArgDeclaration] }
 PARS
-  : PARS comma PAR                                                      { [] }
-  | PAR                                                                 { [] }
+  : PARS comma PAR                                                      { $3:$1 }
+  | PAR                                                                 { [$1] }
 
-PAR :: { [Int] }
+PAR :: { ArgDeclaration }
 PAR
-  : PARTYPE ID ofType TYPE                                              { [] }
+  : PARTYPE ID ofType TYPE                                              { ($1, $2, $4) }
 
-PARTYPE :: { [Int] }
+PARTYPE :: { G.ArgType }
 PARTYPE
-  : parVal                                                              { [] }
-  | parRef                                                              { [] }
+  : parVal                                                              { G.Val }
+  | parRef                                                              { G.Ref }
 
 TYPE :: { G.Type }
 TYPE
@@ -394,12 +400,17 @@ PARSLIST :: { G.Params }
 {
 
 type NameDeclaration = (ST.Category, G.Id, G.Type)
+type ArgDeclaration = (G.ArgType, G.Id, G.Type)
 type AliasDeclaration = (G.Id, G.Type)
 type RecordItem = AliasDeclaration
 
-extractFieldsForNewScope :: G.Type -> [RecordItem]
-extractFieldsForNewScope (G.Record _ s) = s
-extractFieldsForNewScope _ = []
+extractFieldsForNewScope :: G.Type -> Maybe [RecordItem]
+extractFieldsForNewScope (G.Record _ s) = Just s
+extractFieldsForNewScope _ = Nothing
+
+extractFunParamsForNewScope :: G.Type -> Maybe [ArgDeclaration]
+extractFunParamsForNewScope (G.Callable _ s) = Just s
+extractFunParamsForNewScope _ = Nothing
 
 parseErrors :: [L.Token] -> ST.ParserMonad a
 parseErrors errors =
@@ -414,16 +425,16 @@ parseErrors errors =
   in  fail msg
 
 addIdsToSymTable :: [NameDeclaration] -> ST.ParserMonad ()
-addIdsToSymTable ids = RWS.mapM_ addIdToSymTable ids
+addIdsToSymTable ids = RWS.mapM_ (addIdToSymTable Nothing) ids
 
-addIdToSymTable :: NameDeclaration -> ST.ParserMonad ()
-addIdToSymTable d@(c, (G.Id tk@(L.Token at (Just idName) _)), t) = do
+addIdToSymTable :: Maybe Int -> NameDeclaration -> ST.ParserMonad ()
+addIdToSymTable mi d@(c, (G.Id tk@(L.Token at (Just idName) _)), t) = do
   maybeIdEntry <- ST.dictLookup idName
   maybeTypeEntry <- findTypeOnEntryTable t
   (_, (currScope:_), _) <- RWS.get
   case maybeIdEntry of
     -- The name doesn't exists on the table, we just add it
-    Nothing -> insertIdToEntry t
+    Nothing -> insertIdToEntry mi t
       ST.DictionaryEntry
         { ST.name = idName
         , ST.category = c
@@ -436,7 +447,7 @@ addIdToSymTable d@(c, (G.Id tk@(L.Token at (Just idName) _)), t) = do
     Just entry -> do
       let scope = ST.scope entry
       if currScope /= scope
-      then insertIdToEntry t ST.DictionaryEntry
+      then insertIdToEntry mi t ST.DictionaryEntry
         { ST.name = idName
         , ST.category = c
         , ST.scope = currScope
@@ -446,27 +457,64 @@ addIdToSymTable d@(c, (G.Id tk@(L.Token at (Just idName) _)), t) = do
       else RWS.tell $ [ST.SemanticError ("Name " ++ idName ++ " was already declared on this scope") tk]
 
 
-insertIdToEntry :: G.Type -> ST.DictionaryEntry -> ST.ParserMonad ()
-insertIdToEntry t entry = do
+insertIdToEntry :: Maybe Int -> G.Type -> ST.DictionaryEntry -> ST.ParserMonad ()
+insertIdToEntry mi t entry = do
   ex <- buildExtraForType t
-  ST.addEntry entry{ST.extra = ex}
+  let pos = (case mi of
+              Nothing -> []
+              Just i -> [ST.ArgPosition i])
+  ST.addEntry entry{ST.extra = pos ++ ex}
   -- To add the record params to the dictionary
   case extractFieldsForNewScope t of
-    [] -> return ()
-    s ->  do
+    Nothing -> return ()
+    Just s ->  do
       ST.enterScope
       addIdsToSymTable $ map (\(a, b) -> (ST.RecordItem, a, b)) s
       ST.exitScope
+  case extractFunParamsForNewScope t of
+    -- If it is nothing then this is not a function
+    Nothing -> return ()
+    Just s -> do
+      ST.enterScope
+      RWS.mapM_ (\(i, n) -> addIdToSymTable (Just i) n) $ zip [0..] $
+        map (\(argType, i, t) -> (if argType == G.Val
+                             then ST.ValueParam
+                             else ST.RefParam, i, t)) s
 
 checkIdAvailability :: G.Id -> ST.ParserMonad ()
 checkIdAvailability (G.Id tk@(L.Token _ (Just idName) pn)) = do
   maybeEntry <- ST.dictLookup idName
   case maybeEntry of
     Nothing -> do
-      RWS.tell $ [ST.SemanticError ("Name " ++ idName ++ " is not available on this scope") tk]
+      RWS.tell [ST.SemanticError ("Name " ++ idName ++ " is not available on this scope") tk]
       return ()
     _ -> do
       return ()
+
+addFunction :: NameDeclaration -> ST.ParserMonad (Maybe G.Id)
+addFunction d@(_, i@(G.Id tk@(L.Token _ (Just idName) _)), _) = do
+  maybeEntry <- ST.dictLookup idName
+  case maybeEntry of
+    Nothing -> do
+      addIdToSymTable Nothing d
+      return $ Just i
+    Just entry -> do
+      (_, (currScope:_), _) <- RWS.get
+      if ST.scope entry == currScope
+      then do
+        RWS.tell [ST.SemanticError ("Name " ++ idName ++ " was already declared on this scope") tk]
+        return Nothing
+      else do
+        addIdToSymTable Nothing d
+        return $ Just i
+
+updateCodeBlockOfFun :: G.Id -> G.CodeBlock -> ST.ParserMonad ()
+updateCodeBlockOfFun (G.Id tk@(L.Token _ (Just idName) _)) code = do
+  (_, (currScope:_), _) <- RWS.get
+  let f x = (if and [ST.scope x == currScope, ST.name x == idName]
+            then let ST.DictionaryEntry{ST.extra=e} = x in x{ST.extra = (ST.CodeBlock code) : e}
+            else x)
+  ST.updateEntry (\ds -> Just $ map f ds) idName
 
 findTypeOnEntryTable :: G.Type -> ST.ParserMonad (Maybe ST.DictionaryEntry)
 
@@ -486,6 +534,8 @@ findTypeOnEntryTable (G.Compound tk _ _) = do
 -- For record alike data types (unions and structs), this extracts their constructor
 findTypeOnEntryTable (G.Record tk _) = ST.dictLookup $ ST.tokensToEntryName tk
 
+-- For functions
+findTypeOnEntryTable (G.Callable (Just t) _) = findTypeOnEntryTable t
 
 buildExtraForType :: G.Type -> ST.ParserMonad [ST.Extra]
 
@@ -515,9 +565,17 @@ buildExtraForType t@(G.Compound _ tt@(G.Compound _ _ _) maybeExpr) = do
     Just e -> [ST.CompoundRec constructor e extra']
     Nothing -> [ST.Recursive constructor extra']
 
-buildExtraForType t@(G.Record tk _) = do
+buildExtraForType t@(G.Record _ _) = do
   (_, _, currScope) <- RWS.get
   return [ST.Fields $ currScope + 1]
+
+buildExtraForType t@(G.Callable _ []) = return [ST.EmptyFunction]
+
+buildExtraForType t@(G.Callable _ _) = do
+  (_, _, currScope) <- RWS.get
+  return [ST.Fields $ currScope + 1]
+
+
 -- For anything else
 buildExtraForType _ = return []
 }

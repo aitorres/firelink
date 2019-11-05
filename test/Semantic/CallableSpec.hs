@@ -274,8 +274,8 @@ spec = do
             \after this return to your world\n\
 
 
-            \ traveling somewhere \
-            \ with orange saponite say summon fun granting 1, 2, 3 \
+            \ traveling somewhere\n\
+            \ with orange saponite say summon fun\n\
             \ you died \
             \ farewell ashen one"
             (_, _, errors) <- U.extractSymTable p
@@ -294,7 +294,7 @@ spec = do
 
 
             \ traveling somewhere\n\
-            \   with orange saponite say summon fun2 granting 1, 2, 3\n\
+            \   with orange saponite say summon fun2\n\
             \ you died \
             \ farewell ashen one"
             (_, _, errors) <- U.extractSymTable p

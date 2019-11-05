@@ -107,6 +107,11 @@ addEntry d@DictionaryEntry{name=n} = do
     let chains = findChain n dict
     RWS.put (Map.insert n (d:chains) dict, st, cs)
 
+updateEntry :: (DictionaryEntries -> Maybe DictionaryEntries) -> String -> ParserMonad ()
+updateEntry f s = do
+    (dict, st, cs) <- RWS.get
+    RWS.put (Map.update f s dict, st, cs)
+
 enterScope :: ParserMonad ()
 enterScope = do
     (dict, st, cs) <- RWS.get
@@ -142,6 +147,8 @@ bezel :: String
 bezel = "bezel"
 link :: String
 link = "link"
+void :: String
+void = "void"
 
 initialState :: SymTable
 initialState = (Map.fromList l, [1, 0], 1)
@@ -156,6 +163,7 @@ initialState = (Map.fromList l, [1, 0], 1)
             , (arrowTo, [DictionaryEntry arrowTo Constructor 0 Nothing []])
             , (bezel, [DictionaryEntry bezel Constructor 0 Nothing []])
             , (link, [DictionaryEntry link Constructor 0 Nothing []])
+            , (void, [DictionaryEntry void Type 0 Nothing []])
             ]
 
 tokensToEntryName :: L.Token -> String
