@@ -169,8 +169,11 @@ PROGRAM
 
 ALIASES :: { () }
 ALIASES
-  : aliasListBegin ALIASL aliasListEnd                                  {% addIdsToSymTable $ reverse $2 }
+  : ALIASLISTBEGIN ALIASL aliasListEnd                                  {% addIdsToSymTable $ reverse $2 }
   | {- empty -}                                                         { () }
+
+ALIASLISTBEGIN :: { () }
+ALIASLISTBEGIN : aliasListBegin                                         {% ST.enterScope }
 
 ALIASL :: { [NameDeclaration] }
 ALIASL
@@ -316,12 +319,18 @@ ID
 
 CODEBLOCK :: { G.CodeBlock }
 CODEBLOCK
-  : instructionsBegin DECLARS INSTRL instructionsEnd                    { G.CodeBlock $ reverse $3 }
-  | instructionsBegin INSTRL instructionsEnd                            { G.CodeBlock $ reverse $2 }
+  : INSTBEGIN DECLARS INSTRL INSTEND                                    { G.CodeBlock $ reverse $3 }
+  | INSTBEGIN INSTRL INSTEND                                            { G.CodeBlock $ reverse $2 }
+
+INSTBEGIN :: { () }
+INSTBEGIN : instructionsBegin                                           {% ST.enterScope }
+
+INSTEND :: { () }
+INSTEND : instructionsEnd                                               {% ST.exitScope }
 
 DECLARS :: { () }
 DECLARS
-  : with DECLARSL declarend                                             {% addIdsToSymTable (reverse $2) >> ST.enterScope }
+  : with DECLARSL declarend                                             {% addIdsToSymTable (reverse $2) }
 
 DECLARSL :: { [NameDeclaration] }
 DECLARSL
