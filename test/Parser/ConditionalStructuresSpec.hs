@@ -89,7 +89,7 @@ spec = do
         \ hello ashen one \
 
         \ traveling somewhere \
-        \   enter dungeon with a \
+        \   enter dungeon with a: \
         \   " ++ c ++ " \
         \   dungeon exited \
         \ you died \

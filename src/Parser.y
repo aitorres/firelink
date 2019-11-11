@@ -14,14 +14,18 @@ import qualified Control.Monad.RWS as RWS
 %error                                                                  { parseErrors }
 %monad                                                                  { ST.ParserMonad }
 
-%left LVALUE
-%nonassoc lt lte gt gte size memAccessor
-%right arrOpen arrClose
 
-%left accessor
+%nonassoc lt lte gt gte size memAccessor
+%left LVALUE
+%right arrOpen
+%left arrClose
+
+%left ARRCLOSE
+
 %left eq neq
 %left plus minus
 %left mult div mod
+%left NEG
 
 %left and or
 
@@ -30,7 +34,9 @@ import qualified Control.Monad.RWS as RWS
 %left union intersect
 
 
-%left not asciiOf
+%left asciiOf
+%right not
+%left accessor
 
 
 %token
@@ -212,10 +218,8 @@ EXPR
   | setOpen EXPRL setClose                                              { G.SetLit $ reverse $2 }
   | unknownLit                                                          { G.UndiscoveredLit }
   | parensOpen EXPR parensClosed                                        { $2 }
-  | EXPR accessor ID                                                    { G.Access $1 $3 }
-  | EXPR arrOpen EXPR arrClose                                          { G.IndexAccess $1 $3 }
   | memAccessor EXPR                                                    { G.MemAccess $2 }
-  | minus EXPR                                                          { G.Negative $2 }
+  | minus EXPR %prec NEG                                                { G.Negative $2 }
   | not EXPR                                                            { G.Not $2 }
   | asciiOf EXPR                                                        { G.AsciiOf $2 }
   | size EXPR                                                           { G.SetSize $2 }
@@ -394,8 +398,8 @@ INSTR
   | whileBegin EXPR covenantIsActive colon CODEBLOCK whileEnd           { G.InstWhile $2 $5 }
   | ifBegin IFCASES ELSECASE ifEnd                                      { G.InstIf (reverse ($3 : $2)) }
   | ifBegin IFCASES ifEnd                                               { G.InstIf (reverse $2) }
-  | switchBegin EXPR SWITCHCASES DEFAULTCASE switchEnd                  { G.InstSwitch $2 (reverse ($4 : $3)) }
-  | switchBegin EXPR SWITCHCASES switchEnd                              { G.InstSwitch $2 (reverse $3) }
+  | switchBegin EXPR colon SWITCHCASES DEFAULTCASE switchEnd            { G.InstSwitch $2 (reverse ($5 : $4)) }
+  | switchBegin EXPR colon SWITCHCASES switchEnd                        { G.InstSwitch $2 (reverse $4) }
   | forBegin ID with EXPR souls untilLevel EXPR CODEBLOCK forEnd        { G.InstFor $2 $4 $7 $8 }
   | forEachBegin ID withTitaniteFrom EXPR CODEBLOCK forEachEnd          { G.InstForEach $2 $4 $5 }
 

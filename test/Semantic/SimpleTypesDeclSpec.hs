@@ -289,7 +289,7 @@ spec = do
             \with \
             \   var x of type humanity \
             \in your inventory \
-            \   enter dungeon with x\
+            \   enter dungeon with x:\
             \      undiscovered:\
             \       traveling somewhere\
             \           go back\
@@ -308,7 +308,7 @@ spec = do
             \with\n\
             \   var x of type humanity\n\
             \in your inventory \n\
-            \   enter dungeon with y\n\
+            \   enter dungeon with y:\n\
             \      undiscovered:\
             \       traveling somewhere\
             \           go back\
