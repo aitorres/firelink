@@ -14,6 +14,7 @@ import qualified Control.Monad.RWS as RWS
 %error                                                                  { parseErrors }
 %monad                                                                  { ST.ParserMonad }
 
+%left LVALUE
 %nonassoc lt lte gt gte size memAccessor
 %right arrOpen arrClose
 
@@ -190,6 +191,14 @@ ALIAS :: { NameDeclaration }
 ALIAS
   : alias ID TYPE                                                       { (ST.Type, $2, $3) }
 
+LVALUE :: { G.Expr }
+LVALUE
+  : ID                                                                  {% do
+                                                                            checkIdAvailability $1
+                                                                            return $ G.IdExpr $1 }
+  | LVALUE accessor ID                                                  { G.Access $1 $3 }
+  | LVALUE arrOpen EXPR arrClose                                        { G.IndexAccess $1 $3 }
+
 EXPR :: { G.Expr }
 EXPR
   : intLit                                                              { G.IntLit $ (read (fromJust $1) :: Int) }
@@ -228,9 +237,7 @@ EXPR
   | EXPR intersect EXPR                                                 { G.SetIntersect $1 $3 }
   | EXPR diff EXPR                                                      { G.SetDiff $1 $3 }
   | FUNCALL                                                             { G.EvalFunc (fst $1) (snd $1) }
-  | ID                                                                  {% do
-                                                                            checkIdAvailability $1
-                                                                            return $ G.IdExpr $1 }
+  | LVALUE %prec LVALUE                                                 { $1 }
 
 EXPRL :: { G.Exprs }
 EXPRL
@@ -375,7 +382,7 @@ INSTRL
 
 INSTR :: { G.Instruction }
 INSTR
-  : ID asig EXPR                                                        { G.InstAsig $1 $3 }
+  : LVALUE asig EXPR                                                    { G.InstAsig $1 $3 }
   | cast ID PROCPARS                                                    {% do
                                                                           checkIdAvailability $2
                                                                           return $ G.InstCallProc $2 $3 }
@@ -383,14 +390,14 @@ INSTR
   | return                                                              { G.InstReturn }
   | returnWith EXPR                                                     { G.InstReturnWith $2 }
   | print EXPR                                                          { G.InstPrint $2 }
-  | read ID                                                             { G.InstRead $2 }
+  | read LVALUE                                                         { G.InstRead $2 }
   | whileBegin EXPR covenantIsActive colon CODEBLOCK whileEnd           { G.InstWhile $2 $5 }
   | ifBegin IFCASES ELSECASE ifEnd                                      { G.InstIf (reverse ($3 : $2)) }
   | ifBegin IFCASES ifEnd                                               { G.InstIf (reverse $2) }
-  | switchBegin ID SWITCHCASES DEFAULTCASE switchEnd                    { G.InstSwitch $2 (reverse ($4 : $3)) }
-  | switchBegin ID SWITCHCASES switchEnd                                { G.InstSwitch $2 (reverse $3) }
+  | switchBegin EXPR SWITCHCASES DEFAULTCASE switchEnd                  { G.InstSwitch $2 (reverse ($4 : $3)) }
+  | switchBegin EXPR SWITCHCASES switchEnd                              { G.InstSwitch $2 (reverse $3) }
   | forBegin ID with EXPR souls untilLevel EXPR CODEBLOCK forEnd        { G.InstFor $2 $4 $7 $8 }
-  | forEachBegin ID withTitaniteFrom ID CODEBLOCK forEachEnd            { G.InstForEach $2 $4 $5 }
+  | forEachBegin ID withTitaniteFrom EXPR CODEBLOCK forEachEnd          { G.InstForEach $2 $4 $5 }
 
 FUNCALL :: { (G.Id, G.Params) }
 FUNCALL

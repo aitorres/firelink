@@ -196,7 +196,7 @@ spec = do
             \ you died \
 
             \ farewell ashen one"
-            (_, (_, _, _), errors) <- U.extractSymTable p
+            errors <- U.extractErrors p
             errors `shouldSatisfy` null
         it "Allows to use already declared variables that were declared in another scope in the same scope chain" $ do
             let p = "hello ashen one\n\
@@ -215,8 +215,116 @@ spec = do
             \ you died\n\
 
             \ farewell ashen one\n"
-            (_, (_, _, _), errors) <- U.extractSymTable p
+            errors <- U.extractErrors p
             errors `shouldSatisfy` null
+        it "Allows to use already declared variables on assignments" $ do
+            let p = "hello ashen one \
+
+            \ traveling somewhere \
+
+            \ with \
+            \   var x of type humanity \
+            \ in your inventory \
+            \   x <<= 1 \
+            \ you died \
+
+            \ farewell ashen one"
+            errors <- U.extractErrors p
+            errors `shouldSatisfy` null
+        it "Rejects to use not declared variables on assignments" $ do
+            let p = "hello ashen one\n\
+
+            \traveling somewhere\n\
+
+            \with\n\
+            \   var x of type humanity\n\
+            \in your inventory \n\
+            \   y <<= 1\n\
+            \you died\n\
+
+            \farewell ashen one"
+            errors <- U.extractErrors p
+            errors `shouldNotSatisfy` null
+            let ST.SemanticError _ (L.Token _ (Just varName) pn) = head errors
+            varName `shouldBe` "y"
+            L.row pn `shouldBe` 6
+            L.col pn `shouldBe` 4
+        it "Allows to use already declared variables on IO input" $ do
+            let p = "hello ashen one \
+
+            \ traveling somewhere \
+
+            \ with \
+            \   var x of type humanity \
+            \ in your inventory \
+            \   transpose into x \
+            \ you died \
+
+            \ farewell ashen one"
+            errors <- U.extractErrors p
+            errors `shouldSatisfy` null
+        it "Rejects to use not declared variables on IO input" $ do
+            let p = "hello ashen one\n\
+
+            \traveling somewhere\n\
+
+            \with\n\
+            \   var x of type humanity\n\
+            \in your inventory \n\
+            \   transpose into y\n\
+            \you died\n\
+
+            \farewell ashen one"
+            errors <- U.extractErrors p
+            errors `shouldNotSatisfy` null
+            let ST.SemanticError _ (L.Token _ (Just varName) pn) = head errors
+            varName `shouldBe` "y"
+            L.row pn `shouldBe` 6
+            L.col pn `shouldBe` 19
+        it "Allows to use already declared variables on switch statements" $ do
+            let p = "hello ashen one \
+
+            \ traveling somewhere \
+
+            \with \
+            \   var x of type humanity \
+            \in your inventory \
+            \   enter dungeon with x\
+            \      undiscovered:\
+            \       traveling somewhere\
+            \           go back\
+            \       you died\
+            \   dungeon exited \
+            \ you died \
+
+            \ farewell ashen one"
+            errors <- U.extractErrors p
+            errors `shouldSatisfy` null
+        it "Rejects to use not declared variables on switch statements" $ do
+            let p = "hello ashen one\n\
+
+            \traveling somewhere\n\
+
+            \with\n\
+            \   var x of type humanity\n\
+            \in your inventory \n\
+            \   enter dungeon with y\n\
+            \      undiscovered:\
+            \       traveling somewhere\
+            \           go back\
+            \       you died\
+            \   dungeon exited \
+            \you died\n\
+
+            \farewell ashen one"
+            errors <- U.extractErrors p
+            errors `shouldNotSatisfy` null
+            let ST.SemanticError _ (L.Token _ (Just varName) pn) = head errors
+            varName `shouldBe` "y"
+            L.row pn `shouldBe` 6
+            L.col pn `shouldBe` 23
+
+
         it "Rejects to use not declared variables in any scope" $ do
             let p = "hello ashen one\n\
 
@@ -229,7 +337,7 @@ spec = do
             \ you died \
 
             \ farewell ashen one"
-            (_, (_, _, _), errors) <- U.extractSymTable p
+            errors <- U.extractErrors p
             errors `shouldNotSatisfy` null
             let ST.SemanticError _ (L.Token _ (Just varName) pn) = head errors
             varName `shouldBe` "y"
