@@ -2,11 +2,8 @@
 module Lexer (
     alexMonadScan, scanTokens, filterComments,
     AbstractToken (..), Token (..), AlexUserState(..), AlexPosn (..),
-    Tokens, col, row
+    Tokens, col, row, LexError (..)
     ) where
-import Text.Printf (printf)
-import Data.List.Split (splitOn)
-import Data.List (intercalate)
 import Data.List.Extra (replace)
 
 }
@@ -329,37 +326,13 @@ addErrorToState lexError = Alex $ \s@AlexState{alex_ust=ust}
                         _ -> LexFailure [lexError])
     }, ())
 
-formatLexError :: String -> LexError -> String
-formatLexError fullStr (LexError (AlexPn offset r c, _, _, s)) =
-    printf "\x1b[1m\x1b[31mYOU DIED!!\x1b[0m Lexical error at line \x1b[1m\x1b[31m%d\x1b[0m, column \x1b[1m\x1b[31m%d\x1b[0m:\n%s\n" r c fs
-    where
-        allLines = splitOn "\n" fullStr
-        maxSize = foldl max (-1) $ map length allLines
-        buildRuler = flip replicate '~'
-        rule = buildRuler maxSize ++ "\n"
-        relevantLines = drop (r-1) allLines
-        firstLine = head relevantLines ++ "\n"
-        restLines = take 4 $ tail relevantLines
-        errorRuler = "\x1b[1m\x1b[31m" ++ (buildRuler (c-1)) ++ "^" ++ buildRuler (maxSize - c) ++ "\x1b[0m\n"
-        fs = firstLine ++ errorRuler ++ (intercalate "\n" restLines)
-
-
-printLexErrors :: String -> [LexError] -> IO ()
-printLexErrors str [] = return ()
-printLexErrors str (error:xs) = do
-    putStrLn $ formatLexError str error
-    printLexErrors str xs
-
-scanTokens :: String -> IO (Maybe Tokens)
+scanTokens :: String -> Either LexErrors Tokens
 scanTokens str = case runAlex str alexMonadScan of
     Left e -> do
-        putStrLn $ "Alex error " ++ show e
-        return Nothing
+        error $ "Alex error " ++ show e
     Right userState -> case userState of
-        LexSuccess tokens -> return $ Just $ map postProcess $ reverse tokens
-        LexFailure errors -> do
-            printLexErrors str $ reverse errors
-            return Nothing
+        LexSuccess tokens -> Right $ filterComments $ map postProcess $ reverse tokens
+        LexFailure errors -> Left $ reverse errors
 
 removeFirstAndLast :: [a] -> [a]
 removeFirstAndLast = reverse . tail . reverse . tail
