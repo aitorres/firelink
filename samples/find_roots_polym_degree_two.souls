@@ -88,8 +88,7 @@ hello ashen one
         traveling somewhere
           with orange saponite say @x1: @ \
           with orange saponite say x1 \
-          with orange saponite say @\n@ \
-          with orange saponite say @x2: @ \
+          with orange saponite say @\n@ >-< @x2: @ \
           with orange saponite say x2 \
           with orange saponite say @\n@
         you died
