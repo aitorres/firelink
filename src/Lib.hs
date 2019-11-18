@@ -11,15 +11,7 @@ import qualified Data.Map as Map
 import Data.List.Split (splitOn)
 import Data.List (intercalate, groupBy)
 import Text.Printf (printf)
-
-red :: String
-red = "\x1b[31m"
-
-bold :: String
-bold = "\x1b[1m"
-
-nocolor :: String
-nocolor = "\x1b[0m"
+import Utils
 
 prettyPrintSymTable :: ST.SymTable -> IO ()
 prettyPrintSymTable (dict, _, _) = do
@@ -30,22 +22,28 @@ printKey :: (String, [ST.DictionaryEntry]) -> IO ()
 printKey (name, entries) =
     printf "Entries for name \"%s\"" name
 
-groupTokensByRowNumber :: L.Tokens -> [L.Tokens]
-groupTokensByRowNumber = groupBy (\(L.Token _ _ pn) (L.Token _ _ pn') ->
-    L.row pn == L.row pn')
+groupTokensByRowNumber :: [Either L.LexError L.Token] -> [[Either L.LexError L.Token]]
+groupTokensByRowNumber = groupBy (\e e' -> getRow e == getRow e')
+    where
+        getRow e = case e of
+                    Left (L.LexError (pn, _)) -> L.row pn
+                    Right (L.Token _ _ pn) -> L.row pn
 
-lengthOfLine :: L.Tokens -> Int
-lengthOfLine tokens = let tk@(L.Token aToken maybeString pn) = last tokens in
-        L.col pn + length (show tk)
+lengthOfLine :: [Either L.LexError L.Token] -> Int
+lengthOfLine tokens = case last tokens of
+    Right tk@(L.Token aToken maybeString pn) -> L.col pn + length (show tk)
+    Left (L.LexError (pn, s)) -> L.col pn + length s
 
-joinTokens :: Int -> L.Tokens -> String
+joinTokens :: Int -> [Either L.LexError L.Token] -> String
 joinTokens _ [] = ""
-joinTokens c (tk@(L.Token _ _ pn) : tks) =
-    replicate (L.col pn - c) ' ' ++ show tk ++ joinTokens (L.col pn + length (show tk)) tks
+joinTokens c (e:tks) = case e of
+    Right tk@(L.Token _ _ pn) ->
+        replicate (L.col pn - c) ' ' ++ show tk ++ joinTokens (L.col pn + length (show tk)) tks
+    Left (L.LexError (pn, s)) ->
+        replicate (L.col pn - c) ' ' ++ s ++ joinTokens (L.col pn + length s) tks
 
-
-formatLexError :: (L.LexError, L.Tokens) -> String
-formatLexError (L.LexError (L.AlexPn offset r c, _, _, s), tokens) =
+formatLexError :: (L.LexError, [Either L.LexError L.Token]) -> String
+formatLexError (L.LexError (L.AlexPn _ r c, _), tokens) =
     printf "%s%sYOU DIED!!%s Lexical error at line %s%s%d%s, column %s%s%d%s:\n%s\n"
         red bold nocolor
         red bold r nocolor
@@ -58,29 +56,41 @@ formatLexError (L.LexError (L.AlexPn offset r c, _, _, s), tokens) =
         rule = buildRuler maxSize ++ "\n"
         firstLine = joinTokens 0 (head tokensByRowNumber) ++ "\n"
         restLines = map (joinTokens 0) $ tail tokensByRowNumber
-        errorRuler = bold ++ red ++ buildRuler (c-1) ++ "^" ++ buildRuler (maxSize - c) ++ nocolor ++ "\n"
+        errorRuler = bold ++ red ++ buildRuler c ++ "^" ++ buildRuler (maxSize - c) ++ nocolor ++ "\n"
         fs = firstLine ++ errorRuler ++ intercalate "\n" restLines
 
 
-printLexErrors :: [(L.LexError, L.Tokens)] -> IO ()
+printLexErrors :: [(L.LexError, [Either L.LexError L.Token])] -> IO ()
 printLexErrors [] = return ()
 printLexErrors (errorPair:xs) = do
     putStrLn $ formatLexError errorPair
+    -- print errorPair
+    let (_, tokens) = errorPair
+    -- print $ groupTokensByRowNumber tokens
     printLexErrors xs
 
 groupLexErrorWithTokenContext :: [L.LexError] -> L.Tokens -> [(L.LexError, L.Tokens)]
 groupLexErrorWithTokenContext [] _ = []
-groupLexErrorWithTokenContext (error@(L.LexError (pn, _, _, _)):errors) tokens =
+groupLexErrorWithTokenContext (error@(L.LexError (pn, _)):errors) tokens =
     (error, tks) : groupLexErrorWithTokenContext errors tokens
     where
         tail = dropWhile (\(L.Token _ _ pn') -> L.row pn /= L.row pn') tokens
         tks = takeWhile (\(L.Token _ _ pn') -> L.row pn' - L.row pn <= 4) tail
 
+insertLexErrorOnContext :: L.LexError -> L.Tokens -> [Either L.LexError L.Token]
+insertLexErrorOnContext l [] = [Left l]
+insertLexErrorOnContext error@(L.LexError (pn, _)) (tk@(L.Token _ _ pn') : tks) =
+    if (L.row pn' >= L.row pn) && (L.col pn' >= L.col pn)
+    then Left error : Right tk : map Right tks
+    else Right tk : insertLexErrorOnContext error tks
+
 lexer :: String -> IO ()
 lexer contents = do
     let (errors, tokens) = L.scanTokens contents
     if not $ null errors then do
-        printLexErrors $ groupLexErrorWithTokenContext errors tokens
+        printLexErrors
+            $ map (\(err, tks) -> (err, insertLexErrorOnContext err tks))
+            $ groupLexErrorWithTokenContext errors tokens
         putStrLn "Fix your lexical mistakes, ashen one."
     else parserAndSemantic tokens
 

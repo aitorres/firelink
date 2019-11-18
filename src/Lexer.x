@@ -5,7 +5,7 @@ module Lexer (
     Tokens, col, row, LexError (..)
     ) where
 import Data.List.Extra (replace)
-
+import qualified Utils as U
 }
 %wrapper "monadUserState"
 
@@ -174,8 +174,8 @@ makeToken token (alexPosn, _, _, str) len = do
     alexMonadScan
 
 throwLexError :: AlexAction AlexUserState
-throwLexError alexInput int = do
-    addErrorToState $ LexError alexInput
+throwLexError (alexPosn, _, _, str) len = do
+    addErrorToState $ LexError (alexPosn, take len str)
     alexMonadScan
 
     -- The token type:
@@ -387,11 +387,11 @@ data Token = Token AbstractToken -- Token perse
     deriving (Eq)
 
 instance Show Token where
-    show (Token aToken s _) = show aToken ++ s
+    show (Token aToken s pn) = show aToken ++ s ++ nocolor
 
 type Tokens = [Token]
 
-data LexError = LexError AlexInput
+data LexError = LexError (AlexPosn, String)
     deriving Show
 
 type LexErrors = [LexError]
