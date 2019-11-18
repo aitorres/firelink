@@ -12,14 +12,31 @@ import Data.List.Split (splitOn)
 import Data.List (intercalate)
 import Text.Printf (printf)
 
--- prettyPrintSymTable :: ST.SymTable -> IO ()
--- prettyPrintSymTable (dict, _, _) = do
---     let dictList = Map.toList dict
---     mapM_ 
+red :: String
+red = "\x1b[31m"
+
+bold :: String
+bold = "\x1b[1m"
+
+nocolor :: String
+nocolor = "\x1b[0m"
+
+prettyPrintSymTable :: ST.SymTable -> IO ()
+prettyPrintSymTable (dict, _, _) = do
+    let dictList = Map.toList dict
+    mapM_ printKey dictList
+
+printKey :: (String, [ST.DictionaryEntry]) -> IO ()
+printKey (name, entries) =
+    printf "Entries for name \"%s\"" name
 
 formatLexError :: String -> L.LexError -> String
 formatLexError fullStr (L.LexError (L.AlexPn offset r c, _, _, s)) =
-    printf "\x1b[1m\x1b[31mYOU DIED!!\x1b[0m Lexical error at line \x1b[1m\x1b[31m%d\x1b[0m, column \x1b[1m\x1b[31m%d\x1b[0m:\n%s\n" r c fs
+    printf "%s%sYOU DIED!!%s Lexical error at line %s%s%d%s, column %s%s%d%s:\n%s\n"
+        red bold nocolor
+        red bold r nocolor
+        red bold c nocolor
+        fs
     where
         allLines = splitOn "\n" fullStr
         maxSize = foldl max (-1) $ map length allLines
@@ -28,7 +45,7 @@ formatLexError fullStr (L.LexError (L.AlexPn offset r c, _, _, s)) =
         relevantLines = drop (r-1) allLines
         firstLine = head relevantLines ++ "\n"
         restLines = take 4 $ tail relevantLines
-        errorRuler = "\x1b[1m\x1b[31m" ++ buildRuler (c-1) ++ "^" ++ buildRuler (maxSize - c) ++ "\x1b[0m\n"
+        errorRuler = bold ++ red ++ buildRuler (c-1) ++ "^" ++ buildRuler (maxSize - c) ++ nocolor ++ "\n"
         fs = firstLine ++ errorRuler ++ intercalate "\n" restLines
 
 
