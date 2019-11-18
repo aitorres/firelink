@@ -436,7 +436,9 @@ scanTokens str = case runAlex str alexMonadScan of
     Left e -> do
         error $ "Alex error " ++ show e
     Right userState ->
-        let LexerResult errors tokens = userState in (errors, tokens)
+        let LexerResult errors tokens = userState in (
+            reverse errors,
+            filterComments $ map postProcess $ reverse tokens)
 
 removeFirstAndLast :: [a] -> [a]
 removeFirstAndLast = reverse . tail . reverse . tail

@@ -9,8 +9,7 @@ spec = describe "Lexer" $ do
   it "accepts `--` as a valid token for comments" $ do
     let x = "--"
     let ([], toks) = scanTokens x
-    let atok = getAbstractToken $ head toks
-    atok `shouldBe` TkComment
+    toks `shouldSatisfy` null
 
   it "accepts `hello ashen one` as a valid token" $ do
     let x = "hello ashen one"
