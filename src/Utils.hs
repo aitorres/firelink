@@ -9,3 +9,8 @@ bold = "\x1b[1m"
 nocolor :: String
 nocolor = "\x1b[0m"
 
+magenta :: String
+magenta = "\x1b[35m"
+
+blue :: String
+blue = "\x1b[94m"
