@@ -276,7 +276,113 @@ data AbstractToken = TkId | TkConst | TkVar | TkOfType | TkAsig
     | TkParensOpen | TkParensClosed
     -- Unary operators
     | TkNot
-    deriving (Eq, Show)
+    deriving (Eq)
+
+instance Show AbstractToken where
+    show TkConst = "const"
+    show TkVar = "var"
+    show TkOfType = "of type"
+    show TkAsig = "<<="
+    show TkBigInt = "humanity"
+    show TkSmallInt = "small humanity"
+    show TkBool = "bonfire"
+    show TkLit = "lit"
+    show TkUnlit = "unlit"
+    show TkUndiscovered = "undiscovered"
+    show TkFloat = "hollow"
+    show TkChar = "sign"
+    show TkAsciiOf = "ascii of"
+    show TkString = ">-miracle"
+    show TkLteLit = "<"
+    show TkArray = ">-chest"
+    show TkArrayOpen = "<$"
+    show TkArrayClose = "$>"
+    show TkSize = "size"
+    show TkSet = "armor"
+    show TkSetOpen = "{$"
+    show TkSetClose = "$}"
+    show TkUnion = "union"
+    show TkIntersect = "intersect"
+    show TkDiff = "diff"
+    show TkEnum = "titanite"
+    show TkBraceOpen = "{"
+    show TkBraceClosed = "}"
+    show TkComma = ","
+    show TkAccessor = "~>"
+    show TkRecord = "bezel"
+    show TkUnionStruct = "link"
+    show TkNull = "abyss"
+    show TkPointer = "pointer to"
+    show TkRequestMemory = "aim a"
+    show TkAccessMemory = "throw a"
+    show TkFreeMemory = "recover a"
+    show TkAlias = "knight"
+    show TkAliasListBegin = "requiring help of"
+    show TkAliasListEnd = "help received"
+    show TkProgramBegin = "hello ashen one"
+    show TkProgramEnd = "farewell ashen one"
+    show TkDeclarationEnd = "in your inventory"
+    show TkInstructionBegin = "traveling somewhere"
+    show TkInstructionEnd = "you died"
+
+    show TkSeq = "\\"
+    show TkInvocation = "invocation"
+    show TkRequesting = "requesting"
+
+    show TkInvocationType = "with skill of type"
+
+    show TkInvocationParsEnd = "to the knight"
+
+    show TkInvocationEnd = "after this return to your world"
+
+    show TkVal = "val"
+    show TkRef = "ref"
+    show TkReturn = "go back"
+    show TkSummon = "summon"
+    show TkGranting = "granting"
+    show TkSpell = "spell"
+    show TkSpellEnd = "ashen estus flask consumed"
+    show TkCast = "cast"
+    show TkOffering = "offering"
+    show TkSpellParsEnd = "to the estus flask"
+    show TkReturnWith = "go back with"
+    show TkPrint = "with orange saponite say"
+    show TkRead = "transpose into"
+    show TkIf = "trust your inventory"
+    show TkColon = ":"
+    show TkElse = "liar!"
+    show TkEndIf = "inventory closed"
+    show TkSwitch = "enter dungeon with"
+    show TkSwitchDefault = "empty dungeon"
+    show TkEndSwitch = "dungeon exited"
+    show TkFor = "upgrading"
+    show TkWith = "with"
+    show TkSoul = "souls"
+    show TkLevel = "until level"
+    show TkEndFor = "max level reached"
+    show TkForEach = "repairing"
+    show TkWithTitaniteFrom = "with titanite from"
+    show TkEndForEach = "weaponry repaired"
+    show TkWhile = "while the"
+    show TkCovenantIsActive = "covenant is active"
+    show TkEndWhile = "covenant left"
+    show TkPlus = "+"
+    show TkMinus = "-"
+    show TkMult = "*"
+    show TkDiv = "/"
+    show TkMod = "%"
+    show TkLt = "lt"
+    show TkGt = "gt"
+    show TkLte = "lte"
+    show TkGte = "gte"
+    show TkEq = "eq"
+    show TkNeq = "neq"
+    show TkAnd = "and"
+    show TkOr = "or"
+    show TkConcat = ">-<"
+    show TkParensOpen = "("
+    show TkParensClosed = ")"
+    show TkNot = "not"
 
 data Token = Token AbstractToken -- Token perse
                 (Maybe String) -- Extra info (useful on literals, ids, etc)
@@ -294,8 +400,7 @@ type LexErrors = [LexError]
 alexEOF :: Alex AlexUserState
 alexEOF = getUserState
 
-data AlexUserState = LexFailure [LexError]
-    | LexSuccess [Token]
+data AlexUserState = LexerResult LexErrors Tokens
     deriving (Show)
 
 col :: AlexPosn -> Int
@@ -305,7 +410,7 @@ row :: AlexPosn -> Int
 row (AlexPn _ l _) = l
 
 alexInitUserState :: AlexUserState
-alexInitUserState = LexSuccess []
+alexInitUserState = LexerResult [] []
 
 getUserState :: Alex AlexUserState
 getUserState = Alex $ \s@AlexState{alex_ust=ust} -> Right (s, ust)
@@ -313,26 +418,25 @@ getUserState = Alex $ \s@AlexState{alex_ust=ust} -> Right (s, ust)
 addTokenToState :: Token -> Alex ()
 addTokenToState token = Alex $ \s@AlexState{alex_ust=ust}
     -> Right (s{
-        alex_ust = (case ust of
-                        LexSuccess tokens -> LexSuccess (token:tokens)
-                        _ -> ust)
+        alex_ust = (
+            let LexerResult errors tokens = ust in
+                LexerResult errors (token:tokens))
     }, ())
 
 addErrorToState :: LexError -> Alex ()
 addErrorToState lexError = Alex $ \s@AlexState{alex_ust=ust}
     -> Right (s{
-        alex_ust = (case ust of
-                        LexFailure errors -> LexFailure (lexError:errors)
-                        _ -> LexFailure [lexError])
+        alex_ust = (
+            let LexerResult errors tokens = ust in
+                LexerResult (lexError:errors) tokens)
     }, ())
 
-scanTokens :: String -> Either LexErrors Tokens
+scanTokens :: String -> (LexErrors, Tokens)
 scanTokens str = case runAlex str alexMonadScan of
     Left e -> do
         error $ "Alex error " ++ show e
-    Right userState -> case userState of
-        LexSuccess tokens -> Right $ filterComments $ map postProcess $ reverse tokens
-        LexFailure errors -> Left $ reverse errors
+    Right userState ->
+        let LexerResult errors tokens = userState in (errors, tokens)
 
 removeFirstAndLast :: [a] -> [a]
 removeFirstAndLast = reverse . tail . reverse . tail

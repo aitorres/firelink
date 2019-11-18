@@ -56,11 +56,12 @@ printLexErrors str (error:xs) = do
     printLexErrors str xs
 
 lexer :: String -> IO ()
-lexer contents = case L.scanTokens contents of
-    Left errors -> do
+lexer contents = do
+    let (errors, tokens) = L.scanTokens contents
+    if not $ null errors then do
         printLexErrors contents errors
         putStrLn "Fix your lexical mistakes, ashen one."
-    Right tokens -> parserAndSemantic tokens
+    else parserAndSemantic tokens
 
 parserAndSemantic :: L.Tokens -> IO ()
 parserAndSemantic tokens = do

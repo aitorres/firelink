@@ -3,7 +3,6 @@ module Utils where
 import qualified SymTable as ST
 import Lexer (scanTokens)
 import Test.Hspec
-import Data.Maybe (fromJust)
 import Parser
 import qualified Grammar as G
 import qualified Control.Monad.RWS as RWS
@@ -12,8 +11,8 @@ extractSymTable
     :: String
     -> IO (G.Program, ST.SymTable, ST.SemanticErrors)
 extractSymTable program = do
-    tokens <- scanTokens program
-    RWS.runRWST (parse $ fromJust tokens) () ST.initialState
+    let ([], tokens) = scanTokens program
+    RWS.runRWST (parse tokens) () ST.initialState
 
 extractDictionary :: String -> IO ST.SymTable
 extractDictionary program = do
@@ -68,8 +67,8 @@ extractArgPositionFromExtra (_:ss) = extractArgPositionFromExtra ss
 
 runTestForInvalidProgram :: String -> IO ()
 runTestForInvalidProgram program = do
-    tokens <- scanTokens program
-    RWS.runRWST (parse $ fromJust tokens) () ST.initialState `shouldThrow` anyException
+    let ([], tokens) = scanTokens program
+    RWS.runRWST (parse tokens) () ST.initialState `shouldThrow` anyException
 
 
 type TestFunction a b
