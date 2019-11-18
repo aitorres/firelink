@@ -3,6 +3,7 @@ module RecordLikeTypesDeclSpec where
 import Test.Hspec
 import qualified Utils as U
 import qualified SymTable as ST
+import qualified Lexer as L
 
 program :: String -> String
 program e = "hello ashen one\
@@ -29,8 +30,13 @@ test prog = U.test (program prog)
 testVoid :: U.TestFunction String ()
 testVoid prog = U.testVoid (program prog)
 
+shouldNotError :: String -> IO ()
+shouldNotError p = do
+    (_, _, errors) <- U.extractSymTable p
+    errors `shouldNotSatisfy` null
+
 spec :: Spec
-spec =
+spec = do
     describe "Record like variable declarations" $ do
         it "allows declare variable of `record` type" $ do
             dict <- test "bezel { y of type humanity, z of type sign }"
@@ -110,3 +116,94 @@ spec =
             U.testEntry dict varEntry
                 { ST.entryType = Just "humanity", ST.scope = 3, ST.category = ST.RecordItem }
                 U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
+    describe "Record like variable accessing" $ do
+        it "allows to access records properties" $
+            shouldNotError "hello ashen one\n\
+
+            \traveling somewhere\n\
+
+            \with\n\
+            \   var x of type bezel {\n\
+            \       y of type humanity\n\
+            \   }\n\
+            \in your inventory\n\
+
+            \   with orange saponite say x ~> y\n\
+
+            \you died\n\
+
+            \farewell ashen one"
+        it "allows to access records properties on deeper levels" $
+            shouldNotError "hello ashen one\n\
+
+            \traveling somewhere\n\
+
+            \with\n\
+            \   var x of type bezel {\n\
+            \       y of bezel {\n\
+            \           z of type humanity\n\
+            \       }\n\
+            \   }\n\
+            \in your inventory\n\
+
+            \   with orange saponite say x ~> y ~> z\n\
+
+            \you died\n\
+
+            \farewell ashen one"
+        it "allows to access records properties with the same name" $
+            shouldNotError "hello ashen one\n\
+
+            \traveling somewhere\n\
+
+            \with\n\
+            \   var x of type bezel {\n\
+            \       x of type humanity\n\
+            \   }\n\
+            \in your inventory\n\
+
+            \   with orange saponite say x ~> x\n\
+
+            \you died\n\
+
+            \farewell ashen one"
+        it "rejects to access records properties that doesn't exist" $ do
+            let p = "hello ashen one\n\
+
+            \traveling somewhere\n\
+
+            \with\n\
+            \   var x of type bezel {\n\
+            \       y of type humanity\n\
+            \   }\n\
+            \in your inventory\n\
+
+            \   with orange saponite say x ~> z\n\
+
+            \you died\n\
+
+            \farewell ashen one"
+            (_, _, errors) <- U.extractSymTable p
+            errors `shouldNotSatisfy` null
+            let ST.SemanticError _ (L.Token _ (Just varName) pn) = head errors
+            varName `shouldBe` "z"
+            L.col pn `shouldBe` 34
+            L.row pn `shouldBe` 8
+        it "allows to access records properties on rvalues" $
+            shouldNotError "hello ashen one\n\
+
+            \invocation fun with skill of type bezel\n\
+
+            \traveling somewhere\n\
+
+            \with\n\
+            \   var x of type bezel {\n\
+            \       x of type humanity\n\
+            \   }\n\
+            \in your inventory\n\
+
+            \   with orange saponite say x ~> x\n\
+
+            \you died\n\
+
+            \farewell ashen one"
