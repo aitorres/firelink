@@ -167,14 +167,10 @@ tokens :-
 payloadRequiredTokens :: [AbstractToken]
 payloadRequiredTokens = [TkStringLit, TkIntLit, TkCharLit, TkFloatLit, TkComment, TkId]
 
-addPayload :: AbstractToken -> String -> Maybe String
-addPayload aToken payload
-        | aToken `elem` payloadRequiredTokens = Just payload
-        | otherwise = Nothing
 
 makeToken :: AbstractToken -> AlexAction AlexUserState
 makeToken token (alexPosn, _, _, str) len = do
-    addTokenToState $ Token token (addPayload token $ take len str) alexPosn
+    addTokenToState $ Token token (take len str) alexPosn
     alexMonadScan
 
 throwLexError :: AlexAction AlexUserState
@@ -279,6 +275,7 @@ data AbstractToken = TkId | TkConst | TkVar | TkOfType | TkAsig
     deriving (Eq)
 
 instance Show AbstractToken where
+    show _ = ""
     show TkConst = "const"
     show TkVar = "var"
     show TkOfType = "of type"
@@ -385,14 +382,12 @@ instance Show AbstractToken where
     show TkNot = "not"
 
 data Token = Token AbstractToken -- Token perse
-                (Maybe String) -- Extra info (useful on literals, ids, etc)
+                String -- The captured token
                 AlexPosn -- To get file context
     deriving (Eq)
 
 instance Show Token where
-    show (Token aToken maybeString _) = case maybeString of
-        Nothing -> show aToken
-        Just s -> s
+    show (Token aToken s _) = show aToken ++ s
 
 type Tokens = [Token]
 
@@ -449,7 +444,7 @@ removeFirstAndLast :: [a] -> [a]
 removeFirstAndLast = reverse . tail . reverse . tail
 
 postProcess :: Token -> Token
-postProcess (Token TkCharLit (Just s) p) = Token TkCharLit (Just $ f s) p
+postProcess (Token TkCharLit s p) = Token TkCharLit (f s) p
     where
         f s = if head a == '\\' then mapEscaped $ last a else a
         a = removeFirstAndLast s
@@ -457,7 +452,7 @@ postProcess (Token TkCharLit (Just s) p) = Token TkCharLit (Just $ f s) p
         mapEscaped 't' = "\t"
         mapEscaped '\\' = "\\"
         mapEscaped '|' = "\n"
-postProcess (Token TkStringLit (Just s) p) = Token TkStringLit (Just cleanedString) p
+postProcess (Token TkStringLit s p) = Token TkStringLit cleanedString p
     where
         pp = removeFirstAndLast s
         cleanedString = replace "\\@" "@" pp

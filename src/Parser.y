@@ -207,10 +207,10 @@ LVALUE
 
 EXPR :: { G.Expr }
 EXPR
-  : intLit                                                              { G.IntLit $ (read (fromJust $1) :: Int) }
-  | floatLit                                                            { G.FloatLit $ (read (fromJust $1) :: Float) }
-  | charLit                                                             { G.CharLit $ head $ fromJust $1 }
-  | stringLit                                                           { G.StringLit $ fromJust $1 }
+  : intLit                                                              { G.IntLit $ (read $1 :: Int) }
+  | floatLit                                                            { G.FloatLit $ (read $1 :: Float) }
+  | charLit                                                             { G.CharLit $ head $1 }
+  | stringLit                                                           { G.StringLit $1 }
   | trueLit                                                             { G.TrueLit }
   | falseLit                                                            { G.FalseLit }
   | nullLit                                                             { G.NullLit }
@@ -473,7 +473,7 @@ addIdsToSymTable :: [NameDeclaration] -> ST.ParserMonad ()
 addIdsToSymTable ids = RWS.mapM_ (addIdToSymTable Nothing) ids
 
 addIdToSymTable :: Maybe Int -> NameDeclaration -> ST.ParserMonad ()
-addIdToSymTable mi d@(c, (G.Id tk@(L.Token at (Just idName) _)), t) = do
+addIdToSymTable mi d@(c, (G.Id tk@(L.Token at idName _)), t) = do
   maybeIdEntry <- ST.dictLookup idName
   maybeTypeEntry <- findTypeOnEntryTable t
   (_, (currScope:_), _) <- RWS.get
@@ -527,7 +527,7 @@ insertIdToEntry mi t entry = do
                              else ST.RefParam, i, t)) s
 
 checkIdAvailability :: G.Id -> ST.ParserMonad ()
-checkIdAvailability (G.Id tk@(L.Token _ (Just idName) pn)) = do
+checkIdAvailability (G.Id tk@(L.Token _ idName pn)) = do
   maybeEntry <- ST.dictLookup idName
   case maybeEntry of
     Nothing -> do
@@ -542,7 +542,7 @@ checkIdAvailability (G.Id tk@(L.Token _ (Just idName) pn)) = do
           return ()
 
 addFunction :: NameDeclaration -> ST.ParserMonad (Maybe (ST.Scope, G.Id))
-addFunction d@(_, i@(G.Id tk@(L.Token _ (Just idName) _)), _) = do
+addFunction d@(_, i@(G.Id tk@(L.Token _ idName _)), _) = do
   (dict, stack, currScope) <- RWS.get
   maybeEntry <- ST.dictLookup idName
   case maybeEntry of
@@ -559,7 +559,7 @@ addFunction d@(_, i@(G.Id tk@(L.Token _ (Just idName) _)), _) = do
         return $ Just (currScope, i)
 
 updateCodeBlockOfFun :: ST.Scope -> G.Id -> G.CodeBlock -> ST.ParserMonad ()
-updateCodeBlockOfFun currScope (G.Id tk@(L.Token _ (Just idName) _)) code = do
+updateCodeBlockOfFun currScope (G.Id tk@(L.Token _ idName _)) code = do
   let f x = (if and [ST.scope x == currScope, ST.name x == idName, ST.category x `elem` [ST.Function, ST.Procedure]]
             then let e = ST.extra x in x{ST.extra = (ST.CodeBlock code) : e}
             else x)

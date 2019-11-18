@@ -185,7 +185,7 @@ spec = do
             \farewell ashen one"
             (_, _, errors) <- U.extractSymTable p
             errors `shouldNotSatisfy` null
-            let ST.SemanticError _ (L.Token _ (Just varName) pn) = head errors
+            let ST.SemanticError _ (L.Token _ varName pn) = head errors
             varName `shouldBe` "z"
             L.col pn `shouldBe` 34
             L.row pn `shouldBe` 8
