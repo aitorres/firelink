@@ -9,7 +9,7 @@ import System.Environment (getArgs)
 import System.IO (openFile, IOMode(..), hGetContents)
 import qualified Data.Map as Map
 import Data.List.Split (splitOn)
-import Data.List (intercalate)
+import Data.List (intercalate, groupBy)
 import Text.Printf (printf)
 
 red :: String
@@ -30,36 +30,57 @@ printKey :: (String, [ST.DictionaryEntry]) -> IO ()
 printKey (name, entries) =
     printf "Entries for name \"%s\"" name
 
-formatLexError :: String -> L.LexError -> String
-formatLexError fullStr (L.LexError (L.AlexPn offset r c, _, _, s)) =
+groupTokensByRowNumber :: L.Tokens -> [L.Tokens]
+groupTokensByRowNumber = groupBy (\(L.Token _ _ pn) (L.Token _ _ pn') ->
+    L.row pn == L.row pn')
+
+lengthOfLine :: L.Tokens -> Int
+lengthOfLine tokens = let tk@(L.Token aToken maybeString pn) = last tokens in
+        L.col pn + length (show tk)
+
+joinTokens :: Int -> L.Tokens -> String
+joinTokens _ [] = ""
+joinTokens c (tk@(L.Token _ _ pn) : tks) =
+    replicate (L.col pn - c) ' ' ++ show tk ++ joinTokens (L.col pn + length (show tk)) tks
+
+
+formatLexError :: (L.LexError, L.Tokens) -> String
+formatLexError (L.LexError (L.AlexPn offset r c, _, _, s), tokens) =
     printf "%s%sYOU DIED!!%s Lexical error at line %s%s%d%s, column %s%s%d%s:\n%s\n"
         red bold nocolor
         red bold r nocolor
         red bold c nocolor
         fs
     where
-        allLines = splitOn "\n" fullStr
-        maxSize = foldl max (-1) $ map length allLines
+        tokensByRowNumber = groupTokensByRowNumber tokens
+        maxSize = foldl max (-1) $ map lengthOfLine tokensByRowNumber
         buildRuler = flip replicate '~'
         rule = buildRuler maxSize ++ "\n"
-        relevantLines = drop (r-1) allLines
-        firstLine = head relevantLines ++ "\n"
-        restLines = take 4 $ tail relevantLines
+        firstLine = joinTokens 0 (head tokensByRowNumber) ++ "\n"
+        restLines = map (joinTokens 0) $ tail tokensByRowNumber
         errorRuler = bold ++ red ++ buildRuler (c-1) ++ "^" ++ buildRuler (maxSize - c) ++ nocolor ++ "\n"
         fs = firstLine ++ errorRuler ++ intercalate "\n" restLines
 
 
-printLexErrors :: String -> [L.LexError] -> IO ()
-printLexErrors str [] = return ()
-printLexErrors str (error:xs) = do
-    putStrLn $ formatLexError str error
-    printLexErrors str xs
+printLexErrors :: [(L.LexError, L.Tokens)] -> IO ()
+printLexErrors [] = return ()
+printLexErrors (errorPair:xs) = do
+    putStrLn $ formatLexError errorPair
+    printLexErrors xs
+
+groupLexErrorWithTokenContext :: [L.LexError] -> L.Tokens -> [(L.LexError, L.Tokens)]
+groupLexErrorWithTokenContext [] _ = []
+groupLexErrorWithTokenContext (error@(L.LexError (pn, _, _, _)):errors) tokens =
+    (error, tks) : groupLexErrorWithTokenContext errors tokens
+    where
+        tail = dropWhile (\(L.Token _ _ pn') -> L.row pn /= L.row pn') tokens
+        tks = takeWhile (\(L.Token _ _ pn') -> L.row pn' - L.row pn <= 4) tail
 
 lexer :: String -> IO ()
 lexer contents = do
     let (errors, tokens) = L.scanTokens contents
     if not $ null errors then do
-        printLexErrors contents errors
+        printLexErrors $ groupLexErrorWithTokenContext errors tokens
         putStrLn "Fix your lexical mistakes, ashen one."
     else parserAndSemantic tokens
 

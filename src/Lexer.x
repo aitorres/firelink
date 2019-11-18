@@ -387,7 +387,12 @@ instance Show AbstractToken where
 data Token = Token AbstractToken -- Token perse
                 (Maybe String) -- Extra info (useful on literals, ids, etc)
                 AlexPosn -- To get file context
-    deriving (Eq, Show)
+    deriving (Eq)
+
+instance Show Token where
+    show (Token aToken maybeString _) = case maybeString of
+        Nothing -> show aToken
+        Just s -> s
 
 type Tokens = [Token]
 
