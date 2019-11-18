@@ -277,11 +277,11 @@ data AbstractToken = TkId | TkConst | TkVar | TkOfType | TkAsig
 
 instance Show AbstractToken where
     show TkConst = U.red
-    show TkVar = U.red
-    show TkOfType = U.red
+    show TkVar = U.red ++ U.bold
+    show TkOfType = U.dim
     show TkAsig = U.bold
-    show TkBigInt = U.red
-    show TkSmallInt = U.red
+    show TkBigInt = U.blue ++ U.bold
+    show TkSmallInt = U.blue ++ U.bold
     show TkBool = U.bold
     show TkLit = U.bold
     show TkUnlit = U.bold
@@ -316,8 +316,8 @@ instance Show AbstractToken where
     show TkAlias = ""
     show TkAliasListBegin = ""
     show TkAliasListEnd = ""
-    show TkProgramBegin = ""
-    show TkProgramEnd = ""
+    show TkProgramBegin = U.italic ++ U.bold
+    show TkProgramEnd = U.italic ++ U.bold
     show TkDeclarationEnd = ""
     show TkInstructionBegin = ""
     show TkInstructionEnd = ""

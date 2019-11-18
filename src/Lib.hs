@@ -64,9 +64,6 @@ printLexErrors :: [(L.LexError, [Either L.LexError L.Token])] -> IO ()
 printLexErrors [] = return ()
 printLexErrors (errorPair:xs) = do
     putStrLn $ formatLexError errorPair
-    -- print errorPair
-    let (_, tokens) = errorPair
-    -- print $ groupTokensByRowNumber tokens
     printLexErrors xs
 
 groupLexErrorWithTokenContext :: [L.LexError] -> L.Tokens -> [(L.LexError, L.Tokens)]
@@ -84,6 +81,17 @@ insertLexErrorOnContext error@(L.LexError (pn, _)) (tk@(L.Token _ _ pn') : tks) 
     then Left error : Right tk : map Right tks
     else Right tk : insertLexErrorOnContext error tks
 
+joinTokensOnly :: Int -> L.Tokens -> String
+joinTokensOnly _ [] = ""
+joinTokensOnly c (tk@(L.Token _ _ pn) : tks) =
+    replicate (L.col pn - c) ' '
+        ++ show tk ++ joinTokensOnly (L.col pn + length (show tk)) tks
+
+printProgram :: L.Tokens -> IO ()
+printProgram tks = do
+    let groupedByRowNumber = groupBy (\(L.Token _ _ t1) (L.Token _ _ t2) -> L.row t1 == L.row t2) tks
+    mapM_ (putStrLn . joinTokensOnly 0) groupedByRowNumber
+
 lexer :: String -> IO ()
 lexer contents = do
     let (errors, tokens) = L.scanTokens contents
@@ -92,12 +100,15 @@ lexer contents = do
             $ map (\(err, tks) -> (err, insertLexErrorOnContext err tks))
             $ groupLexErrorWithTokenContext errors tokens
         putStrLn "Fix your lexical mistakes, ashen one."
-    else parserAndSemantic tokens
+    else do
+        printProgram tokens
+        parserAndSemantic tokens
 
 parserAndSemantic :: L.Tokens -> IO ()
 parserAndSemantic tokens = do
     parsedProgram <- RWS.runRWST (parse tokens) () ST.initialState
-    print parsedProgram
+    -- print parsedProgram
+    return ()
 
 mainFunc :: IO ()
 mainFunc = do

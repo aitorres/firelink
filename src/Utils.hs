@@ -14,3 +14,9 @@ magenta = "\x1b[35m"
 
 blue :: String
 blue = "\x1b[94m"
+
+italic ::String
+italic = "\x1b[3m"
+
+dim :: String
+dim = "\x1b[2m"
