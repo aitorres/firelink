@@ -529,8 +529,13 @@ checkIdAvailability (G.Id tk@(L.Token _ (Just idName) pn)) = do
     Nothing -> do
       RWS.tell [ST.SemanticError ("Name " ++ idName ++ " is not available on this scope") tk]
       return ()
-    _ -> do
-      return ()
+    Just e -> do
+      case (ST.category e) of
+        ST.Constant -> do
+          RWS.tell [ST.SemanticError ("Name " ++ idName ++ " is a constant and must not be reassigned") tk]
+          return ()
+        _ ->
+          return ()
 
 addFunction :: NameDeclaration -> ST.ParserMonad (Maybe (ST.Scope, G.Id))
 addFunction d@(_, i@(G.Id tk@(L.Token _ (Just idName) _)), _) = do
