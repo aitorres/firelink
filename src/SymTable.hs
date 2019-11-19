@@ -151,6 +151,8 @@ link :: String
 link = "link"
 void :: String
 void = "void"
+errorType :: String
+errorType = "error type"
 
 initialState :: SymTable
 initialState = (Map.fromList l, [1, 0], 1)
