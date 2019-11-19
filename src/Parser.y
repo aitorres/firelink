@@ -705,4 +705,145 @@ buildExtraForType t@(G.Callable _ _) = do
 
 -- For anything else
 buildExtraForType _ = return []
+
+class TypeCheckable a where
+  getType :: a -> ST.ParserMonad String
+  typeMatches :: a -> a -> ST.ParserMonad Bool
+  typeMatches a b = do
+    aType <- getType a
+    bType <- getType b
+    return (aType == bType)
+
+isOneOfTypes :: [String] -> G.Expr -> ST.ParserMonad Bool
+isOneOfTypes ts a = do
+  t <- getType a
+  let isValidType = or [t == x | x <- ts]
+  return (
+    if isValidType then
+      True
+    else
+      False
+    )
+
+isLogicalType :: G.Expr -> ST.ParserMonad Bool
+isLogicalType = isOneOfTypes [ST.bonfire]
+
+isNumberType :: G.Expr -> ST.ParserMonad Bool
+isNumberType = isOneOfTypes [ST.humanity, ST.smallHumanity, ST.hollow]
+
+isComparableType :: G.Expr -> ST.ParserMonad Bool
+isComparableType = isOneOfTypes [ST.humanity, ST.smallHumanity, ST.hollow]
+
+isEquatableType :: G.Expr -> ST.ParserMonad Bool
+isEquatableType = isOneOfTypes [ST.humanity, ST.smallHumanity, ST.hollow, ST.sign, ST.bonfire]
+
+isShowableType :: G.Expr -> ST.ParserMonad Bool
+isShowableType = isOneOfTypes [ST.sign, ST.miracle] -- TODO: check if this is okay
+
+conditionalCheck :: (G.Expr -> ST.ParserMonad Bool) -> G.Expr -> G.Expr ->  ST.ParserMonad String
+conditionalCheck condition a b = do
+  matches <- typeMatches a b
+  aType <- getType a
+  isValidType <- condition a
+  return (
+    if matches then
+      if (isValidType) then
+        aType
+      else
+        ST.errorType
+    else
+      ST.errorType
+    )
+
+conditionalCheckReturningBonfire ::  (G.Expr -> ST.ParserMonad Bool) -> G.Expr -> G.Expr ->  ST.ParserMonad String
+conditionalCheckReturningBonfire condition a b = do
+  matchingType <- conditionalCheck condition a b
+  return (
+    if matchingType == ST.errorType then
+      ST.errorType
+    else
+      ST.bonfire
+    )
+
+arithmeticCheck :: G.Expr -> G.Expr -> ST.ParserMonad String
+arithmeticCheck = conditionalCheck isNumberType
+
+comparableCheck :: G.Expr -> G.Expr -> ST.ParserMonad String
+comparableCheck = conditionalCheckReturningBonfire isComparableType
+
+equatableCheck :: G.Expr -> G.Expr -> ST.ParserMonad String
+equatableCheck = conditionalCheckReturningBonfire isEquatableType
+
+logicalCheck :: G.Expr -> G.Expr -> ST.ParserMonad String
+logicalCheck = conditionalCheckReturningBonfire isLogicalType
+
+instance TypeCheckable G.Expr where
+  getType G.TrueLit = return (ST.bonfire)
+  getType G.FalseLit = return (ST.bonfire)
+  getType G.UndiscoveredLit = return (ST.bonfire)
+  getType G.NullLit = return (ST.void)
+  getType (G.IntLit _) = return (ST.humanity)
+  getType (G.FloatLit _) = return (ST.hollow)
+  getType (G.CharLit _) = return (ST.sign)
+  getType (G.StringLit _) = return (ST.miracle)
+  getType (G.ArrayLit _) = return (ST.chest) -- TODO: Recursive type
+  getType (G.SetLit _) = return (ST.armor) -- TODO: Recursive type
+  getType (G.EvalFunc id _) = getType (G.IdExpr id) -- TODO: Check if okay
+  getType (G.Add a b) = arithmeticCheck a b
+  getType (G.Substract a b) = arithmeticCheck a b
+  getType (G.Multiply a b) = arithmeticCheck a b
+  getType (G.Divide a b) = arithmeticCheck a b
+  getType (G.Mod a b) = arithmeticCheck a b
+  getType (G.Negative a) = arithmeticCheck a a -- cheating
+  getType (G.Lt a b) = comparableCheck a b
+  getType (G.Lte a b) = comparableCheck a b
+  getType (G.Gt a b) = comparableCheck a b
+  getType (G.Gte a b) = comparableCheck a b
+  getType (G.Eq a b) = equatableCheck a b
+  getType (G.Neq a b) = equatableCheck a b
+  getType (G.And a b) = logicalCheck a b
+  getType (G.Or a b) = logicalCheck a b
+  getType (G.Not a) = logicalCheck a a -- cheating
+  getType (G.Access e i) = return ("missing") -- TODO: Accessor type
+  getType (G.IndexAccess e1 e2) = return ("missing") -- TODO: Accessor type
+  getType (G.MemAccess e) = return ("missing") -- TODO: Mem access
+  getType (G.IdExpr (G.Id tk@(L.Token _ mid _))) = do
+    case mid of
+      Nothing -> do
+        RWS.tell [ST.SemanticError ("Id " ++ (show tk) ++ " inappropriately initialized") tk]
+        return (ST.errorType)
+      Just id -> do
+        mde <- ST.dictLookup id
+        case mde of
+          Nothing -> do
+            RWS.tell [ST.SemanticError ("Id " ++ id ++ " not found in symbol table") tk]
+            return (ST.errorType)
+          Just de -> do
+            case ST.entryType de of
+              Nothing -> do
+                RWS.tell [ST.SemanticError ("Id " ++ id ++ " has no type in symbol table") tk]
+                return (ST.errorType)
+              Just t ->
+                return (t)
+  getType _ = return ("missing") -- TODO: Finish implementation
+
+checkTypes :: G.Expr -> G.Expr -> String -> L.Token -> ST.ParserMonad ()
+checkTypes a b t tk = do
+  let isError = t == ST.errorType
+  case isError of
+    True -> do
+      RWS.tell [ST.SemanticError ("Type mismatch between " ++ (show a) ++ " and " ++ (show b)) tk]
+      return ()
+    False ->
+      return ()
+
+checkType :: G.Expr -> String -> L.Token -> ST.ParserMonad ()
+checkType a t tk = do
+  let isError = t == ST.errorType
+  case isError of
+    True -> do
+      RWS.tell [ST.SemanticError ("Type mismatch for " ++ (show a)) tk]
+      return ()
+    False ->
+      return ()
 }
