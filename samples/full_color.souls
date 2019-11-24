@@ -25,7 +25,7 @@ after this return to your world
 traveling somewhere
 with
   var n of type humanity,
-  const f of type humanity,
+  var f of type humanity,
   var a of type hollow,
   var b of type sign,
   var c of type <n>-miracle,
@@ -36,14 +36,49 @@ with
       e of type bonfire
     }
   },
-  const f of type armor of type bezel { prop of type sign },
-  var j of type myCustomType
+  var ff of type armor of type bezel { prop of type sign },
+  var j of type myCustomType,
+  var g of type link { x of type humanity },
+  var pp of type arrow to sign
 in your inventory
   a <<= |p| \
   transpose into n \
   f <<= summon fibonacci
     granting n to the knight \
-  with orange saponite say f
+  with orange saponite say f \
+  with orange saponite say 1 + n \
+  with orange saponite say 1 - n \
+  with orange saponite say 1 * n \
+  with orange saponite say 1 % n \
+  with orange saponite say - n \
+  with orange saponite say 1 lt n \
+  with orange saponite say 1 lte n \
+  with orange saponite say 1 gt n \
+  with orange saponite say 1 gte n \
+  with orange saponite say 1 eq n \
+  with orange saponite say 1 neq n \
+  with orange saponite say lit \
+  with orange saponite say unlit \
+  with orange saponite say undiscovered \
+  with orange saponite say lit and lit \
+  with orange saponite say lit or unlit \
+  with orange saponite say lit eq lit \
+  with orange saponite say undiscovered neq lit \
+  with orange saponite say not lit \
+  with orange saponite say 1.123 \
+  with orange saponite say |!| \
+  with orange saponite say |\n| \
+  with orange saponite say |\|| \
+  with orange saponite say ascii_of |a| \
+  with orange saponite say @hellow @ >-< @world@ \
+  with orange saponite say <$1, 2, 3, 4, 5$> \
+  with orange saponite say d<$n$> \
+  n <<= size d \
+  ff <<= {$ $} \
+  ff <<= ff union ff \
+  ff <<= ff intersect ff \
+  ff <<= ff diff ff
+
 you died
 
 farewell ashen one

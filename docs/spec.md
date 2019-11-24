@@ -183,6 +183,7 @@ Los literales de caracter están encerrados entre el caracter `|`. Adicionalment
 - Caracter nulo `|\0|`
 - Salto de línea `|\n|`
 - Tabulación `|\t|`
+- `|` `|\||`
 
 El valor por defecto de un caracter es el caracter nulo (`|\0|`).
 
@@ -190,7 +191,7 @@ El valor por defecto de un caracter es el caracter nulo (`|\0|`).
 
 Se debe implementar la siguiente función en el preludio de **FireLink**.
 
-- `ascii_of`: Retorna el código ascii  de la variable (como `humanity`).
+- `ascii_of`: Retorna el código ascii de la variable (como `humanity`).
 
 ### Colección
 
