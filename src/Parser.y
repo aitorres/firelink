@@ -14,14 +14,18 @@ import qualified Control.Monad.RWS as RWS
 %error                                                                  { parseErrors }
 %monad                                                                  { ST.ParserMonad }
 
-%left LVALUE
-%nonassoc lt lte gt gte size memAccessor
-%right arrOpen arrClose
 
-%left accessor
+%nonassoc lt lte gt gte size memAccessor
+%left LVALUE
+%right arrOpen
+%left arrClose
+
+%left ARRCLOSE
+
 %left eq neq
 %left plus minus
 %left mult div mod
+%left NEG
 
 %left and or
 
@@ -30,7 +34,9 @@ import qualified Control.Monad.RWS as RWS
 %left union intersect
 
 
-%left not asciiOf
+%left asciiOf
+%right not
+%left accessor
 
 
 %token
@@ -196,15 +202,18 @@ LVALUE
   : ID                                                                  {% do
                                                                             checkIdAvailability $1
                                                                             return $ G.IdExpr $1 }
-  | LVALUE accessor ID                                                  { G.Access $1 $3 }
-  | LVALUE arrOpen EXPR arrClose                                        { G.IndexAccess $1 $3 }
+  | EXPR accessor ID                                                    {% do
+                                                                            let ret = G.Access $1 $3
+                                                                            checkPropertyAvailability ret
+                                                                            return ret }
+  | EXPR arrOpen EXPR arrClose                                          { G.IndexAccess $1 $3 }
 
 EXPR :: { G.Expr }
 EXPR
-  : intLit                                                              { G.IntLit $ (read (fromJust $1) :: Int) }
-  | floatLit                                                            { G.FloatLit $ (read (fromJust $1) :: Float) }
-  | charLit                                                             { G.CharLit $ head $ fromJust $1 }
-  | stringLit                                                           { G.StringLit $ fromJust $1 }
+  : intLit                                                              { G.IntLit $ (read $1 :: Int) }
+  | floatLit                                                            { G.FloatLit $ (read $1 :: Float) }
+  | charLit                                                             { G.CharLit $ head $1 }
+  | stringLit                                                           { G.StringLit $1 }
   | trueLit                                                             { G.TrueLit }
   | falseLit                                                            { G.FalseLit }
   | nullLit                                                             { G.NullLit }
@@ -212,10 +221,8 @@ EXPR
   | setOpen EXPRL setClose                                              { G.SetLit $ reverse $2 }
   | unknownLit                                                          { G.UndiscoveredLit }
   | parensOpen EXPR parensClosed                                        { $2 }
-  | EXPR accessor ID                                                    { G.Access $1 $3 }
-  | EXPR arrOpen EXPR arrClose                                          { G.IndexAccess $1 $3 }
   | memAccessor EXPR                                                    { G.MemAccess $2 }
-  | minus EXPR                                                          { G.Negative $2 }
+  | minus EXPR %prec NEG                                                { G.Negative $2 }
   | not EXPR                                                            { G.Not $2 }
   | asciiOf EXPR                                                        { G.AsciiOf $2 }
   | size EXPR                                                           { G.SetSize $2 }
@@ -382,7 +389,9 @@ INSTRL
 
 INSTR :: { G.Instruction }
 INSTR
-  : LVALUE asig EXPR                                                    { G.InstAsig $1 $3 }
+  : LVALUE asig EXPR                                                    {% do
+                                                                          checkConstantReassignment $1
+                                                                          return $ G.InstAsig $1 $3 }
   | cast ID PROCPARS                                                    {% do
                                                                           checkIdAvailability $2
                                                                           return $ G.InstCallProc $2 $3 }
@@ -394,8 +403,8 @@ INSTR
   | whileBegin EXPR covenantIsActive colon CODEBLOCK whileEnd           { G.InstWhile $2 $5 }
   | ifBegin IFCASES ELSECASE ifEnd                                      { G.InstIf (reverse ($3 : $2)) }
   | ifBegin IFCASES ifEnd                                               { G.InstIf (reverse $2) }
-  | switchBegin EXPR SWITCHCASES DEFAULTCASE switchEnd                  { G.InstSwitch $2 (reverse ($4 : $3)) }
-  | switchBegin EXPR SWITCHCASES switchEnd                              { G.InstSwitch $2 (reverse $3) }
+  | switchBegin EXPR colon SWITCHCASES DEFAULTCASE switchEnd            { G.InstSwitch $2 (reverse ($5 : $4)) }
+  | switchBegin EXPR colon SWITCHCASES switchEnd                        { G.InstSwitch $2 (reverse $4) }
   | forBegin ID with EXPR souls untilLevel EXPR CODEBLOCK forEnd        { G.InstFor $2 $4 $7 $8 }
   | forEachBegin ID withTitaniteFrom EXPR CODEBLOCK forEachEnd          { G.InstForEach $2 $4 $5 }
 
@@ -446,6 +455,7 @@ type AliasDeclaration = (G.Id, G.Type)
 type RecordItem = AliasDeclaration
 
 extractFieldsForNewScope :: G.Type -> Maybe [RecordItem]
+extractFieldsForNewScope (G.Compound _ s _) = extractFieldsForNewScope s
 extractFieldsForNewScope (G.Record _ s) = Just s
 extractFieldsForNewScope _ = Nothing
 
@@ -466,10 +476,11 @@ parseErrors errors =
   in  fail msg
 
 addIdsToSymTable :: [NameDeclaration] -> ST.ParserMonad ()
-addIdsToSymTable ids = RWS.mapM_ (addIdToSymTable Nothing) ids
+addIdsToSymTable ids = do
+  RWS.mapM_ (addIdToSymTable Nothing) ids
 
 addIdToSymTable :: Maybe Int -> NameDeclaration -> ST.ParserMonad ()
-addIdToSymTable mi d@(c, (G.Id tk@(L.Token at (Just idName) _)), t) = do
+addIdToSymTable mi d@(c, (G.Id tk@(L.Token at idName _)), t) = do
   maybeIdEntry <- ST.dictLookup idName
   maybeTypeEntry <- findTypeOnEntryTable t
   (_, (currScope:_), _) <- RWS.get
@@ -522,23 +533,84 @@ insertIdToEntry mi t entry = do
                              then ST.ValueParam
                              else ST.RefParam, i, t)) s
 
-checkIdAvailability :: G.Id -> ST.ParserMonad ()
-checkIdAvailability (G.Id tk@(L.Token _ (Just idName) pn)) = do
+checkConstantReassignment :: G.Expr -> ST.ParserMonad ()
+checkConstantReassignment (G.IdExpr (G.Id tk@(L.Token _ idName _))) = do
   maybeEntry <- ST.dictLookup idName
   case maybeEntry of
     Nothing -> do
-      RWS.tell [ST.SemanticError ("Name " ++ idName ++ " is not available on this scope") tk]
       return ()
-    Just e -> do
+    Just e ->
       case (ST.category e) of
         ST.Constant -> do
           RWS.tell [ST.SemanticError ("Name " ++ idName ++ " is a constant and must not be reassigned") tk]
           return ()
         _ ->
           return ()
+checkConstantReassignment (G.IndexAccess gId _) = checkConstantReassignment gId
+checkConstantReassignment _ = return ()
+
+checkIdAvailability :: G.Id -> ST.ParserMonad (Maybe ST.DictionaryEntry)
+checkIdAvailability (G.Id tk@(L.Token _ idName _)) = do
+  maybeEntry <- ST.dictLookup idName
+  case maybeEntry of
+    Nothing -> do
+      RWS.tell [ST.SemanticError ("Name " ++ idName ++ " is not available on this scope") tk]
+      return Nothing
+    Just e -> do
+      return $ Just e
+
+-- The following function only have sense (for the moment) on lvalues
+--  - Ids
+--  - Records
+--  - Arrays
+checkPropertyAvailability :: G.Expr -> ST.ParserMonad ()
+
+-- If it is a record accessing, we need to find the _scope_ of the
+-- left side of the expression where to search for the variable
+checkPropertyAvailability a@(G.Access expr gId@(G.Id tk@(L.Token _ s _))) = do
+  maybeScope <- findScopeToSearchOf expr
+  case maybeScope of
+    Nothing -> RWS.tell [ST.SemanticError ("Property " ++ s ++ " does not exists") tk]
+    Just s -> do
+      (dict, scopes, curr) <- RWS.get
+      RWS.put (dict, s:scopes, curr)
+      checkIdAvailability gId
+      RWS.put (dict, scopes, curr)
+
+checkPropertyAvailability _ = error "invalid usage of checkPropertyAvailability"
+
+extractFieldsFromExtra :: [ST.Extra] -> ST.Extra
+extractFieldsFromExtra [] = error "The `extra` array doesn't have any `Fields` item"
+extractFieldsFromExtra (s@ST.Fields{} : _) = s
+extractFieldsFromExtra (_:ss) = extractFieldsFromExtra ss
+
+findScopeToSearchOf :: G.Expr -> ST.ParserMonad (Maybe ST.Scope)
+-- The scope of an id is just the scope of its entry
+findScopeToSearchOf (G.IdExpr gId) = do
+  maybeEntry <- checkIdAvailability gId
+  case maybeEntry of
+    Nothing -> return Nothing
+    Just ST.DictionaryEntry {ST.extra=extra} -> do
+      let (ST.Fields s) = extractFieldsFromExtra extra
+      return $ Just s
+
+-- The scope of an record accessing is the scope of its accessing property
+findScopeToSearchOf (G.Access expr gId) = do
+  maybeScopeOf <- findScopeToSearchOf expr
+  case maybeScopeOf of
+    Nothing -> return Nothing
+    Just s -> do
+      (dict, scopes, curr) <- RWS.get
+      RWS.put (dict, s:scopes, curr)
+      scope <- findScopeToSearchOf $ G.IdExpr gId
+      RWS.put (dict, scopes, curr)
+      return scope
+
+-- The scope of a index acces is the scope of it's id
+findScopeToSearchOf (G.IndexAccess expr _) = findScopeToSearchOf expr
 
 addFunction :: NameDeclaration -> ST.ParserMonad (Maybe (ST.Scope, G.Id))
-addFunction d@(_, i@(G.Id tk@(L.Token _ (Just idName) _)), _) = do
+addFunction d@(_, i@(G.Id tk@(L.Token _ idName _)), _) = do
   (dict, stack, currScope) <- RWS.get
   maybeEntry <- ST.dictLookup idName
   case maybeEntry of
@@ -555,7 +627,7 @@ addFunction d@(_, i@(G.Id tk@(L.Token _ (Just idName) _)), _) = do
         return $ Just (currScope, i)
 
 updateCodeBlockOfFun :: ST.Scope -> G.Id -> G.CodeBlock -> ST.ParserMonad ()
-updateCodeBlockOfFun currScope (G.Id tk@(L.Token _ (Just idName) _)) code = do
+updateCodeBlockOfFun currScope (G.Id tk@(L.Token _ idName _)) code = do
   let f x = (if and [ST.scope x == currScope, ST.name x == idName, ST.category x `elem` [ST.Function, ST.Procedure]]
             then let e = ST.extra x in x{ST.extra = (ST.CodeBlock code) : e}
             else x)
@@ -605,12 +677,19 @@ buildExtraForType t@(G.Compound _ tt@(G.Simple _ _) maybeExpr) = do
         Just e -> [ST.CompoundRec constructor e newExtra]
         Nothing -> [ST.Recursive constructor newExtra])
 
-buildExtraForType t@(G.Compound _ tt@(G.Compound _ _ _) maybeExpr) = do
+buildExtraForType t@(G.Compound _ tt@(G.Compound{}) maybeExpr) = do
   extra' <- head <$> buildExtraForType tt
   constructor <- (ST.name . fromJust) <$> findTypeOnEntryTable t -- This call should never fail
   return $ case maybeExpr of
     Just e -> [ST.CompoundRec constructor e extra']
     Nothing -> [ST.Recursive constructor extra']
+
+buildExtraForType t@(G.Compound _ tt@(G.Record{}) maybeExpr) = do
+  extra' <- head <$> buildExtraForType tt
+  constructor <- (ST.name . fromJust) <$> findTypeOnEntryTable t -- This call should never fail
+  return $ case maybeExpr of
+    Just e -> [ST.CompoundRec constructor e extra', extra']
+    Nothing -> [ST.Recursive constructor extra', extra']
 
 buildExtraForType t@(G.Record _ _) = do
   (_, _, currScope) <- RWS.get

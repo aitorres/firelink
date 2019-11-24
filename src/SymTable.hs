@@ -180,5 +180,5 @@ tokensToEntryName (L.Token at s _) = case at of
     L.TkSet -> armor
     L.TkRecord -> bezel
     L.TkUnionStruct -> link
-    L.TkId -> fromJust s
+    L.TkId -> s
     a -> error $ "Token " ++ show a ++ "doesn't map to anything"

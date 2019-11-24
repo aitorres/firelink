@@ -9,103 +9,63 @@ spec = describe "Lexer" $ do
   -- Integers
   it "accepts `humanity` as a valid token" $ do
     let x = "humanity"
-    s <- scanTokens x
-    case s of
-      Just toks -> do
-        let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkBigInt
-      Nothing ->
-        error "rejected as an invalid token"
+    let ([], toks) = scanTokens x
+    let atok = getAbstractToken $ head toks
+    atok `shouldBe` TkBigInt
 
   it "accepts `big humanity` as a valid token" $ do
     let x = "big humanity"
-    s <- scanTokens x
-    case s of
-      Just toks -> do
-        let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkBigInt
-      Nothing ->
-        error "rejected as an invalid token"
+    let ([], toks) = scanTokens x
+    let atok = getAbstractToken $ head toks
+    atok `shouldBe` TkBigInt
 
   it "accepts `small humanity` as a valid token" $ do
     let x = "small humanity"
-    s <- scanTokens x
-    case s of
-      Just toks -> do
-        let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkSmallInt
-      Nothing ->
-        error "rejected as an invalid token"
+    let ([], toks) = scanTokens x
+    let atok = getAbstractToken $ head toks
+    atok `shouldBe` TkSmallInt
 
   -- Tri-booleans
   it "accepts `bonfire` as a valid token" $ do
     let x = "bonfire"
-    s <- scanTokens x
-    case s of
-      Just toks -> do
-        let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkBool
-      Nothing ->
-        error "rejected as an invalid token"
+    let ([], toks) = scanTokens x
+    let atok = getAbstractToken $ head toks
+    atok `shouldBe` TkBool
 
   it "accepts `lit` as a valid token" $ do
     let x = "lit"
-    s <- scanTokens x
-    case s of
-      Just toks -> do
-        let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkLit
-      Nothing ->
-        error "rejected as an invalid token"
+    let ([], toks) = scanTokens x
+    let atok = getAbstractToken $ head toks
+    atok `shouldBe` TkLit
 
   it "accepts `unlit` as a valid token" $ do
     let x = "unlit"
-    s <- scanTokens x
-    case s of
-      Just toks -> do
-        let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkUnlit
-      Nothing ->
-        error "rejected as an invalid token"
+    let ([], toks) = scanTokens x
+    let atok = getAbstractToken $ head toks
+    atok `shouldBe` TkUnlit
 
   it "accepts `undiscovered` as a valid token" $ do
     let x = "undiscovered"
-    s <- scanTokens x
-    case s of
-      Just toks -> do
-        let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkUndiscovered
-      Nothing ->
-        error "rejected as an invalid token"
+    let ([], toks) = scanTokens x
+    let atok = getAbstractToken $ head toks
+    atok `shouldBe` TkUndiscovered
 
   -- Hollow
   it "accepts `hollow` as a valid token" $ do
     let x = "hollow"
-    s <- scanTokens x
-    case s of
-      Just toks -> do
-        let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkFloat
-      Nothing ->
-        error "rejected as an invalid token"
+    let ([], toks) = scanTokens x
+    let atok = getAbstractToken $ head toks
+    atok `shouldBe` TkFloat
 
   -- Sign
   it "accepts `sign` as a valid token" $ do
     let x = "sign"
-    s <- scanTokens x
-    case s of
-      Just toks -> do
-        let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkChar
-      Nothing ->
-        error "rejected as an invalid token"
+    let ([], toks) = scanTokens x
+    let atok = getAbstractToken $ head toks
+    atok `shouldBe` TkChar
 
   it "accepts `ascii_of` as a valid token" $ do
     let x = "ascii_of"
-    s <- scanTokens x
-    case s of
-      Just toks -> do
-        let atok = getAbstractToken $ head toks
-        atok `shouldBe` TkAsciiOf
-      Nothing ->
-        error "rejected as an invalid token"
+    let ([], toks) = scanTokens x
+    let atok = getAbstractToken $ head toks
+    atok `shouldBe` TkAsciiOf

@@ -2,13 +2,10 @@
 module Lexer (
     alexMonadScan, scanTokens, filterComments,
     AbstractToken (..), Token (..), AlexUserState(..), AlexPosn (..),
-    Tokens, col, row
+    Tokens, col, row, LexError (..)
     ) where
-import Text.Printf (printf)
-import Data.List.Split (splitOn)
-import Data.List (intercalate)
 import Data.List.Extra (replace)
-
+import qualified Utils as U
 }
 %wrapper "monadUserState"
 
@@ -170,19 +167,15 @@ tokens :-
 payloadRequiredTokens :: [AbstractToken]
 payloadRequiredTokens = [TkStringLit, TkIntLit, TkCharLit, TkFloatLit, TkComment, TkId]
 
-addPayload :: AbstractToken -> String -> Maybe String
-addPayload aToken payload
-        | aToken `elem` payloadRequiredTokens = Just payload
-        | otherwise = Nothing
 
 makeToken :: AbstractToken -> AlexAction AlexUserState
 makeToken token (alexPosn, _, _, str) len = do
-    addTokenToState $ Token token (addPayload token $ take len str) alexPosn
+    addTokenToState $ Token token (take len str) alexPosn
     alexMonadScan
 
 throwLexError :: AlexAction AlexUserState
-throwLexError alexInput int = do
-    addErrorToState $ LexError alexInput
+throwLexError (alexPosn, _, _, str) len = do
+    addErrorToState $ LexError (alexPosn, take len str)
     alexMonadScan
 
     -- The token type:
@@ -279,16 +272,129 @@ data AbstractToken = TkId | TkConst | TkVar | TkOfType | TkAsig
     | TkParensOpen | TkParensClosed
     -- Unary operators
     | TkNot
-    deriving (Eq, Show)
+    deriving (Eq)
+
+
+instance Show AbstractToken where
+    show TkConst = U.red
+    show TkVar = U.red ++ U.bold
+    show TkOfType = U.dim
+    show TkAsig = U.bold
+    show TkBigInt = U.blue ++ U.bold
+    show TkSmallInt = U.blue ++ U.bold
+    show TkBool = U.bold
+    show TkLit = U.bold
+    show TkUnlit = U.bold
+    show TkUndiscovered = U.bold
+    show TkFloat = ""
+    show TkChar = ""
+    show TkAsciiOf = ""
+    show TkString = ""
+    show TkLteLit = ""
+    show TkArray = ""
+    show TkArrayOpen = ""
+    show TkArrayClose = ""
+    show TkSize = ""
+    show TkSet = ""
+    show TkSetOpen = ""
+    show TkSetClose = ""
+    show TkUnion = ""
+    show TkIntersect = ""
+    show TkDiff = ""
+    show TkEnum = ""
+    show TkBraceOpen = ""
+    show TkBraceClosed = ""
+    show TkComma = ""
+    show TkAccessor = ""
+    show TkRecord = ""
+    show TkUnionStruct = ""
+    show TkNull = ""
+    show TkPointer = ""
+    show TkRequestMemory = ""
+    show TkAccessMemory = ""
+    show TkFreeMemory = ""
+    show TkAlias = ""
+    show TkAliasListBegin = ""
+    show TkAliasListEnd = ""
+    show TkProgramBegin = U.italic ++ U.bold
+    show TkProgramEnd = U.italic ++ U.bold
+    show TkDeclarationEnd = ""
+    show TkInstructionBegin = ""
+    show TkInstructionEnd = ""
+
+    show TkSeq = ""
+    show TkInvocation = ""
+    show TkRequesting = ""
+
+    show TkInvocationType = ""
+
+    show TkInvocationParsEnd = ""
+
+    show TkInvocationEnd = ""
+
+    show TkVal = ""
+    show TkRef = ""
+    show TkReturn = ""
+    show TkSummon = ""
+    show TkGranting = ""
+    show TkSpell = ""
+    show TkSpellEnd = ""
+    show TkCast = ""
+    show TkOffering = ""
+    show TkSpellParsEnd = ""
+    show TkReturnWith = ""
+    show TkPrint = ""
+    show TkRead = ""
+    show TkIf = ""
+    show TkColon = ""
+    show TkElse = ""
+    show TkEndIf = ""
+    show TkSwitch = ""
+    show TkSwitchDefault = ""
+    show TkEndSwitch = ""
+    show TkFor = U.magenta ++ U.bold
+    show TkWith = U.magenta ++ U.bold
+    show TkSoul = ""
+    show TkLevel = ""
+    show TkEndFor = ""
+    show TkForEach = ""
+    show TkWithTitaniteFrom = ""
+    show TkEndForEach = ""
+    show TkWhile = ""
+    show TkCovenantIsActive = ""
+    show TkEndWhile = ""
+    show TkPlus = ""
+    show TkMinus = ""
+    show TkMult = ""
+    show TkDiv = ""
+    show TkMod = ""
+    show TkLt = ""
+    show TkGt = ""
+    show TkLte = ""
+    show TkGte = ""
+    show TkEq = ""
+    show TkNeq = ""
+    show TkAnd = ""
+    show TkOr = ""
+    show TkConcat = ""
+    show TkParensOpen = ""
+    show TkParensClosed = ""
+    show TkNot = ""
+    show TkId = U.bold
+    show TkIntLit = U.blue ++ U.bold
+    show _ = "epale chamito falto yo"
 
 data Token = Token AbstractToken -- Token perse
-                (Maybe String) -- Extra info (useful on literals, ids, etc)
+                String -- The captured token
                 AlexPosn -- To get file context
-    deriving (Eq, Show)
+    deriving (Eq)
+
+instance Show Token where
+    show (Token aToken s pn) = show aToken ++ s ++ U.nocolor ++ " "
 
 type Tokens = [Token]
 
-data LexError = LexError AlexInput
+data LexError = LexError (AlexPosn, String)
     deriving Show
 
 type LexErrors = [LexError]
@@ -297,8 +403,7 @@ type LexErrors = [LexError]
 alexEOF :: Alex AlexUserState
 alexEOF = getUserState
 
-data AlexUserState = LexFailure [LexError]
-    | LexSuccess [Token]
+data AlexUserState = LexerResult LexErrors Tokens
     deriving (Show)
 
 col :: AlexPosn -> Int
@@ -308,7 +413,7 @@ row :: AlexPosn -> Int
 row (AlexPn _ l _) = l
 
 alexInitUserState :: AlexUserState
-alexInitUserState = LexSuccess []
+alexInitUserState = LexerResult [] []
 
 getUserState :: Alex AlexUserState
 getUserState = Alex $ \s@AlexState{alex_ust=ust} -> Right (s, ust)
@@ -316,56 +421,33 @@ getUserState = Alex $ \s@AlexState{alex_ust=ust} -> Right (s, ust)
 addTokenToState :: Token -> Alex ()
 addTokenToState token = Alex $ \s@AlexState{alex_ust=ust}
     -> Right (s{
-        alex_ust = (case ust of
-                        LexSuccess tokens -> LexSuccess (token:tokens)
-                        _ -> ust)
+        alex_ust = (
+            let LexerResult errors tokens = ust in
+                LexerResult errors (token:tokens))
     }, ())
 
 addErrorToState :: LexError -> Alex ()
 addErrorToState lexError = Alex $ \s@AlexState{alex_ust=ust}
     -> Right (s{
-        alex_ust = (case ust of
-                        LexFailure errors -> LexFailure (lexError:errors)
-                        _ -> LexFailure [lexError])
+        alex_ust = (
+            let LexerResult errors tokens = ust in
+                LexerResult (lexError:errors) tokens)
     }, ())
 
-formatLexError :: String -> LexError -> String
-formatLexError fullStr (LexError (AlexPn offset r c, _, _, s)) =
-    printf "\x1b[1m\x1b[31mYOU DIED!!\x1b[0m Lexical error at line \x1b[1m\x1b[31m%d\x1b[0m, column \x1b[1m\x1b[31m%d\x1b[0m:\n%s\n" r c fs
-    where
-        allLines = splitOn "\n" fullStr
-        maxSize = foldl max (-1) $ map length allLines
-        buildRuler = flip replicate '~'
-        rule = buildRuler maxSize ++ "\n"
-        relevantLines = drop (r-1) allLines
-        firstLine = head relevantLines ++ "\n"
-        restLines = take 4 $ tail relevantLines
-        errorRuler = "\x1b[1m\x1b[31m" ++ (buildRuler (c-1)) ++ "^" ++ buildRuler (maxSize - c) ++ "\x1b[0m\n"
-        fs = firstLine ++ errorRuler ++ (intercalate "\n" restLines)
-
-
-printLexErrors :: String -> [LexError] -> IO ()
-printLexErrors str [] = return ()
-printLexErrors str (error:xs) = do
-    putStrLn $ formatLexError str error
-    printLexErrors str xs
-
-scanTokens :: String -> IO (Maybe Tokens)
+scanTokens :: String -> (LexErrors, Tokens)
 scanTokens str = case runAlex str alexMonadScan of
     Left e -> do
-        putStrLn $ "Alex error " ++ show e
-        return Nothing
-    Right userState -> case userState of
-        LexSuccess tokens -> return $ Just $ map postProcess $ reverse tokens
-        LexFailure errors -> do
-            printLexErrors str $ reverse errors
-            return Nothing
+        error $ "Alex error " ++ show e
+    Right userState ->
+        let LexerResult errors tokens = userState in (
+            reverse errors,
+            filterComments $ map postProcess $ reverse tokens)
 
 removeFirstAndLast :: [a] -> [a]
 removeFirstAndLast = reverse . tail . reverse . tail
 
 postProcess :: Token -> Token
-postProcess (Token TkCharLit (Just s) p) = Token TkCharLit (Just $ f s) p
+postProcess (Token TkCharLit s p) = Token TkCharLit (f s) p
     where
         f s = if head a == '\\' then mapEscaped $ last a else a
         a = removeFirstAndLast s
@@ -373,7 +455,7 @@ postProcess (Token TkCharLit (Just s) p) = Token TkCharLit (Just $ f s) p
         mapEscaped 't' = "\t"
         mapEscaped '\\' = "\\"
         mapEscaped '|' = "\n"
-postProcess (Token TkStringLit (Just s) p) = Token TkStringLit (Just cleanedString) p
+postProcess (Token TkStringLit s p) = Token TkStringLit cleanedString p
     where
         pp = removeFirstAndLast s
         cleanedString = replace "\\@" "@" pp

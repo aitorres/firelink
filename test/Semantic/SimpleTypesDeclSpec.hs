@@ -173,7 +173,7 @@ spec = do
             \ farewell ashen one"
             (_, (dict, _, _), errors) <- U.extractSymTable p
             errors `shouldNotSatisfy` null
-            let ST.SemanticError _ (L.Token _ (Just varName) pn) = head errors
+            let ST.SemanticError _ (L.Token _ varName pn) = head errors
             varName `shouldBe` "x"
             L.row pn `shouldBe` 5
             L.col pn `shouldBe` 9
@@ -245,7 +245,7 @@ spec = do
             \farewell ashen one"
             errors <- U.extractErrors p
             errors `shouldNotSatisfy` null
-            let ST.SemanticError _ (L.Token _ (Just varName) pn) = head errors
+            let ST.SemanticError _ (L.Token _ varName pn) = head errors
             varName `shouldBe` "y"
             L.row pn `shouldBe` 6
             L.col pn `shouldBe` 4
@@ -277,7 +277,7 @@ spec = do
             \farewell ashen one"
             errors <- U.extractErrors p
             errors `shouldNotSatisfy` null
-            let ST.SemanticError _ (L.Token _ (Just varName) pn) = head errors
+            let ST.SemanticError _ (L.Token _ varName pn) = head errors
             varName `shouldBe` "y"
             L.row pn `shouldBe` 6
             L.col pn `shouldBe` 19
@@ -289,7 +289,7 @@ spec = do
             \with \
             \   var x of type humanity \
             \in your inventory \
-            \   enter dungeon with x\
+            \   enter dungeon with x:\
             \      undiscovered:\
             \       traveling somewhere\
             \           go back\
@@ -308,7 +308,7 @@ spec = do
             \with\n\
             \   var x of type humanity\n\
             \in your inventory \n\
-            \   enter dungeon with y\n\
+            \   enter dungeon with y:\n\
             \      undiscovered:\
             \       traveling somewhere\
             \           go back\
@@ -319,7 +319,7 @@ spec = do
             \farewell ashen one"
             errors <- U.extractErrors p
             errors `shouldNotSatisfy` null
-            let ST.SemanticError _ (L.Token _ (Just varName) pn) = head errors
+            let ST.SemanticError _ (L.Token _ varName pn) = head errors
             varName `shouldBe` "y"
             L.row pn `shouldBe` 6
             L.col pn `shouldBe` 23
@@ -339,7 +339,7 @@ spec = do
             \ farewell ashen one"
             errors <- U.extractErrors p
             errors `shouldNotSatisfy` null
-            let ST.SemanticError _ (L.Token _ (Just varName) pn) = head errors
+            let ST.SemanticError _ (L.Token _ varName pn) = head errors
             varName `shouldBe` "y"
             L.row pn `shouldBe` 6
             L.col pn `shouldBe` 29
