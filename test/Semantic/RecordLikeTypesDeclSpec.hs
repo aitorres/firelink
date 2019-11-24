@@ -33,7 +33,7 @@ testVoid prog = U.testVoid (program prog)
 shouldNotError :: String -> IO ()
 shouldNotError p = do
     (_, _, errors) <- U.extractSymTable p
-    errors `shouldNotSatisfy` null
+    errors `shouldSatisfy` null
 
 spec :: Spec
 spec = do
@@ -140,7 +140,7 @@ spec = do
 
             \with\n\
             \   var x of type bezel {\n\
-            \       y of bezel {\n\
+            \       y of type bezel {\n\
             \           z of type humanity\n\
             \       }\n\
             \   }\n\
@@ -189,21 +189,3 @@ spec = do
             varName `shouldBe` "z"
             L.col pn `shouldBe` 34
             L.row pn `shouldBe` 8
-        it "allows to access records properties on rvalues" $
-            shouldNotError "hello ashen one\n\
-
-            \invocation fun with skill of type bezel\n\
-
-            \traveling somewhere\n\
-
-            \with\n\
-            \   var x of type bezel {\n\
-            \       x of type humanity\n\
-            \   }\n\
-            \in your inventory\n\
-
-            \   with orange saponite say x ~> x\n\
-
-            \you died\n\
-
-            \farewell ashen one"
