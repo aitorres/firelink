@@ -37,6 +37,10 @@ spec = describe "Constants" $ do
     L.row pn `shouldBe` 9
     L.col pn `shouldBe` 5
 
+  it "allows to use constants on expressions" $ do
+    let p = program "with orange saponite say b"
+    (_, _, errors) <- U.extractSymTable p
+    errors `shouldSatisfy` null
   it "rejects constant array reassignments" $ do
     let p = program "c<$0$> <<= 1"
     (_, _, errors) <- U.extractSymTable p

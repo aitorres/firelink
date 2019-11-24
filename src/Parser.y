@@ -202,8 +202,11 @@ LVALUE
   : ID                                                                  {% do
                                                                             checkIdAvailability $1
                                                                             return $ G.IdExpr $1 }
-  | LVALUE accessor ID                                                  { G.Access $1 $3 }
-  | LVALUE arrOpen EXPR arrClose                                        { G.IndexAccess $1 $3 }
+  | EXPR accessor ID                                                    {% do
+                                                                            let ret = G.Access $1 $3
+                                                                            checkPropertyAvailability ret
+                                                                            return ret }
+  | EXPR arrOpen EXPR arrClose                                          { G.IndexAccess $1 $3 }
 
 EXPR :: { G.Expr }
 EXPR
@@ -526,20 +529,69 @@ insertIdToEntry mi t entry = do
                              then ST.ValueParam
                              else ST.RefParam, i, t)) s
 
-checkIdAvailability :: G.Id -> ST.ParserMonad ()
-checkIdAvailability (G.Id tk@(L.Token _ idName pn)) = do
+checkIdAvailability :: G.Id -> ST.ParserMonad (Maybe ST.DictionaryEntry)
+checkIdAvailability (G.Id tk@(L.Token _ idName _)) = do
   maybeEntry <- ST.dictLookup idName
   case maybeEntry of
     Nothing -> do
       RWS.tell [ST.SemanticError ("Name " ++ idName ++ " is not available on this scope") tk]
-      return ()
+      return Nothing
     Just e -> do
       case (ST.category e) of
         ST.Constant -> do
           RWS.tell [ST.SemanticError ("Name " ++ idName ++ " is a constant and must not be reassigned") tk]
-          return ()
+          return Nothing
         _ ->
-          return ()
+          return $ Just e
+
+-- The following function only have sense (for the moment) on lvalues
+--  - Ids
+--  - Records
+--  - Arrays
+checkPropertyAvailability :: G.Expr -> ST.ParserMonad ()
+
+-- If it is a variable, we don't need to check anything else
+checkPropertyAvailability (G.IdExpr _) = return ()
+
+-- If it is a record accessing, we need to find the _scope_ of the
+-- left side of the expression where to search for the variable
+checkPropertyAvailability (G.Access expr gId@(G.Id tk@(L.Token _ s _))) = do
+  maybeScope <- findScopeToSearchOf expr
+  case maybeScope of
+    Nothing -> RWS.tell [ST.SemanticError ("Property " ++ s ++ " does not exists") tk]
+    Just s -> do
+      (dict, scopes, curr) <- RWS.get
+      RWS.put (dict, s:scopes, curr)
+      checkIdAvailability gId
+      RWS.put (dict, scopes, curr)
+
+extractFieldsFromExtra :: [ST.Extra] -> ST.Extra
+extractFieldsFromExtra [] = error "The `extra` array doesn't have any `Fields` item"
+extractFieldsFromExtra (s@ST.Fields{} : _) = s
+extractFieldsFromExtra (_:ss) = extractFieldsFromExtra ss
+
+findScopeToSearchOf :: G.Expr -> ST.ParserMonad (Maybe ST.Scope)
+-- The scope of an id is just the scope of its entry
+findScopeToSearchOf (G.IdExpr gId) = do
+  maybeEntry <- checkIdAvailability gId
+  case maybeEntry of
+    Nothing -> return Nothing
+    Just ST.DictionaryEntry {ST.extra=extra} -> do
+      let (ST.Fields s) = extractFieldsFromExtra extra
+      return $ Just s
+
+-- The scope of an record accessing is the scope of its accessing property
+findScopeToSearchOf (G.Access expr gId) = do
+  maybeScopeOf <- findScopeToSearchOf expr
+  case maybeScopeOf of
+    Nothing -> return Nothing
+    Just s -> do
+      (dict, scopes, curr) <- RWS.get
+      RWS.put (dict, s:scopes, curr)
+      scope <- findScopeToSearchOf $ G.IdExpr gId
+      RWS.put (dict, scopes, curr)
+      return scope
+
 
 addFunction :: NameDeclaration -> ST.ParserMonad (Maybe (ST.Scope, G.Id))
 addFunction d@(_, i@(G.Id tk@(L.Token _ idName _)), _) = do
