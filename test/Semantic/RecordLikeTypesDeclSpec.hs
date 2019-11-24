@@ -227,3 +227,43 @@ spec = do
             varName `shouldBe` "z"
             L.col pn `shouldBe` 39
             L.row pn `shouldBe` 6
+        it "accepts valid x<$0$> ~> y ~> z<$0$> ~> a" $
+            shouldNotError "hello ashen one\n\
+
+            \traveling somewhere\n\
+
+            \with\n\
+            \   var x of type <1>-chest of type bezel {\n\
+            \       y of type bezel {\n\
+            \           z of type <1>-chest of type bezel {\n\
+            \               a of type humanity\n\
+            \           }\n\
+            \       }\n\
+            \   }\n\
+            \in your inventory\n\
+
+            \   with orange saponite say x<$0$> ~> y ~> z<$0$> ~> a\n\
+
+            \you died\n\
+
+            \farewell ashen one"
+        it "accepts valid x<$0$> ~> y ~> z<$0$> ~> b" $
+            shouldNotError "hello ashen one\n\
+
+            \traveling somewhere\n\
+
+            \with\n\
+            \   var x of type <1>-chest of type bezel {\n\
+            \       y of type bezel {\n\
+            \           z of type <1>-chest of type bezel {\n\
+            \               a of type humanity\n\
+            \           }\n\
+            \       }\n\
+            \   }\n\
+            \in your inventory\n\
+
+            \   with orange saponite say x<$0$> ~> y ~> z<$0$> ~> b\n\
+
+            \you died\n\
+
+            \farewell ashen one"
