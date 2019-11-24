@@ -455,6 +455,7 @@ type AliasDeclaration = (G.Id, G.Type)
 type RecordItem = AliasDeclaration
 
 extractFieldsForNewScope :: G.Type -> Maybe [RecordItem]
+extractFieldsForNewScope (G.Compound _ s _) = extractFieldsForNewScope s
 extractFieldsForNewScope (G.Record _ s) = Just s
 extractFieldsForNewScope _ = Nothing
 
@@ -475,7 +476,8 @@ parseErrors errors =
   in  fail msg
 
 addIdsToSymTable :: [NameDeclaration] -> ST.ParserMonad ()
-addIdsToSymTable ids = RWS.mapM_ (addIdToSymTable Nothing) ids
+addIdsToSymTable ids = do
+  RWS.mapM_ (addIdToSymTable Nothing) ids
 
 addIdToSymTable :: Maybe Int -> NameDeclaration -> ST.ParserMonad ()
 addIdToSymTable mi d@(c, (G.Id tk@(L.Token at idName _)), t) = do
@@ -563,12 +565,9 @@ checkIdAvailability (G.Id tk@(L.Token _ idName _)) = do
 --  - Arrays
 checkPropertyAvailability :: G.Expr -> ST.ParserMonad ()
 
--- If it is a variable, we don't need to check anything else
-checkPropertyAvailability (G.IdExpr _) = return ()
-
 -- If it is a record accessing, we need to find the _scope_ of the
 -- left side of the expression where to search for the variable
-checkPropertyAvailability (G.Access expr gId@(G.Id tk@(L.Token _ s _))) = do
+checkPropertyAvailability a@(G.Access expr gId@(G.Id tk@(L.Token _ s _))) = do
   maybeScope <- findScopeToSearchOf expr
   case maybeScope of
     Nothing -> RWS.tell [ST.SemanticError ("Property " ++ s ++ " does not exists") tk]
@@ -577,6 +576,8 @@ checkPropertyAvailability (G.Access expr gId@(G.Id tk@(L.Token _ s _))) = do
       RWS.put (dict, s:scopes, curr)
       checkIdAvailability gId
       RWS.put (dict, scopes, curr)
+
+checkPropertyAvailability _ = error "invalid usage of checkPropertyAvailability"
 
 extractFieldsFromExtra :: [ST.Extra] -> ST.Extra
 extractFieldsFromExtra [] = error "The `extra` array doesn't have any `Fields` item"
@@ -605,6 +606,8 @@ findScopeToSearchOf (G.Access expr gId) = do
       RWS.put (dict, scopes, curr)
       return scope
 
+-- The scope of a index acces is the scope of it's id
+findScopeToSearchOf (G.IndexAccess expr _) = findScopeToSearchOf expr
 
 addFunction :: NameDeclaration -> ST.ParserMonad (Maybe (ST.Scope, G.Id))
 addFunction d@(_, i@(G.Id tk@(L.Token _ idName _)), _) = do
@@ -674,12 +677,19 @@ buildExtraForType t@(G.Compound _ tt@(G.Simple _ _) maybeExpr) = do
         Just e -> [ST.CompoundRec constructor e newExtra]
         Nothing -> [ST.Recursive constructor newExtra])
 
-buildExtraForType t@(G.Compound _ tt@(G.Compound _ _ _) maybeExpr) = do
+buildExtraForType t@(G.Compound _ tt@(G.Compound{}) maybeExpr) = do
   extra' <- head <$> buildExtraForType tt
   constructor <- (ST.name . fromJust) <$> findTypeOnEntryTable t -- This call should never fail
   return $ case maybeExpr of
     Just e -> [ST.CompoundRec constructor e extra']
     Nothing -> [ST.Recursive constructor extra']
+
+buildExtraForType t@(G.Compound _ tt@(G.Record{}) maybeExpr) = do
+  extra' <- head <$> buildExtraForType tt
+  constructor <- (ST.name . fromJust) <$> findTypeOnEntryTable t -- This call should never fail
+  return $ case maybeExpr of
+    Just e -> [ST.CompoundRec constructor e extra', extra']
+    Nothing -> [ST.Recursive constructor extra', extra']
 
 buildExtraForType t@(G.Record _ _) = do
   (_, _, currScope) <- RWS.get

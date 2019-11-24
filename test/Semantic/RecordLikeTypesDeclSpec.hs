@@ -32,7 +32,7 @@ testVoid prog = U.testVoid (program prog)
 
 shouldNotError :: String -> IO ()
 shouldNotError p = do
-    (_, _, errors) <- U.extractSymTable p
+    (_, dict, errors) <- U.extractSymTable p
     errors `shouldSatisfy` null
 
 spec :: Spec
@@ -189,3 +189,41 @@ spec = do
             varName `shouldBe` "z"
             L.col pn `shouldBe` 34
             L.row pn `shouldBe` 8
+        it "allows to access record properties of arrays of records" $
+            shouldNotError "hello ashen one\n\
+
+            \traveling somewhere\n\
+
+            \with\n\
+            \   var x of type <1>-chest of type bezel {\n\
+            \       y of type bezel {\n\
+            \           z of type humanity\n\
+            \       }\n\
+            \   }\n\
+            \in your inventory\n\
+
+            \   with orange saponite say x <$ 0 $> ~> y ~> z\n\
+
+            \you died\n\
+
+            \farewell ashen one"
+        it "rejects to access record properties of arrays of any type that is not record" $ do
+            let p = "hello ashen one\n\
+
+            \traveling somewhere\n\
+
+            \with\n\
+            \   var x of type <1>-chest of type humanity\n\
+            \in your inventory\n\
+
+            \   with orange saponite say x<$0$> ~> z\n\
+
+            \you died\n\
+
+            \farewell ashen one"
+            (_, _, errors) <- U.extractSymTable p
+            errors `shouldNotSatisfy` null
+            let ST.SemanticError _ (L.Token _ varName pn) = head errors
+            varName `shouldBe` "z"
+            L.col pn `shouldBe` 39
+            L.row pn `shouldBe` 6
