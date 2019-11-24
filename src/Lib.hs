@@ -37,8 +37,8 @@ lengthOfLine tokens = case last tokens of
 joinTokens :: Int -> [Either L.LexError L.Token] -> String
 joinTokens _ [] = ""
 joinTokens c (e:tks) = case e of
-    Right tk@(L.Token _ _ pn) ->
-        replicate (L.col pn - c) ' ' ++ show tk ++ joinTokens (L.col pn + length (show tk)) tks
+    Right tk@(L.Token _ s pn) ->
+        replicate (L.col pn - c) ' ' ++ show tk ++ joinTokens (L.col pn + length s) tks
     Left (L.LexError (pn, s)) ->
         replicate (L.col pn - c) ' ' ++ s ++ joinTokens (L.col pn + length s) tks
 
@@ -54,15 +54,16 @@ formatLexError (L.LexError (L.AlexPn _ r c, _), tokens) =
         maxSize = foldl max (-1) $ map lengthOfLine tokensByRowNumber
         buildRuler = flip replicate '~'
         rule = buildRuler maxSize ++ "\n"
-        firstLine = joinTokens 0 (head tokensByRowNumber) ++ "\n"
-        restLines = map (joinTokens 0) $ tail tokensByRowNumber
-        errorRuler = bold ++ red ++ buildRuler c ++ "^" ++ buildRuler (maxSize - c) ++ nocolor ++ "\n"
+        firstLine = joinTokens 1 (head tokensByRowNumber) ++ "\n"
+        restLines = map (joinTokens 1) $ tail tokensByRowNumber
+        errorRuler = bold ++ red ++ buildRuler (c-1) ++ "^" ++ buildRuler (maxSize - c) ++ nocolor ++ "\n"
         fs = firstLine ++ errorRuler ++ intercalate "\n" restLines
 
 
 printLexErrors :: [(L.LexError, [Either L.LexError L.Token])] -> IO ()
 printLexErrors [] = return ()
 printLexErrors (errorPair:xs) = do
+    print errorPair
     putStrLn $ formatLexError errorPair
     printLexErrors xs
 
@@ -81,16 +82,13 @@ insertLexErrorOnContext error@(L.LexError (pn, _)) (tk@(L.Token _ _ pn') : tks) 
     then Left error : Right tk : map Right tks
     else Right tk : insertLexErrorOnContext error tks
 
-joinTokensOnly :: Int -> L.Tokens -> String
-joinTokensOnly _ [] = ""
-joinTokensOnly c (tk@(L.Token _ _ pn) : tks) =
-    replicate (L.col pn - c) ' '
-        ++ show tk ++ joinTokensOnly (L.col pn + length (show tk)) tks
+joinTokensOnly :: L.Tokens -> String
+joinTokensOnly = joinTokens (-1) . map Right
 
 printProgram :: L.Tokens -> IO ()
 printProgram tks = do
     let groupedByRowNumber = groupBy (\(L.Token _ _ t1) (L.Token _ _ t2) -> L.row t1 == L.row t2) tks
-    mapM_ (putStrLn . joinTokensOnly 0) groupedByRowNumber
+    mapM_ (putStrLn . joinTokensOnly) groupedByRowNumber
 
 lexer :: String -> IO ()
 lexer contents = do

@@ -390,7 +390,7 @@ data Token = Token AbstractToken -- Token perse
     deriving (Eq)
 
 instance Show Token where
-    show (Token aToken s pn) = show aToken ++ s ++ U.nocolor ++ " "
+    show (Token aToken s pn) = show aToken ++ s ++ U.nocolor
 
 type Tokens = [Token]
 
