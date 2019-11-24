@@ -1,0 +1,49 @@
+hello ashen one
+
+invocation fibonacci
+requesting
+  val n of type humanity
+with skill of type humanity
+  traveling somewhere
+  with
+    var i of type humanity
+  in your inventory
+
+    trust your inventory
+    i eq 0:
+      traveling somewhere
+        go back with 1
+      you died
+    inventory closed \
+
+    i <<= summon fibonacci
+      granting n - 1 to the knight \
+    go back with n*i
+  you died
+after this return to your world
+
+traveling somewhere
+with
+  var n of type humanity,
+  const f of type humanity,
+  var a of type hollow,
+  var b of type sign,
+  var c of type <n>-miracle,
+  var d of type <n>-chest of type big humanity,
+  const e of type bezel {
+    x of type humanity,
+    y of type bezel {
+      e of type bonfire
+    }
+  },
+  const f of type armor of type bezel { prop of type sign },
+  var j of type myCustomType
+in your inventory
+  a <<= |p| \
+  transpose into n \
+  f <<= summon fibonacci
+    granting n to the knight \
+  with orange saponite say f
+you died
+
+farewell ashen one

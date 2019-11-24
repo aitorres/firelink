@@ -20,3 +20,15 @@ italic = "\x1b[3m"
 
 dim :: String
 dim = "\x1b[2m"
+
+cyan :: String
+cyan = "\x1b[36m"
+
+underline :: String
+underline = "\x1b[4m"
+
+brightRed :: String
+brightRed = "\x1b[91m"
+
+green :: String
+green = "\x1b[32m"

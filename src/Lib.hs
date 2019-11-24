@@ -86,9 +86,27 @@ joinTokensOnly :: L.Tokens -> String
 joinTokensOnly = joinTokens (-1) . map Right
 
 printProgram :: L.Tokens -> IO ()
-printProgram tks = do
-    let groupedByRowNumber = groupBy (\(L.Token _ _ t1) (L.Token _ _ t2) -> L.row t1 == L.row t2) tks
-    mapM_ (putStrLn . joinTokensOnly) groupedByRowNumber
+printProgram tks =
+    mapM_ printRowAndLine groupedByRowNumber
+    where
+        groupedByRowNumber :: [L.Tokens]
+        groupedByRowNumber = groupBy (\(L.Token _ _ t1) (L.Token _ _ t2) -> L.row t1 == L.row t2) tks
+
+        numberOfRows :: Int
+        numberOfRows = foldl (\cu (L.Token _ _ pn) -> cu `max` L.row pn) (-1) tks
+
+        maxDigits :: Int
+        maxDigits = length $ show numberOfRows
+
+        printRowAndLine :: L.Tokens -> IO ()
+        printRowAndLine tks = do
+            let (L.Token _ _ pn) = head tks
+            let row = L.row pn
+            let lengthOfRowNumber = length $ show row
+            putStr $ show row
+            putStr $ replicate (maxDigits - lengthOfRowNumber) ' '
+            putStr "|"
+            putStrLn $ joinTokensOnly tks
 
 lexer :: String -> IO ()
 lexer contents = do
