@@ -389,7 +389,9 @@ INSTRL
 
 INSTR :: { G.Instruction }
 INSTR
-  : LVALUE asig EXPR                                                    { G.InstAsig $1 $3 }
+  : LVALUE asig EXPR                                                    {% do
+                                                                          checkConstantReassignment $1
+                                                                          return $ G.InstAsig $1 $3 }
   | cast ID PROCPARS                                                    {% do
                                                                           checkIdAvailability $2
                                                                           return $ G.InstCallProc $2 $3 }
@@ -529,6 +531,22 @@ insertIdToEntry mi t entry = do
                              then ST.ValueParam
                              else ST.RefParam, i, t)) s
 
+checkConstantReassignment :: G.Expr -> ST.ParserMonad ()
+checkConstantReassignment (G.IdExpr (G.Id tk@(L.Token _ idName _))) = do
+  maybeEntry <- ST.dictLookup idName
+  case maybeEntry of
+    Nothing -> do
+      return ()
+    Just e ->
+      case (ST.category e) of
+        ST.Constant -> do
+          RWS.tell [ST.SemanticError ("Name " ++ idName ++ " is a constant and must not be reassigned") tk]
+          return ()
+        _ ->
+          return ()
+checkConstantReassignment (G.IndexAccess gId _) = checkConstantReassignment gId
+checkConstantReassignment _ = return ()
+
 checkIdAvailability :: G.Id -> ST.ParserMonad (Maybe ST.DictionaryEntry)
 checkIdAvailability (G.Id tk@(L.Token _ idName _)) = do
   maybeEntry <- ST.dictLookup idName
@@ -537,12 +555,7 @@ checkIdAvailability (G.Id tk@(L.Token _ idName _)) = do
       RWS.tell [ST.SemanticError ("Name " ++ idName ++ " is not available on this scope") tk]
       return Nothing
     Just e -> do
-      case (ST.category e) of
-        ST.Constant -> do
-          RWS.tell [ST.SemanticError ("Name " ++ idName ++ " is a constant and must not be reassigned") tk]
-          return Nothing
-        _ ->
-          return $ Just e
+      return $ Just e
 
 -- The following function only have sense (for the moment) on lvalues
 --  - Ids
