@@ -14,10 +14,10 @@ with skill of type humanity
   in your inventory
 
     trust your inventory
-    i eq 0:
-      traveling somewhere
-        go back with 1
-      you died
+      i eq 0:
+        traveling somewhere
+          go back with 1
+        you died
     inventory closed \
 
     i <<= summon fibonacci
