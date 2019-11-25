@@ -645,7 +645,7 @@ El token `liar!` es equivalente al token `else` de otros lenguajes de programaci
 El lenguaje poseee estructuras condicionales, de tipo switch. La sintaxis es la siguiente:
 
 ```firelink
-enter dungeon with <identificador>
+enter dungeon with <expresión>
 <expresión 1>:
   <bloque de instrucciones 1>
 [<expresión 2>:
