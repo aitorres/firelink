@@ -30,11 +30,6 @@ test prog = U.test (program prog)
 testVoid :: U.TestFunction String ()
 testVoid prog = U.testVoid (program prog)
 
-shouldNotError :: String -> IO ()
-shouldNotError p = do
-    (_, _, errors) <- U.extractSymTable p
-    errors `shouldSatisfy` null
-
 spec :: Spec
 spec = do
     describe "Record like variable declarations" $ do
@@ -118,7 +113,7 @@ spec = do
                 U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
     describe "Record like variable accessing" $ do
         it "allows to access records properties" $
-            shouldNotError "hello ashen one\n\
+            U.shouldNotError "hello ashen one\n\
 
             \traveling somewhere\n\
 
@@ -134,7 +129,7 @@ spec = do
 
             \farewell ashen one"
         it "allows to access records properties on deeper levels" $
-            shouldNotError "hello ashen one\n\
+            U.shouldNotError "hello ashen one\n\
 
             \traveling somewhere\n\
 
@@ -152,7 +147,7 @@ spec = do
 
             \farewell ashen one"
         it "allows to access records properties with the same name" $
-            shouldNotError "hello ashen one\n\
+            U.shouldNotError "hello ashen one\n\
 
             \traveling somewhere\n\
 
@@ -190,7 +185,7 @@ spec = do
             L.col pn `shouldBe` 34
             L.row pn `shouldBe` 8
         it "allows to access record properties of arrays of records" $
-            shouldNotError "hello ashen one\n\
+            U.shouldNotError "hello ashen one\n\
 
             \traveling somewhere\n\
 
@@ -228,7 +223,7 @@ spec = do
             L.col pn `shouldBe` 39
             L.row pn `shouldBe` 6
         it "accepts valid x<$0$> ~> y ~> z<$0$> ~> a" $
-            shouldNotError "hello ashen one\n\
+            U.shouldNotError "hello ashen one\n\
 
             \traveling somewhere\n\
 

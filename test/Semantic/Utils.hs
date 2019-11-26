@@ -101,3 +101,8 @@ test prog expectedEntry extractor predicate = do
 
 testVoid :: TestFunction String ()
 testVoid prog expectedEntry extractor predicate = RWS.void $ test prog expectedEntry extractor predicate
+
+shouldNotError :: String -> IO ()
+shouldNotError p = do
+    (_, _, errors) <- extractSymTable p
+    errors `shouldSatisfy` null
