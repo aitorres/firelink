@@ -221,16 +221,6 @@ EXPR
   | setOpen EXPRL setClose                                              { G.SetLit $ reverse $2 }
   | unknownLit                                                          { G.UndiscoveredLit }
   | parensOpen EXPR parensClosed                                        { $2 }
-  | EXPR accessor ID                                                    {%do
-                                                                            let e = G.Access $1 $3
-                                                                            t <- getType e
-                                                                            -- TODO: complete
-                                                                            return e }
-  | EXPR arrOpen EXPR arrClose                                          {%do
-                                                                            let e = G.IndexAccess $1 $3
-                                                                            t <- getType e
-                                                                            -- TODO: complete
-                                                                            return e }
   | memAccessor EXPR                                                    {%do
                                                                             let e = G.MemAccess $2
                                                                             t <- getType e
