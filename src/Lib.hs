@@ -27,18 +27,18 @@ groupTokensByRowNumber = groupBy (\e e' -> getRow e == getRow e')
     where
         getRow e = case e of
                     Left (L.LexError (pn, _)) -> L.row pn
-                    Right (L.Token _ _ pn) -> L.row pn
+                    Right L.Token {L.posn=pn} -> L.row pn
 
 lengthOfLine :: [Either L.LexError L.Token] -> Int
 lengthOfLine tokens = case last tokens of
-    Right tk@(L.Token aToken maybeString pn) -> L.col pn + length (show tk)
+    Right tk@L.Token {L.aToken=aToken, L.posn=pn} -> L.col pn + length (show tk)
     Left (L.LexError (pn, s)) -> L.col pn + length s
 
 joinTokens :: Int -> [Either L.LexError L.Token] -> String
 joinTokens _ [] = ""
 joinTokens c (e:tks) = case e of
-    Right tk@(L.Token _ _ pn) ->
-        replicate (L.col pn - c) ' ' ++ show tk ++ joinTokens (L.col pn + length (show tk)) tks
+    Right tk@L.Token {L.capturedString=s, L.posn=pn} ->
+        replicate (L.col pn - c) ' ' ++ show tk ++ joinTokens (L.col pn + length s) tks
     Left (L.LexError (pn, s)) ->
         replicate (L.col pn - c) ' ' ++ s ++ joinTokens (L.col pn + length s) tks
 
@@ -54,9 +54,9 @@ formatLexError (L.LexError (L.AlexPn _ r c, _), tokens) =
         maxSize = foldl max (-1) $ map lengthOfLine tokensByRowNumber
         buildRuler = flip replicate '~'
         rule = buildRuler maxSize ++ "\n"
-        firstLine = joinTokens 0 (head tokensByRowNumber) ++ "\n"
-        restLines = map (joinTokens 0) $ tail tokensByRowNumber
-        errorRuler = bold ++ red ++ buildRuler c ++ "^" ++ buildRuler (maxSize - c) ++ nocolor ++ "\n"
+        firstLine = joinTokens 1 (head tokensByRowNumber) ++ "\n"
+        restLines = map (joinTokens 1) $ tail tokensByRowNumber
+        errorRuler = bold ++ red ++ buildRuler (c-1) ++ "^" ++ buildRuler (maxSize - c) ++ nocolor ++ "\n"
         fs = firstLine ++ errorRuler ++ intercalate "\n" restLines
 
 
@@ -71,26 +71,41 @@ groupLexErrorWithTokenContext [] _ = []
 groupLexErrorWithTokenContext (error@(L.LexError (pn, _)):errors) tokens =
     (error, tks) : groupLexErrorWithTokenContext errors tokens
     where
-        tail = dropWhile (\(L.Token _ _ pn') -> L.row pn /= L.row pn') tokens
-        tks = takeWhile (\(L.Token _ _ pn') -> L.row pn' - L.row pn <= 4) tail
+        tail = dropWhile (\L.Token {L.posn=pn'} -> L.row pn /= L.row pn') tokens
+        tks = takeWhile (\L.Token {L.posn=pn'} -> L.row pn' - L.row pn <= 4) tail
 
 insertLexErrorOnContext :: L.LexError -> L.Tokens -> [Either L.LexError L.Token]
 insertLexErrorOnContext l [] = [Left l]
-insertLexErrorOnContext error@(L.LexError (pn, _)) (tk@(L.Token _ _ pn') : tks) =
+insertLexErrorOnContext error@(L.LexError (pn, _)) (tk@L.Token {L.posn=pn'} : tks) =
     if (L.row pn' >= L.row pn) && (L.col pn' >= L.col pn)
     then Left error : Right tk : map Right tks
     else Right tk : insertLexErrorOnContext error tks
 
-joinTokensOnly :: Int -> L.Tokens -> String
-joinTokensOnly _ [] = ""
-joinTokensOnly c (tk@(L.Token _ _ pn) : tks) =
-    replicate (L.col pn - c) ' '
-        ++ show tk ++ joinTokensOnly (L.col pn + length (show tk)) tks
+joinTokensOnly :: L.Tokens -> String
+joinTokensOnly = joinTokens (-1) . map Right
 
 printProgram :: L.Tokens -> IO ()
-printProgram tks = do
-    let groupedByRowNumber = groupBy (\(L.Token _ _ t1) (L.Token _ _ t2) -> L.row t1 == L.row t2) tks
-    mapM_ (putStrLn . joinTokensOnly 0) groupedByRowNumber
+printProgram tks =
+    mapM_ printRowAndLine groupedByRowNumber
+    where
+        groupedByRowNumber :: [L.Tokens]
+        groupedByRowNumber = groupBy (\L.Token {L.posn=t1} L.Token {L.posn=t2} -> L.row t1 == L.row t2) tks
+
+        numberOfRows :: Int
+        numberOfRows = foldl (\cu L.Token {L.posn=pn} -> cu `max` L.row pn) (-1) tks
+
+        maxDigits :: Int
+        maxDigits = length $ show numberOfRows
+
+        printRowAndLine :: L.Tokens -> IO ()
+        printRowAndLine tks = do
+            let L.Token {L.posn=pn} = head tks
+            let row = L.row pn
+            let lengthOfRowNumber = length $ show row
+            putStr $ show row
+            putStr $ replicate (maxDigits - lengthOfRowNumber) ' '
+            putStr "|"
+            putStrLn $ joinTokensOnly tks
 
 lexer :: String -> IO ()
 lexer contents = do

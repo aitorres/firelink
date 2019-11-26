@@ -170,7 +170,13 @@ payloadRequiredTokens = [TkStringLit, TkIntLit, TkCharLit, TkFloatLit, TkComment
 
 makeToken :: AbstractToken -> AlexAction AlexUserState
 makeToken token (alexPosn, _, _, str) len = do
-    addTokenToState $ Token token (take len str) alexPosn
+    let str' = take len str
+    addTokenToState Token {
+        aToken=token,
+        cleanedString=str',
+        capturedString=str',
+        posn=alexPosn
+    }
     alexMonadScan
 
 throwLexError :: AlexAction AlexUserState
@@ -276,121 +282,121 @@ data AbstractToken = TkId | TkConst | TkVar | TkOfType | TkAsig
 
 
 instance Show AbstractToken where
-    show TkConst = U.red
-    show TkVar = U.red ++ U.bold
+    show TkConst = U.cyan ++ U.bold
+    show TkVar = U.cyan ++ U.bold
     show TkOfType = U.dim
-    show TkAsig = U.bold
-    show TkBigInt = U.blue ++ U.bold
-    show TkSmallInt = U.blue ++ U.bold
-    show TkBool = U.bold
-    show TkLit = U.bold
-    show TkUnlit = U.bold
-    show TkUndiscovered = U.bold
-    show TkFloat = ""
-    show TkChar = ""
-    show TkAsciiOf = ""
-    show TkString = ""
-    show TkLteLit = ""
-    show TkArray = ""
+    show TkAsig = U.brightMagenta ++ U.bold
+    show TkBigInt = U.blue ++ U.bold ++ U.underline
+    show TkSmallInt = U.blue ++ U.bold ++ U.underline
+    show TkBool = U.cyan ++ U.bold ++ U.underline
+    show TkLit = U.blue ++ U.bold
+    show TkUnlit = U.blue ++ U.bold
+    show TkUndiscovered = U.blue ++ U.bold
+    show TkFloat = U.magenta ++ U.bold ++ U.underline
+    show TkChar = U.brightRed ++ U.bold ++ U.underline
+    show TkString = U.green ++ U.bold ++ U.underline
+    show TkLteLit = U.green ++ U.bold ++ U.underline
+    show TkArray = U.green ++ U.bold ++ U.underline
+    show TkSet = U.green ++ U.bold ++ U.underline
+    show TkRecord = U.green ++ U.bold ++ U.underline
+    show TkAlias = U.cyan ++ U.bold
+    show TkAliasListBegin = U.magenta ++ U.bold
+    show TkAliasListEnd = U.magenta ++ U.bold
+    show TkProgramBegin = U.italic ++ U.bold
+    show TkProgramEnd = U.italic ++ U.bold
+    show TkDeclarationEnd = U.dim
+    show TkInstructionBegin = U.dim
+    show TkInstructionEnd = U.dim
+    show TkSeq = U.dim
+    show TkInvocation = U.cyan ++ U.italic ++ U.bold
+    show TkRequesting = U.magenta ++ U.bold
+    show TkInvocationType = U.brightCyan ++ U.dim
+    show TkInvocationParsEnd = U.brightCyan ++ U.dim
+    show TkInvocationEnd = U.cyan ++ U.bold ++ U.italic
+    show TkVal = U.yellow ++ U.bold
+    show TkRef = U.yellow ++ U.bold
+    show TkReturn = U.magenta ++ U.dim
+    show TkSummon = U.brightCyan ++ U.dim
+    show TkGranting = U.brightCyan ++ U.dim
+    show TkSpell = U.cyan ++ U.italic ++ U.bold
+    show TkSpellEnd = U.cyan ++ U.italic ++ U.bold
+    show TkCast = U.brightCyan ++ U.dim
+    show TkOffering = U.brightCyan ++ U.dim
+    show TkSpellParsEnd = U.brightCyan ++ U.dim
+    show TkReturnWith = U.magenta ++ U.dim
+    show TkPrint = U.brightCyan ++ U.dim
+    show TkRead = U.brightCyan ++ U.dim
+    show TkIf = U.magenta ++ U.bold ++ U.italic
+    show TkElse = U.magenta ++ U.bold
+    show TkEndIf = U.magenta ++ U.bold ++ U.italic
+    show TkSwitch = U.magenta ++ U.bold
+    show TkSwitchDefault = U.magenta ++ U.bold
+    show TkEndSwitch = U.magenta ++ U.bold
+    show TkFor = U.magenta ++ U.bold ++ U.italic
+    show TkWith = U.magenta ++ U.bold
+    show TkSoul = U.red ++ U.italic
+    show TkLevel = U.magenta ++ U.bold
+    show TkEndFor = U.magenta ++ U.bold ++ U.italic
+    show TkForEach = U.magenta ++ U.bold ++ U.italic
+    show TkEndForEach = U.magenta ++ U.bold ++ U.italic
+    show TkWhile = U.magenta ++ U.bold ++ U.italic
+    show TkCovenantIsActive = U.magenta ++ U.bold
+    show TkEndWhile = U.magenta ++ U.bold ++ U.italic
+    show TkPlus = U.brightMagenta ++ U.bold
+    show TkMinus = U.brightMagenta ++ U.bold
+    show TkMult = U.brightMagenta ++ U.bold
+    show TkDiv = U.brightMagenta ++ U.bold
+    show TkMod = U.brightMagenta ++ U.bold
+    show TkLt = U.brightMagenta ++ U.bold
+    show TkGt = U.brightMagenta ++ U.bold
+    show TkLte = U.brightMagenta ++ U.bold
+    show TkGte = U.brightMagenta ++ U.bold
+    show TkEq = U.brightMagenta ++ U.bold
+    show TkNeq = U.brightMagenta ++ U.bold
+    show TkAnd = U.brightMagenta ++ U.bold
+    show TkOr = U.brightMagenta ++ U.bold
+    show TkConcat = U.brightMagenta ++ U.bold
+    show TkNot = U.brightMagenta ++ U.bold
+    show TkId = U.bold
+    show TkIntLit = U.blue ++ U.bold
+    show TkCharLit = U.yellow
+    show TkStringLit = U.yellow
+    show TkParensOpen = ""
+    show TkParensClosed = ""
+    show TkColon = ""
+    show TkBraceOpen = ""
+    show TkBraceClosed = ""
+    show TkComma = ""
+    show TkAccessor = ""
     show TkArrayOpen = ""
     show TkArrayClose = ""
+    show TkAsciiOf = ""
     show TkSize = ""
-    show TkSet = ""
     show TkSetOpen = ""
     show TkSetClose = ""
     show TkUnion = ""
     show TkIntersect = ""
     show TkDiff = ""
     show TkEnum = ""
-    show TkBraceOpen = ""
-    show TkBraceClosed = ""
-    show TkComma = ""
-    show TkAccessor = ""
-    show TkRecord = ""
     show TkUnionStruct = ""
     show TkNull = ""
     show TkPointer = ""
     show TkRequestMemory = ""
     show TkAccessMemory = ""
     show TkFreeMemory = ""
-    show TkAlias = ""
-    show TkAliasListBegin = ""
-    show TkAliasListEnd = ""
-    show TkProgramBegin = U.italic ++ U.bold
-    show TkProgramEnd = U.italic ++ U.bold
-    show TkDeclarationEnd = ""
-    show TkInstructionBegin = ""
-    show TkInstructionEnd = ""
-
-    show TkSeq = ""
-    show TkInvocation = ""
-    show TkRequesting = ""
-
-    show TkInvocationType = ""
-
-    show TkInvocationParsEnd = ""
-
-    show TkInvocationEnd = ""
-
-    show TkVal = ""
-    show TkRef = ""
-    show TkReturn = ""
-    show TkSummon = ""
-    show TkGranting = ""
-    show TkSpell = ""
-    show TkSpellEnd = ""
-    show TkCast = ""
-    show TkOffering = ""
-    show TkSpellParsEnd = ""
-    show TkReturnWith = ""
-    show TkPrint = ""
-    show TkRead = ""
-    show TkIf = ""
-    show TkColon = ""
-    show TkElse = ""
-    show TkEndIf = ""
-    show TkSwitch = ""
-    show TkSwitchDefault = ""
-    show TkEndSwitch = ""
-    show TkFor = U.magenta ++ U.bold
-    show TkWith = U.magenta ++ U.bold
-    show TkSoul = ""
-    show TkLevel = ""
-    show TkEndFor = ""
-    show TkForEach = ""
     show TkWithTitaniteFrom = ""
-    show TkEndForEach = ""
-    show TkWhile = ""
-    show TkCovenantIsActive = ""
-    show TkEndWhile = ""
-    show TkPlus = ""
-    show TkMinus = ""
-    show TkMult = ""
-    show TkDiv = ""
-    show TkMod = ""
-    show TkLt = ""
-    show TkGt = ""
-    show TkLte = ""
-    show TkGte = ""
-    show TkEq = ""
-    show TkNeq = ""
-    show TkAnd = ""
-    show TkOr = ""
-    show TkConcat = ""
-    show TkParensOpen = ""
-    show TkParensClosed = ""
-    show TkNot = ""
-    show TkId = U.bold
-    show TkIntLit = U.blue ++ U.bold
     show _ = "epale chamito falto yo"
 
-data Token = Token AbstractToken -- Token perse
-                String -- The captured token
-                AlexPosn -- To get file context
+data Token = Token
+    { aToken :: !AbstractToken -- Token perse
+    , capturedString :: !String -- The captured string
+    , cleanedString :: !String -- The cleaned string
+    , posn :: !AlexPosn -- To get file context
+    }
     deriving (Eq)
 
 instance Show Token where
-    show (Token aToken s pn) = show aToken ++ s ++ U.nocolor ++ " "
+    show t = (show . aToken $ t) ++ capturedString t ++ U.nocolor
 
 type Tokens = [Token]
 
@@ -447,7 +453,7 @@ removeFirstAndLast :: [a] -> [a]
 removeFirstAndLast = reverse . tail . reverse . tail
 
 postProcess :: Token -> Token
-postProcess (Token TkCharLit s p) = Token TkCharLit (f s) p
+postProcess (Token TkCharLit s _ p) = Token TkCharLit s (f s) p
     where
         f s = if head a == '\\' then mapEscaped $ last a else a
         a = removeFirstAndLast s
@@ -455,10 +461,10 @@ postProcess (Token TkCharLit s p) = Token TkCharLit (f s) p
         mapEscaped 't' = "\t"
         mapEscaped '\\' = "\\"
         mapEscaped '|' = "\n"
-postProcess (Token TkStringLit s p) = Token TkStringLit cleanedString p
+postProcess (Token TkStringLit s _ p) = Token TkStringLit s ss p
     where
         pp = removeFirstAndLast s
-        cleanedString = replace "\\@" "@" pp
+        ss = replace "\\@" "@" pp
 postProcess a = a
 
 -- getAbstractToken :: Token -> AbstractToken
@@ -466,5 +472,5 @@ postProcess a = a
 
 filterComments :: [Token] -> [Token]
 filterComments =
-    filter (\(Token abst _ _) -> abst /= TkComment)
+    filter (\t -> aToken t /= TkComment)
 }

@@ -1,0 +1,137 @@
+hello ashen one
+
+requiring help of
+  knight onion <10>-chest of type <5>-chest of type <15>-miracle
+help received
+
+invocation fibonacci
+requesting
+  val n of type humanity
+with skill of type humanity
+  traveling somewhere
+  with
+    var i of type humanity
+  in your inventory
+
+    trust your inventory
+      i eq 0:
+        traveling somewhere
+          go back with 1
+        you died
+    inventory closed \
+
+    i <<= summon fibonacci
+      granting n - 1 to the knight \
+    go back with n*i
+  you died
+after this return to your world
+
+spell printHelloWorld
+requesting
+  ref n of type <123>-miracle
+to the estus flask
+  traveling somewhere
+    with orange saponite say @hello world@ \
+    with orange saponite say n
+  you died
+ashen estus flask consumed
+
+traveling somewhere
+with
+  var n of type humanity,
+  var f of type humanity,
+  var a of type hollow,
+  var b of type sign,
+  var c of type <n>-miracle,
+  var d of type <n>-chest of type big humanity,
+  const e of type bezel {
+    x of type humanity,
+    y of type bezel {
+      e of type bonfire
+    }
+  },
+  var ff of type armor of type bezel { prop of type sign },
+  var j of type myCustomType,
+  var g of type link { x of type humanity },
+  var pp of type arrow to sign
+in your inventory
+  aim pp \
+  throw pp <<= |a| \
+  recover pp \
+  a <<= |p| \
+  transpose into n \
+  f <<= summon fibonacci
+    granting n to the knight \
+  with orange saponite say f \
+
+  trust your inventory
+    lit:
+      traveling somewhere
+        cast printHelloWorld offering @string@
+      you died
+    unlit:
+      traveling somewhere
+        n <<= 1 + n \
+        n <<= 1 - n
+      you died
+    undiscovered:
+      traveling somewhere
+        n <<= 1 * n \
+        n <<= 1 % n
+      you died
+    liar!
+      traveling somewhere
+        with orange saponite say 1 lte n \
+        with orange saponite say 1 gt n
+      you died
+  inventory closed
+
+  enter dungeon with 1 + 2:
+    123:
+      traveling somewhere
+        n <<= - n \
+        with orange saponite say 1 lt n
+      you died
+    empty dungeon:
+      traveling somewhere
+        with orange saponite say 1 gte n \
+        with orange saponite say 1 eq n \
+        with orange saponite say 1 neq n \
+        with orange saponite say lit \
+      you died
+  dungeon exited
+
+  upgrading i with i soul until level n
+    traveling somewhere
+      d<$i$> <<= d<$i - 1$>
+    you died
+  max level reached
+
+  repairing i with titanite from ff
+    traveling somewhere
+      with orange saponite say i ~> prop
+    you died
+  weaponry repaired
+
+
+  while the e ~> y ~> e coventant is active:
+    traveling somewhere
+      e ~> y ~> e <<= lit and not lit or unlit eq lit neq undiscovered
+    you died
+  covenant left
+  with orange saponite say |!| \
+  with orange saponite say |\n| \
+  with orange saponite say |\|| \
+  with orange saponite say ascii_of |a| \
+  c <<= @hellow @ >-< @world@ \
+  with orange saponite say <$1, 2, 3, 4, 5$> \
+  with orange saponite say d<$n$> \
+  n <<= size d \
+  ff <<= {$ $} \
+  ff <<= ff union ff \
+  ff <<= ff intersect ff \
+  ff <<= ff diff ff
+
+you died
+
+farewell ashen one

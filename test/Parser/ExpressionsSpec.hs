@@ -331,45 +331,45 @@ spec = describe "Expressions" $ do
     it "accepts `a ~> b` as an expression" $
         runTestForExpr "a ~> b" (\(Program (
             CodeBlock
-                [InstReturnWith (Access (IdExpr (Id (Token _ "a" _))) (Id (Token _ "b" _)))])) -> True)
+                [InstReturnWith (Access (IdExpr (Id Token {cleanedString="a"})) (Id Token {cleanedString="b"}))])) -> True)
     it "accepts `a ~> b ~> c` as an expression" $
         runTestForExpr "a ~> b ~> c" (\(Program (
             CodeBlock
                 [InstReturnWith (
                     Access
-                        (Access (IdExpr (Id (Token _ "a" _))) (Id (Token _ "b" _)))
-                        (Id (Token _ "c" _)))])) -> True)
+                        (Access (IdExpr (Id Token {cleanedString="a"})) (Id Token {cleanedString="b"}))
+                        (Id Token {cleanedString="c"}))])) -> True)
     it "accepts `a + b ~> c` as an expression" $
         runTestForExpr "a + b ~> c" (\(Program (
             CodeBlock
                 [InstReturnWith (
                     Add
-                        (IdExpr (Id (Token _ "a" _)))
+                        (IdExpr (Id Token {cleanedString="a"}))
                         (Access
-                            (IdExpr (Id (Token _ "b" _)))
-                            (Id (Token _ "c" _))))])) -> True)
+                            (IdExpr (Id Token {cleanedString="b"}))
+                            (Id Token {cleanedString="c"})))])) -> True)
 
     it "accepts `(a)` as an expression" $
         runTestForExpr "(a)" (\(Program (
             CodeBlock
-                [InstReturnWith (IdExpr (Id (Token _ "a" _)))])) -> True)
+                [InstReturnWith (IdExpr (Id Token {cleanedString="a"}))])) -> True)
 
     it "accepts `a<$i$>` as an expression" $
         runTestForExpr "a<$i$>" (\(Program (
             CodeBlock
                 [InstReturnWith (
                     IndexAccess
-                        (IdExpr (Id (Token _ "a" _)))
-                        (IdExpr (Id (Token _ "i" _))))])) -> True)
+                        (IdExpr (Id Token {cleanedString="a"}))
+                        (IdExpr (Id Token {cleanedString="i"})))])) -> True)
     it "accepts `a+b<$i$>` as an expression" $
         runTestForExpr "a+b<$i$>" (\(Program (
             CodeBlock
                 [InstReturnWith (
                     Add
-                        (IdExpr (Id (Token _ "a" _)))
+                        (IdExpr (Id Token {cleanedString="a"}))
                         (IndexAccess
-                            (IdExpr (Id (Token _ "b" _)))
-                            (IdExpr (Id (Token _ "i" _)))))])) -> True)
+                            (IdExpr (Id Token {cleanedString="b"}))
+                            (IdExpr (Id Token {cleanedString="i"}))))])) -> True)
     it "rejects `a<$$>` as an expression" $
         runTestForInvalidProgram "a<$$>"
 
@@ -380,7 +380,7 @@ spec = describe "Expressions" $ do
     it "accepts `throw a a` as an expression" $
         runTestForExpr "throw a a" (\(Program (
             CodeBlock
-                [InstReturnWith (MemAccess (IdExpr (Id (Token _ "a" _))))])) -> True)
+                [InstReturnWith (MemAccess (IdExpr (Id Token {cleanedString="a"})))])) -> True)
     it "rejects `aim a a` as an expression" $
         runTestForInvalidProgram "aim a a"
     it "rejects `recover a a` as an expresion" $
@@ -389,4 +389,4 @@ spec = describe "Expressions" $ do
     it "accepts `summon f` a an expression" $
         runTestForExpr "summon f" (\(Program (
             CodeBlock
-                [InstReturnWith (EvalFunc (Id (Token _ "f" _)) [])])) -> True)
+                [InstReturnWith (EvalFunc (Id Token {cleanedString="f"}) [])])) -> True)

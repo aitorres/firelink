@@ -11,6 +11,7 @@ runTestForValidProgram :: String -> (Program -> Bool) -> IO ()
 runTestForValidProgram program predicate = do
     let ([], tokens) = scanTokens program
     (ast, _, _) <- RWS.runRWST (parse tokens) () ST.initialState
+    print ast
     ast `TH.shouldSatisfy` predicate
 
 runTestForInvalidProgram :: String -> IO ()
