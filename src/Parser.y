@@ -7,6 +7,7 @@ import qualified SymTable as ST
 import Data.Maybe
 import qualified Grammar as G
 import qualified Control.Monad.RWS as RWS
+import qualified TypeChecking as T
 }
 
 %name                                                                     parse
@@ -223,117 +224,117 @@ EXPR
   | parensOpen EXPR parensClosed                                        { $2 }
   | memAccessor EXPR                                                    {%do
                                                                             let e = G.MemAccess $2
-                                                                            t <- getType e
+                                                                            t <- T.getType e
                                                                             -- TODO: complete
                                                                             return e }
   | minus EXPR                                                          {% do
                                                                             let e = G.Negative $2
-                                                                            t <- getType e
-                                                                            checkType $2 t $1
+                                                                            t <- T.getType e
+                                                                            -- checkType $2 t $1
                                                                             return $ e }
   | not EXPR                                                            {% do
                                                                             let e = G.Not $2
-                                                                            t <- getType e
-                                                                            checkType $2 t $1
+                                                                            t <- T.getType e
+                                                                            -- checkType $2 t $1
                                                                             return $ e }
   | asciiOf EXPR                                                        {% do
                                                                             let e = G.AsciiOf $2
-                                                                            t <- getType e
-                                                                            checkType $2 t $1
+                                                                            t <- T.getType e
+                                                                            -- checkType $2 t $1
                                                                             return $ e }
   | size EXPR                                                          {% do
                                                                             let e = G.SetSize $2
-                                                                            t <- getType e
-                                                                            checkType $2 t $1
+                                                                            t <- T.getType e
+                                                                            -- checkType $2 t $1
                                                                             return $ e }
   | EXPR plus EXPR                                                      {% do
                                                                             let e = G.Add $1 $3
-                                                                            t <- getType e
-                                                                            checkTypes $1 $3 t $2
+                                                                            t <- T.getType e
+                                                                            -- checkTypes $1 $3 t $2
                                                                             return $ e }
   | EXPR minus EXPR                                                     {%do
                                                                             let e = G.Substract $1 $3
-                                                                            t <- getType e
-                                                                            checkTypes $1 $3 t $2
+                                                                            t <- T.getType e
+                                                                            -- checkTypes $1 $3 t $2
                                                                             return e }
   | EXPR mult EXPR                                                      {%do
                                                                             let e = G.Multiply $1 $3
-                                                                            t <- getType e
-                                                                            checkTypes $1 $3 t $2
+                                                                            t <- T.getType e
+                                                                            -- checkTypes $1 $3 t $2
                                                                             return e }
   | EXPR div EXPR                                                       {%do
                                                                             let e = G.Divide $1 $3
-                                                                            t <- getType e
-                                                                            checkTypes $1 $3 t $2
+                                                                            t <- T.getType e
+                                                                            -- checkTypes $1 $3 t $2
                                                                             return e }
   | EXPR mod EXPR                                                       {%do
                                                                             let e = G.Mod $1 $3
-                                                                            t <- getType e
-                                                                            checkTypes $1 $3 t $2
+                                                                            t <- T.getType e
+                                                                            -- checkTypes $1 $3 t $2
                                                                             return e }
   | EXPR lt EXPR                                                        {%do
                                                                             let e = G.Lt $1 $3
-                                                                            t <- getType e
-                                                                            checkTypes $1 $3 t $2
+                                                                            t <- T.getType e
+                                                                            -- checkTypes $1 $3 t $2
                                                                             return e }
   | EXPR gt EXPR                                                        {%do
                                                                             let e = G.Gt $1 $3
-                                                                            t <- getType e
-                                                                            checkTypes $1 $3 t $2
+                                                                            t <- T.getType e
+                                                                            -- checkTypes $1 $3 t $2
                                                                             return e }
   | EXPR lte EXPR                                                       {%do
                                                                             let e = G.Lte $1 $3
-                                                                            t <- getType e
-                                                                            checkTypes $1 $3 t $2
+                                                                            t <- T.getType e
+                                                                            -- checkTypes $1 $3 t $2
                                                                             return e }
   | EXPR gte EXPR                                                       {%do
                                                                             let e = G.Gte $1 $3
-                                                                            t <- getType e
-                                                                            checkTypes $1 $3 t $2
+                                                                            t <- T.getType e
+                                                                            -- checkTypes $1 $3 t $2
                                                                             return e }
   | EXPR eq EXPR                                                        {%do
                                                                             let e = G.Eq $1 $3
-                                                                            t <- getType e
-                                                                            checkTypes $1 $3 t $2
+                                                                            t <- T.getType e
+                                                                            -- checkTypes $1 $3 t $2
                                                                             return e }
   | EXPR neq EXPR                                                       {%do
                                                                             let e = G.Neq $1 $3
-                                                                            t <- getType e
-                                                                            checkTypes $1 $3 t $2
+                                                                            t <- T.getType e
+                                                                            -- checkTypes $1 $3 t $2
                                                                             return e }
   | EXPR and EXPR                                                       {%do
                                                                             let e = G.And $1 $3
-                                                                            t <- getType e
-                                                                            checkTypes $1 $3 t $2
+                                                                            t <- T.getType e
+                                                                            -- checkTypes $1 $3 t $2
                                                                             return e }
   | EXPR or EXPR                                                        {%do
                                                                             let e = G.Or $1 $3
-                                                                            t <- getType e
-                                                                            checkTypes $1 $3 t $2
+                                                                            t <- T.getType e
+                                                                            -- checkTypes $1 $3 t $2
                                                                             return e }
   | EXPR colConcat EXPR                                                 {%do
                                                                             let e = G.ColConcat $1 $3
-                                                                            t <- getType e
-                                                                            checkTypes $1 $3 t $2
+                                                                            t <- T.getType e
+                                                                            -- checkTypes $1 $3 t $2
                                                                             return e }
   | EXPR union EXPR                                                     {%do
                                                                             let e = G.SetUnion $1 $3
-                                                                            t <- getType e
-                                                                            checkTypes $1 $3 t $2
+                                                                            t <- T.getType e
+                                                                            -- checkTypes $1 $3 t $2
                                                                             return e }
   | EXPR intersect EXPR                                                 {%do
                                                                             let e = G.SetIntersect $1 $3
-                                                                            t <- getType e
-                                                                            checkTypes $1 $3 t $2
+                                                                            t <- T.getType e
+                                                                            -- checkTypes $1 $3 t $2
                                                                             return e }
   | EXPR diff EXPR                                                      {%do
                                                                             let e = G.SetDiff $1 $3
-                                                                            t <- getType e
-                                                                            checkTypes $1 $3 t $2
+                                                                            t <- T.getType e
+                                                                            -- checkTypes $1 $3 t $2
                                                                             return e }
   | FUNCALL                                                             {%do
                                                                             let e = G.EvalFunc (fst $1) (snd $1)
-                                                                            t <- getType e
+                                                                            t <- T.getType e
                                                                             -- TODO: complete
                                                                             return e }
   | LVALUE                                                              { $1 }
@@ -797,145 +798,4 @@ buildExtraForType t@(G.Callable _ _) = do
 
 -- For anything else
 buildExtraForType _ = return []
-
-class TypeCheckable a where
-  getType :: a -> ST.ParserMonad String
-  typeMatches :: a -> a -> ST.ParserMonad Bool
-  typeMatches a b = do
-    aType <- getType a
-    bType <- getType b
-    return (aType == bType)
-
-isOneOfTypes :: [String] -> G.Expr -> ST.ParserMonad Bool
-isOneOfTypes ts a = do
-  t <- getType a
-  let isValidType = or [t == x | x <- ts]
-  return (
-    if isValidType then
-      True
-    else
-      False
-    )
-
-isLogicalType :: G.Expr -> ST.ParserMonad Bool
-isLogicalType = isOneOfTypes [ST.bonfire]
-
-isNumberType :: G.Expr -> ST.ParserMonad Bool
-isNumberType = isOneOfTypes [ST.humanity, ST.smallHumanity, ST.hollow]
-
-isComparableType :: G.Expr -> ST.ParserMonad Bool
-isComparableType = isOneOfTypes [ST.humanity, ST.smallHumanity, ST.hollow]
-
-isEquatableType :: G.Expr -> ST.ParserMonad Bool
-isEquatableType = isOneOfTypes [ST.humanity, ST.smallHumanity, ST.hollow, ST.sign, ST.bonfire]
-
-isShowableType :: G.Expr -> ST.ParserMonad Bool
-isShowableType = isOneOfTypes [ST.sign, ST.miracle] -- TODO: check if this is okay
-
-conditionalCheck :: (G.Expr -> ST.ParserMonad Bool) -> G.Expr -> G.Expr ->  ST.ParserMonad String
-conditionalCheck condition a b = do
-  matches <- typeMatches a b
-  aType <- getType a
-  isValidType <- condition a
-  return (
-    if matches then
-      if (isValidType) then
-        aType
-      else
-        ST.errorType
-    else
-      ST.errorType
-    )
-
-conditionalCheckReturningBonfire ::  (G.Expr -> ST.ParserMonad Bool) -> G.Expr -> G.Expr ->  ST.ParserMonad String
-conditionalCheckReturningBonfire condition a b = do
-  matchingType <- conditionalCheck condition a b
-  return (
-    if matchingType == ST.errorType then
-      ST.errorType
-    else
-      ST.bonfire
-    )
-
-arithmeticCheck :: G.Expr -> G.Expr -> ST.ParserMonad String
-arithmeticCheck = conditionalCheck isNumberType
-
-comparableCheck :: G.Expr -> G.Expr -> ST.ParserMonad String
-comparableCheck = conditionalCheckReturningBonfire isComparableType
-
-equatableCheck :: G.Expr -> G.Expr -> ST.ParserMonad String
-equatableCheck = conditionalCheckReturningBonfire isEquatableType
-
-logicalCheck :: G.Expr -> G.Expr -> ST.ParserMonad String
-logicalCheck = conditionalCheckReturningBonfire isLogicalType
-
-instance TypeCheckable G.Expr where
-  getType G.TrueLit = return (ST.bonfire)
-  getType G.FalseLit = return (ST.bonfire)
-  getType G.UndiscoveredLit = return (ST.bonfire)
-  getType G.NullLit = return (ST.void)
-  getType (G.IntLit _) = return (ST.humanity)
-  getType (G.FloatLit _) = return (ST.hollow)
-  getType (G.CharLit _) = return (ST.sign)
-  getType (G.StringLit _) = return (ST.miracle)
-  getType (G.ArrayLit _) = return (ST.chest) -- TODO: Recursive type
-  getType (G.SetLit _) = return (ST.armor) -- TODO: Recursive type
-  getType (G.EvalFunc id _) = getType (G.IdExpr id) -- TODO: Check if okay
-  getType (G.Add a b) = arithmeticCheck a b
-  getType (G.Substract a b) = arithmeticCheck a b
-  getType (G.Multiply a b) = arithmeticCheck a b
-  getType (G.Divide a b) = arithmeticCheck a b
-  getType (G.Mod a b) = arithmeticCheck a b
-  getType (G.Negative a) = arithmeticCheck a a -- cheating
-  getType (G.Lt a b) = comparableCheck a b
-  getType (G.Lte a b) = comparableCheck a b
-  getType (G.Gt a b) = comparableCheck a b
-  getType (G.Gte a b) = comparableCheck a b
-  getType (G.Eq a b) = equatableCheck a b
-  getType (G.Neq a b) = equatableCheck a b
-  getType (G.And a b) = logicalCheck a b
-  getType (G.Or a b) = logicalCheck a b
-  getType (G.Not a) = logicalCheck a a -- cheating
-  getType (G.Access e i) = return ("missing") -- TODO: Accessor type
-  getType (G.IndexAccess e1 e2) = return ("missing") -- TODO: Accessor type
-  getType (G.MemAccess e) = return ("missing") -- TODO: Mem access
-  getType (G.IdExpr (G.Id tk@(L.Token _ mid _))) = do
-    case mid of
-      Nothing -> do
-        RWS.tell [ST.SemanticError ("Id " ++ (show tk) ++ " inappropriately initialized") tk]
-        return (ST.errorType)
-      Just id -> do
-        mde <- ST.dictLookup id
-        case mde of
-          Nothing -> do
-            RWS.tell [ST.SemanticError ("Id " ++ id ++ " not found in symbol table") tk]
-            return (ST.errorType)
-          Just de -> do
-            case ST.entryType de of
-              Nothing -> do
-                RWS.tell [ST.SemanticError ("Id " ++ id ++ " has no type in symbol table") tk]
-                return (ST.errorType)
-              Just t ->
-                return (t)
-  getType _ = return ("missing") -- TODO: Finish implementation
-
-checkTypes :: G.Expr -> G.Expr -> String -> L.Token -> ST.ParserMonad ()
-checkTypes a b t tk = do
-  let isError = t == ST.errorType
-  case isError of
-    True -> do
-      RWS.tell [ST.SemanticError ("Type mismatch between " ++ (show a) ++ " and " ++ (show b)) tk]
-      return ()
-    False ->
-      return ()
-
-checkType :: G.Expr -> String -> L.Token -> ST.ParserMonad ()
-checkType a t tk = do
-  let isError = t == ST.errorType
-  case isError of
-    True -> do
-      RWS.tell [ST.SemanticError ("Type mismatch for " ++ (show a)) tk]
-      return ()
-    False ->
-      return ()
 }
