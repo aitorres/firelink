@@ -27,17 +27,17 @@ groupTokensByRowNumber = groupBy (\e e' -> getRow e == getRow e')
     where
         getRow e = case e of
                     Left (L.LexError (pn, _)) -> L.row pn
-                    Right (L.Token _ _ pn) -> L.row pn
+                    Right L.Token {L.posn=pn} -> L.row pn
 
 lengthOfLine :: [Either L.LexError L.Token] -> Int
 lengthOfLine tokens = case last tokens of
-    Right tk@(L.Token aToken maybeString pn) -> L.col pn + length (show tk)
+    Right tk@L.Token {L.aToken=aToken, L.posn=pn} -> L.col pn + length (show tk)
     Left (L.LexError (pn, s)) -> L.col pn + length s
 
 joinTokens :: Int -> [Either L.LexError L.Token] -> String
 joinTokens _ [] = ""
 joinTokens c (e:tks) = case e of
-    Right tk@(L.Token _ s pn) ->
+    Right tk@L.Token {L.capturedString=s, L.posn=pn} ->
         replicate (L.col pn - c) ' ' ++ show tk ++ joinTokens (L.col pn + length s) tks
     Left (L.LexError (pn, s)) ->
         replicate (L.col pn - c) ' ' ++ s ++ joinTokens (L.col pn + length s) tks
@@ -63,7 +63,6 @@ formatLexError (L.LexError (L.AlexPn _ r c, _), tokens) =
 printLexErrors :: [(L.LexError, [Either L.LexError L.Token])] -> IO ()
 printLexErrors [] = return ()
 printLexErrors (errorPair:xs) = do
-    print errorPair
     putStrLn $ formatLexError errorPair
     printLexErrors xs
 
@@ -72,12 +71,12 @@ groupLexErrorWithTokenContext [] _ = []
 groupLexErrorWithTokenContext (error@(L.LexError (pn, _)):errors) tokens =
     (error, tks) : groupLexErrorWithTokenContext errors tokens
     where
-        tail = dropWhile (\(L.Token _ _ pn') -> L.row pn /= L.row pn') tokens
-        tks = takeWhile (\(L.Token _ _ pn') -> L.row pn' - L.row pn <= 4) tail
+        tail = dropWhile (\L.Token {L.posn=pn'} -> L.row pn /= L.row pn') tokens
+        tks = takeWhile (\L.Token {L.posn=pn'} -> L.row pn' - L.row pn <= 4) tail
 
 insertLexErrorOnContext :: L.LexError -> L.Tokens -> [Either L.LexError L.Token]
 insertLexErrorOnContext l [] = [Left l]
-insertLexErrorOnContext error@(L.LexError (pn, _)) (tk@(L.Token _ _ pn') : tks) =
+insertLexErrorOnContext error@(L.LexError (pn, _)) (tk@L.Token {L.posn=pn'} : tks) =
     if (L.row pn' >= L.row pn) && (L.col pn' >= L.col pn)
     then Left error : Right tk : map Right tks
     else Right tk : insertLexErrorOnContext error tks
@@ -90,17 +89,17 @@ printProgram tks =
     mapM_ printRowAndLine groupedByRowNumber
     where
         groupedByRowNumber :: [L.Tokens]
-        groupedByRowNumber = groupBy (\(L.Token _ _ t1) (L.Token _ _ t2) -> L.row t1 == L.row t2) tks
+        groupedByRowNumber = groupBy (\L.Token {L.posn=t1} L.Token {L.posn=t2} -> L.row t1 == L.row t2) tks
 
         numberOfRows :: Int
-        numberOfRows = foldl (\cu (L.Token _ _ pn) -> cu `max` L.row pn) (-1) tks
+        numberOfRows = foldl (\cu L.Token {L.posn=pn} -> cu `max` L.row pn) (-1) tks
 
         maxDigits :: Int
         maxDigits = length $ show numberOfRows
 
         printRowAndLine :: L.Tokens -> IO ()
         printRowAndLine tks = do
-            let (L.Token _ _ pn) = head tks
+            let L.Token {L.posn=pn} = head tks
             let row = L.row pn
             let lengthOfRowNumber = length $ show row
             putStr $ show row

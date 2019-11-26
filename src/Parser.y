@@ -16,9 +16,6 @@ import qualified Control.Monad.RWS as RWS
 
 
 %nonassoc lt lte gt gte size memAccessor
-%left LVALUE
-%right arrOpen
-%left arrClose
 
 %left ARRCLOSE
 
@@ -37,136 +34,137 @@ import qualified Control.Monad.RWS as RWS
 %left asciiOf
 %right not
 %left accessor
+%left arrOpen arrClose
 
 
 %token
-  programBegin                                                          { L.Token L.TkProgramBegin _ _ }
-  programEnd                                                            { L.Token L.TkProgramEnd _ _ }
+  programBegin                                                          { L.Token {L.aToken=L.TkProgramBegin} }
+  programEnd                                                            { L.Token {L.aToken=L.TkProgramEnd} }
 
-  aliasListBegin                                                        { L.Token L.TkAliasListBegin _ _ }
-  aliasListEnd                                                          { L.Token L.TkAliasListEnd _ _ }
-  alias                                                                 { L.Token L.TkAlias _ _ }
+  aliasListBegin                                                        { L.Token {L.aToken=L.TkAliasListBegin} }
+  aliasListEnd                                                          { L.Token {L.aToken=L.TkAliasListEnd} }
+  alias                                                                 { L.Token {L.aToken=L.TkAlias} }
 
-  id                                                                    { L.Token L.TkId _ _ }
+  id                                                                    { L.Token {L.aToken=L.TkId} }
 
-  ofType                                                                { L.Token L.TkOfType _ _ }
+  ofType                                                                { L.Token {L.aToken=L.TkOfType} }
 
-  paramRequest                                                          { L.Token L.TkRequesting _ _ }
-  parVal                                                                { L.Token L.TkVal _ _ }
-  parRef                                                                { L.Token L.TkRef _ _ }
+  paramRequest                                                          { L.Token {L.aToken=L.TkRequesting} }
+  parVal                                                                { L.Token {L.aToken=L.TkVal} }
+  parRef                                                                { L.Token {L.aToken=L.TkRef} }
 
-  bigInt                                                                { L.Token L.TkBigInt _ _ }
-  smallInt                                                              { L.Token L.TkSmallInt _ _ }
-  float                                                                 { L.Token L.TkFloat _ _ }
-  char                                                                  { L.Token L.TkChar _ _ }
-  bool                                                                  { L.Token L.TkBool _ _ }
-  ltelit                                                                { L.Token L.TkLteLit _ _ }
-  string                                                                { L.Token L.TkString _ _ }
-  array                                                                 { L.Token L.TkArray _ _ }
-  set                                                                   { L.Token L.TkSet _ _ }
-  enum                                                                  { L.Token L.TkEnum _ _ }
-  unionStruct                                                           { L.Token L.TkUnionStruct _ _ }
-  record                                                                { L.Token L.TkRecord _ _ }
-  pointer                                                               { L.Token L.TkPointer _ _ }
+  bigInt                                                                { L.Token {L.aToken=L.TkBigInt} }
+  smallInt                                                              { L.Token {L.aToken=L.TkSmallInt} }
+  float                                                                 { L.Token {L.aToken=L.TkFloat} }
+  char                                                                  { L.Token {L.aToken=L.TkChar} }
+  bool                                                                  { L.Token {L.aToken=L.TkBool} }
+  ltelit                                                                { L.Token {L.aToken=L.TkLteLit} }
+  string                                                                { L.Token {L.aToken=L.TkString} }
+  array                                                                 { L.Token {L.aToken=L.TkArray} }
+  set                                                                   { L.Token {L.aToken=L.TkSet} }
+  enum                                                                  { L.Token {L.aToken=L.TkEnum} }
+  unionStruct                                                           { L.Token {L.aToken=L.TkUnionStruct} }
+  record                                                                { L.Token {L.aToken=L.TkRecord} }
+  pointer                                                               { L.Token {L.aToken=L.TkPointer} }
 
-  intLit                                                                { L.Token L.TkIntLit $$ _ }
-  floatLit                                                              { L.Token L.TkFloatLit $$ _ }
-  charLit                                                               { L.Token L.TkCharLit $$ _ }
-  stringLit                                                             { L.Token L.TkStringLit $$ _ }
-  trueLit                                                               { L.Token L.TkLit _ _ }
-  falseLit                                                              { L.Token L.TkUnlit _ _ }
-  unknownLit                                                            { L.Token L.TkUndiscovered _ _ }
-  nullLit                                                               { L.Token L.TkNull _ _ }
+  intLit                                                                { L.Token {L.aToken=L.TkIntLit, L.cleanedString=$$} }
+  floatLit                                                              { L.Token {L.aToken=L.TkFloatLit, L.cleanedString=$$} }
+  charLit                                                               { L.Token {L.aToken=L.TkCharLit, L.cleanedString=$$} }
+  stringLit                                                             { L.Token {L.aToken=L.TkStringLit, L.cleanedString=$$} }
+  trueLit                                                               { L.Token {L.aToken=L.TkLit} }
+  falseLit                                                              { L.Token {L.aToken=L.TkUnlit} }
+  unknownLit                                                            { L.Token {L.aToken=L.TkUndiscovered} }
+  nullLit                                                               { L.Token {L.aToken=L.TkNull} }
 
-  functionBegin                                                         { L.Token L.TkInvocation _ _ }
-  functionType                                                          { L.Token L.TkInvocationType _ _ }
-  functionEnd                                                           { L.Token L.TkInvocationEnd _ _ }
+  functionBegin                                                         { L.Token {L.aToken=L.TkInvocation} }
+  functionType                                                          { L.Token {L.aToken=L.TkInvocationType} }
+  functionEnd                                                           { L.Token {L.aToken=L.TkInvocationEnd} }
 
-  procedureBegin                                                        { L.Token L.TkSpell _ _ }
-  procedureEnd                                                          { L.Token L.TkSpellEnd _ _ }
+  procedureBegin                                                        { L.Token {L.aToken=L.TkSpell} }
+  procedureEnd                                                          { L.Token {L.aToken=L.TkSpellEnd} }
 
-  comma                                                                 { L.Token L.TkComma _ _ }
-  brOpen                                                                { L.Token L.TkBraceOpen _ _ }
-  brClose                                                               { L.Token L.TkBraceClosed _ _ }
+  comma                                                                 { L.Token {L.aToken=L.TkComma} }
+  brOpen                                                                { L.Token {L.aToken=L.TkBraceOpen} }
+  brClose                                                               { L.Token {L.aToken=L.TkBraceClosed} }
 
-  with                                                                  { L.Token L.TkWith _ _ }
-  declarend                                                             { L.Token L.TkDeclarationEnd _ _ }
+  with                                                                  { L.Token {L.aToken=L.TkWith} }
+  declarend                                                             { L.Token {L.aToken=L.TkDeclarationEnd} }
 
-  const                                                                 { L.Token L.TkConst _ _ }
-  var                                                                   { L.Token L.TkVar _ _ }
-  asig                                                                  { L.Token L.TkAsig _ _ }
+  const                                                                 { L.Token {L.aToken=L.TkConst} }
+  var                                                                   { L.Token {L.aToken=L.TkVar} }
+  asig                                                                  { L.Token {L.aToken=L.TkAsig} }
 
-  instructionsBegin                                                     { L.Token L.TkInstructionBegin _ _ }
-  instructionsEnd                                                       { L.Token L.TkInstructionEnd _ _ }
-  seq                                                                   { L.Token L.TkSeq _ _ }
+  instructionsBegin                                                     { L.Token {L.aToken=L.TkInstructionBegin} }
+  instructionsEnd                                                       { L.Token {L.aToken=L.TkInstructionEnd} }
+  seq                                                                   { L.Token {L.aToken=L.TkSeq} }
 
-  cast                                                                  { L.Token L.TkCast _ _ }
-  offering                                                              { L.Token L.TkOffering _ _ }
-  toTheKnight                                                           { L.Token L.TkInvocationParsEnd _ _ }
+  cast                                                                  { L.Token {L.aToken=L.TkCast} }
+  offering                                                              { L.Token {L.aToken=L.TkOffering} }
+  toTheKnight                                                           { L.Token {L.aToken=L.TkInvocationParsEnd} }
 
-  summon                                                                { L.Token L.TkSummon _ _ }
-  granting                                                              { L.Token L.TkGranting _ _ }
-  toTheEstusFlask                                                       { L.Token L.TkSpellParsEnd _ _ }
+  summon                                                                { L.Token {L.aToken=L.TkSummon} }
+  granting                                                              { L.Token {L.aToken=L.TkGranting} }
+  toTheEstusFlask                                                       { L.Token {L.aToken=L.TkSpellParsEnd} }
 
-  return                                                                { L.Token L.TkReturn _ _ }
-  returnWith                                                            { L.Token L.TkReturnWith _ _ }
+  return                                                                { L.Token {L.aToken=L.TkReturn} }
+  returnWith                                                            { L.Token {L.aToken=L.TkReturnWith} }
 
-  print                                                                 { L.Token L.TkPrint _ _ }
-  read                                                                  { L.Token L.TkRead _ _ }
+  print                                                                 { L.Token {L.aToken=L.TkPrint} }
+  read                                                                  { L.Token {L.aToken=L.TkRead} }
 
-  whileBegin                                                            { L.Token L.TkWhile _ _ }
-  whileEnd                                                              { L.Token L.TkEndWhile _ _ }
-  covenantIsActive                                                      { L.Token L.TkCovenantIsActive _ _ }
+  whileBegin                                                            { L.Token {L.aToken=L.TkWhile} }
+  whileEnd                                                              { L.Token {L.aToken=L.TkEndWhile} }
+  covenantIsActive                                                      { L.Token {L.aToken=L.TkCovenantIsActive} }
 
-  ifBegin                                                               { L.Token L.TkIf _ _ }
-  ifEnd                                                                 { L.Token L.TkEndIf _ _ }
-  colon                                                                 { L.Token L.TkColon _ _ }
-  else                                                                  { L.Token L.TkElse _ _ }
+  ifBegin                                                               { L.Token {L.aToken=L.TkIf} }
+  ifEnd                                                                 { L.Token {L.aToken=L.TkEndIf} }
+  colon                                                                 { L.Token {L.aToken=L.TkColon} }
+  else                                                                  { L.Token {L.aToken=L.TkElse} }
 
-  switchBegin                                                           { L.Token L.TkSwitch _ _ }
-  switchDefault                                                         { L.Token L.TkSwitchDefault _ _ }
-  switchEnd                                                             { L.Token L.TkEndSwitch _ _ }
+  switchBegin                                                           { L.Token {L.aToken=L.TkSwitch} }
+  switchDefault                                                         { L.Token {L.aToken=L.TkSwitchDefault} }
+  switchEnd                                                             { L.Token {L.aToken=L.TkEndSwitch} }
 
-  forBegin                                                              { L.Token L.TkFor _ _ }
-  forEnd                                                                { L.Token L.TkEndFor _ _ }
-  souls                                                                 { L.Token L.TkSoul _ _ }
-  untilLevel                                                            { L.Token L.TkLevel _ _ }
+  forBegin                                                              { L.Token {L.aToken=L.TkFor} }
+  forEnd                                                                { L.Token {L.aToken=L.TkEndFor} }
+  souls                                                                 { L.Token {L.aToken=L.TkSoul} }
+  untilLevel                                                            { L.Token {L.aToken=L.TkLevel} }
 
-  forEachBegin                                                          { L.Token L.TkForEach _ _ }
-  forEachEnd                                                            { L.Token L.TkEndForEach _ _ }
-  withTitaniteFrom                                                      { L.Token L.TkWithTitaniteFrom _ _ }
+  forEachBegin                                                          { L.Token {L.aToken=L.TkForEach} }
+  forEachEnd                                                            { L.Token {L.aToken=L.TkEndForEach} }
+  withTitaniteFrom                                                      { L.Token {L.aToken=L.TkWithTitaniteFrom} }
 
-  parensOpen                                                            { L.Token L.TkParensOpen _ _ }
-  parensClosed                                                          { L.Token L.TkParensClosed _ _ }
+  parensOpen                                                            { L.Token {L.aToken=L.TkParensOpen} }
+  parensClosed                                                          { L.Token {L.aToken=L.TkParensClosed} }
 
-  plus                                                                  { L.Token L.TkPlus _ _ }
-  minus                                                                 { L.Token L.TkMinus _ _ }
-  mult                                                                  { L.Token L.TkMult _ _ }
-  div                                                                   { L.Token L.TkDiv _ _ }
-  mod                                                                   { L.Token L.TkMod _ _ }
-  lt                                                                    { L.Token L.TkLt _ _ }
-  gt                                                                    { L.Token L.TkGt _ _ }
-  lte                                                                   { L.Token L.TkLte _ _ }
-  gte                                                                   { L.Token L.TkGte _ _ }
-  eq                                                                    { L.Token L.TkEq _ _ }
-  neq                                                                   { L.Token L.TkNeq _ _ }
-  not                                                                   { L.Token L.TkNot _ _ }
-  and                                                                   { L.Token L.TkAnd _ _ }
-  or                                                                    { L.Token L.TkOr _ _ }
-  asciiOf                                                               { L.Token L.TkAsciiOf _ _ }
-  colConcat                                                             { L.Token L.TkConcat _ _ }
-  union                                                                 { L.Token L.TkUnion _ _ }
-  intersect                                                             { L.Token L.TkIntersect _ _ }
-  diff                                                                  { L.Token L.TkDiff _ _ }
-  size                                                                  { L.Token L.TkSize _ _ }
+  plus                                                                  { L.Token {L.aToken=L.TkPlus} }
+  minus                                                                 { L.Token {L.aToken=L.TkMinus} }
+  mult                                                                  { L.Token {L.aToken=L.TkMult} }
+  div                                                                   { L.Token {L.aToken=L.TkDiv} }
+  mod                                                                   { L.Token {L.aToken=L.TkMod} }
+  lt                                                                    { L.Token {L.aToken=L.TkLt} }
+  gt                                                                    { L.Token {L.aToken=L.TkGt} }
+  lte                                                                   { L.Token {L.aToken=L.TkLte} }
+  gte                                                                   { L.Token {L.aToken=L.TkGte} }
+  eq                                                                    { L.Token {L.aToken=L.TkEq} }
+  neq                                                                   { L.Token {L.aToken=L.TkNeq} }
+  not                                                                   { L.Token {L.aToken=L.TkNot} }
+  and                                                                   { L.Token {L.aToken=L.TkAnd} }
+  or                                                                    { L.Token {L.aToken=L.TkOr} }
+  asciiOf                                                               { L.Token {L.aToken=L.TkAsciiOf} }
+  colConcat                                                             { L.Token {L.aToken=L.TkConcat} }
+  union                                                                 { L.Token {L.aToken=L.TkUnion} }
+  intersect                                                             { L.Token {L.aToken=L.TkIntersect} }
+  diff                                                                  { L.Token {L.aToken=L.TkDiff} }
+  size                                                                  { L.Token {L.aToken=L.TkSize} }
 
-  arrOpen                                                               { L.Token L.TkArrayOpen _ _ }
-  arrClose                                                              { L.Token L.TkArrayClose _ _ }
-  setOpen                                                               { L.Token L.TkSetOpen _ _ }
-  setClose                                                              { L.Token L.TkSetClose _ _ }
+  arrOpen                                                               { L.Token {L.aToken=L.TkArrayOpen} }
+  arrClose                                                              { L.Token {L.aToken=L.TkArrayClose} }
+  setOpen                                                               { L.Token {L.aToken=L.TkSetOpen} }
+  setClose                                                              { L.Token {L.aToken=L.TkSetClose} }
 
-  accessor                                                              { L.Token L.TkAccessor _ _ }
-  memAccessor                                                           { L.Token L.TkAccessMemory _ _ }
+  accessor                                                              { L.Token {L.aToken=L.TkAccessor} }
+  memAccessor                                                           { L.Token {L.aToken=L.TkAccessMemory} }
 
 %%
 
@@ -244,7 +242,7 @@ EXPR
   | EXPR intersect EXPR                                                 { G.SetIntersect $1 $3 }
   | EXPR diff EXPR                                                      { G.SetDiff $1 $3 }
   | FUNCALL                                                             { G.EvalFunc (fst $1) (snd $1) }
-  | LVALUE %prec LVALUE                                                 { $1 }
+  | LVALUE                                                              { $1 }
 
 EXPRL :: { G.Exprs }
 EXPRL
@@ -465,7 +463,7 @@ extractFunParamsForNewScope _ = Nothing
 
 parseErrors :: [L.Token] -> ST.ParserMonad a
 parseErrors errors =
-  let (L.Token abst _ pn) = errors !! 0
+  let L.Token {L.aToken=abst, L.posn=pn} = errors !! 0
       name = show abst
       line = show $ L.row pn
       column = show $ L.col pn
@@ -480,7 +478,7 @@ addIdsToSymTable ids = do
   RWS.mapM_ (addIdToSymTable Nothing) ids
 
 addIdToSymTable :: Maybe Int -> NameDeclaration -> ST.ParserMonad ()
-addIdToSymTable mi d@(c, (G.Id tk@(L.Token at idName _)), t) = do
+addIdToSymTable mi d@(c, (G.Id tk@(L.Token {L.aToken=at, L.cleanedString=idName})), t) = do
   maybeIdEntry <- ST.dictLookup idName
   maybeTypeEntry <- findTypeOnEntryTable t
   (_, (currScope:_), _) <- RWS.get
@@ -534,7 +532,7 @@ insertIdToEntry mi t entry = do
                              else ST.RefParam, i, t)) s
 
 checkConstantReassignment :: G.Expr -> ST.ParserMonad ()
-checkConstantReassignment (G.IdExpr (G.Id tk@(L.Token _ idName _))) = do
+checkConstantReassignment (G.IdExpr (G.Id tk@(L.Token {L.cleanedString=idName}))) = do
   maybeEntry <- ST.dictLookup idName
   case maybeEntry of
     Nothing -> do
@@ -550,7 +548,7 @@ checkConstantReassignment (G.IndexAccess gId _) = checkConstantReassignment gId
 checkConstantReassignment _ = return ()
 
 checkIdAvailability :: G.Id -> ST.ParserMonad (Maybe ST.DictionaryEntry)
-checkIdAvailability (G.Id tk@(L.Token _ idName _)) = do
+checkIdAvailability (G.Id tk@(L.Token {L.cleanedString=idName})) = do
   maybeEntry <- ST.dictLookup idName
   case maybeEntry of
     Nothing -> do
@@ -567,7 +565,7 @@ checkPropertyAvailability :: G.Expr -> ST.ParserMonad ()
 
 -- If it is a record accessing, we need to find the _scope_ of the
 -- left side of the expression where to search for the variable
-checkPropertyAvailability a@(G.Access expr gId@(G.Id tk@(L.Token _ s _))) = do
+checkPropertyAvailability a@(G.Access expr gId@(G.Id tk@(L.Token {L.cleanedString=s}))) = do
   maybeScope <- findScopeToSearchOf expr
   case maybeScope of
     Nothing -> RWS.tell [ST.SemanticError ("Property " ++ s ++ " does not exists") tk]
@@ -610,7 +608,7 @@ findScopeToSearchOf (G.Access expr gId) = do
 findScopeToSearchOf (G.IndexAccess expr _) = findScopeToSearchOf expr
 
 addFunction :: NameDeclaration -> ST.ParserMonad (Maybe (ST.Scope, G.Id))
-addFunction d@(_, i@(G.Id tk@(L.Token _ idName _)), _) = do
+addFunction d@(_, i@(G.Id tk@(L.Token {L.cleanedString=idName})), _) = do
   (dict, stack, currScope) <- RWS.get
   maybeEntry <- ST.dictLookup idName
   case maybeEntry of
@@ -627,7 +625,7 @@ addFunction d@(_, i@(G.Id tk@(L.Token _ idName _)), _) = do
         return $ Just (currScope, i)
 
 updateCodeBlockOfFun :: ST.Scope -> G.Id -> G.CodeBlock -> ST.ParserMonad ()
-updateCodeBlockOfFun currScope (G.Id tk@(L.Token _ idName _)) code = do
+updateCodeBlockOfFun currScope (G.Id tk@(L.Token {L.cleanedString=idName})) code = do
   let f x = (if and [ST.scope x == currScope, ST.name x == idName, ST.category x `elem` [ST.Function, ST.Procedure]]
             then let e = ST.extra x in x{ST.extra = (ST.CodeBlock code) : e}
             else x)

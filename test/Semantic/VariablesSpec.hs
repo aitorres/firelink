@@ -32,7 +32,7 @@ spec = describe "Constants" $ do
     let p = program "b <<= 1"
     (_, _, errors) <- U.extractSymTable p
     errors `shouldNotSatisfy` null
-    let ST.SemanticError _ (L.Token _ varName pn) = head errors
+    let ST.SemanticError _ L.Token {L.cleanedString=varName, L.posn=pn} = head errors
     varName `shouldBe` "b"
     L.row pn `shouldBe` 9
     L.col pn `shouldBe` 5
@@ -45,7 +45,7 @@ spec = describe "Constants" $ do
     let p = program "c<$0$> <<= 1"
     (_, _, errors) <- U.extractSymTable p
     errors `shouldNotSatisfy` null
-    let ST.SemanticError _ (L.Token _ varName pn) = head errors
+    let ST.SemanticError _ L.Token {L.cleanedString=varName, L.posn=pn} = head errors
     varName `shouldBe` "c"
     L.row pn `shouldBe` 9
     L.col pn `shouldBe` 5

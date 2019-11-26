@@ -170,7 +170,13 @@ payloadRequiredTokens = [TkStringLit, TkIntLit, TkCharLit, TkFloatLit, TkComment
 
 makeToken :: AbstractToken -> AlexAction AlexUserState
 makeToken token (alexPosn, _, _, str) len = do
-    addTokenToState $ Token token (take len str) alexPosn
+    let str' = take len str
+    addTokenToState Token {
+        aToken=token,
+        cleanedString=str',
+        capturedString=str',
+        posn=alexPosn
+    }
     alexMonadScan
 
 throwLexError :: AlexAction AlexUserState
@@ -379,13 +385,16 @@ instance Show AbstractToken where
     show TkWithTitaniteFrom = ""
     show _ = "epale chamito falto yo"
 
-data Token = Token AbstractToken -- Token perse
-                String -- The captured token
-                AlexPosn -- To get file context
+data Token = Token
+    { aToken :: !AbstractToken -- Token perse
+    , capturedString :: !String -- The captured string
+    , cleanedString :: !String -- The cleaned string
+    , posn :: !AlexPosn -- To get file context
+    }
     deriving (Eq)
 
 instance Show Token where
-    show (Token aToken s pn) = show aToken ++ s ++ U.nocolor
+    show t = (show . aToken $ t) ++ capturedString t ++ U.nocolor
 
 type Tokens = [Token]
 
@@ -442,7 +451,7 @@ removeFirstAndLast :: [a] -> [a]
 removeFirstAndLast = reverse . tail . reverse . tail
 
 postProcess :: Token -> Token
-postProcess (Token TkCharLit s p) = Token TkCharLit (f s) p
+postProcess (Token TkCharLit s _ p) = Token TkCharLit s (f s) p
     where
         f s = if head a == '\\' then mapEscaped $ last a else a
         a = removeFirstAndLast s
@@ -450,10 +459,10 @@ postProcess (Token TkCharLit s p) = Token TkCharLit (f s) p
         mapEscaped 't' = "\t"
         mapEscaped '\\' = "\\"
         mapEscaped '|' = "\n"
-postProcess (Token TkStringLit s p) = Token TkStringLit cleanedString p
+postProcess (Token TkStringLit s _ p) = Token TkStringLit s ss p
     where
         pp = removeFirstAndLast s
-        cleanedString = replace "\\@" "@" pp
+        ss = replace "\\@" "@" pp
 postProcess a = a
 
 -- getAbstractToken :: Token -> AbstractToken
@@ -461,5 +470,5 @@ postProcess a = a
 
 filterComments :: [Token] -> [Token]
 filterComments =
-    filter (\(Token abst _ _) -> abst /= TkComment)
+    filter (\t -> aToken t /= TkComment)
 }

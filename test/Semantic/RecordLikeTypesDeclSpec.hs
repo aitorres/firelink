@@ -32,7 +32,7 @@ testVoid prog = U.testVoid (program prog)
 
 shouldNotError :: String -> IO ()
 shouldNotError p = do
-    (_, dict, errors) <- U.extractSymTable p
+    (_, _, errors) <- U.extractSymTable p
     errors `shouldSatisfy` null
 
 spec :: Spec
@@ -185,7 +185,7 @@ spec = do
             \farewell ashen one"
             (_, _, errors) <- U.extractSymTable p
             errors `shouldNotSatisfy` null
-            let ST.SemanticError _ (L.Token _ varName pn) = head errors
+            let ST.SemanticError _ L.Token {L.cleanedString=varName, L.posn=pn} = head errors
             varName `shouldBe` "z"
             L.col pn `shouldBe` 34
             L.row pn `shouldBe` 8
@@ -223,7 +223,7 @@ spec = do
             \farewell ashen one"
             (_, _, errors) <- U.extractSymTable p
             errors `shouldNotSatisfy` null
-            let ST.SemanticError _ (L.Token _ varName pn) = head errors
+            let ST.SemanticError _ L.Token {L.cleanedString=varName, L.posn=pn} = head errors
             varName `shouldBe` "z"
             L.col pn `shouldBe` 39
             L.row pn `shouldBe` 6
@@ -247,8 +247,8 @@ spec = do
             \you died\n\
 
             \farewell ashen one"
-        it "accepts valid x<$0$> ~> y ~> z<$0$> ~> b" $
-            shouldNotError "hello ashen one\n\
+        it "rejects invalid x<$0$> ~> y ~> z<$0$> ~> b" $ do
+            let p = "hello ashen one\n\
 
             \traveling somewhere\n\
 
@@ -267,3 +267,9 @@ spec = do
             \you died\n\
 
             \farewell ashen one"
+            (_, _, errors) <- U.extractSymTable p
+            errors `shouldNotSatisfy` null
+            let ST.SemanticError _ L.Token {L.cleanedString=varName, L.posn=pn} = head errors
+            varName `shouldBe` "b"
+            L.col pn `shouldBe` 54
+            L.row pn `shouldBe` 12
