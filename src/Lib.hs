@@ -115,15 +115,28 @@ lexer contents = do
             $ map (\(err, tks) -> (err, insertLexErrorOnContext err tks))
             $ groupLexErrorWithTokenContext errors tokens
         putStrLn "Fix your lexical mistakes, ashen one."
-    else do
-        printProgram tokens
+    else
         parserAndSemantic tokens
+
+printSemErrors :: [ST.SemanticError] -> L.Tokens -> IO ()
+printSemErrors [] _ = return ()
+printSemErrors (semError:semErrors) tokens = do
+    let (ST.SemanticError errMessage L.Token{L.posn=p}) = semError
+    let tks = filter (\L.Token{L.posn=p'} -> L.row p' == L.row p) tokens
+    let preContext = filter (\L.Token{L.posn=p'} -> L.row p' == L.row p - 1) tokens
+    let postContext = filter (\L.Token{L.posn=p'} -> L.row p' == L.row p + 1) tokens
+    RWS.when (not $ null preContext) $ printProgram preContext
+    printProgram tks
+    putStrLn errMessage
+    RWS.when (not $ null postContext) $ printProgram postContext
+    putStrLn "---------------------------"
+    printSemErrors semErrors tokens
 
 parserAndSemantic :: L.Tokens -> IO ()
 parserAndSemantic tokens = do
-    parsedProgram <- RWS.runRWST (parse tokens) () ST.initialState
-    -- print parsedProgram
-    return ()
+    (parsedProgram, symTable, errors) <- RWS.runRWST (parse tokens) () ST.initialState
+    if not $ null errors then printSemErrors errors tokens
+    else printProgram tokens
 
 mainFunc :: IO ()
 mainFunc = do
