@@ -170,6 +170,7 @@ import qualified TypeChecking as T
   memAccessor                                                           { L.Token {L.aToken=L.TkAccessMemory} }
 
   malloc                                                                { L.Token {L.aToken=L.TkRequestMemory} }
+  free                                                                  { L.Token {L.aToken=L.TkFreeMemory} }
 %%
 
 PROGRAM :: { G.Program }
@@ -209,6 +210,11 @@ LVALUE
                                                                             checkPropertyAvailability ret
                                                                             return ret }
   | EXPR arrOpen EXPR arrClose                                          { G.IndexAccess $1 $3 }
+  | memAccessor EXPR                                                    {% do
+                                                                            let e = G.MemAccess $2
+                                                                            t <- T.getType e
+                                                                            -- TODO: complete
+                                                                            return e }
 
 EXPR :: { G.Expr }
 EXPR
@@ -223,11 +229,6 @@ EXPR
   | setOpen EXPRL setClose                                              { G.SetLit $ reverse $2 }
   | unknownLit                                                          { G.UndiscoveredLit }
   | parensOpen EXPR parensClosed                                        { $2 }
-  | memAccessor EXPR                                                    {%do
-                                                                            let e = G.MemAccess $2
-                                                                            t <- T.getType e
-                                                                            -- TODO: complete
-                                                                            return e }
   | minus EXPR                                                          {% do
                                                                             let e = G.Negative $2
                                                                             t <- T.getType e
@@ -487,6 +488,7 @@ INSTR
                                                                           checkConstantReassignment $1
                                                                           return $ G.InstAsig $1 $3 }
   | malloc EXPR                                                         { G.InstMalloc $2 }
+  | free EXPR                                                           { G.InstFreeMem $2 }
   | cast ID PROCPARS                                                    {% do
                                                                           checkIdAvailability $2
                                                                           return $ G.InstCallProc $2 $3 }

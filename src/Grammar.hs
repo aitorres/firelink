@@ -69,6 +69,7 @@ data Instruction
   | InstSwitch Expr SwitchCases
   | InstWhile Expr CodeBlock
   | InstMalloc Expr
+  | InstFreeMem Expr
   deriving Show
 
 data IfCase

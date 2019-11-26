@@ -3,7 +3,6 @@ module PointersSpec where
 import Test.Hspec
 import qualified Utils as U
 import qualified SymTable as ST
-import qualified Lexer as L
 
 varEntry :: ST.DictionaryEntry
 varEntry = ST.DictionaryEntry
@@ -39,11 +38,16 @@ spec = do
     describe "Pointers operations" $ do
         it "allows to request memory for its usage" $
             U.shouldNotError $ sampleProgram "aim a x \\"
-        it "rejects to request memory of non-declared variables" $ do
-            let p = sampleProgram "aim a nonDeclaredVariable \\"
-            (_, _, errors) <- U.extractSymTable p
-            errors `shouldNotSatisfy` null
-            let ST.SemanticError _ L.Token {L.cleanedString=varName, L.posn=pn} = head errors
-            varName `shouldBe` "nonDeclaredVariable"
-            L.col pn `shouldBe` 10
-            L.row pn `shouldBe` 6
+        it "rejects to request memory of non-declared variables" $
+            U.testError (sampleProgram "aim a nonDeclaredVariable \\")
+                "nonDeclaredVariable" 10 6
+        it "allows to free memory for its usage" $
+            U.shouldNotError $ sampleProgram "recover a x \\"
+        it "rejects to free memory of non-declared variables" $
+            U.testError (sampleProgram "recover a nonDeclaredVariable \\")
+                "nonDeclaredVariable" 10 6
+        it "allows to access memory address for its usage" $
+            U.shouldNotError $ sampleProgram "throw a x <<= |a| \\"
+        it "rejects to access memory address of non-declared variables" $
+            U.testError (sampleProgram "throw a nonDeclaredVariable <<= |a| \\")
+                "nonDeclaredVariable" 10 6

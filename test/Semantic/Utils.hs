@@ -1,7 +1,7 @@
 module Utils where
 
 import qualified SymTable as ST
-import Lexer (scanTokens)
+import qualified Lexer as L
 import Test.Hspec
 import Parser
 import qualified Grammar as G
@@ -11,7 +11,7 @@ extractSymTable
     :: String
     -> IO (G.Program, ST.SymTable, ST.SemanticErrors)
 extractSymTable program = do
-    let ([], tokens) = scanTokens program
+    let ([], tokens) = L.scanTokens program
     RWS.runRWST (parse tokens) () ST.initialState
 
 extractDictionary :: String -> IO ST.SymTable
@@ -67,7 +67,7 @@ extractArgPositionFromExtra (_:ss) = extractArgPositionFromExtra ss
 
 runTestForInvalidProgram :: String -> IO ()
 runTestForInvalidProgram program = do
-    let ([], tokens) = scanTokens program
+    let ([], tokens) = L.scanTokens program
     RWS.runRWST (parse tokens) () ST.initialState `shouldThrow` anyException
 
 
@@ -106,3 +106,12 @@ shouldNotError :: String -> IO ()
 shouldNotError p = do
     (_, _, errors) <- extractSymTable p
     errors `shouldSatisfy` null
+
+testError :: String -> String -> Int -> Int -> IO ()
+testError program varName col row = do
+    (_, _, errors) <- extractSymTable program
+    errors `shouldNotSatisfy` null
+    let ST.SemanticError _ L.Token {L.cleanedString=varName', L.posn=pn} = head errors
+    varName `shouldBe` varName'
+    col `shouldBe` 10
+    row `shouldBe` 6
