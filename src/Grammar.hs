@@ -87,9 +87,9 @@ newtype CodeBlock
 data ArgType = Val | Ref
   deriving (Show, Eq)
 
-data Type
+data GrammarType
   = Simple Token (Maybe Expr)
-  | Compound Token Type (Maybe Expr)
-  | Record Token [(Id, Type)]
-  | Callable (Maybe Type) [(ArgType, Id, Type)]
+  | Compound Token GrammarType (Maybe Expr)
+  | Record Token [(Id, GrammarType)]
+  | Callable (Maybe GrammarType) [(ArgType, Id, GrammarType)]
   deriving Show

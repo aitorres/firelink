@@ -411,7 +411,7 @@ PARTYPE
   : parVal                                                              { G.Val }
   | parRef                                                              { G.Ref }
 
-TYPE :: { G.Type }
+TYPE :: { G.GrammarType }
 TYPE
   : ID                                                                  { let G.Id t = $1 in G.Simple t Nothing }
   | bigInt                                                              { G.Simple $1 Nothing }
@@ -541,17 +541,17 @@ PARSLIST :: { G.Params }
 
 {
 
-type NameDeclaration = (ST.Category, G.Id, G.Type)
-type ArgDeclaration = (G.ArgType, G.Id, G.Type)
-type AliasDeclaration = (G.Id, G.Type)
+type NameDeclaration = (ST.Category, G.Id, G.GrammarType)
+type ArgDeclaration = (G.ArgType, G.Id, G.GrammarType)
+type AliasDeclaration = (G.Id, G.GrammarType)
 type RecordItem = AliasDeclaration
 
-extractFieldsForNewScope :: G.Type -> Maybe [RecordItem]
+extractFieldsForNewScope :: G.GrammarType -> Maybe [RecordItem]
 extractFieldsForNewScope (G.Compound _ s _) = extractFieldsForNewScope s
 extractFieldsForNewScope (G.Record _ s) = Just s
 extractFieldsForNewScope _ = Nothing
 
-extractFunParamsForNewScope :: G.Type -> Maybe [ArgDeclaration]
+extractFunParamsForNewScope :: G.GrammarType -> Maybe [ArgDeclaration]
 extractFunParamsForNewScope (G.Callable _ s) = Just s
 extractFunParamsForNewScope _ = Nothing
 
@@ -602,7 +602,7 @@ addIdToSymTable mi d@(c, (G.Id tk@(L.Token {L.aToken=at, L.cleanedString=idName}
       else RWS.tell $ [ST.SemanticError ("Name " ++ idName ++ " was already declared on this scope") tk]
 
 
-insertIdToEntry :: Maybe Int -> G.Type -> ST.DictionaryEntry -> ST.ParserMonad ()
+insertIdToEntry :: Maybe Int -> G.GrammarType -> ST.DictionaryEntry -> ST.ParserMonad ()
 insertIdToEntry mi t entry = do
   ex <- buildExtraForType t
   let pos = (case mi of
@@ -726,7 +726,7 @@ updateCodeBlockOfFun currScope (G.Id tk@(L.Token {L.cleanedString=idName})) code
             else x)
   ST.updateEntry (\ds -> Just $ map f ds) idName
 
-findTypeOnEntryTable :: G.Type -> ST.ParserMonad (Maybe ST.DictionaryEntry)
+findTypeOnEntryTable :: G.GrammarType -> ST.ParserMonad (Maybe ST.DictionaryEntry)
 
 -- For simple data types
 findTypeOnEntryTable (G.Simple tk mSize) = do
@@ -749,7 +749,7 @@ findTypeOnEntryTable (G.Callable (Just t) _) = findTypeOnEntryTable t
 
 findTypeOnEntryTable (G.Callable Nothing _) = return Nothing
 
-buildExtraForType :: G.Type -> ST.ParserMonad [ST.Extra]
+buildExtraForType :: G.GrammarType -> ST.ParserMonad [ST.Extra]
 
 -- For string alike data types
 buildExtraForType t@(G.Simple _ maybeSize) = do
