@@ -68,6 +68,7 @@ data Instruction
   | InstFor Id Expr Expr CodeBlock
   | InstSwitch Expr SwitchCases
   | InstWhile Expr CodeBlock
+  | InstMalloc Expr
   deriving Show
 
 data IfCase

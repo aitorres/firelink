@@ -55,9 +55,9 @@ with
   var g of type link { x of type humanity },
   var pp of type arrow to sign
 in your inventory
-  aim pp \
-  throw pp <<= |a| \
-  recover pp \
+  aim a pp \
+  throw a pp <<= |a| \
+  recover a pp \
   a <<= |p| \
   transpose into n \
   f <<= summon fibonacci

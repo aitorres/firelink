@@ -169,6 +169,7 @@ import qualified TypeChecking as T
   accessor                                                              { L.Token {L.aToken=L.TkAccessor} }
   memAccessor                                                           { L.Token {L.aToken=L.TkAccessMemory} }
 
+  malloc                                                                { L.Token {L.aToken=L.TkRequestMemory} }
 %%
 
 PROGRAM :: { G.Program }
@@ -485,6 +486,7 @@ INSTR
   : LVALUE asig EXPR                                                    {% do
                                                                           checkConstantReassignment $1
                                                                           return $ G.InstAsig $1 $3 }
+  | malloc EXPR                                                         { G.InstMalloc $2 }
   | cast ID PROCPARS                                                    {% do
                                                                           checkIdAvailability $2
                                                                           return $ G.InstCallProc $2 $3 }
@@ -558,8 +560,7 @@ extractFunParamsForNewScope _ = Nothing
 
 parseErrors :: [L.Token] -> ST.ParserMonad a
 parseErrors errors =
-  let L.Token {L.aToken=abst, L.posn=pn} = errors !! 0
-      tk = errors !! 0
+  let tk@L.Token {L.aToken=abst, L.posn=pn} = errors !! 0
       name = show tk
       line = show $ L.row pn
       column = show $ L.col pn

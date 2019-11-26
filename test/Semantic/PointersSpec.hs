@@ -3,6 +3,7 @@ module PointersSpec where
 import Test.Hspec
 import qualified Utils as U
 import qualified SymTable as ST
+import qualified Lexer as L
 
 varEntry :: ST.DictionaryEntry
 varEntry = ST.DictionaryEntry
@@ -35,11 +36,11 @@ spec = do
             U.testEntry dict varEntry U.extractRecursiveFromExtra
                 (\(ST.Recursive "arrow" (ST.Simple "sign")) -> True)
 
-    describe "Pointers operations" $
+    describe "Pointers operations" $ do
         it "allows to request memory for its usage" $
             U.shouldNotError $ sampleProgram "aim a x \\"
         it "rejects to request memory of non-declared variables" $ do
-            let p = sampleProgram "aim a nonDeclaredVariable"
+            let p = sampleProgram "aim a nonDeclaredVariable \\"
             (_, _, errors) <- U.extractSymTable p
             errors `shouldNotSatisfy` null
             let ST.SemanticError _ L.Token {L.cleanedString=varName, L.posn=pn} = head errors
