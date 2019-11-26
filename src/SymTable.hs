@@ -152,7 +152,9 @@ link = "link"
 void :: String
 void = "void"
 errorType :: String
-errorType = "error type"
+errorType = "errorType"
+arrow :: String
+arrow = "arrow"
 
 initialState :: SymTable
 initialState = (Map.fromList l, [1, 0], 1)
@@ -167,11 +169,12 @@ initialState = (Map.fromList l, [1, 0], 1)
             , (arrowTo, [DictionaryEntry arrowTo Constructor 0 Nothing []])
             , (bezel, [DictionaryEntry bezel Constructor 0 Nothing []])
             , (link, [DictionaryEntry link Constructor 0 Nothing []])
+            , (arrow, [DictionaryEntry arrow Constructor 0 Nothing []])
             , (void, [DictionaryEntry void Type 0 Nothing []])
             ]
 
 tokensToEntryName :: L.Token -> String
-tokensToEntryName L.Token {L.aToken=at, L.cleanedString=s} = case at of
+tokensToEntryName tk@L.Token {L.aToken=at, L.cleanedString=s} = case at of
     L.TkBigInt -> humanity
     L.TkSmallInt -> smallHumanity
     L.TkFloat -> hollow
@@ -183,4 +186,5 @@ tokensToEntryName L.Token {L.aToken=at, L.cleanedString=s} = case at of
     L.TkRecord -> bezel
     L.TkUnionStruct -> link
     L.TkId -> s
-    a -> error $ "Token " ++ show a ++ "doesn't map to anything"
+    L.TkPointer -> arrow
+    a -> error $ "Token " ++ show tk ++ " doesn't map to anything"
