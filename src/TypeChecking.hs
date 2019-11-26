@@ -135,19 +135,9 @@ instance TypeCheckable G.Expr where
 checkTypes :: G.Expr -> G.Expr -> String -> L.Token -> ST.ParserMonad ()
 checkTypes a b t tk = do
   let isError = t == ST.errorType
-  if isError then
-    do
-      RWS.tell [ST.SemanticError ("Type mismatch between " ++ (show a) ++ " and " ++ (show b)) tk]
-      return ()
-  else
-      return ()
+  RWS.when isError $ RWS.tell [ST.SemanticError ("Type mismatch between " ++ show a ++ " and " ++ show b) tk]
 
 checkType :: G.Expr -> String -> L.Token -> ST.ParserMonad ()
 checkType a t tk = do
   let isError = t == ST.errorType
-  if isError then
-    do
-      RWS.tell [ST.SemanticError ("Type mismatch for " ++ (show a)) tk]
-      return ()
-  else
-      return ()
+  RWS.when isError $ RWS.tell [ST.SemanticError ("Type mismatch for " ++ show a) tk]
