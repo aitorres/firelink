@@ -48,8 +48,8 @@ Los tipos de datos escalares son los tipos más primitivos que soporta el lengua
 
 El tipo de dato _entero_ representa un número entero almacenado en complemento a dos. Este tipo cuenta con dos representaciones distintas, cada una con su declarador de tipo.
 
-- `small humanity`, entero de 16 bits.
-- `big humanity`, entero de 32 bits.
+- `small humanity`, entero de 16 bits, entre -32768 y 32767.
+- `big humanity`, entero de 32 bits, entre -2147483648 y 2147483647.
 
 Adicionalmente, el declarador de tipo `humanity` es un alias para `big humanity`.
 

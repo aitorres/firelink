@@ -874,12 +874,29 @@ logicalCheck = conditionalCheckReturningBonfire isLogicalType
 
 containerCheck _ = error "not implemented" -- TODO: implement array data type check
 
+minBigInt :: Int
+minBigInt = - 2147483648
+
+maxBigInt :: Int
+maxBigInt = 2147483647
+
+minSmallInt :: Int
+minSmallInt = - 32768
+
+maxSmallInt :: Int
+maxSmallInt = 32767
+
 instance TypeCheckable G.Expr where
   getType G.TrueLit = return T.TrileanT
   getType G.FalseLit = return T.TrileanT
   getType G.UndiscoveredLit = return T.TrileanT
   getType G.NullLit = return T.TypeError -- TODO: check if okay
-  getType (G.IntLit _) = return T.BigIntT
+  getType (G.IntLit n) =
+    if minSmallInt <= n && n <= maxSmallInt
+    then return T.SmallIntT
+    else if minBigInt <= n && n <= maxBigInt
+    then return T.BigIntT
+    else error "TODO: check for the int size, modify grammar to carry token position"
   getType (G.FloatLit _) = return T.FloatT
   getType (G.CharLit _) = return T.CharT
   getType (G.StringLit _) = return T.StringT
