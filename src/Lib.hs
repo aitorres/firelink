@@ -8,7 +8,6 @@ import qualified SymTable as ST
 import System.Environment (getArgs)
 import System.IO (openFile, IOMode(..), hGetContents)
 import qualified Data.Map as Map
-import Data.List.Split (splitOn)
 import Data.List (intercalate, groupBy)
 import Text.Printf (printf)
 import Utils
@@ -19,7 +18,7 @@ prettyPrintSymTable (dict, _, _) = do
     mapM_ printKey dictList
 
 printKey :: (String, [ST.DictionaryEntry]) -> IO ()
-printKey (name, entries) =
+printKey (name, _) =
     printf "Entries for name \"%s\"" name
 
 groupTokensByRowNumber :: [Either L.LexError L.Token] -> [[Either L.LexError L.Token]]
@@ -31,7 +30,7 @@ groupTokensByRowNumber = groupBy (\e e' -> getRow e == getRow e')
 
 lengthOfLine :: [Either L.LexError L.Token] -> Int
 lengthOfLine tokens = case last tokens of
-    Right tk@L.Token {L.aToken=aToken, L.posn=pn} -> L.col pn + length (show tk)
+    Right tk@L.Token {L.posn=pn} -> L.col pn + length (show tk)
     Left (L.LexError (pn, s)) -> L.col pn + length s
 
 joinTokens :: Int -> [Either L.LexError L.Token] -> String
@@ -53,7 +52,6 @@ formatLexError (L.LexError (L.AlexPn _ r c, _), tokens) =
         tokensByRowNumber = groupTokensByRowNumber tokens
         maxSize = foldl max (-1) $ map lengthOfLine tokensByRowNumber
         buildRuler = flip replicate '~'
-        rule = buildRuler maxSize ++ "\n"
         firstLine = joinTokens 1 (head tokensByRowNumber) ++ "\n"
         restLines = map (joinTokens 1) $ tail tokensByRowNumber
         errorRuler = bold ++ red ++ buildRuler (c-1) ++ "^" ++ buildRuler (maxSize - c) ++ nocolor ++ "\n"
@@ -68,18 +66,18 @@ printLexErrors (errorPair:xs) = do
 
 groupLexErrorWithTokenContext :: [L.LexError] -> L.Tokens -> [(L.LexError, L.Tokens)]
 groupLexErrorWithTokenContext [] _ = []
-groupLexErrorWithTokenContext (error@(L.LexError (pn, _)):errors) tokens =
-    (error, tks) : groupLexErrorWithTokenContext errors tokens
+groupLexErrorWithTokenContext (err@(L.LexError (pn, _)):errors) tokens =
+    (err, tks) : groupLexErrorWithTokenContext errors tokens
     where
-        tail = dropWhile (\L.Token {L.posn=pn'} -> L.row pn /= L.row pn') tokens
-        tks = takeWhile (\L.Token {L.posn=pn'} -> L.row pn' - L.row pn <= 4) tail
+        tail' = dropWhile (\L.Token {L.posn=pn'} -> L.row pn /= L.row pn') tokens
+        tks = takeWhile (\L.Token {L.posn=pn'} -> L.row pn' - L.row pn <= 4) tail'
 
 insertLexErrorOnContext :: L.LexError -> L.Tokens -> [Either L.LexError L.Token]
 insertLexErrorOnContext l [] = [Left l]
-insertLexErrorOnContext error@(L.LexError (pn, _)) (tk@L.Token {L.posn=pn'} : tks) =
+insertLexErrorOnContext e@(L.LexError (pn, _)) (tk@L.Token {L.posn=pn'} : tks) =
     if (L.row pn' >= L.row pn) && (L.col pn' >= L.col pn)
-    then Left error : Right tk : map Right tks
-    else Right tk : insertLexErrorOnContext error tks
+    then Left e : Right tk : map Right tks
+    else Right tk : insertLexErrorOnContext e tks
 
 joinTokensOnly :: L.Tokens -> String
 joinTokensOnly = joinTokens (-1) . map Right
@@ -98,14 +96,14 @@ printProgram tks =
         maxDigits = length $ show numberOfRows
 
         printRowAndLine :: L.Tokens -> IO ()
-        printRowAndLine tks = do
-            let L.Token {L.posn=pn} = head tks
+        printRowAndLine tks' = do
+            let L.Token {L.posn=pn} = head tks'
             let row = L.row pn
             let lengthOfRowNumber = length $ show row
             putStr $ show row
             putStr $ replicate (maxDigits - lengthOfRowNumber) ' '
             putStr "|"
-            putStrLn $ joinTokensOnly tks
+            putStrLn $ joinTokensOnly tks'
 
 lexer :: String -> IO ()
 lexer contents = do
@@ -134,7 +132,7 @@ printSemErrors (semError:semErrors) tokens = do
 
 parserAndSemantic :: L.Tokens -> IO ()
 parserAndSemantic tokens = do
-    (parsedProgram, symTable, errors) <- RWS.runRWST (parse tokens) () ST.initialState
+    (_, _, errors) <- RWS.runRWST (parse tokens) () ST.initialState
     if not $ null errors then printSemErrors errors tokens
     else printProgram tokens
 

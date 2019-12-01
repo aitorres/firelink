@@ -88,8 +88,8 @@ findBest _ _ [] = Nothing
 findBest name' entries (s:ss) = case filter (\d -> scope d == s) entries of
     [] -> findBest name' entries ss
     [a] -> Just a
-    s -> error $ "For some reason there was more than 1 \
-    \symbol with the same name on the same scope" ++ show s
+    e -> error $ "For some reason there was more than 1 \
+    \symbol with the same name on the same scope" ++ show e
 
 dictLookup :: String -> ParserMonad (Maybe DictionaryEntry)
 dictLookup n = do

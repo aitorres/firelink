@@ -4,19 +4,21 @@ import qualified SymTable as ST
 import qualified Grammar as G
 import qualified Control.Monad.RWS as RWS
 import qualified Lexer as L
+import Data.List (sort)
 
+newtype PropType = PropType (String, Type)
 data Type
-  = BigIntT -- 32-bit integers
-  | SmallIntT -- 32-bit integeres
-  | TrileanT -- 3-booleans
+  = BigIntT
+  | SmallIntT
+  | TrileanT
   | FloatT
   | CharT
   | StringT
   | ArrayT Type
   | SetT Type
-  -- | EnumT [String]
-  -- | RecordT [Type]
-  -- | UnionT [Type]
+  | EnumT [String]
+  | RecordT [PropType]
+  | UnionT [PropType]
   | PointerT Type
   | TypeError
 
@@ -29,11 +31,31 @@ instance Eq Type where
   StringT == StringT = True
   ArrayT t == ArrayT t' = t == t'
   SetT t == SetT t' = t == t'
+  EnumT pt == EnumT pt' = sort pt == sort pt'
+  RecordT pt == RecordT pt' = sort pt == sort pt'
   PointerT t == PointerT t' = t == t'
   TypeError == TypeError = True
   _ == _ = False
 
   a /= b = not (a == b)
+
+instance Eq PropType where
+  PropType (s, t) == PropType (s', t') = s == s' && t == t'
+  a /= b = not (a == b)
+
+instance Ord PropType where
+  PropType (s, _) < PropType (s', _) = s < s'
+  PropType (s, _) <= PropType (s', _) = s <= s'
+  PropType (s, _) > PropType (s', _) = s > s'
+  PropType (s, _) >= PropType (s', _) = s > s'
+  a@(PropType (s, _)) `max` b@(PropType (s', _)) =
+    if s `max` s' == s
+      then a
+      else b
+  a@(PropType (s, _)) `min` b@(PropType (s', _)) =
+    if s `min` s' == s
+      then a
+      else b
 
 class TypeCheckable a where
   getType :: a -> ST.ParserMonad Type

@@ -218,7 +218,10 @@ LVALUE
 
 EXPR :: { G.Expr }
 EXPR
-  : intLit                                                              { G.IntLit $ (read $1 :: Int) }
+  : intLit                                                              {% do
+                                                                            let expr = G.IntLit (read $1 :: Int)
+                                                                            t <- T.getType expr
+                                                                            return expr }
   | floatLit                                                            { G.FloatLit $ (read $1 :: Float) }
   | charLit                                                             { G.CharLit $ head $1 }
   | stringLit                                                           { G.StringLit $1 }
@@ -341,12 +344,12 @@ EXPR
                                                                             return e }
   | LVALUE                                                              { $1 }
 
-EXPRL :: { G.Exprs }
+EXPRL :: { [G.Expr] }
 EXPRL
   : {- empty -}                                                         { [] }
   | EXPRLNOTEMPTY                                                       { $1 }
 
-EXPRLNOTEMPTY :: { G.Exprs }
+EXPRLNOTEMPTY :: { [G.Expr] }
 EXPRLNOTEMPTY
   : EXPR                                                                { [$1] }
   | EXPRLNOTEMPTY comma EXPR                                           { $3:$1 }
