@@ -42,8 +42,8 @@ with
   var f of type humanity,
   var a of type hollow,
   var b of type sign,
-  var c of type <n>-miracle,
-  var d of type <n>-chest of type big humanity,
+  var c of type <123>-miracle,
+  var d of type <12>-chest of type big humanity,
   const e of type bezel {
     x of type humanity,
     y of type bezel {
