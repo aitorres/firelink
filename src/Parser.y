@@ -800,6 +800,9 @@ typeCheck (a, ea) (b, eb) mt = do
 arithmeticCheck :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
 arithmeticCheck a b = typeCheck (a, T.numberTypes) (b, T.numberTypes) Nothing
 
+intArithmeticCheck :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
+intArithmeticCheck a b = typeCheck (a, T.integerTypes) (b, T.integerTypes) Nothing
+
 logicalCheck :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
 logicalCheck a b = typeCheck (a, T.booleanTypes) (b, T.booleanTypes) Nothing
 
@@ -867,7 +870,7 @@ instance TypeCheckable G.BaseExpr where
   getType (G.Substract a b) = arithmeticCheck a b
   getType (G.Multiply a b) = arithmeticCheck a b
   getType (G.Divide a b) = arithmeticCheck a b
-  getType (G.Mod a b) = error "TODO: not implemented yet"
+  getType (G.Mod a b) =  intArithmeticCheck a b -- TODO: Fix
   getType (G.Negative a) = arithmeticCheck a a -- cheating
   getType (G.Lt a b) = comparableCheck a b
   getType (G.Lte a b) = comparableCheck a b
