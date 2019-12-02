@@ -21,7 +21,6 @@ data Category = Variable
     | Procedure
     | Function
     | RecordItem
-    | EnumItem
     | UnionItem
     | RefParam
     | ValueParam
@@ -58,6 +57,12 @@ data Extra
     | ArgPosition Int -- For argument list position
     deriving Show
 
+{-|
+    Dictionary entries represent "names" in the programming languages. With
+    "names" we refer anything that has a name and a value. There are some
+    implicit constraints that each name implies to the contents of `extra`,
+    depending on its `category`:
+-}
 data DictionaryEntry = DictionaryEntry
     { name :: !String -- ^ Entry name
     , category :: !Category -- ^ Category of the entry

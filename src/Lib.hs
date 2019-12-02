@@ -133,6 +133,7 @@ printSemErrors (semError:semErrors) tokens = do
 parserAndSemantic :: L.Tokens -> IO ()
 parserAndSemantic tokens = do
     (_, _, errors) <- RWS.runRWST (parse tokens) () ST.initialState
+    print errors
     if not $ null errors then printSemErrors errors tokens
     else printProgram tokens
 

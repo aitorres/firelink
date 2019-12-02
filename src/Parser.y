@@ -463,6 +463,14 @@ type RecordItem = AliasDeclaration
 buildAndCheckExpr :: G.BaseExpr -> ST.ParserMonad G.Expr
 buildAndCheckExpr bExpr = do
   t <- getType bExpr
+  if t == T.TypeError
+    then RWS.tell [ST.SemanticError "Type error" (L.Token
+      { L.aToken = L.TkId
+      , L.capturedString = "hola"
+      , L.cleanedString = "hola"
+      , L.posn = (L.AlexPn 1 1 1)
+      })]
+    else return ()
   return G.Expr
     { G.expAst = bExpr
     , G.expType = t
@@ -736,59 +744,78 @@ class TypeCheckable a where
 isOneOfTypes :: [T.Type] -> G.Expr -> ST.ParserMonad Bool
 isOneOfTypes ts a = do
   t <- getType a
-  let isValidType = or [t == x | x <- ts]
-  return isValidType
+  return $ not . null $ filter (== t) ts
 
-isLogicalType :: G.Expr -> ST.ParserMonad Bool
-isLogicalType = isOneOfTypes [T.TrileanT]
+type TypeChecker = G.Expr -> ST.ParserMonad Bool
 
-isNumberType :: G.Expr -> ST.ParserMonad Bool
-isNumberType = isOneOfTypes [T.BigIntT, T.SmallIntT, T.FloatT]
+isLogicalType :: TypeChecker
+isLogicalType = isOneOfTypes T.booleanTypes
 
-isComparableType :: G.Expr -> ST.ParserMonad Bool
-isComparableType = isOneOfTypes [T.BigIntT, T.SmallIntT, T.FloatT]
+isNumberType :: T.Type -> Bool
+isNumberType t = not . null $ filter (==t) T.numberTypes
 
-isEquatableType :: G.Expr -> ST.ParserMonad Bool
-isEquatableType = isOneOfTypes [T.BigIntT, T.SmallIntT, T.FloatT, T.CharT, T.TrileanT]
+isIntegerType :: TypeChecker
+isIntegerType = isOneOfTypes T.integerTypes
 
-isShowableType :: G.Expr -> ST.ParserMonad Bool
-isShowableType = isOneOfTypes [T.CharT, T.StringT]
+isComparableType :: TypeChecker
+isComparableType = isOneOfTypes T.comparableTypes
 
-conditionalCheck :: (G.Expr -> ST.ParserMonad Bool) -> G.Expr -> G.Expr ->  ST.ParserMonad T.Type
-conditionalCheck condition a b = do
-  matches <- typeMatches a b
-  aType <- getType a
-  isValidType <- condition a
+isShowableType :: TypeChecker
+isShowableType = isOneOfTypes T.showableTypes
+
+exprsToTypes :: [G.Expr] -> [T.Type]
+exprsToTypes = map G.expType
+
+containerCheck :: [G.Expr] -> (T.Type -> T.Type) -> ST.ParserMonad T.Type
+containerCheck [] c = return $ c T.Any
+containerCheck exprs constructor = do
+  let types = exprsToTypes exprs
+  let t = head types
+  let allAreSameType = and $ map (==t) types
   return (
-    if matches && isValidType then
-      aType
-    else
-      T.TypeError
+    if allAreSameType && t /= T.TypeError
+    then constructor t
+    else T.TypeError
     )
 
-conditionalCheckReturningBonfire ::  (G.Expr -> ST.ParserMonad Bool) -> G.Expr -> G.Expr ->  ST.ParserMonad T.Type
-conditionalCheckReturningBonfire condition a b = do
-  matchingType <- conditionalCheck condition a b
+typeCheck :: (G.Expr, [T.Type]) -> (G.Expr, [T.Type]) -> Maybe T.Type -> ST.ParserMonad T.Type
+typeCheck (a, ea) (b, eb) mt = do
+  let aType = G.expType a
+  let bType = G.expType b
+  let correctType = aType `elem` ea
+  let correctType' = bType `elem` eb
   return (
-    if matchingType == T.TypeError then
-      T.TypeError
-      else
-        T.TrileanT
-        )
+    if correctType && correctType'
+      then (case mt of
+              Nothing -> aType `max` bType
+              Just t -> t)
+      else T.TypeError)
 
 arithmeticCheck :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
-arithmeticCheck = conditionalCheck isNumberType
-
-comparableCheck :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
-comparableCheck = conditionalCheckReturningBonfire isComparableType
-
-equatableCheck :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
-equatableCheck = conditionalCheckReturningBonfire isEquatableType
+arithmeticCheck a b = typeCheck (a, T.numberTypes) (b, T.numberTypes) Nothing
 
 logicalCheck :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
-logicalCheck = conditionalCheckReturningBonfire isLogicalType
+logicalCheck a b = typeCheck (a, T.booleanTypes) (b, T.booleanTypes) Nothing
 
-containerCheck _ = error "not implemented" -- TODO: implement array data type check
+equatableCheck :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
+equatableCheck a b = do
+  t <- typeCheck (a, T.numberTypes) (b, T.numberTypes) (Just T.TrileanT)
+  t' <- typeCheck (a, [T.CharT]) (b, [T.CharT]) (Just T.TrileanT)
+  if t /= T.TypeError || t' /= T.TypeError
+    then return T.TrileanT
+    else return T.TypeError
+
+comparableCheck :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
+comparableCheck = equatableCheck
+
+
+functionsCheck :: G.Id -> [G.Expr] -> ST.ParserMonad T.Type
+functionsCheck funId exprs = do
+  let exprsTypes = exprsToTypes exprs
+  maybeFunEntry <- checkIdAvailability funId
+  case maybeFunEntry of
+    Nothing -> return T.TypeError
+    Just entry -> return T.TypeError
 
 minBigInt :: Int
 minBigInt = - 2147483648
@@ -806,13 +833,16 @@ instance TypeCheckable G.Id where
   getType _ = error "not implemented yet"
 
 instance TypeCheckable G.Expr where
-  getType = getType . G.expAst
+  getType = return . G.expType
 
 instance TypeCheckable G.BaseExpr where
+  -- Language literals, their types can be (almost everytime) infered
   getType G.TrueLit = return T.TrileanT
   getType G.FalseLit = return T.TrileanT
   getType G.UndiscoveredLit = return T.TrileanT
   getType G.NullLit = return T.TypeError -- TODO: check if okay
+
+  -- A literal of an integer is valid if it is on the correct range
   getType (G.IntLit n) =
     if minSmallInt <= n && n <= maxSmallInt
     then return T.SmallIntT
@@ -822,14 +852,16 @@ instance TypeCheckable G.BaseExpr where
   getType (G.FloatLit _) = return T.FloatT
   getType (G.CharLit _) = return T.CharT
   getType (G.StringLit _) = return T.StringT
-  getType (G.ArrayLit a) = containerCheck a
-  getType (G.SetLit a) = containerCheck a
-  getType (G.EvalFunc id _) = getType (G.IdExpr id) -- TODO: Check if okay
+
+  getType (G.ArrayLit a) = containerCheck a T.ArrayT
+  getType (G.SetLit a) = containerCheck a T.SetT
+
+  getType (G.EvalFunc id _) = return T.TypeError -- TODO: Check if okay
   getType (G.Add a b) = arithmeticCheck a b
   getType (G.Substract a b) = arithmeticCheck a b
   getType (G.Multiply a b) = arithmeticCheck a b
   getType (G.Divide a b) = arithmeticCheck a b
-  getType (G.Mod a b) = arithmeticCheck a b
+  getType (G.Mod a b) = error "TODO: not implemented yet"
   getType (G.Negative a) = arithmeticCheck a a -- cheating
   getType (G.Lt a b) = comparableCheck a b
   getType (G.Lte a b) = comparableCheck a b
@@ -845,14 +877,29 @@ instance TypeCheckable G.BaseExpr where
   getType (G.MemAccess e) = return T.TypeError -- TODO: Mem access
   getType _ = return T.TypeError -- TODO: Finish implementation
 
-checkTypes :: G.Expr -> G.Expr -> String -> L.Token -> ST.ParserMonad ()
-checkTypes a b t tk = do
-  let isError = t == ST.errorType
-  RWS.when isError $ RWS.tell [ST.SemanticError ("Type mismatch between " ++ show a ++ " and " ++ show b) tk]
+{-
+    | Procedure
+    | Function
+    | RefParam
+    | ValueParam
+instance TypeCheckable ST.DictionaryEntry where
+  getType entry{ST.entryType=Just entryType, ST.category = cat, ST.extra = extras}
+    -- If it is an alias, return just the name
+    | cat == T.Type = return $ T.AliasT (ST.name entry)
+    | cat `elem` [T.Procedure, T.Function] = do
+      let isEmptyFunction = not . null $ filter (\e -> case e of
+                                                        ST.EmptyFunction -> True
+                                                        _ -> False) extras
+      range <- (case cat of
+        T.Procedure -> return T.Void
+        T.Function -> getType entry{ST.category=ST.variable}) -- cheating
 
-checkType :: G.Expr -> String -> L.Token -> ST.ParserMonad ()
-checkType a t tk = do
-  let isError = t == ST.errorType
-  RWS.when isError $ RWS.tell [ST.SemanticError ("Type mismatch for " ++ show a) tk]
+      domain <- (if isEmptyFunction
+        then return []
+        
+      then return $ T.FunctionT [] (if cat == T.Procedure then T.Void else )
+    | cat `elem` [ST.Variable, ST.Constant, ST.RecordItem, ST.UnionItem, ST.RefParam, ST.ValueParam]
+    case entryType of
+ -}
 
 }
