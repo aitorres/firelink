@@ -70,10 +70,10 @@ import qualified TypeChecking as T
   record                                                                { L.Token {L.aToken=L.TkRecord} }
   pointer                                                               { L.Token {L.aToken=L.TkPointer} }
 
-  intLit                                                                { L.Token {L.aToken=L.TkIntLit, L.cleanedString=$$} }
-  floatLit                                                              { L.Token {L.aToken=L.TkFloatLit, L.cleanedString=$$} }
-  charLit                                                               { L.Token {L.aToken=L.TkCharLit, L.cleanedString=$$} }
-  stringLit                                                             { L.Token {L.aToken=L.TkStringLit, L.cleanedString=$$} }
+  intLit                                                                { L.Token {L.aToken=L.TkIntLit} }
+  floatLit                                                              { L.Token {L.aToken=L.TkFloatLit} }
+  charLit                                                               { L.Token {L.aToken=L.TkCharLit} }
+  stringLit                                                             { L.Token {L.aToken=L.TkStringLit} }
   trueLit                                                               { L.Token {L.aToken=L.TkLit} }
   falseLit                                                              { L.Token {L.aToken=L.TkUnlit} }
   unknownLit                                                            { L.Token {L.aToken=L.TkUndiscovered} }
@@ -204,50 +204,51 @@ LVALUE :: { G.Expr }
 LVALUE
   : ID                                                                  {% do
                                                                             checkIdAvailability $1
-                                                                            buildAndCheckExpr $ G.IdExpr $1 }
+                                                                            let (G.Id tk) = $1
+                                                                            buildAndCheckExpr tk $ G.IdExpr $1 }
   | EXPR accessor ID                                                    {% do
                                                                             let expr = G.Access $1 $3
-                                                                            ret <- buildAndCheckExpr expr
+                                                                            ret <- buildAndCheckExpr $2 expr
                                                                             checkPropertyAvailability ret
                                                                             return ret }
-  | EXPR arrOpen EXPR arrClose                                          {% buildAndCheckExpr $ G.IndexAccess $1 $3 }
-  | memAccessor EXPR                                                    {% buildAndCheckExpr $ G.MemAccess $2 }
+  | EXPR arrOpen EXPR arrClose                                          {% buildAndCheckExpr $2 $ G.IndexAccess $1 $3 }
+  | memAccessor EXPR                                                    {% buildAndCheckExpr $1 $ G.MemAccess $2 }
 
 EXPR :: { G.Expr }
 EXPR
-  : intLit                                                              {% buildAndCheckExpr $ G.IntLit (read $1 :: Int) }
-  | floatLit                                                            {% buildAndCheckExpr $ G.FloatLit (read $1 :: Float) }
-  | charLit                                                             {% buildAndCheckExpr $ G.CharLit $ head $1 }
-  | stringLit                                                           {% buildAndCheckExpr $ G.StringLit $1 }
-  | trueLit                                                             {% buildAndCheckExpr G.TrueLit }
-  | falseLit                                                            {% buildAndCheckExpr G.FalseLit }
-  | unknownLit                                                          {% buildAndCheckExpr G.UndiscoveredLit }
-  | nullLit                                                             {% buildAndCheckExpr G.NullLit }
-  | arrOpen EXPRL arrClose                                              {% buildAndCheckExpr $ G.ArrayLit $ reverse $2 }
-  | setOpen EXPRL setClose                                              {% buildAndCheckExpr $ G.SetLit $ reverse $2 }
-  | parensOpen EXPR parensClosed                                        { $2 }
-  | minus EXPR                                                          {% buildAndCheckExpr $ G.Negative $2 }
-  | not EXPR                                                            {% buildAndCheckExpr $ G.Not $2 }
-  | asciiOf EXPR                                                        {% buildAndCheckExpr $ G.AsciiOf $2 }
-  | size EXPR                                                           {% buildAndCheckExpr $ G.SetSize $2 }
-  | EXPR plus EXPR                                                      {% buildAndCheckExpr $ G.Add $1 $3 }
-  | EXPR minus EXPR                                                     {% buildAndCheckExpr $ G.Substract $1 $3 }
-  | EXPR mult EXPR                                                      {% buildAndCheckExpr $ G.Multiply $1 $3 }
-  | EXPR div EXPR                                                       {% buildAndCheckExpr $ G.Divide $1 $3 }
-  | EXPR mod EXPR                                                       {% buildAndCheckExpr $ G.Mod $1 $3 }
-  | EXPR lt EXPR                                                        {% buildAndCheckExpr $ G.Lt $1 $3 }
-  | EXPR gt EXPR                                                        {% buildAndCheckExpr $ G.Gt $1 $3 }
-  | EXPR lte EXPR                                                       {% buildAndCheckExpr $ G.Lte $1 $3 }
-  | EXPR gte EXPR                                                       {% buildAndCheckExpr $ G.Gte $1 $3 }
-  | EXPR eq EXPR                                                        {% buildAndCheckExpr $ G.Eq $1 $3 }
-  | EXPR neq EXPR                                                       {% buildAndCheckExpr $ G.Neq $1 $3 }
-  | EXPR and EXPR                                                       {% buildAndCheckExpr $ G.And $1 $3 }
-  | EXPR or EXPR                                                        {% buildAndCheckExpr $ G.Or $1 $3 }
-  | EXPR colConcat EXPR                                                 {% buildAndCheckExpr $ G.ColConcat $1 $3 }
-  | EXPR union EXPR                                                     {% buildAndCheckExpr $ G.SetUnion $1 $3 }
-  | EXPR intersect EXPR                                                 {% buildAndCheckExpr $ G.SetIntersect $1 $3 }
-  | EXPR diff EXPR                                                      {% buildAndCheckExpr $ G.SetDiff $1 $3 }
-  | FUNCALL                                                             {% buildAndCheckExpr $ G.EvalFunc (fst $1) (snd $1) }
+  : intLit                                                              {% buildAndCheckExpr $1 $ G.IntLit (read (L.cleanedString $1) :: Int) }
+  | floatLit                                                            {% buildAndCheckExpr $1 $ G.FloatLit (read (L.cleanedString $1) :: Float) }
+  | charLit                                                             {% buildAndCheckExpr $1 $ G.CharLit $ head (L.cleanedString $1) }
+  | stringLit                                                           {% buildAndCheckExpr $1 $ G.StringLit (L.cleanedString $1) }
+  | trueLit                                                             {% buildAndCheckExpr $1 G.TrueLit }
+  | falseLit                                                            {% buildAndCheckExpr $1 G.FalseLit }
+  | unknownLit                                                          {% buildAndCheckExpr $1 G.UndiscoveredLit }
+  | nullLit                                                             {% buildAndCheckExpr $1 G.NullLit }
+  | arrOpen EXPRL arrClose                                              {% buildAndCheckExpr $1 $ G.ArrayLit $ reverse $2 }
+  | setOpen EXPRL setClose                                              {% buildAndCheckExpr $1 $ G.SetLit $ reverse $2 }
+  | parensOpen EXPR parensClosed                                        { $2{G.expTok=$1} }
+  | minus EXPR                                                          {% buildAndCheckExpr $1 $ G.Negative $2 }
+  | not EXPR                                                            {% buildAndCheckExpr $1 $ G.Not $2 }
+  | asciiOf EXPR                                                        {% buildAndCheckExpr $1 $ G.AsciiOf $2 }
+  | size EXPR                                                           {% buildAndCheckExpr $1 $ G.SetSize $2 }
+  | EXPR plus EXPR                                                      {% buildAndCheckExpr $2 $ G.Add $1 $3 }
+  | EXPR minus EXPR                                                     {% buildAndCheckExpr $2 $ G.Substract $1 $3 }
+  | EXPR mult EXPR                                                      {% buildAndCheckExpr $2 $ G.Multiply $1 $3 }
+  | EXPR div EXPR                                                       {% buildAndCheckExpr $2 $ G.Divide $1 $3 }
+  | EXPR mod EXPR                                                       {% buildAndCheckExpr $2 $ G.Mod $1 $3 }
+  | EXPR lt EXPR                                                        {% buildAndCheckExpr $2 $ G.Lt $1 $3 }
+  | EXPR gt EXPR                                                        {% buildAndCheckExpr $2 $ G.Gt $1 $3 }
+  | EXPR lte EXPR                                                       {% buildAndCheckExpr $2 $ G.Lte $1 $3 }
+  | EXPR gte EXPR                                                       {% buildAndCheckExpr $2 $ G.Gte $1 $3 }
+  | EXPR eq EXPR                                                        {% buildAndCheckExpr $2 $ G.Eq $1 $3 }
+  | EXPR neq EXPR                                                       {% buildAndCheckExpr $2 $ G.Neq $1 $3 }
+  | EXPR and EXPR                                                       {% buildAndCheckExpr $2 $ G.And $1 $3 }
+  | EXPR or EXPR                                                        {% buildAndCheckExpr $2 $ G.Or $1 $3 }
+  | EXPR colConcat EXPR                                                 {% buildAndCheckExpr $2 $ G.ColConcat $1 $3 }
+  | EXPR union EXPR                                                     {% buildAndCheckExpr $2 $ G.SetUnion $1 $3 }
+  | EXPR intersect EXPR                                                 {% buildAndCheckExpr $2 $ G.SetIntersect $1 $3 }
+  | EXPR diff EXPR                                                      {% buildAndCheckExpr $2 $ G.SetDiff $1 $3 }
+  | FUNCALL                                                             {% let (tk, i, params) = $1 in buildAndCheckExpr tk $ G.EvalFunc i params }
   | LVALUE                                                              { $1 }
 
 EXPRL :: { [G.Expr] }
@@ -401,7 +402,8 @@ INSTR
   | cast ID PROCPARS                                                    {% do
                                                                           checkIdAvailability $2
                                                                           return $ G.InstCallProc $2 $3 }
-  | FUNCALL                                                             { G.InstCallFunc (fst $1) (snd $1) }
+  | FUNCALL                                                             { let (_, i, params) = $1 in
+                                                                              G.InstCallFunc i params }
   | return                                                              { G.InstReturn }
   | returnWith EXPR                                                     { G.InstReturnWith $2 }
   | print EXPR                                                          { G.InstPrint $2 }
@@ -414,11 +416,11 @@ INSTR
   | forBegin ID with EXPR souls untilLevel EXPR CODEBLOCK forEnd        { G.InstFor $2 $4 $7 $8 }
   | forEachBegin ID withTitaniteFrom EXPR CODEBLOCK forEachEnd          { G.InstForEach $2 $4 $5 }
 
-FUNCALL :: { (G.Id, G.Params) }
+FUNCALL :: { (L.Token, G.Id, G.Params) }
 FUNCALL
   : summon ID FUNCPARS                                                  {% do
                                                                           checkIdAvailability $2
-                                                                          return ($2, $3) }
+                                                                          return ($1, $2, $3) }
 
 IFCASES :: { G.IfCases }
 IFCASES
@@ -460,20 +462,21 @@ type ArgDeclaration = (G.ArgType, G.Id, G.GrammarType)
 type AliasDeclaration = (G.Id, G.GrammarType)
 type RecordItem = AliasDeclaration
 
-buildAndCheckExpr :: G.BaseExpr -> ST.ParserMonad G.Expr
-buildAndCheckExpr bExpr = do
+buildAndCheckExpr :: L.Token -> G.BaseExpr -> ST.ParserMonad G.Expr
+buildAndCheckExpr tk bExpr = do
   t <- getType bExpr
   if t == T.TypeError
     then RWS.tell [ST.SemanticError "Type error" (L.Token
       { L.aToken = L.TkId
       , L.capturedString = "hola"
       , L.cleanedString = "hola"
-      , L.posn = (L.AlexPn 1 1 1)
+      , L.posn = (L.posn tk)
       })]
     else return ()
   return G.Expr
     { G.expAst = bExpr
     , G.expType = t
+    , G.expTok = tk
     }
 
 extractFieldsForNewScope :: G.GrammarType -> Maybe [RecordItem]
@@ -626,7 +629,10 @@ findScopeToSearchOf e = case G.expAst e of
       Just s -> do
         (dict, scopes, curr) <- RWS.get
         RWS.put (dict, s:scopes, curr)
-        scope <- findScopeToSearchOf $ G.Expr {G.expAst=G.IdExpr gId, G.expType=T.TypeError}
+        scope <- findScopeToSearchOf $ G.Expr
+                                        { G.expAst=G.IdExpr gId
+                                        , G.expType=T.TypeError
+                                        , G.expTok=(G.expTok expr)}
         RWS.put (dict, scopes, curr)
         return scope
 

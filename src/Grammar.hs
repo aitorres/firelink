@@ -96,7 +96,8 @@ instance Show BaseExpr where
 
 data Expr = Expr {
   expType :: !Type,
-  expAst :: !BaseExpr
+  expAst :: !BaseExpr,
+  expTok :: !Token
 }
 
 instance Show Expr where
