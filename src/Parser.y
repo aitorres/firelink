@@ -555,27 +555,30 @@ addIdToSymTable mi d@(c, (G.Id tk@(L.Token {L.aToken=at, L.cleanedString=idName}
 
 insertIdToEntry :: Maybe Int -> G.GrammarType -> ST.DictionaryEntry -> ST.ParserMonad ()
 insertIdToEntry mi t entry = do
-  ex <- buildExtraForType t
+  maybeExtra <- buildExtraForType t
   let pos = (case mi of
               Nothing -> []
               Just i -> [ST.ArgPosition i])
-  ST.addEntry entry{ST.extra = pos ++ ex}
-  -- To add the record params to the dictionary
-  case extractFieldsForNewScope t of
+  case maybeExtra of
     Nothing -> return ()
-    Just s ->  do
-      ST.enterScope
-      addIdsToSymTable $ map (\(a, b) -> (ST.RecordItem, a, b)) s
-      ST.exitScope
-  case extractFunParamsForNewScope t of
-    -- If it is nothing then this is not a function
-    Nothing -> return ()
-    Just s -> do
-      ST.enterScope
-      RWS.mapM_ (\(i, n) -> addIdToSymTable (Just i) n) $ zip [0..] $
-        map (\(argType, i, t) -> (if argType == G.Val
-                             then ST.ValueParam
-                             else ST.RefParam, i, t)) s
+    Just ex -> do
+      ST.addEntry entry{ST.extra = pos ++ ex}
+      -- To add the record params to the dictionary
+      case extractFieldsForNewScope t of
+        Nothing -> return ()
+        Just s ->  do
+          ST.enterScope
+          addIdsToSymTable $ map (\(a, b) -> (ST.RecordItem, a, b)) s
+          ST.exitScope
+      case extractFunParamsForNewScope t of
+        -- If it is nothing then this is not a function
+        Nothing -> return ()
+        Just s -> do
+          ST.enterScope
+          RWS.mapM_ (\(i, n) -> addIdToSymTable (Just i) n) $ zip [0..] $
+            map (\(argType, i, t) -> (if argType == G.Val
+                                then ST.ValueParam
+                                else ST.RefParam, i, t)) s
 
 checkConstantReassignment :: G.Expr -> ST.ParserMonad ()
 checkConstantReassignment e = case G.expAst e of
@@ -715,14 +718,16 @@ findTypeOnEntryTable (G.Callable (Just t) _) = findTypeOnEntryTable t
 
 findTypeOnEntryTable (G.Callable Nothing _) = return Nothing
 
-buildExtraForType :: G.GrammarType -> ST.ParserMonad [ST.Extra]
+buildExtraForType :: G.GrammarType -> ST.ParserMonad (Maybe [ST.Extra])
 
 -- For string alike data types
 buildExtraForType t@(G.Simple _ maybeSize) = do
-  t' <- (ST.name . fromJust) <$> findTypeOnEntryTable t
-  return [case maybeSize of
-    Just e -> ST.Compound t' e
-    Nothing -> ST.Simple t']
+  maybeType <- findTypeOnEntryTable t
+  case maybeType of
+    Nothing -> return Nothing
+    Just t' -> return $ Just [case maybeSize of
+      Just e -> ST.Compound (ST.name t') e
+      Nothing -> ST.Simple (ST.name t')]
 
 -- For array alike data types
 buildExtraForType t@(G.Compound _ tt@(G.Simple _ _) maybeExpr) = do
@@ -730,39 +735,46 @@ buildExtraForType t@(G.Compound _ tt@(G.Simple _ _) maybeExpr) = do
   constructor <- (ST.name . fromJust) <$> findTypeOnEntryTable t -- This call should never fail
   case maybeTypeEntry of
     Just t -> do
-      extras <- buildExtraForType tt
+      extras <- fromJust <$> buildExtraForType tt -- safe
       let newExtra = if null extras then (ST.Simple $ ST.name t) else (head extras)
-      return (case maybeExpr of
+      return $ Just (case maybeExpr of
         Just e -> [ST.CompoundRec constructor e newExtra]
         Nothing -> [ST.Recursive constructor newExtra])
+    Nothing -> return Nothing
 
 buildExtraForType t@(G.Compound _ tt@(G.Compound{}) maybeExpr) = do
-  extra' <- head <$> buildExtraForType tt
-  constructor <- (ST.name . fromJust) <$> findTypeOnEntryTable t -- This call should never fail
-  return $ case maybeExpr of
-    Just e -> [ST.CompoundRec constructor e extra']
-    Nothing -> [ST.Recursive constructor extra']
+  maybeExtra <- buildExtraForType tt
+  case maybeExtra of
+    Nothing -> return Nothing
+    Just (extra':_) -> do
+      constructor <- (ST.name . fromJust) <$> findTypeOnEntryTable t -- This call should never fail
+      return $ case maybeExpr of
+        Just e -> Just [ST.CompoundRec constructor e extra']
+        Nothing -> Just [ST.Recursive constructor extra']
 
 buildExtraForType t@(G.Compound _ tt@(G.Record{}) maybeExpr) = do
-  extra' <- head <$> buildExtraForType tt
-  constructor <- (ST.name . fromJust) <$> findTypeOnEntryTable t -- This call should never fail
-  return $ case maybeExpr of
-    Just e -> [ST.CompoundRec constructor e extra', extra']
-    Nothing -> [ST.Recursive constructor extra', extra']
+  maybeExtra <- buildExtraForType tt
+  case maybeExtra of
+    Nothing -> return Nothing
+    Just (extra':_) -> do
+      constructor <- (ST.name . fromJust) <$> findTypeOnEntryTable t -- This call should never fail
+      return $ case maybeExpr of
+        Just e -> Just [ST.CompoundRec constructor e extra', extra']
+        Nothing -> Just [ST.Recursive constructor extra', extra']
 
 buildExtraForType t@(G.Record _ _) = do
   (_, _, currScope) <- RWS.get
-  return [ST.Fields $ currScope + 1]
+  return $ Just [ST.Fields $ currScope + 1]
 
-buildExtraForType t@(G.Callable _ []) = return [ST.EmptyFunction]
+buildExtraForType t@(G.Callable _ []) = return $ Just [ST.EmptyFunction]
 
 buildExtraForType t@(G.Callable _ _) = do
   (_, _, currScope) <- RWS.get
-  return [ST.Fields $ currScope + 1]
+  return $ Just [ST.Fields $ currScope + 1]
 
 
 -- For anything else
-buildExtraForType _ = return []
+buildExtraForType _ = return $ Just []
 
 ------------------
 -- TYPECHECKING --
@@ -826,6 +838,9 @@ typeCheck (a, ea) (b, eb) mt = do
               Just t -> t)
       else T.TypeError)
 
+intArithmeticCheck :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
+intArithmeticCheck a b = typeCheck (a, T.integerTypes) (b, T.integerTypes) Nothing
+
 arithmeticCheck :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
 arithmeticCheck a b = typeCheck (a, T.numberTypes) (b, T.numberTypes) Nothing
 
@@ -865,7 +880,7 @@ maxSmallInt :: Int
 maxSmallInt = 32767
 
 instance TypeCheckable G.Id where
-  getType _ = error "not implemented yet"
+  getType _ = return T.TypeError
 
 instance TypeCheckable G.Expr where
   getType = return . G.expType
@@ -896,7 +911,7 @@ instance TypeCheckable G.BaseExpr where
   getType (G.Substract a b) = arithmeticCheck a b
   getType (G.Multiply a b) = arithmeticCheck a b
   getType (G.Divide a b) = arithmeticCheck a b
-  getType (G.Mod a b) = error "TODO: not implemented yet"
+  getType (G.Mod a b) = intArithmeticCheck a b
   getType (G.Negative a) = arithmeticCheck a a -- cheating
   getType (G.Lt a b) = comparableCheck a b
   getType (G.Lte a b) = comparableCheck a b
