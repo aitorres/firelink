@@ -169,7 +169,7 @@ initialState = (Map.fromList l, [1, 0], 1)
             ]
 
 tokensToEntryName :: L.Token -> String
-tokensToEntryName (L.Token at s _) = case at of
+tokensToEntryName L.Token {L.aToken=at, L.cleanedString=s} = case at of
     L.TkBigInt -> humanity
     L.TkSmallInt -> smallHumanity
     L.TkFloat -> hollow
@@ -180,5 +180,5 @@ tokensToEntryName (L.Token at s _) = case at of
     L.TkSet -> armor
     L.TkRecord -> bezel
     L.TkUnionStruct -> link
-    L.TkId -> fromJust s
+    L.TkId -> s
     a -> error $ "Token " ++ show a ++ "doesn't map to anything"

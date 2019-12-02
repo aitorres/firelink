@@ -135,7 +135,7 @@ spec = do
             \ farewell ashen one"
             (_, (_, _, _), errors) <- U.extractSymTable p
             errors `shouldNotSatisfy` null
-            let ST.SemanticError _ (L.Token _ (Just varName) pn) = head errors
+            let ST.SemanticError _ L.Token {L.cleanedString=varName, L.posn=pn} = head errors
             varName `shouldBe` "x"
             L.row pn `shouldBe` 5
             L.col pn `shouldBe` 8
@@ -163,7 +163,7 @@ spec = do
             \ farewell ashen one"
             (_, (_, _, _), errors) <- U.extractSymTable p
             errors `shouldNotSatisfy` null
-            let ST.SemanticError _ (L.Token _ (Just varName) pn) = head errors
+            let ST.SemanticError _ L.Token {L.cleanedString=varName, L.posn=pn} = head errors
             varName `shouldBe` "x"
             L.row pn `shouldBe` 8
             L.col pn `shouldBe` 8
@@ -300,7 +300,7 @@ spec = do
             \ farewell ashen one"
             (_, _, errors) <- U.extractSymTable p
             errors `shouldNotSatisfy` null
-            let ST.SemanticError _ (L.Token _ (Just varName) pn) = head errors
+            let ST.SemanticError _ L.Token {L.cleanedString=varName, L.posn=pn} = head errors
             varName `shouldBe` "fun2"
             L.row pn `shouldBe` 9
             L.col pn `shouldBe` 36

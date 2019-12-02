@@ -106,7 +106,7 @@ spec = describe "Variable Declarations" $ do
         \ farewell ashen one\n"
         (_, _, errors) <- U.extractSymTable p
         errors `shouldNotSatisfy` null
-        let ST.SemanticError _ (L.Token _ (Just varName) pn) = head errors
+        let ST.SemanticError _ L.Token {L.cleanedString=varName, L.posn=pn} = head errors
         varName `shouldBe` "x"
         L.row pn `shouldBe` 4
         L.col pn `shouldBe` 18
