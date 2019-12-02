@@ -1,0 +1,98 @@
+hello ashen one
+
+  invocation nearest_square
+  requesting
+    val n of type hollow
+  with skill of type humanity
+    traveling somewhere
+    with
+      var r of type humanity,
+      var i of type humanity <<= n
+    in your inventory
+      upgrading i with 1 soul until level n+1
+        traveling somewhere
+          trust your inventory
+            i*i gt n:
+              traveling somewhere
+                go back with i
+              you died
+          inventory closed
+        you died
+      max level reached \
+      go back with n
+    you died
+  after this return to your world
+
+  -- Bakhshali method
+  invocation sqrt_approx
+  requesting
+    val s of type hollow,
+    val iters of type humanity
+  with skill of type hollow
+    traveling somewhere
+    with
+      var root_approx of type hollow <<= summon nearest_square granting s to the knight,
+      var an of type hollow,
+      var bn of type hollow,
+      var i of type humanity <<= 0
+    in your inventory
+      upgrading i with 1 soul until level iters
+        traveling somewhere
+          an <<= (s - (root_approx * root_approx)) / (2*root_approx) \
+          bn <<= root_approx + an \
+          root_approx <<= bn - ((an*an) / (2*bn))
+        you died
+      max level reached \
+      go back with root_approx
+    you died
+  after this return to your world
+
+  traveling somewhere
+  with
+    var a of type humanity,
+    var b of type humanity,
+    var c of type humanity,
+    var x1 of type humanity,
+    var x2 of type humanity,
+    var found of type bonfire
+  in your inventory
+    transpose into a \
+    transpose into b \
+    transpose into c \
+    trust your inventory
+      a eq 0:
+        traveling somewhere
+          x1 <<= -c / b \
+          x2 <<= x1 \
+          found <<= lit
+        you died
+      (b*b - 4*a*c) gte 0:
+        traveling somewhere
+        with
+          var root of type hollow
+        in your inventory
+          root <<= summon sqrt_approx granting (b*b - 4*a*c), 10 to the knight \
+          x1 <<= (-b + root) / (2*a) \
+          x2 <<= (-b - root) / (2*a) \
+          found <<= lit
+        you died
+      (b*b - 4*a*c) lt 0:
+        traveling somewhere
+          with orange saponite say @ERROR! This is a complex polynomial\n@ \
+          found <<= unlit
+        you died
+    inventory closed \
+
+    trust your inventory
+      found:
+        traveling somewhere
+          with orange saponite say @x1: @ \
+          with orange saponite say x1 \
+          with orange saponite say @\n@ >-< @x2: @ \
+          with orange saponite say x2 \
+          with orange saponite say @\n@
+        you died
+    inventory closed
+  you died
+
+farewell ashen one

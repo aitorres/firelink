@@ -1,0 +1,51 @@
+hello ashen one
+
+traveling somewhere
+with
+  var n of type humanity,
+  var i of type humanity <<= 0,
+  var a of type <1000>-chest of type humanity
+in your inventory
+  with orange saponite say @Enter a number: @ \
+  transpose into n \
+
+  upgrading i with 1 soul until level n
+    traveling somewhere
+      with orange saponite say @Enter element @ \
+      with orange saponite say n \
+      with orange saponite say @: @ \
+      transpose into a<$i$>
+    you died
+  max level reached
+
+  i <<= 0 \
+
+  upgrading i with 1 soul until level n - 1
+    traveling somewhere
+      trust your inventory
+        a<$i$> gte a<$i+1$>:
+          traveling somewhere
+          with
+            var temp of type humanity
+          in your inventory
+            temp <<= a<$i$> \
+            a<$i$> <<= a<$i+1$> \
+            a<$i+1$> <<= temp
+          you died
+      inventory closed
+    you died
+  max level reached
+
+  with orange saponite say @Printing sorted array\n@ \
+
+  upgrading i with 1 soul until level n
+    traveling somewhere
+      with orange saponite say a<$i$> \
+      with orange saponite say @\n@
+      transpose into a<$i$>
+    you died
+  max level reached
+
+you died
+
+farewell ashen one
