@@ -51,30 +51,30 @@ spec = do
                 U.extractSimpleFromExtra (\(ST.Simple "bonfire") -> True)
         it "allows to declare variables of type `<n>-miracle`" $
             testVoid "<1>-miracle"  varEntry{ST.entryType = Just ">-miracle"} U.extractCompoundFromExtra
-                (\(ST.Compound ">-miracle" (G.IntLit 1)) -> True)
+                (\(ST.Compound ">-miracle" G.Expr{G.expAst=G.IntLit 1}) -> True)
         it "allows to declare variables of recursive type `<n>-chest of type humanity" $
             testVoid "<1>-chest of type humanity"  varEntry{ST.entryType = Just ">-chest"}
             U.extractCompoundRecFromExtra
                 (\(ST.CompoundRec ">-chest"
-                    (G.IntLit 1)
+                    G.Expr{G.expAst=G.IntLit 1}
                     (ST.Simple "humanity")) -> True)
         it "allows to declare variables of recursive type `<n>-chest of type <m>-chest of type humanity" $
             testVoid "<1>-chest of type <2>-chest of type humanity" varEntry{ST.entryType = Just ">-chest"}
                 U.extractCompoundRecFromExtra (\(ST.CompoundRec
                     ">-chest"
-                    (G.IntLit 1)
+                    G.Expr{G.expAst=G.IntLit 1}
                     (ST.CompoundRec
                         ">-chest"
-                        (G.IntLit 2)
+                        G.Expr{G.expAst=G.IntLit 2}
                         (ST.Simple "humanity"))) -> True)
         it "allows to declare variables of recursive type `<n>-chest of type <n>-miracle" $
             testVoid "<1>-chest of type <2>-miracle" varEntry{ST.entryType = Just ">-chest"}
                 U.extractCompoundRecFromExtra (\(ST.CompoundRec
                     ">-chest"
-                    (G.IntLit 1)
+                    G.Expr{G.expAst=G.IntLit 1}
                     (ST.Compound
                         ">-miracle"
-                        (G.IntLit 2))) -> True)
+                        G.Expr{G.expAst=G.IntLit 2})) -> True)
         it "allows to declare variables of recursive type `armor of type sign" $
             testVoid "armor of type sign" varEntry{ST.entryType = Just "armor",  ST.scope = 1}
                 U.extractRecursiveFromExtra (\(ST.Recursive
@@ -87,7 +87,7 @@ spec = do
                     "armor"
                     (ST.CompoundRec
                         ">-chest"
-                        (G.IntLit 1)
+                        G.Expr{G.expAst=G.IntLit 1}
                         (ST.Simple "sign"))) -> True)
         it "allows declare variables of recursive type `armor of type armor of type sign" $
             testVoid "armor of type armor of type sign" varEntry{ST.entryType = Just "armor",  ST.scope = 1}

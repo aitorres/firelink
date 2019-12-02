@@ -35,8 +35,8 @@ spec = do
             \       with orange saponite say @hello world@ \
             \ you died") (\(Program (CodeBlock [InstIf [
                 GuardedCase
-                    TrueLit
-                    (CodeBlock [InstPrint (StringLit "hello world")])
+                    Expr{expAst=TrueLit}
+                    (CodeBlock [InstPrint Expr{expAst=(StringLit "hello world")}])
                 ]])) -> True)
 
         it "accepts a selection block with sevearal if/elseif statments and parses them in order" $
@@ -50,9 +50,9 @@ spec = do
             \       with orange saponite say @goodbye@ \
             \   you died") (\(Program (CodeBlock [InstIf [
                 GuardedCase
-                    TrueLit
-                    (CodeBlock [InstPrint (StringLit "hello world")]),
-                GuardedCase FalseLit (CodeBlock [InstPrint (StringLit "goodbye")])
+                    Expr{expAst=TrueLit}
+                    (CodeBlock [InstPrint Expr{expAst=(StringLit "hello world")}]),
+                GuardedCase Expr{expAst=FalseLit} (CodeBlock [InstPrint Expr{expAst=(StringLit "goodbye")}])
                 ]])) -> True)
 
         it "accepts a selection block with an if and else statment" $
@@ -66,9 +66,9 @@ spec = do
             \       with orange saponite say @goodbye@ \
             \   you died") (\(Program (CodeBlock [InstIf [
                 GuardedCase
-                    TrueLit
-                    (CodeBlock [InstPrint (StringLit "hello world")]),
-                ElseCase (CodeBlock [InstPrint (StringLit "goodbye")])
+                    Expr{expAst=TrueLit}
+                    (CodeBlock [InstPrint Expr{expAst=(StringLit "hello world")}]),
+                ElseCase (CodeBlock [InstPrint Expr{expAst=(StringLit "goodbye")}])
                 ]])) -> True)
         it "rejects a selection block with more than 1 else statment" $
             runTestForInvalidProgram $ buildProgram "\
@@ -109,8 +109,8 @@ spec = do
             \ 1: \
             \   traveling somewhere \
             \       with orange saponite say @hello@ \
-            \   you died") (\(Program (CodeBlock [InstSwitch (IdExpr (Id Token {cleanedString="a"})) [
-                    Case (IntLit 1) (CodeBlock [InstPrint (StringLit "hello")])
+            \   you died") (\(Program (CodeBlock [InstSwitch Expr{expAst=(IdExpr (Id Token {cleanedString="a"}))} [
+                    Case Expr{expAst=(IntLit 1)} (CodeBlock [InstPrint Expr{expAst=(StringLit "hello")}])
                 ]])) -> True)
 
         it "rejects switch statement with more than 1 default" $
@@ -136,9 +136,9 @@ spec = do
             \ 2: \
             \   traveling somewhere \
             \       with orange saponite say @bye@ \
-            \   you died") (\(Program (CodeBlock [InstSwitch (IdExpr (Id Token {cleanedString="a"})) [
-                    Case (IntLit 1) (CodeBlock [InstPrint (StringLit "hello")]),
-                    Case (IntLit 2) (CodeBlock [InstPrint (StringLit "bye")])
+            \   you died") (\(Program (CodeBlock [InstSwitch Expr{expAst=(IdExpr (Id Token {cleanedString="a"}))} [
+                    Case Expr{expAst=(IntLit 1)} (CodeBlock [InstPrint Expr{expAst=(StringLit "hello")}]),
+                    Case Expr{expAst=(IntLit 2)} (CodeBlock [InstPrint Expr{expAst=(StringLit "bye")}])
                 ]])) -> True)
 
         it "accepts swith statement with several non-default cases and one default" $
@@ -154,9 +154,9 @@ spec = do
             \ empty dungeon: \
             \   traveling somewhere \
             \       with orange saponite say @empty@ \
-            \   you died") (\(Program (CodeBlock [InstSwitch (IdExpr (Id Token {cleanedString="a"})) [
-                    Case (IntLit 1) (CodeBlock [InstPrint (StringLit "hello")]),
-                    Case (IntLit 2) (CodeBlock [InstPrint (StringLit "bye")]),
-                    DefaultCase (CodeBlock [InstPrint (StringLit "empty")])
+            \   you died") (\(Program (CodeBlock [InstSwitch Expr{expAst=IdExpr (Id Token {cleanedString="a"})} [
+                    Case Expr{expAst=(IntLit 1)} (CodeBlock [InstPrint Expr{expAst=StringLit "hello"}]),
+                    Case Expr{expAst=(IntLit 2)} (CodeBlock [InstPrint Expr{expAst=StringLit "bye"}]),
+                    DefaultCase (CodeBlock [InstPrint Expr{expAst=(StringLit "empty")}])
                 ]])) -> True)
 

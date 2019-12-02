@@ -1,6 +1,5 @@
 module TypeChecking where
 
-import qualified Grammar as G
 import qualified Control.Monad.RWS as RWS
 import qualified Lexer as L
 import Data.List (sort)

@@ -1,6 +1,7 @@
 module Grammar where
 
 import Lexer (Token)
+import TypeChecking (Type(..))
 import Data.List (intercalate)
 
 type Instructions = [Instruction]
@@ -14,7 +15,7 @@ newtype Id
 instance Show Id where
   show (Id tk) = show tk
 
-data Expr
+data BaseExpr
   = TrueLit
   | FalseLit
   | UndiscoveredLit
@@ -55,7 +56,7 @@ data Expr
 joinExprList :: [Expr] -> String
 joinExprList = intercalate ", " . map show
 
-instance Show Expr where
+instance Show BaseExpr where
   show TrueLit = "lit"
   show FalseLit = "unlit"
   show UndiscoveredLit = "unlit"
@@ -92,6 +93,14 @@ instance Show Expr where
   show (SetIntersect e e') = show e ++ " intersect " ++ show e'
   show (SetDiff e e') = show e ++ " diff " ++ show e'
   show (SetSize s) = "size " ++ show s
+
+data Expr = Expr {
+  expType :: !Type,
+  expAst :: !BaseExpr
+}
+
+instance Show Expr where
+  show = show . expAst
 
 newtype Program
   = Program CodeBlock

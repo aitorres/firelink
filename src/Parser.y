@@ -204,144 +204,50 @@ LVALUE :: { G.Expr }
 LVALUE
   : ID                                                                  {% do
                                                                             checkIdAvailability $1
-                                                                            return $ G.IdExpr $1 }
+                                                                            buildAndCheckExpr $ G.IdExpr $1 }
   | EXPR accessor ID                                                    {% do
-                                                                            let ret = G.Access $1 $3
+                                                                            let expr = G.Access $1 $3
+                                                                            ret <- buildAndCheckExpr expr
                                                                             checkPropertyAvailability ret
                                                                             return ret }
-  | EXPR arrOpen EXPR arrClose                                          { G.IndexAccess $1 $3 }
-  | memAccessor EXPR                                                    {% do
-                                                                            let e = G.MemAccess $2
-                                                                            t <- getType e
-                                                                            -- TODO: complete
-                                                                            return e }
+  | EXPR arrOpen EXPR arrClose                                          {% buildAndCheckExpr $ G.IndexAccess $1 $3 }
+  | memAccessor EXPR                                                    {% buildAndCheckExpr $ G.MemAccess $2 }
 
 EXPR :: { G.Expr }
 EXPR
-  : intLit                                                              {% do
-                                                                            let expr = G.IntLit (read $1 :: Int)
-                                                                            t <- getType expr
-                                                                            return expr }
-  | floatLit                                                            { G.FloatLit $ (read $1 :: Float) }
-  | charLit                                                             { G.CharLit $ head $1 }
-  | stringLit                                                           { G.StringLit $1 }
-  | trueLit                                                             { G.TrueLit }
-  | falseLit                                                            { G.FalseLit }
-  | nullLit                                                             { G.NullLit }
-  | arrOpen EXPRL arrClose                                              { G.ArrayLit $ reverse $2 }
-  | setOpen EXPRL setClose                                              { G.SetLit $ reverse $2 }
-  | unknownLit                                                          { G.UndiscoveredLit }
+  : intLit                                                              {% buildAndCheckExpr $ G.IntLit (read $1 :: Int) }
+  | floatLit                                                            {% buildAndCheckExpr $ G.FloatLit (read $1 :: Float) }
+  | charLit                                                             {% buildAndCheckExpr $ G.CharLit $ head $1 }
+  | stringLit                                                           {% buildAndCheckExpr $ G.StringLit $1 }
+  | trueLit                                                             {% buildAndCheckExpr G.TrueLit }
+  | falseLit                                                            {% buildAndCheckExpr G.FalseLit }
+  | unknownLit                                                          {% buildAndCheckExpr G.UndiscoveredLit }
+  | nullLit                                                             {% buildAndCheckExpr G.NullLit }
+  | arrOpen EXPRL arrClose                                              {% buildAndCheckExpr $ G.ArrayLit $ reverse $2 }
+  | setOpen EXPRL setClose                                              {% buildAndCheckExpr $ G.SetLit $ reverse $2 }
   | parensOpen EXPR parensClosed                                        { $2 }
-  | minus EXPR                                                          {% do
-                                                                            let e = G.Negative $2
-                                                                            t <- getType e
-                                                                            -- checkType $2 t $1
-                                                                            return $ e }
-  | not EXPR                                                            {% do
-                                                                            let e = G.Not $2
-                                                                            t <- getType e
-                                                                            -- checkType $2 t $1
-                                                                            return $ e }
-  | asciiOf EXPR                                                        {% do
-                                                                            let e = G.AsciiOf $2
-                                                                            t <- getType e
-                                                                            -- checkType $2 t $1
-                                                                            return $ e }
-  | size EXPR                                                          {% do
-                                                                            let e = G.SetSize $2
-                                                                            t <- getType e
-                                                                            -- checkType $2 t $1
-                                                                            return $ e }
-  | EXPR plus EXPR                                                      {% do
-                                                                            let e = G.Add $1 $3
-                                                                            t <- getType e
-                                                                            -- checkTypes $1 $3 t $2
-                                                                            return $ e }
-  | EXPR minus EXPR                                                     {%do
-                                                                            let e = G.Substract $1 $3
-                                                                            t <- getType e
-                                                                            -- checkTypes $1 $3 t $2
-                                                                            return e }
-  | EXPR mult EXPR                                                      {%do
-                                                                            let e = G.Multiply $1 $3
-                                                                            t <- getType e
-                                                                            -- checkTypes $1 $3 t $2
-                                                                            return e }
-  | EXPR div EXPR                                                       {%do
-                                                                            let e = G.Divide $1 $3
-                                                                            t <- getType e
-                                                                            -- checkTypes $1 $3 t $2
-                                                                            return e }
-  | EXPR mod EXPR                                                       {%do
-                                                                            let e = G.Mod $1 $3
-                                                                            t <- getType e
-                                                                            -- checkTypes $1 $3 t $2
-                                                                            return e }
-  | EXPR lt EXPR                                                        {%do
-                                                                            let e = G.Lt $1 $3
-                                                                            t <- getType e
-                                                                            -- checkTypes $1 $3 t $2
-                                                                            return e }
-  | EXPR gt EXPR                                                        {%do
-                                                                            let e = G.Gt $1 $3
-                                                                            t <- getType e
-                                                                            -- checkTypes $1 $3 t $2
-                                                                            return e }
-  | EXPR lte EXPR                                                       {%do
-                                                                            let e = G.Lte $1 $3
-                                                                            t <- getType e
-                                                                            -- checkTypes $1 $3 t $2
-                                                                            return e }
-  | EXPR gte EXPR                                                       {%do
-                                                                            let e = G.Gte $1 $3
-                                                                            t <- getType e
-                                                                            -- checkTypes $1 $3 t $2
-                                                                            return e }
-  | EXPR eq EXPR                                                        {%do
-                                                                            let e = G.Eq $1 $3
-                                                                            t <- getType e
-                                                                            -- checkTypes $1 $3 t $2
-                                                                            return e }
-  | EXPR neq EXPR                                                       {%do
-                                                                            let e = G.Neq $1 $3
-                                                                            t <- getType e
-                                                                            -- checkTypes $1 $3 t $2
-                                                                            return e }
-  | EXPR and EXPR                                                       {%do
-                                                                            let e = G.And $1 $3
-                                                                            t <- getType e
-                                                                            -- checkTypes $1 $3 t $2
-                                                                            return e }
-  | EXPR or EXPR                                                        {%do
-                                                                            let e = G.Or $1 $3
-                                                                            t <- getType e
-                                                                            -- checkTypes $1 $3 t $2
-                                                                            return e }
-  | EXPR colConcat EXPR                                                 {%do
-                                                                            let e = G.ColConcat $1 $3
-                                                                            t <- getType e
-                                                                            -- checkTypes $1 $3 t $2
-                                                                            return e }
-  | EXPR union EXPR                                                     {%do
-                                                                            let e = G.SetUnion $1 $3
-                                                                            t <- getType e
-                                                                            -- checkTypes $1 $3 t $2
-                                                                            return e }
-  | EXPR intersect EXPR                                                 {%do
-                                                                            let e = G.SetIntersect $1 $3
-                                                                            t <- getType e
-                                                                            -- checkTypes $1 $3 t $2
-                                                                            return e }
-  | EXPR diff EXPR                                                      {%do
-                                                                            let e = G.SetDiff $1 $3
-                                                                            t <- getType e
-                                                                            -- checkTypes $1 $3 t $2
-                                                                            return e }
-  | FUNCALL                                                             {%do
-                                                                            let e = G.EvalFunc (fst $1) (snd $1)
-                                                                            t <- getType e
-                                                                            -- TODO: complete
-                                                                            return e }
+  | minus EXPR                                                          {% buildAndCheckExpr $ G.Negative $2 }
+  | not EXPR                                                            {% buildAndCheckExpr $ G.Not $2 }
+  | asciiOf EXPR                                                        {% buildAndCheckExpr $ G.AsciiOf $2 }
+  | size EXPR                                                           {% buildAndCheckExpr $ G.SetSize $2 }
+  | EXPR plus EXPR                                                      {% buildAndCheckExpr $ G.Add $1 $3 }
+  | EXPR minus EXPR                                                     {% buildAndCheckExpr $ G.Substract $1 $3 }
+  | EXPR mult EXPR                                                      {% buildAndCheckExpr $ G.Multiply $1 $3 }
+  | EXPR div EXPR                                                       {% buildAndCheckExpr $ G.Divide $1 $3 }
+  | EXPR mod EXPR                                                       {% buildAndCheckExpr $ G.Mod $1 $3 }
+  | EXPR lt EXPR                                                        {% buildAndCheckExpr $ G.Lt $1 $3 }
+  | EXPR gt EXPR                                                        {% buildAndCheckExpr $ G.Gt $1 $3 }
+  | EXPR lte EXPR                                                       {% buildAndCheckExpr $ G.Lte $1 $3 }
+  | EXPR gte EXPR                                                       {% buildAndCheckExpr $ G.Gte $1 $3 }
+  | EXPR eq EXPR                                                        {% buildAndCheckExpr $ G.Eq $1 $3 }
+  | EXPR neq EXPR                                                       {% buildAndCheckExpr $ G.Neq $1 $3 }
+  | EXPR and EXPR                                                       {% buildAndCheckExpr $ G.And $1 $3 }
+  | EXPR or EXPR                                                        {% buildAndCheckExpr $ G.Or $1 $3 }
+  | EXPR colConcat EXPR                                                 {% buildAndCheckExpr $ G.ColConcat $1 $3 }
+  | EXPR union EXPR                                                     {% buildAndCheckExpr $ G.SetUnion $1 $3 }
+  | EXPR intersect EXPR                                                 {% buildAndCheckExpr $ G.SetIntersect $1 $3 }
+  | EXPR diff EXPR                                                      {% buildAndCheckExpr $ G.SetDiff $1 $3 }
+  | FUNCALL                                                             {% buildAndCheckExpr $ G.EvalFunc (fst $1) (snd $1) }
   | LVALUE                                                              { $1 }
 
 EXPRL :: { [G.Expr] }
@@ -554,6 +460,14 @@ type ArgDeclaration = (G.ArgType, G.Id, G.GrammarType)
 type AliasDeclaration = (G.Id, G.GrammarType)
 type RecordItem = AliasDeclaration
 
+buildAndCheckExpr :: G.BaseExpr -> ST.ParserMonad G.Expr
+buildAndCheckExpr bExpr = do
+  t <- getType bExpr
+  return G.Expr
+    { G.expAst = bExpr
+    , G.expType = t
+    }
+
 extractFieldsForNewScope :: G.GrammarType -> Maybe [RecordItem]
 extractFieldsForNewScope (G.Compound _ s _) = extractFieldsForNewScope s
 extractFieldsForNewScope (G.Record _ s) = Just s
@@ -634,20 +548,21 @@ insertIdToEntry mi t entry = do
                              else ST.RefParam, i, t)) s
 
 checkConstantReassignment :: G.Expr -> ST.ParserMonad ()
-checkConstantReassignment (G.IdExpr (G.Id tk@(L.Token {L.cleanedString=idName}))) = do
-  maybeEntry <- ST.dictLookup idName
-  case maybeEntry of
-    Nothing -> do
-      return ()
-    Just e ->
-      case (ST.category e) of
-        ST.Constant -> do
-          RWS.tell [ST.SemanticError ("Name " ++ idName ++ " is a constant and must not be reassigned") tk]
-          return ()
-        _ ->
-          return ()
-checkConstantReassignment (G.IndexAccess gId _) = checkConstantReassignment gId
-checkConstantReassignment _ = return ()
+checkConstantReassignment e = case G.expAst e of
+  G.IdExpr (G.Id tk@(L.Token {L.cleanedString=idName})) -> do
+    maybeEntry <- ST.dictLookup idName
+    case maybeEntry of
+      Nothing -> do
+        return ()
+      Just e ->
+        case (ST.category e) of
+          ST.Constant -> do
+            RWS.tell [ST.SemanticError ("Name " ++ idName ++ " is a constant and must not be reassigned") tk]
+            return ()
+          _ ->
+            return ()
+  G.IndexAccess gId _ -> checkConstantReassignment gId
+  _ -> return ()
 
 checkIdAvailability :: G.Id -> ST.ParserMonad (Maybe ST.DictionaryEntry)
 checkIdAvailability (G.Id tk@(L.Token {L.cleanedString=idName})) = do
@@ -664,20 +579,20 @@ checkIdAvailability (G.Id tk@(L.Token {L.cleanedString=idName})) = do
 --  - Records
 --  - Arrays
 checkPropertyAvailability :: G.Expr -> ST.ParserMonad ()
+checkPropertyAvailability e = case G.expAst e of
+  -- If it is a record accessing, we need to find the _scope_ of the
+  -- left side of the expression where to search for the variable
+  a@(G.Access expr gId@(G.Id tk@(L.Token {L.cleanedString=s}))) -> do
+    maybeScope <- findScopeToSearchOf expr
+    case maybeScope of
+      Nothing -> RWS.tell [ST.SemanticError ("Property " ++ s ++ " does not exists") tk]
+      Just s -> do
+        (dict, scopes, curr) <- RWS.get
+        RWS.put (dict, s:scopes, curr)
+        checkIdAvailability gId
+        RWS.put (dict, scopes, curr)
 
--- If it is a record accessing, we need to find the _scope_ of the
--- left side of the expression where to search for the variable
-checkPropertyAvailability a@(G.Access expr gId@(G.Id tk@(L.Token {L.cleanedString=s}))) = do
-  maybeScope <- findScopeToSearchOf expr
-  case maybeScope of
-    Nothing -> RWS.tell [ST.SemanticError ("Property " ++ s ++ " does not exists") tk]
-    Just s -> do
-      (dict, scopes, curr) <- RWS.get
-      RWS.put (dict, s:scopes, curr)
-      checkIdAvailability gId
-      RWS.put (dict, scopes, curr)
-
-checkPropertyAvailability _ = error "invalid usage of checkPropertyAvailability"
+  _ -> error "invalid usage of checkPropertyAvailability"
 
 extractFieldsFromExtra :: [ST.Extra] -> ST.Extra
 extractFieldsFromExtra [] = error "The `extra` array doesn't have any `Fields` item"
@@ -685,29 +600,30 @@ extractFieldsFromExtra (s@ST.Fields{} : _) = s
 extractFieldsFromExtra (_:ss) = extractFieldsFromExtra ss
 
 findScopeToSearchOf :: G.Expr -> ST.ParserMonad (Maybe ST.Scope)
--- The scope of an id is just the scope of its entry
-findScopeToSearchOf (G.IdExpr gId) = do
-  maybeEntry <- checkIdAvailability gId
-  case maybeEntry of
-    Nothing -> return Nothing
-    Just ST.DictionaryEntry {ST.extra=extra} -> do
-      let (ST.Fields s) = extractFieldsFromExtra extra
-      return $ Just s
+findScopeToSearchOf e = case G.expAst e of
+  -- The scope of an id is just the scope of its entry
+  G.IdExpr gId -> do
+    maybeEntry <- checkIdAvailability gId
+    case maybeEntry of
+      Nothing -> return Nothing
+      Just ST.DictionaryEntry {ST.extra=extra} -> do
+        let (ST.Fields s) = extractFieldsFromExtra extra
+        return $ Just s
 
--- The scope of an record accessing is the scope of its accessing property
-findScopeToSearchOf (G.Access expr gId) = do
-  maybeScopeOf <- findScopeToSearchOf expr
-  case maybeScopeOf of
-    Nothing -> return Nothing
-    Just s -> do
-      (dict, scopes, curr) <- RWS.get
-      RWS.put (dict, s:scopes, curr)
-      scope <- findScopeToSearchOf $ G.IdExpr gId
-      RWS.put (dict, scopes, curr)
-      return scope
+  -- The scope of an record accessing is the scope of its accessing property
+  G.Access expr gId -> do
+    maybeScopeOf <- findScopeToSearchOf expr
+    case maybeScopeOf of
+      Nothing -> return Nothing
+      Just s -> do
+        (dict, scopes, curr) <- RWS.get
+        RWS.put (dict, s:scopes, curr)
+        scope <- findScopeToSearchOf $ G.Expr {G.expAst=G.IdExpr gId, G.expType=T.TypeError}
+        RWS.put (dict, scopes, curr)
+        return scope
 
--- The scope of a index acces is the scope of it's id
-findScopeToSearchOf (G.IndexAccess expr _) = findScopeToSearchOf expr
+  -- The scope of a index acces is the scope of it's id
+  G.IndexAccess expr _ -> findScopeToSearchOf expr
 
 addFunction :: NameDeclaration -> ST.ParserMonad (Maybe (ST.Scope, G.Id))
 addFunction d@(_, i@(G.Id tk@(L.Token {L.cleanedString=idName})), _) = do
@@ -886,7 +802,13 @@ minSmallInt = - 32768
 maxSmallInt :: Int
 maxSmallInt = 32767
 
+instance TypeCheckable G.Id where
+  getType _ = error "not implemented yet"
+
 instance TypeCheckable G.Expr where
+  getType = getType . G.expAst
+
+instance TypeCheckable G.BaseExpr where
   getType G.TrueLit = return T.TrileanT
   getType G.FalseLit = return T.TrileanT
   getType G.UndiscoveredLit = return T.TrileanT
