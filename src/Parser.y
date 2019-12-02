@@ -15,7 +15,7 @@ import qualified Control.Monad.RWS as RWS
 %monad                                                                  { ST.ParserMonad }
 
 
-%nonassoc lt lte gt gte size memAccessor
+%nonassoc size memAccessor
 
 %left ARRCLOSE
 
@@ -25,6 +25,8 @@ import qualified Control.Monad.RWS as RWS
 %left NEG
 
 %left and or
+
+%nonassoc lt lte gt gte
 
 %left colConcat
 %left diff
@@ -464,7 +466,8 @@ extractFunParamsForNewScope _ = Nothing
 parseErrors :: [L.Token] -> ST.ParserMonad a
 parseErrors errors =
   let L.Token {L.aToken=abst, L.posn=pn} = errors !! 0
-      name = show abst
+      tk = errors !! 0
+      name = show tk
       line = show $ L.row pn
       column = show $ L.col pn
       header = "\x1b[1m\x1b[31mYOU DIED!!\x1b[0m Parser error: "
