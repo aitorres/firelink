@@ -1,0 +1,45 @@
+hello ashen one
+
+  invocation is_valid_triangle
+  requesting
+    val a of type hollow,
+    val b of type hollow,
+    val c of type hollow
+  with skill of type bonfire
+    traveling somewhere
+      trust your inventory
+        a gte b and a gte c:
+          traveling somewhere
+            go back with a lte b + c
+          you died
+        b gte a and b gte c:
+          traveling somewhere
+            go back with b lte a + c
+          you died
+        c gte a and c gte b:
+          traveling somewhere
+            go back with c lte a + b
+          you died
+      inventory closed
+    you died
+  after this return to your world
+
+  traveling somewhere
+  with
+    var a of type hollow,
+    var b of type hollow,
+    var c of type hollow,
+    var valid of type bonfire
+  in your inventory
+    with orange saponite say @Enter the length of the first side:@ \
+    transpose into a \
+    with orange saponite say @Enter the length of the second side:@ \
+    transpose into b \
+    with orange saponite say @Enter the length of the third side:@ \
+    transpose into c \
+    valid <<= summon is_valid_triangle
+      granting a, b, c to the knight\
+    with orange saponite say valid
+  you died
+
+farewell ashen one
