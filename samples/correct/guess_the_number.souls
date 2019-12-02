@@ -1,0 +1,27 @@
+hello ashen one
+
+  traveling somewhere
+  with
+    const number of type humanity <<= 10,
+    var r of type humanity <<= 0
+  in your inventory
+    while the r neq number covenant is active:
+      traveling somewhere
+        with orange saponite say @Your guess: @ \
+        transpose into r \
+        trust your inventory
+          r eq number:
+            traveling somewhere
+              with orange saponite say @You got it!\n@ \
+              go back
+            you died
+          liar!:
+            traveling somewhere
+              with orange saponite say @That's not it... Try again!\n@
+            you died
+        inventory closed
+      you died
+    covenant left
+  you died
+
+farewell ashen one
