@@ -829,9 +829,6 @@ typeCheck (a, ea) (b, eb) mt = do
 arithmeticCheck :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
 arithmeticCheck a b = typeCheck (a, T.numberTypes) (b, T.numberTypes) Nothing
 
-intArithmeticCheck :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
-intArithmeticCheck a b = typeCheck (a, T.integerTypes) (b, T.integerTypes) Nothing
-
 logicalCheck :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
 logicalCheck a b = typeCheck (a, T.booleanTypes) (b, T.booleanTypes) Nothing
 
@@ -899,7 +896,7 @@ instance TypeCheckable G.BaseExpr where
   getType (G.Substract a b) = arithmeticCheck a b
   getType (G.Multiply a b) = arithmeticCheck a b
   getType (G.Divide a b) = arithmeticCheck a b
-  getType (G.Mod a b) =  intArithmeticCheck a b -- TODO: Fix
+  getType (G.Mod a b) = error "TODO: not implemented yet"
   getType (G.Negative a) = arithmeticCheck a a -- cheating
   getType (G.Lt a b) = comparableCheck a b
   getType (G.Lte a b) = comparableCheck a b
@@ -915,16 +912,11 @@ instance TypeCheckable G.BaseExpr where
   getType (G.MemAccess e) = return T.TypeError -- TODO: Mem access
   getType _ = return T.TypeError -- TODO: Finish implementation
 
-{-
-    | Procedure
-    | Function
-    | RefParam
-    | ValueParam
 instance TypeCheckable ST.DictionaryEntry where
-  getType entry{ST.entryType=Just entryType, ST.category = cat, ST.extra = extras}
+  getType entry@ST.DictionaryEntry{ST.entryType=Just entryType, ST.category = cat, ST.extra = extras}
     -- If it is an alias, return just the name
-    | cat == T.Type = return $ T.AliasT (ST.name entry)
-    | cat `elem` [T.Procedure, T.Function] = do
+    | cat == ST.Type = return $ T.AliasT (ST.name entry)
+    {- | cat `elem` [T.Constant, T.Function] = do
       let isEmptyFunction = not . null $ filter (\e -> case e of
                                                         ST.EmptyFunction -> True
                                                         _ -> False) extras
@@ -934,10 +926,14 @@ instance TypeCheckable ST.DictionaryEntry where
 
       domain <- (if isEmptyFunction
         then return []
-        
-      then return $ T.FunctionT [] (if cat == T.Procedure then T.Void else )
-    | cat `elem` [ST.Variable, ST.Constant, ST.RecordItem, ST.UnionItem, ST.RefParam, ST.ValueParam]
-    case entryType of
- -}
+        else return [])
+      then return $ T.FunctionT [] (if cat == T.Procedure then T.Void else ) -}
+    | cat `elem` [
+        ST.Variable, ST.Constant,
+        ST.RecordItem, ST.UnionItem,
+        ST.RefParam, ST.ValueParam] = do return T.TypeError
+
+
+    | otherwise = error "error on getType for dict entries"
 
 }

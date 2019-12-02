@@ -19,7 +19,7 @@ data Type
   | UnionT [PropType]
   | PointerT Type
   | FunctionT [Type] Type
-  | Alias String
+  | AliasT String
   | Any -- Currently only used in empty set, empty array and null pointers
   | TypeError
 
@@ -37,7 +37,7 @@ instance Eq Type where
   PointerT t == PointerT t' = t == t'
   FunctionT ts t == FunctionT ts' t' = ts == ts' && t == t'
   TypeError == TypeError = True
-  Alias s == Alias s' = s == s'
+  AliasT s == AliasT s' = s == s'
   _ == Any = True
   _ == _ = False
 

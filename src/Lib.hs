@@ -18,8 +18,16 @@ prettyPrintSymTable (dict, _, _) = do
     mapM_ printKey dictList
 
 printKey :: (String, [ST.DictionaryEntry]) -> IO ()
-printKey (name, _) =
-    printf "Entries for name \"%s\"" name
+printKey (name, keys) = do
+    printf "Entries for name \"%s\": \n" name
+    mapM_ printKey keys
+    putStrLn ""
+    where
+        printKey :: ST.DictionaryEntry -> IO ()
+        printKey st = do
+            putStrLn ""
+            putStr " - "
+            print st
 
 groupTokensByRowNumber :: [Either L.LexError L.Token] -> [[Either L.LexError L.Token]]
 groupTokensByRowNumber = groupBy (\e e' -> getRow e == getRow e')
@@ -134,9 +142,12 @@ printSemErrors (semError:semErrors) tokens = do
 
 parserAndSemantic :: L.Tokens -> IO ()
 parserAndSemantic tokens = do
-    (_, _, errors) <- RWS.runRWST (parse tokens) () ST.initialState
-    if not $ null errors then printSemErrors errors tokens
-    else printProgram tokens
+    (_, table, errors) <- RWS.runRWST (parse tokens) () ST.initialState
+    -- print errors
+    prettyPrintSymTable table
+    -- if not $ null errors then printSemErrors errors tokens
+    -- else
+    --     printProgram tokens
 
 mainFunc :: IO ()
 mainFunc = do
