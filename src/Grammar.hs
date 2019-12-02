@@ -1,18 +1,21 @@
 module Grammar where
 
 import Lexer (Token)
+import TypeChecking (Type(..))
+import Data.List (intercalate)
 
 type Instructions = [Instruction]
-type Exprs = [Expr]
 type Params = [Expr]
 type IfCases = [IfCase]
 type SwitchCases = [SwitchCase]
 
 newtype Id
   = Id Token
-  deriving Show
 
-data Expr
+instance Show Id where
+  show (Id tk) = show tk
+
+data BaseExpr
   = TrueLit
   | FalseLit
   | UndiscoveredLit
@@ -21,8 +24,8 @@ data Expr
   | FloatLit Float
   | CharLit Char
   | StringLit String
-  | ArrayLit Exprs
-  | SetLit Exprs
+  | ArrayLit [Expr]
+  | SetLit [Expr]
   | EvalFunc Id Params
   | Add Expr Expr
   | Substract Expr Expr
@@ -49,7 +52,56 @@ data Expr
   | SetIntersect Expr Expr
   | SetDiff Expr Expr
   | SetSize Expr
-  deriving Show
+
+joinExprList :: [Expr] -> String
+joinExprList = intercalate ", " . map show
+
+instance Show BaseExpr where
+  show TrueLit = "lit"
+  show FalseLit = "unlit"
+  show UndiscoveredLit = "unlit"
+  show NullLit = "abyss"
+  show (IntLit a) = show a
+  show (FloatLit a) = show a
+  show (CharLit a) = [a]
+  show (StringLit s) = s
+  show (ArrayLit exprs) = "<$" ++ joinExprList exprs ++ "$>"
+  show (SetLit exprs) = "{$" ++ joinExprList exprs ++ "$}"
+  show (EvalFunc i params) = show i ++ "(" ++ joinExprList params ++ ")"
+  show (Add e e') = show e ++ " + " ++ show e'
+  show (Substract e e') = show e ++ " - " ++ show e'
+  show (Multiply e e') = show e ++ " * " ++ show e'
+  show (Divide e e') = show e ++ " / " ++ show e'
+  show (Mod e e') = show e ++ " % " ++ show e'
+  show (Negative e) = "- " ++ show e
+  show (Lt e e') = show e ++ " lt " ++ show e'
+  show (Gt e e') = show e ++ " gt " ++ show e'
+  show (Lte e e') = show e ++ " lte " ++ show e'
+  show (Gte e e') = show e ++ " gte " ++ show e'
+  show (Eq e e') = show e ++ " eq " ++ show e'
+  show (Neq e e') = show e ++ " neq " ++ show e'
+  show (And e e') = show e ++ " and " ++ show e'
+  show (Or e e') = show e ++ " or " ++ show e'
+  show (Not e) = "not " ++ show e
+  show (Access e i) = show e ++ "~>" ++ show i
+  show (IndexAccess e e') = show e ++ "<$" ++ show e' ++ "$>"
+  show (MemAccess e) = "throw a " ++ show e
+  show (IdExpr i) = show i
+  show (AsciiOf e) = "ascii_of " ++ show e
+  show (ColConcat e e') = show e ++ ">-<" ++ show e'
+  show (SetUnion e e') = show e ++ " union " ++ show e'
+  show (SetIntersect e e') = show e ++ " intersect " ++ show e'
+  show (SetDiff e e') = show e ++ " diff " ++ show e'
+  show (SetSize s) = "size " ++ show s
+
+data Expr = Expr {
+  expType :: !Type,
+  expAst :: !BaseExpr,
+  expTok :: !Token
+}
+
+instance Show Expr where
+  show = show . expAst
 
 newtype Program
   = Program CodeBlock
@@ -68,6 +120,8 @@ data Instruction
   | InstFor Id Expr Expr CodeBlock
   | InstSwitch Expr SwitchCases
   | InstWhile Expr CodeBlock
+  | InstMalloc Expr
+  | InstFreeMem Expr
   deriving Show
 
 data IfCase
@@ -87,9 +141,9 @@ newtype CodeBlock
 data ArgType = Val | Ref
   deriving (Show, Eq)
 
-data Type
+data GrammarType
   = Simple Token (Maybe Expr)
-  | Compound Token Type (Maybe Expr)
-  | Record Token [(Id, Type)]
-  | Callable (Maybe Type) [(ArgType, Id, Type)]
+  | Compound Token GrammarType (Maybe Expr)
+  | Record Token [(Id, GrammarType)]
+  | Callable (Maybe GrammarType) [(ArgType, Id, GrammarType)]
   deriving Show

@@ -35,7 +35,7 @@ spec = do
             \ farewell ashen one"
             (_, (dict, _, _), _) <- U.extractSymTable p
             U.testEntry dict varEntry U.extractCodeblockFromExtra
-                (\(ST.CodeBlock (G.CodeBlock [G.InstReturnWith (G.IntLit 1)])) -> True)
+                (\(ST.CodeBlock (G.CodeBlock [G.InstReturnWith G.Expr{G.expAst=G.IntLit 1}])) -> True)
             U.testEntry dict varEntry U.extractEmptyFunctionFromExtra
                 (\ST.EmptyFunction -> True)
         it "allows to declare functions with one val argument" $ do

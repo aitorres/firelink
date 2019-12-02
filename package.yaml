@@ -40,6 +40,13 @@ executables:
     source-dirs:         app
     ghc-options:
     - -Wall
+    - -Wincomplete-uni-patterns
+    - -Wincomplete-record-updates
+    - -Wcompat
+    - -Widentities
+    - -Wredundant-constraints
+    - -Wmissing-export-lists
+    - -Wpartial-fields
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
@@ -52,6 +59,11 @@ tests:
     source-dirs:         test/Lexer
     ghc-options:
     - -Wall
+    - -Wincomplete-record-updates
+    - -Wcompat
+    - -Widentities
+    - -Wredundant-constraints
+    - -Wpartial-fields
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
@@ -64,6 +76,11 @@ tests:
     source-dirs:         test/Parser
     ghc-options:
     - -Wall
+    - -Wincomplete-record-updates
+    - -Wcompat
+    - -Widentities
+    - -Wredundant-constraints
+    - -Wpartial-fields
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
@@ -76,6 +93,11 @@ tests:
     source-dirs:         test/Semantic
     ghc-options:
     - -Wall
+    - -Wincomplete-record-updates
+    - -Wcompat
+    - -Widentities
+    - -Wredundant-constraints
+    - -Wpartial-fields
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N

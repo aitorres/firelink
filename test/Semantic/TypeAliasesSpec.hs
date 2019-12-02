@@ -40,7 +40,7 @@ spec = describe "Variable Declarations" $ do
             U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
     it "allows to define aliases to data types with size (strings alikes)" $
         testVoid "knight x <12>-miracle" alias{ST.entryType = Just ">-miracle"}
-            U.extractCompoundFromExtra (\(ST.Compound ">-miracle" (G.IntLit 12)) -> True)
+            U.extractCompoundFromExtra (\(ST.Compound ">-miracle" G.Expr{G.expAst=G.IntLit 12}) -> True)
     it "allows to define aliases to recursive data types (no size) (set alike)" $
         testVoid "knight x armor of type humanity" alias{ST.entryType = Just "armor"}
             U.extractRecursiveFromExtra
@@ -48,7 +48,7 @@ spec = describe "Variable Declarations" $ do
     it "allows to define aliases to recursive data types (with size) (arrays alike)" $
         testVoid "knight x <10>-chest of type sign" alias{ST.entryType = Just ">-chest"}
             U.extractCompoundRecFromExtra
-            (\(ST.CompoundRec ">-chest" (G.IntLit 10) (ST.Simple "sign")) -> True)
+            (\(ST.CompoundRec ">-chest" G.Expr{G.expAst=G.IntLit 10} (ST.Simple "sign")) -> True)
     it "allows to define aliases to custom user defined record data types" $ do
         dict <- test "knight x bezel { y of type humanity }" alias{ST.entryType = Just "bezel"}
             U.extractFieldsFromExtra

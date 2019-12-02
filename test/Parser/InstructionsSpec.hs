@@ -38,11 +38,11 @@ spec = describe "Instructions" $ do
         \ you died \
 
         \ farewell ashen one" (\(Program (CodeBlock [
-            InstPrint (StringLit "hello world"),
-            InstRead (IdExpr (Id Token {cleanedString="patata"}))])) -> True)
+            InstPrint Expr{expAst=(StringLit "hello world")},
+            InstRead Expr{expAst=(IdExpr (Id Token {cleanedString="patata"}))}])) -> True)
 
     it "accepts assigning as an instruction" $
         runTestForValidProgram (buildProgram "a <<= 1")
         (\(Program (CodeBlock [
-            InstAsig (IdExpr (Id Token {cleanedString="a"})) (IntLit 1)
+            InstAsig Expr{expAst=(IdExpr (Id Token {cleanedString="a"}))} Expr{expAst=(IntLit 1)}
         ])) -> True)

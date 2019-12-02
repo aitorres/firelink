@@ -21,7 +21,6 @@ data Category = Variable
     | Procedure
     | Function
     | RecordItem
-    | EnumItem
     | UnionItem
     | RefParam
     | ValueParam
@@ -58,6 +57,12 @@ data Extra
     | ArgPosition Int -- For argument list position
     deriving Show
 
+{-|
+    Dictionary entries represent "names" in the programming languages. With
+    "names" we refer anything that has a name and a value. There are some
+    implicit constraints that each name implies to the contents of `extra`,
+    depending on its `category`:
+-}
 data DictionaryEntry = DictionaryEntry
     { name :: !String -- ^ Entry name
     , category :: !Category -- ^ Category of the entry
@@ -88,8 +93,8 @@ findBest _ _ [] = Nothing
 findBest name' entries (s:ss) = case filter (\d -> scope d == s) entries of
     [] -> findBest name' entries ss
     [a] -> Just a
-    s -> error $ "For some reason there was more than 1 \
-    \symbol with the same name on the same scope" ++ show s
+    e -> error $ "For some reason there was more than 1 \
+    \symbol with the same name on the same scope" ++ show e
 
 dictLookup :: String -> ParserMonad (Maybe DictionaryEntry)
 dictLookup n = do
@@ -151,6 +156,10 @@ link :: String
 link = "link"
 void :: String
 void = "void"
+errorType :: String
+errorType = "errorType"
+arrow :: String
+arrow = "arrow"
 
 initialState :: SymTable
 initialState = (Map.fromList l, [1, 0], 1)
@@ -165,11 +174,12 @@ initialState = (Map.fromList l, [1, 0], 1)
             , (arrowTo, [DictionaryEntry arrowTo Constructor 0 Nothing []])
             , (bezel, [DictionaryEntry bezel Constructor 0 Nothing []])
             , (link, [DictionaryEntry link Constructor 0 Nothing []])
+            , (arrow, [DictionaryEntry arrow Constructor 0 Nothing []])
             , (void, [DictionaryEntry void Type 0 Nothing []])
             ]
 
 tokensToEntryName :: L.Token -> String
-tokensToEntryName L.Token {L.aToken=at, L.cleanedString=s} = case at of
+tokensToEntryName tk@L.Token {L.aToken=at, L.cleanedString=s} = case at of
     L.TkBigInt -> humanity
     L.TkSmallInt -> smallHumanity
     L.TkFloat -> hollow
@@ -181,4 +191,5 @@ tokensToEntryName L.Token {L.aToken=at, L.cleanedString=s} = case at of
     L.TkRecord -> bezel
     L.TkUnionStruct -> link
     L.TkId -> s
-    a -> error $ "Token " ++ show a ++ "doesn't map to anything"
+    L.TkPointer -> arrow
+    a -> error $ "Token " ++ show tk ++ " doesn't map to anything"

@@ -30,5 +30,5 @@ spec = describe "Bounded loop structures" $ do
         \       with orange saponite say @hello@ \
         \   you died \
         \ max level reached") (\(Program (CodeBlock [
-            InstFor (Id Token {cleanedString="aa"}) (IntLit 2) (IntLit 123) (CodeBlock _)
+            InstFor (Id Token {cleanedString="aa"}) Expr{expAst=(IntLit 2)} Expr{expAst=(IntLit 123)} (CodeBlock _)
         ])) -> True)

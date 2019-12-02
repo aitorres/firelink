@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: cc1476d6449ac92bdb24a4dbad6f37fdcdbffe4e6884b80ed2105c93ef251768
+-- hash: aaf9ab4b37a88412d088f5cf24e29f5854ff1838873a8f8ef673e98b72316675
 
 name:           firelink
 version:        0.0.2.0
@@ -32,6 +32,7 @@ library
       Lib
       Parser
       SymTable
+      TypeChecking
       Utils
   other-modules:
       Paths_firelink
@@ -57,7 +58,7 @@ executable firelink-exe
       Paths_firelink
   hs-source-dirs:
       app
-  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -Wmissing-export-lists -Wpartial-fields -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
     , base >=4.7 && <5
@@ -91,7 +92,7 @@ test-suite lexer-tests
       Paths_firelink
   hs-source-dirs:
       test/Lexer
-  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -Wpartial-fields -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
     , base >=4.7 && <5
@@ -120,7 +121,7 @@ test-suite parser-tests
       Paths_firelink
   hs-source-dirs:
       test/Parser
-  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -Wpartial-fields -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
     , base >=4.7 && <5
@@ -139,6 +140,7 @@ test-suite semantic-tests
   other-modules:
       FunctionsSpec
       InitialTableSpec
+      PointersSpec
       ProceduresSpec
       RecordLikeTypesDeclSpec
       SimpleTypesDeclSpec
@@ -148,7 +150,7 @@ test-suite semantic-tests
       Paths_firelink
   hs-source-dirs:
       test/Semantic
-  ghc-options: -Wall -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -Wpartial-fields -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
     , base >=4.7 && <5

@@ -42,8 +42,8 @@ with
   var f of type humanity,
   var a of type hollow,
   var b of type sign,
-  var c of type <n>-miracle,
-  var d of type <n>-chest of type big humanity,
+  var c of type <123>-miracle,
+  var d of type <12>-chest of type big humanity,
   const e of type bezel {
     x of type humanity,
     y of type bezel {
@@ -55,9 +55,9 @@ with
   var g of type link { x of type humanity },
   var pp of type arrow to sign
 in your inventory
-  aim pp \
-  throw pp <<= |a| \
-  recover pp \
+  aim a pp \
+  throw a pp <<= |a| \
+  recover a pp \
   a <<= |p| \
   transpose into n \
   f <<= summon fibonacci
@@ -67,7 +67,7 @@ in your inventory
   trust your inventory
     lit:
       traveling somewhere
-        cast printHelloWorld offering @string@
+        cast printHelloWorld offering @string@ to the estus flask
       you died
     unlit:
       traveling somewhere
@@ -79,12 +79,12 @@ in your inventory
         n <<= 1 * n \
         n <<= 1 % n
       you died
-    liar!
+    liar!:
       traveling somewhere
         with orange saponite say 1 lte n \
         with orange saponite say 1 gt n
       you died
-  inventory closed
+  inventory closed \
 
   enter dungeon with 1 + 2:
     123:
@@ -97,28 +97,28 @@ in your inventory
         with orange saponite say 1 gte n \
         with orange saponite say 1 eq n \
         with orange saponite say 1 neq n \
-        with orange saponite say lit \
+        with orange saponite say lit
       you died
-  dungeon exited
+  dungeon exited \
 
   upgrading i with i soul until level n
     traveling somewhere
       d<$i$> <<= d<$i - 1$>
     you died
-  max level reached
+  max level reached \
 
   repairing i with titanite from ff
     traveling somewhere
       with orange saponite say i ~> prop
     you died
-  weaponry repaired
+  weaponry repaired \
 
 
-  while the e ~> y ~> e coventant is active:
+  while the e ~> y ~> e covenant is active:
     traveling somewhere
       e ~> y ~> e <<= lit and not lit or unlit eq lit neq undiscovered
     you died
-  covenant left
+  covenant left \
   with orange saponite say |!| \
   with orange saponite say |\n| \
   with orange saponite say |\|| \
