@@ -17,6 +17,16 @@ with skill of type <1>-chest of type bezel { y3 of type link { y4 of type humani
     you died
 after this return to your world
 
+invocation myIntFun
+requesting
+    val y2 of type humanity,
+    val y3 of type sign
+with skill of type humanity
+    traveling somewhere
+        go back with 1
+    you died
+after this return to your world
+
 traveling somewhere
 with
     var x1 of type <1>-chest of type bezel {
@@ -24,10 +34,12 @@ with
             x3 of type arrow to humanity
         }
     },
-    var patata of type sign
+    var patata of type humanity,
+    var patataArray of type <1>-chest of type humanity
     -- var myAlias of type myAlias
 in your inventory
-    with orange saponite say patata lt |1|
+    with orange saponite say patata \ -- patataArray<$ |a| $>
+    with orange saponite say summon myIntFun granting patata, |a| to the knight
 you died
 
 

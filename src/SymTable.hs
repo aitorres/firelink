@@ -64,6 +64,10 @@ isFieldsExtra :: Extra -> Bool
 isFieldsExtra (Fields _ _) = True
 isFieldsExtra _ = False
 
+isEmptyFunction :: Extra -> Bool
+isEmptyFunction EmptyFunction = True
+isEmptyFunction _ = False
+
 isArgPosition :: Extra -> Bool
 isArgPosition ArgPosition{} = True
 isArgPosition _ = False

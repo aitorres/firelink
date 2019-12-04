@@ -20,7 +20,7 @@ data Type
   | RecordT [PropType]
   | UnionT [PropType]
   | PointerT Type
-  | FunctionT Type Type
+  | FunctionT [Type] Type
   | TypeList [Type]
   | AliasT String
   | Any -- Currently only used in empty set, empty array and null pointers

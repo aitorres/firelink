@@ -153,7 +153,7 @@ parserAndSemantic tokens = do
     -- prettyPrintSymTable table
     if not $ null errors then printSemErrors errors tokens
     else do
-        prettyPrintSymTable table
+        -- prettyPrintSymTable table
         printProgram tokens
 
 mainFunc :: IO ()

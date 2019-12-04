@@ -559,9 +559,6 @@ insertIdToEntry mi t entry = do
     Nothing -> return ()
     Just ex -> do
       ST.addEntry entry{ST.extra = pos ++ ex}
-      RWS.lift $ print t
-      RWS.lift $ print ex
-      RWS.lift $ print t
       -- To add the record params to the dictionary
       case extractFieldsForNewScope t of
         Nothing -> return ()
@@ -575,7 +572,6 @@ insertIdToEntry mi t entry = do
         -- If it is nothing then this is not a function
         Nothing -> return ()
         Just s -> do
-          RWS.lift $ print s >> putStrLn "epa"
           (dict, scopes, curr) <- RWS.get
           let (ST.Fields ST.Callable scope) = head $ filter ST.isFieldsExtra ex
           RWS.put (dict, scope:scopes, curr)
@@ -900,11 +896,17 @@ checkAccess array index = do
 
 functionsCheck :: G.Id -> [G.Expr] -> ST.ParserMonad T.Type
 functionsCheck funId exprs = do
+  RWS.lift $ print "holi"
   let exprsTypes = exprsToTypes exprs
-  maybeFunEntry <- checkIdAvailability funId
-  case maybeFunEntry of
-    Nothing -> return T.TypeError
-    Just entry -> return T.TypeError
+  funType <- getType funId
+  RWS.lift  $ print funType
+  RWS.lift $ print exprsTypes
+  case funType of
+    T.FunctionT domain range -> do
+      if exprsTypes == domain
+        then return range
+        else return T.TypeError
+    _ -> return T.TypeError
 
 minBigInt :: Int
 minBigInt = - 2147483648
@@ -967,7 +969,7 @@ instance TypeCheckable G.BaseExpr where
   getType (G.IdExpr i) = getType i
   getType (G.IndexAccess e i) = checkAccess e i
 
-  getType (G.EvalFunc id _) = return T.TypeError -- TODO: Check if okay
+  getType (G.EvalFunc i params) = functionsCheck i params
   getType (G.Access e1 e2) = return T.TypeError -- TODO: Accessor type
   getType (G.MemAccess e) = return T.TypeError -- TODO: Mem access
   getType (G.AsciiOf e) = return T.TypeError
@@ -981,18 +983,22 @@ instance TypeCheckable ST.DictionaryEntry where
   getType entry@ST.DictionaryEntry{ST.entryType=Just entryType, ST.category = cat, ST.extra = extras}
     -- If it is an alias, return just the name
     | cat == ST.Type = return $ T.AliasT (ST.name entry)
-    {- | cat `elem` [T.Constant, T.Function] = do
-      let isEmptyFunction = not . null $ filter (\e -> case e of
-                                                        ST.EmptyFunction -> True
-                                                        _ -> False) extras
-      range <- (case cat of
-        T.Procedure -> return T.Void
-        T.Function -> getType entry{ST.category=ST.variable}) -- cheating
 
+
+    | cat `elem` [ST.Function, ST.Procedure] = do
+      let isEmptyFunction = not . null $ filter ST.isEmptyFunction extras
+      range <- (case cat of
+        ST.Procedure -> return T.VoidT
+        ST.Function -> getType entry{ST.category=ST.Variable}) -- cheating
       domain <- (if isEmptyFunction
         then return []
-        else return [])
-      then return $ T.FunctionT [] (if cat == T.Procedure then T.Void else ) -}
+        else do
+          let fields = head $ filter ST.isFieldsExtra extras
+          (T.TypeList list) <- getType fields
+          return list
+          )
+      return $ T.FunctionT domain range
+
     | cat `elem` [
         ST.Variable, ST.Constant,
         ST.RecordItem, ST.UnionItem,
@@ -1018,7 +1024,6 @@ instance TypeCheckable ST.Extra where
   getType (ST.Fields ST.Callable scope) = do
     (dict, _, _) <- RWS.get
     types <- mapM getType $ ST.sortByArgPosition $ ST.findAllInScope scope dict
-    RWS.lift $ print types
     return $ T.TypeList types
 
   getType (ST.Fields b scope) = do
