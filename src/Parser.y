@@ -221,9 +221,7 @@ LVALUE :: { G.Expr }
                                                                             buildAndCheckExpr tk $ G.IdExpr $1 }
   | EXPR accessor ID                                                    {% do
                                                                             let expr = G.Access $1 $3
-                                                                            ret <- buildAndCheckExpr $2 expr
-                                                                            checkPropertyAvailability ret
-                                                                            return ret }
+                                                                            buildAndCheckExpr $2 expr }
   | EXPR arrOpen EXPR arrClose                                          {% buildAndCheckExpr $2 $ G.IndexAccess $1 $3 }
   | memAccessor EXPR                                                    {% buildAndCheckExpr $1 $ G.MemAccess $2 }
 
@@ -617,59 +615,10 @@ checkRecoverableError openTk maybeErr = do
       RWS.tell [ST.SemanticError (errorName ++ " (recovered from to continue parsing)") openTk]
       return ()
 
--- The following function only have sense (for the moment) on lvalues
---  - Ids
---  - Records
---  - Arrays
-checkPropertyAvailability :: G.Expr -> ST.ParserMonad ()
-checkPropertyAvailability e = case G.expAst e of
-  -- If it is a record accessing, we need to find the _scope_ of the
-  -- left side of the expression where to search for the variable
-  a@(G.Access expr gId@(G.Id tk@(L.Token {L.cleanedString=s}))) -> do
-    maybeScope <- findScopeToSearchOf expr
-    case maybeScope of
-      Nothing -> RWS.tell [ST.SemanticError ("Property " ++ s ++ " does not exists") tk]
-      Just s -> do
-        (dict, scopes, curr) <- RWS.get
-        RWS.put (dict, s:scopes, curr)
-        checkIdAvailability gId
-        RWS.put (dict, scopes, curr)
-
-  _ -> error "invalid usage of checkPropertyAvailability"
-
 extractFieldsFromExtra :: [ST.Extra] -> ST.Extra
 extractFieldsFromExtra [] = error "The `extra` array doesn't have any `Fields` item"
 extractFieldsFromExtra (s@ST.Fields{} : _) = s
 extractFieldsFromExtra (_:ss) = extractFieldsFromExtra ss
-
-findScopeToSearchOf :: G.Expr -> ST.ParserMonad (Maybe ST.Scope)
-findScopeToSearchOf e = case G.expAst e of
-  -- The scope of an id is just the scope of its entry
-  G.IdExpr gId -> do
-    maybeEntry <- checkIdAvailability gId
-    case maybeEntry of
-      Nothing -> return Nothing
-      Just ST.DictionaryEntry {ST.extra=extra} -> do
-        let (ST.Fields _ s) = extractFieldsFromExtra extra
-        return $ Just s
-
-  -- The scope of an record accessing is the scope of its accessing property
-  G.Access expr gId -> do
-    maybeScopeOf <- findScopeToSearchOf expr
-    case maybeScopeOf of
-      Nothing -> return Nothing
-      Just s -> do
-        (dict, scopes, curr) <- RWS.get
-        RWS.put (dict, s:scopes, curr)
-        scope <- findScopeToSearchOf $ G.Expr
-                                        { G.expAst=G.IdExpr gId
-                                        , G.expType=T.TypeError
-                                        , G.expTok=(G.expTok expr)}
-        RWS.put (dict, scopes, curr)
-        return scope
-
-  -- The scope of a index acces is the scope of it's id
-  G.IndexAccess expr _ -> findScopeToSearchOf expr
 
 addFunction :: NameDeclaration -> ST.ParserMonad (Maybe (ST.Scope, G.Id))
 addFunction d@(_, i@(G.Id tk@(L.Token {L.cleanedString=idName})), _) = do
@@ -884,8 +833,8 @@ equatableCheck a b = do
 comparableCheck :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
 comparableCheck = equatableCheck
 
-checkAccess :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
-checkAccess array index = do
+checkIndexAccess :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
+checkIndexAccess array index = do
   arrayType <- getType array
   indextype <- getType index
   case arrayType of
@@ -940,6 +889,22 @@ checkSetOp e e' = do
   return (case (t, t') of
     (a@T.SetT{}, a'@T.SetT{}) | a == a' -> a
     _ -> T.TypeError)
+
+checkAccess :: G.Expr -> G.Id -> ST.ParserMonad T.Type
+checkAccess e (G.Id L.Token{L.cleanedString=i}) = do
+  t <- getType e
+  RWS.lift $ print t
+  RWS.lift $ print i
+  return (case t of
+    T.RecordT properties -> checkProperty properties
+    T.UnionT properties -> checkProperty properties
+    _ -> T.TypeError)
+  where
+    checkProperty :: [T.PropType] -> T.Type
+    checkProperty props =
+      case filter ((==i) . fst) $ map (\(T.PropType e) -> e) props of
+        ((_,a):_) -> a
+        _ -> T.TypeError
 
 minBigInt :: Int
 minBigInt = - 2147483648
@@ -1000,7 +965,7 @@ instance TypeCheckable G.BaseExpr where
   getType (G.Or a b) = logicalCheck a b
   getType (G.Not a) = logicalCheck a a -- cheating
   getType (G.IdExpr i) = getType i
-  getType (G.IndexAccess e i) = checkAccess e i
+  getType (G.IndexAccess e i) = checkIndexAccess e i
   getType (G.EvalFunc i params) = functionsCheck i params
   getType (G.MemAccess e) = memAccessCheck e
   getType (G.AsciiOf e) = checkAsciiOf e
@@ -1008,13 +973,7 @@ instance TypeCheckable G.BaseExpr where
   getType (G.SetUnion e e') = checkSetOp e e'
   getType (G.SetIntersect e e') = checkSetOp e e'
   getType (G.SetDiff e e') = checkSetOp e e'
-
-
-  getType (G.Access e1 e2) = return T.TypeError -- TODO: Accessor type
-  getType (G.SetUnion e e') = return T.TypeError
-  getType (G.SetIntersect e e') = return T.TypeError
-  getType (G.SetDiff e e') = return T.TypeError
-  getType (G.SetSize e) = return T.TypeError
+  getType (G.Access e i) = checkAccess e i
 
 instance TypeCheckable ST.DictionaryEntry where
   getType entry@ST.DictionaryEntry{ST.entryType=Just entryType, ST.category = cat, ST.extra = extras}

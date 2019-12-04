@@ -16,7 +16,6 @@ data Type
   | VoidT
   | ArrayT Type
   | SetT Type
-  | EnumT [String]
   | RecordT [PropType]
   | UnionT [PropType]
   | PointerT Type
@@ -36,7 +35,7 @@ instance Eq Type where
   StringT == StringT = True
   ArrayT t == ArrayT t' = t == t'
   SetT t == SetT t' = t == t'
-  EnumT pt == EnumT pt' = sort pt == sort pt'
+  UnionT pt == UnionT pt' = sort pt == sort pt'
   RecordT pt == RecordT pt' = sort pt == sort pt'
   PointerT t == PointerT t' = t == t'
   FunctionT ts t == FunctionT ts' t' = ts == ts' && t == t'
