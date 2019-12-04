@@ -36,12 +36,15 @@ with
     },
     var patata of type humanity,
     var patataArray of type <1>-chest of type humanity,
-    var patataPointer of type arrow to sign
+    var patataPointer of type arrow to sign,
+    var patataCuento of type <2>-miracle
     -- var myAlias of type myAlias
 in your inventory
     with orange saponite say patata \ -- patataArray<$ |a| $>
-    with orange saponite say summon myIntFun granting patata, |a| to the knight \
-    with orange saponite say (throw a patataPointer) lt |a|
+    with orange saponite say summon myIntFun granting
+        ascii_of throw a patataPointer, |a| to the knight \
+    with orange saponite say (throw a patataPointer) lt |a| \
+    with orange saponite say ascii_of patataCuento
 you died
 
 
