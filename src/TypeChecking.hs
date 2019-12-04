@@ -18,7 +18,8 @@ data Type
   | RecordT [PropType]
   | UnionT [PropType]
   | PointerT Type
-  | FunctionT [Type] Type
+  | FunctionT Type Type
+  | TypeList [Type]
   | AliasT String
   | Any -- Currently only used in empty set, empty array and null pointers
   | TypeError
@@ -36,8 +37,9 @@ instance Eq Type where
   RecordT pt == RecordT pt' = sort pt == sort pt'
   PointerT t == PointerT t' = t == t'
   FunctionT ts t == FunctionT ts' t' = ts == ts' && t == t'
-  TypeError == TypeError = True
+  TypeList t == TypeList t' = t == t'
   AliasT s == AliasT s' = s == s'
+  TypeError == TypeError = True
   _ == Any = True
   _ == _ = False
 
