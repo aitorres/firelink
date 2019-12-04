@@ -1025,6 +1025,4 @@ instance TypeCheckable ST.Extra where
       | s == ST.void = return T.VoidT
       | otherwise = return $ T.AliasT s -- works because it always exists
                                         -- it shouldn't be added otherwise
-
-
 }

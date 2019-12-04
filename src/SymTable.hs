@@ -69,6 +69,12 @@ findFieldsExtra (CompoundRec _ _ e) = findFieldsExtra e
 findFieldsExtra (Recursive _ e) = findFieldsExtra e
 findFieldsExtra _ = Nothing
 
+extractTypeFromExtra :: Extra -> Maybe Extra
+extractTypeFromExtra a@Recursive{} = Just a
+extractTypeFromExtra a@Compound{} = Just a
+extractTypeFromExtra a@CompoundRec{} = Just a
+extractTypeFromExtra a@Fields{} = Just a
+extractTypeFromExtra a@Simple{} = Just a
 
 {-|
     Dictionary entries represent "names" in the programming languages. With
@@ -91,6 +97,9 @@ type Dictionary = Map.Map String DictionaryEntries
 type SymTable = (Dictionary, ScopeStack, Int)
 
 type ParserMonad = RWS.RWST () SemanticErrors SymTable IO
+
+findAllInScope :: Scope -> Dictionary -> DictionaryEntries
+findAllInScope s dict = filter (\entry -> scope entry == s) $ concatMap snd $ Map.toList dict
 
 findChain :: String -> Dictionary -> DictionaryEntries
 findChain = Map.findWithDefault []
