@@ -117,7 +117,9 @@ lexer contents = do
         parserAndSemantic tokens
 
 printSemErrors :: [ST.SemanticError] -> L.Tokens -> IO ()
-printSemErrors [] _ = return ()
+printSemErrors [] _ = do
+    putStrLn "Fix your semantic mistakes, ashen one."
+    return ()
 printSemErrors (semError:semErrors) tokens = do
     let (ST.SemanticError errMessage L.Token{L.posn=p}) = semError
     let tks = filter (\L.Token{L.posn=p'} -> L.row p' == L.row p) tokens
@@ -125,15 +127,14 @@ printSemErrors (semError:semErrors) tokens = do
     let postContext = filter (\L.Token{L.posn=p'} -> L.row p' == L.row p + 1) tokens
     RWS.when (not $ null preContext) $ printProgram preContext
     printProgram tks
-    putStrLn errMessage
+    putStrLn $ "\x1b[1m\x1b[31mYOU DIED!!\x1b[0m " ++ errMessage
     RWS.when (not $ null postContext) $ printProgram postContext
-    putStrLn "---------------------------"
+    putStrLn ""
     printSemErrors semErrors tokens
 
 parserAndSemantic :: L.Tokens -> IO ()
 parserAndSemantic tokens = do
     (_, _, errors) <- RWS.runRWST (parse tokens) () ST.initialState
-    print errors
     if not $ null errors then printSemErrors errors tokens
     else printProgram tokens
 
