@@ -908,6 +908,13 @@ functionsCheck funId exprs = do
         else return T.TypeError
     _ -> return T.TypeError
 
+memAccessCheck :: G.Expr -> ST.ParserMonad T.Type
+memAccessCheck expr = do
+  t <- getType expr
+  case t of
+    T.PointerT t' -> return t'
+    _ -> return T.TypeError
+
 minBigInt :: Int
 minBigInt = - 2147483648
 
@@ -968,10 +975,11 @@ instance TypeCheckable G.BaseExpr where
   getType (G.Not a) = logicalCheck a a -- cheating
   getType (G.IdExpr i) = getType i
   getType (G.IndexAccess e i) = checkAccess e i
-
   getType (G.EvalFunc i params) = functionsCheck i params
+  getType (G.MemAccess e) = memAccessCheck e
+
+
   getType (G.Access e1 e2) = return T.TypeError -- TODO: Accessor type
-  getType (G.MemAccess e) = return T.TypeError -- TODO: Mem access
   getType (G.AsciiOf e) = return T.TypeError
   getType (G.ColConcat e e') = return T.TypeError
   getType (G.SetUnion e e') = return T.TypeError
