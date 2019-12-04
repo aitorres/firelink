@@ -77,3 +77,9 @@ comparableTypes = [BigIntT, SmallIntT, FloatT]
 
 showableTypes :: [Type]
 showableTypes = [CharT, StringT, SmallIntT, BigIntT, FloatT]
+
+canBeConvertedTo :: Type -> Type -> Bool
+SmallIntT `canBeConvertedTo` BigIntT = True
+SmallIntT `canBeConvertedTo` FloatT = True
+BigIntT `canBeConvertedTo` FloatT = True
+a `canBeConvertedTo` b = a == b

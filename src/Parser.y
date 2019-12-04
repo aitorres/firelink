@@ -213,7 +213,7 @@ ALIASL :: { [NameDeclaration] }
   | ALIAS                                                               { [$1] }
 
 ALIAS :: { NameDeclaration }
-  : alias ID TYPE                                                       { (ST.Type, $2, $3) }
+  : alias ID TYPE                                                       { (ST.Type, $2, $3, Nothing) }
 
 LVALUE :: { G.Expr }
   : ID                                                                  {% do
@@ -287,7 +287,7 @@ METHOD :: { () }
 
 FUNCPREFIX :: { Maybe (ST.Scope, G.Id) }
   : functionBegin ID METHODPARS functionType TYPE                       {% addFunction (ST.Function,
-                                                                              $2, G.Callable (Just $5) $3) }
+                                                                              $2, G.Callable (Just $5) $3, Nothing) }
 FUNC :: { () }
   : FUNCPREFIX NON_OPENER_CODEBLOCK functionEnd                         {% case $1 of
                                                                             Nothing -> return ()
@@ -295,7 +295,7 @@ FUNC :: { () }
 
 PROCPREFIX :: { Maybe (ST.Scope, G.Id) }
   : procedureBegin ID PROCPARSDEC                                       {% addFunction (ST.Procedure,
-                                                                              $2, G.Callable Nothing $3) }
+                                                                              $2, G.Callable Nothing $3, Nothing) }
 PROC :: { () }
   : PROCPREFIX NON_OPENER_CODEBLOCK procedureEnd                        {% case $1 of
                                                                             Nothing -> return ()
@@ -388,13 +388,10 @@ DECLARSL :: { [NameDeclaration] }
   : DECLARSL comma DECLAR                                               { $3:$1 }
   | DECLAR                                                              { [$1] }
 
-VARTYPE :: { ST.Category }
-  : const                                                               { ST.Constant }
-  | var                                                                 { ST.Variable }
-
 DECLAR :: { NameDeclaration }
-  : VARTYPE ID ofType TYPE                                              { ($1, $2, $4) }
-  | VARTYPE ID ofType TYPE asig EXPR                                    { ($1, $2, $4) }
+  : var ID ofType TYPE                                                  { (ST.Variable, $2, $4, Nothing) }
+  | var ID ofType TYPE asig EXPR                                        { (ST.Variable, $2, $4, Just $6) }
+  | const ID ofType TYPE asig EXPR                                      { (ST.Constant, $2, $4, Just $6) }
 
 INSTRL :: { G.Instructions }
   : INSTRL seq INSTR                                                    { $3 : $1 }
@@ -474,7 +471,7 @@ PARSLIST :: { G.Params }
 
 {
 
-type NameDeclaration = (ST.Category, G.Id, G.GrammarType)
+type NameDeclaration = (ST.Category, G.Id, G.GrammarType, Maybe G.Expr)
 type ArgDeclaration = (G.ArgType, G.Id, G.GrammarType)
 type AliasDeclaration = (G.Id, G.GrammarType)
 type RecordItem = AliasDeclaration
@@ -518,20 +515,26 @@ addIdsToSymTable ids = do
   RWS.mapM_ (addIdToSymTable Nothing) ids
 
 addIdToSymTable :: Maybe Int -> NameDeclaration -> ST.ParserMonad ()
-addIdToSymTable mi d@(c, (G.Id tk@(L.Token {L.aToken=at, L.cleanedString=idName})), t) = do
+addIdToSymTable mi d@(c, gId@(G.Id tk@(L.Token {L.aToken=at, L.cleanedString=idName})), t, maybeExp) = do
   maybeIdEntry <- ST.dictLookup idName
   maybeTypeEntry <- findTypeOnEntryTable t
   (_, (currScope:_), _) <- RWS.get
   case maybeIdEntry of
     -- The name doesn't exists on the table, we just add it
-    Nothing -> insertIdToEntry mi t
-      ST.DictionaryEntry
+    Nothing -> do
+      insertIdToEntry mi t ST.DictionaryEntry
         { ST.name = idName
         , ST.category = c
         , ST.scope = currScope
         , ST.entryType = ST.name <$> maybeTypeEntry
         , ST.extra = []
         }
+      entry <- checkIdAvailability gId
+      case (entry, maybeExp) of
+        (Nothing, _) -> return ()
+        (_, Nothing) -> return ()
+        (Just en, Just exp) -> do
+          checkTypeOfAssignmentOnInit en exp
 
     -- The name does exists on the table, we just add it depending on the scope
     Just entry -> do
@@ -571,7 +574,7 @@ insertIdToEntry mi t entry = do
           let (ST.Fields _ scope) = fromJust . head $ filter isJust $ map ST.findFieldsExtra ex
           (dict, scopes, curr) <- RWS.get
           RWS.put (dict, scope:scopes, curr)
-          addIdsToSymTable $ map (\(a, b) -> (ST.RecordItem, a, b)) s
+          addIdsToSymTable $ map (\(a, b) -> (ST.RecordItem, a, b, Nothing)) s
           ST.exitScope
       case extractFunParamsForNewScope t of
         -- If it is nothing then this is not a function
@@ -583,7 +586,7 @@ insertIdToEntry mi t entry = do
           RWS.mapM_ (\(i, n) -> addIdToSymTable (Just i) n) $ zip [0..] $
             map (\(argType, i, t) -> (if argType == G.Val
                                 then ST.ValueParam
-                                else ST.RefParam, i, t)) s
+                                else ST.RefParam, i, t, Nothing)) s
 
 checkConstantReassignment :: G.Expr -> ST.ParserMonad ()
 checkConstantReassignment e = case G.expAst e of
@@ -628,7 +631,7 @@ extractFieldsFromExtra (s@ST.Fields{} : _) = s
 extractFieldsFromExtra (_:ss) = extractFieldsFromExtra ss
 
 addFunction :: NameDeclaration -> ST.ParserMonad (Maybe (ST.Scope, G.Id))
-addFunction d@(_, i@(G.Id tk@(L.Token {L.cleanedString=idName})), _) = do
+addFunction d@(_, i@(G.Id tk@(L.Token {L.cleanedString=idName})), _, _) = do
   (dict, stack, currScope) <- RWS.get
   maybeEntry <- ST.dictLookup idName
   case maybeEntry of
@@ -907,6 +910,15 @@ checkAccess e (G.Id L.Token{L.cleanedString=i}) = do
       case filter ((==i) . fst) $ map (\(T.PropType e) -> e) props of
         ((_,a):_) -> a
         _ -> T.TypeError
+
+
+checkTypeOfAssignmentOnInit :: ST.DictionaryEntry -> G.Expr -> ST.ParserMonad ()
+checkTypeOfAssignmentOnInit entry expr = do
+  entryType <- getType entry
+  exprType <- getType expr
+  if exprType `T.canBeConvertedTo` entryType
+  then return ()
+  else RWS.tell [ST.SemanticError "Invalid asignment" (G.expTok expr)]
 
 minBigInt :: Int
 minBigInt = - 2147483648
