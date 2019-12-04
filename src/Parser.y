@@ -8,6 +8,7 @@ import Data.Maybe
 import qualified Grammar as G
 import qualified Control.Monad.RWS as RWS
 import qualified TypeChecking as T
+import Utils
 }
 
 %name                                                                     parse
@@ -514,10 +515,10 @@ parseErrors errors =
       name = show tk
       line = show $ L.row pn
       column = show $ L.col pn
-      header = "\x1b[1m\x1b[31mYOU DIED!!\x1b[0m Parser error: "
+      header = bold ++ red ++ "YOU DIED!!" ++ nocolor ++ " Parser error: "
       endmsg = "\n\nFix your syntax errors, ashen one."
-      position = "line \x1b[1m\x1b[31m" ++ line ++ "\x1b[0m, column \x1b[1m\x1b[31m" ++ column ++ "\x1b[0m."
-      msg = header ++ "Unexpected token \x1b[1m\x1b[31m" ++ name ++ "\x1b[0m at " ++ position ++ endmsg
+      position = "line " ++ bold ++ red ++ line ++ nocolor ++ ", column " ++ bold ++ red ++ column ++ nocolor ++ "."
+      msg = header ++ "Unexpected token " ++ bold ++ red ++ name ++ nocolor ++ " at " ++ position ++ endmsg
   in  fail msg
 
 addIdsToSymTable :: [NameDeclaration] -> ST.ParserMonad ()

@@ -135,7 +135,7 @@ printSemErrors (semError:semErrors) tokens = do
     let postContext = filter (\L.Token{L.posn=p'} -> L.row p' == L.row p + 1) tokens
     RWS.when (not $ null preContext) $ printProgram preContext
     printProgram tks
-    putStrLn $ "\x1b[1m\x1b[31mYOU DIED!!\x1b[0m " ++ errMessage
+    putStrLn $ bold ++ red ++ "YOU DIED!!" ++ nocolor ++ " " ++ errMessage
     RWS.when (not $ null postContext) $ printProgram postContext
     putStrLn ""
     printSemErrors semErrors tokens
@@ -153,8 +153,8 @@ mainFunc :: IO ()
 mainFunc = do
     args <- getArgs
     if null args then do
-        putStrLn "\x1b[31m\x1b[1mFireLink\x1b[0m"
-        putStrLn "Your journey must be started from a \x1b[1m\x1b[31m<file path>\x1b[0m, ashen one."
+        putStrLn $ red ++ bold ++ "FireLink" ++ nocolor
+        putStrLn $ "Your journey must be started from a " ++ bold ++ red ++ "<file path>" ++ nocolor ++ ", ashen one."
         putStrLn "Usage: \t stack run <path>"
     else do
         let programFile = head args
