@@ -1,16 +1,17 @@
 hello ashen one
 
---requiring help of
---    knight x 
---help received
+requiring help of
+    knight myAlias <1>-chest of type humanity
+help received
 
 invocation y1
 requesting
-    val y2 of type humanity
+    val y2 of type humanity,
+    ref y4 of type myAlias
 with skill of type <1>-chest of type bezel { y3 of type link { y4 of type humanity } }
     traveling somewhere
     with
-        var y2 of type humanity
+        var y22 of type humanity
     in your inventory
         go back with <$$>
     you died
@@ -22,9 +23,11 @@ with
         x2 of type bezel {
             x3 of type arrow to humanity
         }
-    }
+    },
+    var patata of type sign
+    -- var myAlias of type myAlias
 in your inventory
-    with orange saponite say x
+    with orange saponite say patata lt |1|
 you died
 
 

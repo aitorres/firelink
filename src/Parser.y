@@ -916,7 +916,11 @@ maxSmallInt :: Int
 maxSmallInt = 32767
 
 instance TypeCheckable G.Id where
-  getType _ = return T.TypeError
+  getType gId = do
+    idEntry <- checkIdAvailability gId
+    case idEntry of
+      Nothing -> return T.TypeError
+      Just entry -> getType entry
 
 instance TypeCheckable G.Expr where
   getType = return . G.expType
@@ -957,18 +961,18 @@ instance TypeCheckable G.BaseExpr where
   getType (G.And a b) = logicalCheck a b
   getType (G.Or a b) = logicalCheck a b
   getType (G.Not a) = logicalCheck a a -- cheating
+  getType (G.IdExpr i) = getType i
 
   getType (G.EvalFunc id _) = return T.TypeError -- TODO: Check if okay
   getType (G.Access e i) = return T.TypeError -- TODO: Accessor type
   getType (G.IndexAccess e1 e2) = return T.TypeError -- TODO: Accessor type
   getType (G.MemAccess e) = return T.TypeError -- TODO: Mem access
-  getType (G.IdExpr i) = return T.TypeError
   getType (G.AsciiOf e) = return T.TypeError
   getType (G.ColConcat e e') = return T.TypeError
   getType (G.SetUnion e e') = return T.TypeError
   getType (G.SetIntersect e e') = return T.TypeError
   getType (G.SetDiff e e') = return T.TypeError
-  getType (G.SetSize e e') = return T.TypeError
+  getType (G.SetSize e) = return T.TypeError
 
 instance TypeCheckable ST.DictionaryEntry where
   getType entry@ST.DictionaryEntry{ST.entryType=Just entryType, ST.category = cat, ST.extra = extras}
