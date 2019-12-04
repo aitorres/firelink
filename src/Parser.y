@@ -759,19 +759,41 @@ buildExtraForType t@(G.Compound _ tt@(G.Record{}) maybeExpr) = do
     Just (extra':_) -> do
       constructor <- (ST.name . fromJust) <$> findTypeOnEntryTable t -- This call should never fail
       return $ case maybeExpr of
-        Just e -> Just [ST.CompoundRec constructor e extra', extra']
-        Nothing -> Just [ST.Recursive constructor extra', extra']
+        Just e -> Just [ST.CompoundRec constructor e extra']
+        Nothing -> Just [ST.Recursive constructor extra']
 
 buildExtraForType t@(G.Record _ _) = do
-  (_, _, currScope) <- RWS.get
-  return $ Just [ST.Fields $ currScope + 1]
+  (d, s, currScope) <- RWS.get
+  let ret = Just [ST.Fields $ currScope + 1]
+  RWS.put $ (d, s, currScope + 1)
+  return ret
 
-buildExtraForType t@(G.Callable _ []) = return $ Just [ST.EmptyFunction]
+buildExtraForType t@(G.Callable t' []) = do
+  case t' of
+    -- For void functions
+    Nothing -> return $ Just [ST.EmptyFunction]
+    Just tt -> do
+      mExtra <- buildExtraForType tt
+      case mExtra of
+        Nothing -> return Nothing
+        Just extras -> return $ Just (ST.EmptyFunction : extras)
 
-buildExtraForType t@(G.Callable _ _) = do
-  (_, _, currScope) <- RWS.get
-  return $ Just [ST.Fields $ currScope + 1]
-
+buildExtraForType t@(G.Callable t' _) = do
+  case t' of
+    Nothing -> do
+      (d, s, currScope) <- RWS.get
+      let ret = Just [ST.Fields $ currScope + 1]
+      RWS.put (d, s, currScope + 1)
+      return ret
+    Just tt -> do
+      mExtra <- buildExtraForType tt
+      case mExtra of
+        Nothing -> return $ Nothing
+        Just extras -> do
+          (d, s, currScope) <- RWS.get
+          let ret = Just ((ST.Fields $ currScope + 1) : extras)
+          RWS.put (d, s, currScope + 1)
+          return ret
 
 -- For anything else
 buildExtraForType _ = return $ Just []

@@ -1,0 +1,28 @@
+hello ashen one
+
+--requiring help of
+--    knight x 
+--help received
+
+invocation x4
+requesting
+    val x1 of type humanity
+with skill of type <1>-chest of type bezel { x5 of type sign }
+    traveling somewhere
+        go back with <$$>
+    you died
+after this return to your world
+
+traveling somewhere
+with
+    var x1 of type <1>-chest of type bezel {
+        x2 of type bezel {
+            x3 of type arrow to humanity
+        }
+    }
+in your inventory
+    with orange saponite say x
+you died
+
+
+farewell ashen one
