@@ -49,6 +49,9 @@ joinTokens c (e:tks) = case e of
     Left (L.LexError (pn, s)) ->
         replicate (L.col pn - c) ' ' ++ s ++ joinTokens (L.col pn + length s) tks
 
+buildRuler :: Int -> String
+buildRuler = flip replicate '~'
+
 formatLexError :: (L.LexError, [Either L.LexError L.Token]) -> String
 formatLexError (L.LexError (L.AlexPn _ r c, _), tokens) =
     printf "%s%sYOU DIED!!%s Lexical error at line %s%s%d%s, column %s%s%d%s:\n%s\n"
@@ -59,7 +62,6 @@ formatLexError (L.LexError (L.AlexPn _ r c, _), tokens) =
     where
         tokensByRowNumber = groupTokensByRowNumber tokens
         maxSize = foldl max (-1) $ map lengthOfLine tokensByRowNumber
-        buildRuler = flip replicate '~'
         firstLine = joinTokens 1 (head tokensByRowNumber) ++ "\n"
         restLines = map (joinTokens 1) $ tail tokensByRowNumber
         errorRuler = bold ++ red ++ buildRuler (c-1) ++ "^" ++ buildRuler (maxSize - c) ++ nocolor ++ "\n"
@@ -90,6 +92,12 @@ insertLexErrorOnContext e@(L.LexError (pn, _)) (tk@L.Token {L.posn=pn'} : tks) =
 joinTokensOnly :: L.Tokens -> String
 joinTokensOnly = joinTokens (-1) . map Right
 
+numberOfRows :: [L.Token] -> Int
+numberOfRows = foldl (\cu L.Token {L.posn=pn} -> cu `max` L.row pn) (-1)
+
+maxDigits :: [L.Token] -> Int
+maxDigits = length . show . numberOfRows
+
 printProgram :: L.Tokens -> IO ()
 printProgram tks =
     mapM_ printRowAndLine groupedByRowNumber
@@ -97,11 +105,6 @@ printProgram tks =
         groupedByRowNumber :: [L.Tokens]
         groupedByRowNumber = groupBy (\L.Token {L.posn=t1} L.Token {L.posn=t2} -> L.row t1 == L.row t2) tks
 
-        numberOfRows :: Int
-        numberOfRows = foldl (\cu L.Token {L.posn=pn} -> cu `max` L.row pn) (-1) tks
-
-        maxDigits :: Int
-        maxDigits = length $ show numberOfRows
 
         printRowAndLine :: L.Tokens -> IO ()
         printRowAndLine tks' = do
@@ -109,7 +112,7 @@ printProgram tks =
             let row = L.row pn
             let lengthOfRowNumber = length $ show row
             putStr $ show row
-            putStr $ replicate (maxDigits - lengthOfRowNumber) ' '
+            putStr $ replicate (maxDigits tks - lengthOfRowNumber) ' '
             putStr "|"
             putStrLn $ joinTokensOnly tks'
 
@@ -133,8 +136,11 @@ printSemErrors (semError:semErrors) tokens = do
     let tks = filter (\L.Token{L.posn=p'} -> L.row p' == L.row p) tokens
     let preContext = filter (\L.Token{L.posn=p'} -> L.row p' == L.row p - 1) tokens
     let postContext = filter (\L.Token{L.posn=p'} -> L.row p' == L.row p + 1) tokens
+    let nDigits = 2 + maxDigits tks
     RWS.when (not $ null preContext) $ printProgram preContext
     printProgram tks
+    putStr $ buildRuler (nDigits + L.col p)
+    putStrLn "^"
     putStrLn $ bold ++ red ++ "YOU DIED!!" ++ nocolor ++ " " ++ errMessage
     RWS.when (not $ null postContext) $ printProgram postContext
     putStrLn ""
@@ -144,10 +150,11 @@ parserAndSemantic :: L.Tokens -> IO ()
 parserAndSemantic tokens = do
     (_, table, errors) <- RWS.runRWST (parse tokens) () ST.initialState
     -- print errors
-    prettyPrintSymTable table
-    -- if not $ null errors then printSemErrors errors tokens
-    -- else
-    --     printProgram tokens
+    -- prettyPrintSymTable table
+    if not $ null errors then printSemErrors errors tokens
+    else do
+        prettyPrintSymTable table
+        printProgram tokens
 
 mainFunc :: IO ()
 mainFunc = do

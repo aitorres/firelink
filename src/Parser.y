@@ -217,7 +217,6 @@ ALIAS :: { NameDeclaration }
 
 LVALUE :: { G.Expr }
   : ID                                                                  {% do
-                                                                            checkIdAvailability $1
                                                                             let (G.Id tk) = $1
                                                                             buildAndCheckExpr tk $ G.IdExpr $1 }
   | EXPR accessor ID                                                    {% do
@@ -837,8 +836,8 @@ isLogicalType = isOneOfTypes T.booleanTypes
 isNumberType :: T.Type -> Bool
 isNumberType t = not . null $ filter (==t) T.numberTypes
 
-isIntegerType :: TypeChecker
-isIntegerType = isOneOfTypes T.integerTypes
+isIntegerType :: T.Type -> Bool
+isIntegerType t = not . null $ filter (==t) T.integerTypes
 
 isComparableType :: TypeChecker
 isComparableType = isOneOfTypes T.comparableTypes
@@ -894,6 +893,15 @@ equatableCheck a b = do
 comparableCheck :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
 comparableCheck = equatableCheck
 
+checkAccess :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
+checkAccess array index = do
+  arrayType <- getType array
+  indextype <- getType index
+  case arrayType of
+    T.ArrayT t -> if isIntegerType indextype
+      then return t
+      else return T.TypeError
+    _ -> return T.TypeError
 
 functionsCheck :: G.Id -> [G.Expr] -> ST.ParserMonad T.Type
 functionsCheck funId exprs = do
@@ -962,10 +970,10 @@ instance TypeCheckable G.BaseExpr where
   getType (G.Or a b) = logicalCheck a b
   getType (G.Not a) = logicalCheck a a -- cheating
   getType (G.IdExpr i) = getType i
+  getType (G.IndexAccess e i) = checkAccess e i
 
   getType (G.EvalFunc id _) = return T.TypeError -- TODO: Check if okay
-  getType (G.Access e i) = return T.TypeError -- TODO: Accessor type
-  getType (G.IndexAccess e1 e2) = return T.TypeError -- TODO: Accessor type
+  getType (G.Access e1 e2) = return T.TypeError -- TODO: Accessor type
   getType (G.MemAccess e) = return T.TypeError -- TODO: Mem access
   getType (G.AsciiOf e) = return T.TypeError
   getType (G.ColConcat e e') = return T.TypeError
