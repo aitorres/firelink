@@ -357,8 +357,17 @@ TYPE
   | ltelit EXPR string                                                  { G.Simple $3 (Just $2) }
   | set ofType TYPE                                                     { G.Compound $1 $3 Nothing }
   | pointer TYPE                                                        { G.Compound $1 $2 Nothing }
-  | record brOpen STRUCTITS brClose                                     { G.Record $1 $ reverse $3 }
-  | unionStruct brOpen STRUCTITS brClose                                { G.Record $1 $ reverse $3 }
+  | record brOpen STRUCTITS BRCLOSE                                     {% do
+                                                                             checkRecoverableError $2 $4
+                                                                             return $ G.Record $1 $ reverse $3 }
+  | unionStruct brOpen STRUCTITS BRCLOSE                                {% do
+                                                                             checkRecoverableError $2 $4
+                                                                             return $ G.Record $1 $ reverse $3 }
+
+BRCLOSE :: { Maybe G.RecoverableError }
+BRCLOSE
+  : brClose                                                             { Nothing }
+  | error                                                               { Just G.MissingClosingBrace }
 
 ENUMITS :: { [Int] }
 ENUMITS
