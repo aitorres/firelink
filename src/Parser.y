@@ -485,12 +485,7 @@ buildAndCheckExpr :: L.Token -> G.BaseExpr -> ST.ParserMonad G.Expr
 buildAndCheckExpr tk bExpr = do
   t <- getType bExpr
   if t == T.TypeError
-    then RWS.tell [ST.SemanticError "Type error" (L.Token
-      { L.aToken = L.TkId
-      , L.capturedString = "hola"
-      , L.cleanedString = "hola"
-      , L.posn = (L.posn tk)
-      })]
+    then RWS.tell [ST.SemanticError "Type error" tk]
     else return ()
   return G.Expr
     { G.expAst = bExpr
