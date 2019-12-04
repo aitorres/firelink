@@ -595,10 +595,11 @@ cast <nombre de la función>
   <expresion 2>,
   ...
   <expresion n>
+  to the estus flask
 ]
 ```
 
-Donde cada _expresion i_ corresponde a un argumento a pasar a la función, que debe corresponder con el tipo declarado. Si la función no recibe parámetros, el bloque que inicia con _granting_ no es requerido.
+Donde cada _expresion i_ corresponde a un argumento a pasar a la función, que debe corresponder con el tipo declarado. Si la función no recibe parámetros, el bloque que inicia con _offering_ no es requerido.
 
 La llamada a la función NO evalúa a ninguna expresión.
 

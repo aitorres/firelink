@@ -1,0 +1,20 @@
+hello ashen one
+
+invocation s
+requesting
+    val a of type humanity
+with skill of type humanity
+    traveling somewhere
+        go back with a + 1
+    you died
+after this return to your world
+
+traveling somewhere
+with
+    var a of type humanity
+in your inventory
+    a <<= summon s
+        granting 1
+you died
+
+farewell ashen one
