@@ -406,11 +406,18 @@ INSTEND
   : instructionsEnd                                                     {% do
                                                                              ST.exitScope
                                                                              return Nothing }
-  | error                                                               {% return $ Just G.MissingInstructionListEnd }
+  | error                                                               { Just G.MissingInstructionListEnd }
 
 DECLARS :: { () }
 DECLARS
-  : with DECLARSL declarend                                             {% addIdsToSymTable (reverse $2) }
+  : with DECLARSL DECLAREND                                             {% do
+                                                                             checkRecoverableError $1 $3
+                                                                             addIdsToSymTable (reverse $2) }
+
+DECLAREND :: { Maybe G.RecoverableError }
+DECLAREND
+  : declarend                                                           { Nothing }
+  | error                                                               { Just G.MissingDeclarationListEnd }
 
 DECLARSL :: { [NameDeclaration] }
 DECLARSL
