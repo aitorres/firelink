@@ -4,11 +4,14 @@ hello ashen one
 --    knight x 
 --help received
 
-invocation x4
+invocation y1
 requesting
-    val x1 of type humanity
-with skill of type <1>-chest of type bezel { x5 of type sign }
+    val y2 of type humanity
+with skill of type <1>-chest of type bezel { y3 of type link { y4 of type humanity } }
     traveling somewhere
+    with
+        var y2 of type humanity
+    in your inventory
         go back with <$$>
     you died
 after this return to your world
