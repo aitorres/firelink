@@ -28,6 +28,8 @@ data Category = Variable
     deriving (Eq, Show)
 
 
+data TypeFields = Callable | Union | Record
+    deriving (Show, Eq)
 
 data Extra
     = Recursive -- For sets alike
@@ -43,8 +45,8 @@ data Extra
         G.Expr -- Size
         Extra -- Type perse
 
-    | Fields -- For functions or names that need to refer to another scope
-             -- in order to construct itself
+    | Fields
+        TypeFields
         Scope -- We only need the scope where the fields live
 
     | EmptyFunction -- For functions/procs that doesn't have any arguments
@@ -56,6 +58,17 @@ data Extra
 
     | ArgPosition Int -- For argument list position
     deriving Show
+
+isFieldsExtra :: Extra -> Bool
+isFieldsExtra (Fields _ _) = True
+isFieldsExtra _ = False
+
+findFieldsExtra :: Extra -> Maybe Extra
+findFieldsExtra a@Fields{} = Just a
+findFieldsExtra (CompoundRec _ _ e) = findFieldsExtra e
+findFieldsExtra (Recursive _ e) = findFieldsExtra e
+findFieldsExtra _ = Nothing
+
 
 {-|
     Dictionary entries represent "names" in the programming languages. With

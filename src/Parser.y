@@ -499,6 +499,7 @@ buildAndCheckExpr tk bExpr = do
     }
 
 extractFieldsForNewScope :: G.GrammarType -> Maybe [RecordItem]
+extractFieldsForNewScope (G.Callable (Just s) _) = extractFieldsForNewScope s
 extractFieldsForNewScope (G.Compound _ s _) = extractFieldsForNewScope s
 extractFieldsForNewScope (G.Record _ s) = Just s
 extractFieldsForNewScope _ = Nothing
@@ -563,18 +564,26 @@ insertIdToEntry mi t entry = do
     Nothing -> return ()
     Just ex -> do
       ST.addEntry entry{ST.extra = pos ++ ex}
+      RWS.lift $ print t
+      RWS.lift $ print ex
+      RWS.lift $ print t
       -- To add the record params to the dictionary
       case extractFieldsForNewScope t of
         Nothing -> return ()
         Just s ->  do
-          ST.enterScope
+          let (ST.Fields _ scope) = fromJust . head $ filter isJust $ map ST.findFieldsExtra ex
+          (dict, scopes, curr) <- RWS.get
+          RWS.put (dict, scope:scopes, curr)
           addIdsToSymTable $ map (\(a, b) -> (ST.RecordItem, a, b)) s
           ST.exitScope
       case extractFunParamsForNewScope t of
         -- If it is nothing then this is not a function
         Nothing -> return ()
         Just s -> do
-          ST.enterScope
+          RWS.lift $ print s >> putStrLn "epa"
+          (dict, scopes, curr) <- RWS.get
+          let (ST.Fields ST.Callable scope) = head $ filter ST.isFieldsExtra ex
+          RWS.put (dict, scope:scopes, curr)
           RWS.mapM_ (\(i, n) -> addIdToSymTable (Just i) n) $ zip [0..] $
             map (\(argType, i, t) -> (if argType == G.Val
                                 then ST.ValueParam
@@ -650,7 +659,7 @@ findScopeToSearchOf e = case G.expAst e of
     case maybeEntry of
       Nothing -> return Nothing
       Just ST.DictionaryEntry {ST.extra=extra} -> do
-        let (ST.Fields s) = extractFieldsFromExtra extra
+        let (ST.Fields _ s) = extractFieldsFromExtra extra
         return $ Just s
 
   -- The scope of an record accessing is the scope of its accessing property
@@ -762,9 +771,13 @@ buildExtraForType t@(G.Compound _ tt@(G.Record{}) maybeExpr) = do
         Just e -> Just [ST.CompoundRec constructor e extra']
         Nothing -> Just [ST.Recursive constructor extra']
 
-buildExtraForType t@(G.Record _ _) = do
+buildExtraForType t@(G.Record tk _) = do
   (d, s, currScope) <- RWS.get
-  let ret = Just [ST.Fields $ currScope + 1]
+  let constr = (case L.aToken tk of
+                  L.TkRecord -> ST.Record
+                  L.TkUnionStruct -> ST.Union)
+
+  let ret = Just [ST.Fields constr $ currScope + 1]
   RWS.put $ (d, s, currScope + 1)
   return ret
 
@@ -782,7 +795,7 @@ buildExtraForType t@(G.Callable t' _) = do
   case t' of
     Nothing -> do
       (d, s, currScope) <- RWS.get
-      let ret = Just [ST.Fields $ currScope + 1]
+      let ret = Just [ST.Fields ST.Callable $ currScope + 1]
       RWS.put (d, s, currScope + 1)
       return ret
     Just tt -> do
@@ -791,7 +804,7 @@ buildExtraForType t@(G.Callable t' _) = do
         Nothing -> return $ Nothing
         Just extras -> do
           (d, s, currScope) <- RWS.get
-          let ret = Just ((ST.Fields $ currScope + 1) : extras)
+          let ret = Just ((ST.Fields ST.Callable $ currScope + 1) : extras)
           RWS.put (d, s, currScope + 1)
           return ret
 
