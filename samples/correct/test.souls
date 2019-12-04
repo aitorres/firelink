@@ -38,7 +38,10 @@ with
     var patataArray of type <1>-chest of type humanity,
     var patataPointer of type arrow to sign,
     var patataCuento of type <2>-miracle,
-    var mySet of type armor of type <2>-miracle
+    var mySet of type armor of type <2>-miracle,
+    var accessChecker of type bezel {
+        x of type humanity
+    }
     -- var myAlias of type myAlias
 in your inventory
     with orange saponite say patata \ -- patataArray<$ |a| $>
@@ -47,7 +50,8 @@ in your inventory
     with orange saponite say (throw a patataPointer) lt |a| \
     with orange saponite say ascii_of patataCuento \
     with orange saponite say patataArray >-< x1 \
-    with orange saponite say mySet intersect patata
+    with orange saponite say mySet intersect patata \
+    with orange saponite say (throw a (x1<$ 0 $> ~> x2 ~> x3)) + patata
 you died
 
 
