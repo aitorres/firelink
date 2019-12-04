@@ -155,6 +155,8 @@ data RecoverableError
   | MissingInstructionListEnd
   | MissingAliasListEnd
   | MissingClosingBrace
+  | MissingFunCallEnd
+  | MissingProcCallEnd
 
 instance Show RecoverableError where
   show MissingProgramEnd = "Unclosed program block: forgot to say " ++ U.bold ++ "farewell ashen one" ++ U.nocolor
@@ -162,3 +164,5 @@ instance Show RecoverableError where
   show MissingInstructionListEnd = "Unclosed instruction block: remember that " ++ U.bold ++ "you died" ++ U.nocolor
   show MissingAliasListEnd = "Unclosed alias list: be thankful of the " ++ U.bold ++ "help received" ++ U.nocolor
   show MissingClosingBrace = "Unclosed brace: mismatched { without its closing " ++ U.bold ++ "}" ++ U.nocolor
+  show MissingFunCallEnd = "Unclosed function call: state your grants " ++ U.bold ++ "to the knight" ++ U.nocolor
+  show MissingProcCallEnd = "Unclosed procedure call: state your requests " ++ U.bold ++ "to the estus flask" ++ U.nocolor

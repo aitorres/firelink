@@ -491,12 +491,24 @@ DEFAULTCASE :: { G.SwitchCase }
   : switchDefault colon CODEBLOCK                                       { G.DefaultCase $3 }
 
 FUNCPARS :: { G.Params }
-  : granting PARSLIST toTheKnight                                       { reverse $2 }
+  : granting PARSLIST TOTHEKNIGHT                                       {% do
+                                                                             checkRecoverableError $1 $3
+                                                                             return $ reverse $2 }
   | {- empty -}                                                         { [] }
 
+TOTHEKNIGHT :: { Maybe G.RecoverableError }
+  : toTheKnight                                                         { Nothing }
+  | error                                                               { Just G.MissingFunCallEnd }
+
 PROCPARS :: { G.Params }
-  : offering PARSLIST toTheEstusFlask                                   { reverse $2 }
+  : offering PARSLIST TOTHEESTUSFLASK                                   {% do
+                                                                             checkRecoverableError $1 $3
+                                                                             return $ reverse $2 }
   | {- empty -}                                                         { [] }
+
+TOTHEESTUSFLASK :: { Maybe G.RecoverableError }
+  : toTheEstusFlask                                                     { Nothing }
+  | error                                                               { Just G.MissingProcCallEnd }
 
 PARSLIST :: { G.Params }
   : PARSLIST comma EXPR                                                 { $3 : $1 }
