@@ -3,6 +3,7 @@ module Grammar where
 import Lexer (Token)
 import TypeChecking (Type(..))
 import Data.List (intercalate)
+import qualified Utils as U
 
 type Instructions = [Instruction]
 type Params = [Expr]
@@ -147,3 +148,11 @@ data GrammarType
   | Record Token [(Id, GrammarType)]
   | Callable (Maybe GrammarType) [(ArgType, Id, GrammarType)]
   deriving Show
+
+data RecoverableError
+  = MissingProgramEnd
+  | MissingInstructionEnd
+
+instance Show RecoverableError where
+  show MissingProgramEnd = "Unclosed program block: forgot to say " ++ U.bold ++ "farewell ashen one" ++ U.nocolor
+  show MissingInstructionEnd = "Unclosed instruction block: remember that " ++ U.bold ++ "you died" ++ U.nocolor

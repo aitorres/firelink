@@ -175,12 +175,27 @@ import qualified TypeChecking as T
 
 PROGRAM :: { G.Program }
 PROGRAM
-  : programBegin ALIASES METHODS NON_OPENER_CODEBLOCK programEnd        { G.Program $4 }
+  : programBegin ALIASES METHODS NON_OPENER_CODEBLOCK PROGRAMEND        {% do
+                                                                             checkRecoverableError $1 $5
+                                                                             return $ G.Program $4 }
+
+PROGRAMEND :: { Maybe G.RecoverableError }
+  : programEnd                                                          { Nothing }
+  | error                                                               { Just G.MissingProgramEnd }
 
 NON_OPENER_CODEBLOCK :: { G.CodeBlock }
 NON_OPENER_CODEBLOCK
-  : instructionsBegin DECLARS INSTRL instructionsEnd                     { G.CodeBlock $ reverse $3 }
-  | instructionsBegin INSTRL instructionsEnd                             { G.CodeBlock $ reverse $2 }
+  : instructionsBegin DECLARS INSTRL NON_OPENER_INSTEND                 {% do
+                                                                             checkRecoverableError $1 $4
+                                                                             return $ G.CodeBlock $ reverse $3 }
+  | instructionsBegin INSTRL NON_OPENER_INSTEND                         {% do
+                                                                             checkRecoverableError $1 $3
+                                                                             return $ G.CodeBlock $ reverse $2 }
+
+NON_OPENER_INSTEND :: { Maybe G.RecoverableError }
+NON_OPENER_INSTEND
+  : instructionsEnd                                                     { Nothing }
+  | error                                                               { Just G.MissingInstructionEnd }
 
 ALIASES :: { () }
 ALIASES
@@ -359,14 +374,24 @@ ID
 
 CODEBLOCK :: { G.CodeBlock }
 CODEBLOCK
-  : INSTBEGIN DECLARS INSTRL INSTEND                                    { G.CodeBlock $ reverse $3 }
-  | INSTBEGIN INSTRL INSTEND                                            { G.CodeBlock $ reverse $2 }
+  : INSTBEGIN DECLARS INSTRL INSTEND                                    {% do
+                                                                             checkRecoverableError $1 $4
+                                                                             return $ G.CodeBlock $ reverse $3 }
+  | INSTBEGIN INSTRL INSTEND                                            {% do
+                                                                             checkRecoverableError $1 $3
+                                                                             return $ G.CodeBlock $ reverse $2 }
 
-INSTBEGIN :: { () }
-INSTBEGIN : instructionsBegin                                           {% ST.enterScope }
+INSTBEGIN :: { L.Token }
+INSTBEGIN : instructionsBegin                                           {% do
+                                                                             ST.enterScope
+                                                                             return $1 }
 
-INSTEND :: { () }
-INSTEND : instructionsEnd                                               {% ST.exitScope }
+INSTEND :: { Maybe G.RecoverableError }
+INSTEND
+  : instructionsEnd                                                     {% do
+                                                                             ST.exitScope
+                                                                             return Nothing }
+  | error                                                               {% return $ Just G.MissingInstructionEnd }
 
 DECLARS :: { () }
 DECLARS
@@ -584,6 +609,16 @@ checkIdAvailability (G.Id tk@(L.Token {L.cleanedString=idName})) = do
       return Nothing
     Just e -> do
       return $ Just e
+
+checkRecoverableError :: L.Token -> Maybe G.RecoverableError -> ST.ParserMonad ()
+checkRecoverableError openTk maybeErr = do
+  case maybeErr of
+    Nothing ->
+      return ()
+    Just err -> do
+      let errorName = show err
+      RWS.tell [ST.SemanticError (errorName ++ " (recovered from to continue parsing)") openTk]
+      return ()
 
 -- The following function only have sense (for the moment) on lvalues
 --  - Ids
