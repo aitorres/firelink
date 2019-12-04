@@ -536,7 +536,14 @@ addIdToSymTable mi d@(c, (G.Id tk@(L.Token {L.aToken=at, L.cleanedString=idName}
     -- The name does exists on the table, we just add it depending on the scope
     Just entry -> do
       let scope = ST.scope entry
-      if currScope /= scope
+      let category = ST.category entry
+      if category == ST.Type
+      then RWS.tell $ [ST.SemanticError ("Name " ++ show tk ++ " conflicts with an type alias") tk]
+      else if category == ST.Procedure
+      then RWS.tell $ [ST.SemanticError ("Name " ++ show tk ++ " conflicts with a procedure") tk]
+      else if category == ST.Function
+      then RWS.tell $ [ST.SemanticError ("Name " ++ show tk ++ " conflicts with a function") tk]
+      else if currScope /= scope
       then insertIdToEntry mi t ST.DictionaryEntry
         { ST.name = idName
         , ST.category = c
@@ -845,11 +852,8 @@ checkIndexAccess array index = do
 
 functionsCheck :: G.Id -> [G.Expr] -> ST.ParserMonad T.Type
 functionsCheck funId exprs = do
-  RWS.lift $ print "holi"
   let exprsTypes = exprsToTypes exprs
   funType <- getType funId
-  RWS.lift  $ print funType
-  RWS.lift $ print exprsTypes
   case funType of
     T.FunctionT domain range -> do
       if exprsTypes == domain
@@ -893,8 +897,6 @@ checkSetOp e e' = do
 checkAccess :: G.Expr -> G.Id -> ST.ParserMonad T.Type
 checkAccess e (G.Id L.Token{L.cleanedString=i}) = do
   t <- getType e
-  RWS.lift $ print t
-  RWS.lift $ print i
   return (case t of
     T.RecordT properties -> checkProperty properties
     T.UnionT properties -> checkProperty properties

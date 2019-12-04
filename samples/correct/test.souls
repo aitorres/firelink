@@ -51,7 +51,16 @@ in your inventory
     with orange saponite say ascii_of patataCuento \
     with orange saponite say patataArray >-< x1 \
     with orange saponite say mySet intersect patata \
-    with orange saponite say (throw a (x1<$ 0 $> ~> x2 ~> x3)) + patata
+    with orange saponite say (throw a (x1<$ 0 $> ~> x2 ~> x3)) + patata \
+    trust your inventory
+    lit:
+        traveling somewhere
+        with
+            var myAlias of type myAlias
+        in your inventory
+            with orange saponite say myAlias
+        you died
+    inventory closed
 you died
 
 
