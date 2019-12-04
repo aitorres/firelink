@@ -174,7 +174,6 @@ import qualified TypeChecking as T
 %%
 
 PROGRAM :: { G.Program }
-PROGRAM
   : programBegin ALIASES METHODS NON_OPENER_CODEBLOCK PROGRAMEND        {% do
                                                                              checkRecoverableError $1 $5
                                                                              return $ G.Program $4 }
@@ -184,7 +183,6 @@ PROGRAMEND :: { Maybe G.RecoverableError }
   | error                                                               { Just G.MissingProgramEnd }
 
 NON_OPENER_CODEBLOCK :: { G.CodeBlock }
-NON_OPENER_CODEBLOCK
   : instructionsBegin DECLARS INSTRL NON_OPENER_INSTEND                 {% do
                                                                              checkRecoverableError $1 $4
                                                                              return $ G.CodeBlock $ reverse $3 }
@@ -193,12 +191,10 @@ NON_OPENER_CODEBLOCK
                                                                              return $ G.CodeBlock $ reverse $2 }
 
 NON_OPENER_INSTEND :: { Maybe G.RecoverableError }
-NON_OPENER_INSTEND
   : instructionsEnd                                                     { Nothing }
   | error                                                               { Just G.MissingInstructionListEnd }
 
 ALIASES :: { () }
-ALIASES
   : aliasListBegin ALIASL ALIASLISTEND                                  {% do
                                                                             checkRecoverableError $1 $3
                                                                             addIdsToSymTable $ reverse $2
@@ -208,21 +204,17 @@ ALIASES
 
 
 ALIASLISTEND :: { Maybe G.RecoverableError }
-ALIASLISTEND
  : aliasListEnd                                                         { Nothing }
  | error                                                                { Just G.MissingAliasListEnd }
 
 ALIASL :: { [NameDeclaration] }
-ALIASL
   : ALIASL comma ALIAS                                                  { $3:$1 }
   | ALIAS                                                               { [$1] }
 
 ALIAS :: { NameDeclaration }
-ALIAS
   : alias ID TYPE                                                       { (ST.Type, $2, $3) }
 
 LVALUE :: { G.Expr }
-LVALUE
   : ID                                                                  {% do
                                                                             checkIdAvailability $1
                                                                             let (G.Id tk) = $1
@@ -236,7 +228,6 @@ LVALUE
   | memAccessor EXPR                                                    {% buildAndCheckExpr $1 $ G.MemAccess $2 }
 
 EXPR :: { G.Expr }
-EXPR
   : intLit                                                              {% buildAndCheckExpr $1 $ G.IntLit (read (L.cleanedString $1) :: Int) }
   | floatLit                                                            {% buildAndCheckExpr $1 $ G.FloatLit (read (L.cleanedString $1) :: Float) }
   | charLit                                                             {% buildAndCheckExpr $1 $ G.CharLit $ head (L.cleanedString $1) }
@@ -273,27 +264,22 @@ EXPR
   | LVALUE                                                              { $1 }
 
 EXPRL :: { [G.Expr] }
-EXPRL
   : {- empty -}                                                         { [] }
   | NONEMPTYEXPRL                                                       { $1 }
 
 NONEMPTYEXPRL :: { [G.Expr] }
-NONEMPTYEXPRL
   : EXPR                                                                { [$1] }
   | NONEMPTYEXPRL comma EXPR                                            { $3:$1 }
 
 METHODS :: { () }
-METHODS
   : {- empty -}                                                         { () }
   | METHODL                                                             { () }
 
 METHODL :: { () }
-METHODL
   : METHODL METHOD                                                      { () }
   | METHOD                                                              { () }
 
 METHOD :: { () }
-METHOD
   : FUNC                                                                {% do
                                                                           (dict, _, s) <- RWS.get
                                                                           RWS.put (dict, [1, 0], s) }
@@ -302,51 +288,41 @@ METHOD
                                                                           RWS.put (dict, [1, 0], s) }
 
 FUNCPREFIX :: { Maybe (ST.Scope, G.Id) }
-FUNCPREFIX
   : functionBegin ID METHODPARS functionType TYPE                       {% addFunction (ST.Function,
                                                                               $2, G.Callable (Just $5) $3) }
 FUNC :: { () }
-FUNC
   : FUNCPREFIX NON_OPENER_CODEBLOCK functionEnd                         {% case $1 of
                                                                             Nothing -> return ()
                                                                             Just (s, i) -> updateCodeBlockOfFun s i $2 }
 
 PROCPREFIX :: { Maybe (ST.Scope, G.Id) }
-PROCPREFIX
   : procedureBegin ID PROCPARSDEC                                       {% addFunction (ST.Procedure,
                                                                               $2, G.Callable Nothing $3) }
 PROC :: { () }
-PROC
   : PROCPREFIX NON_OPENER_CODEBLOCK procedureEnd                        {% case $1 of
                                                                             Nothing -> return ()
                                                                             Just (s, i) -> updateCodeBlockOfFun s i $2 }
 
 PROCPARSDEC :: { [ArgDeclaration] }
-PROCPARSDEC
   : METHODPARS toTheEstusFlask                                          { $1 }
   | {- empty -}                                                         { [] }
 
 METHODPARS :: { [ArgDeclaration] }
-METHODPARS
   : paramRequest PARS                                                   { reverse $2 }
   | {- empty -}                                                         { [] }
 
 PARS :: { [ArgDeclaration] }
-PARS
   : PARS comma PAR                                                      { $3:$1 }
   | PAR                                                                 { [$1] }
 
 PAR :: { ArgDeclaration }
-PAR
   : PARTYPE ID ofType TYPE                                              { ($1, $2, $4) }
 
 PARTYPE :: { G.ArgType }
-PARTYPE
   : parVal                                                              { G.Val }
   | parRef                                                              { G.Ref }
 
 TYPE :: { G.GrammarType }
-TYPE
   : ID                                                                  { let G.Id t = $1 in G.Simple t Nothing }
   | bigInt                                                              { G.Simple $1 Nothing }
   | smallInt                                                            { G.Simple $1 Nothing }
@@ -365,30 +341,24 @@ TYPE
                                                                              return $ G.Record $1 $ reverse $3 }
 
 BRCLOSE :: { Maybe G.RecoverableError }
-BRCLOSE
   : brClose                                                             { Nothing }
   | error                                                               { Just G.MissingClosingBrace }
 
 ENUMITS :: { [Int] }
-ENUMITS
   : ENUMITS comma ID                                                    { [] }
   | ID                                                                  { [] }
 
 STRUCTITS :: { [RecordItem] }
-STRUCTITS
   : STRUCTITS comma STRUCTIT                                            { $3:$1 }
   | STRUCTIT                                                            { [$1] }
 
 STRUCTIT :: { RecordItem }
-STRUCTIT
   : ID ofType TYPE                                                      { ($1, $3) }
 
 ID :: { G.Id }
-ID
   : id                                                                  { G.Id $1 }
 
 CODEBLOCK :: { G.CodeBlock }
-CODEBLOCK
   : INSTBEGIN DECLARS INSTRL INSTEND                                    {% do
                                                                              checkRecoverableError $1 $4
                                                                              return $ G.CodeBlock $ reverse $3 }
@@ -402,45 +372,37 @@ INSTBEGIN : instructionsBegin                                           {% do
                                                                              return $1 }
 
 INSTEND :: { Maybe G.RecoverableError }
-INSTEND
   : instructionsEnd                                                     {% do
                                                                              ST.exitScope
                                                                              return Nothing }
   | error                                                               { Just G.MissingInstructionListEnd }
 
 DECLARS :: { () }
-DECLARS
   : with DECLARSL DECLAREND                                             {% do
                                                                              checkRecoverableError $1 $3
                                                                              addIdsToSymTable (reverse $2) }
 
 DECLAREND :: { Maybe G.RecoverableError }
-DECLAREND
   : declarend                                                           { Nothing }
   | error                                                               { Just G.MissingDeclarationListEnd }
 
 DECLARSL :: { [NameDeclaration] }
-DECLARSL
   : DECLARSL comma DECLAR                                               { $3:$1 }
   | DECLAR                                                              { [$1] }
 
 VARTYPE :: { ST.Category }
-VARTYPE
   : const                                                               { ST.Constant }
   | var                                                                 { ST.Variable }
 
 DECLAR :: { NameDeclaration }
-DECLAR
   : VARTYPE ID ofType TYPE                                              { ($1, $2, $4) }
   | VARTYPE ID ofType TYPE asig EXPR                                    { ($1, $2, $4) }
 
 INSTRL :: { G.Instructions }
-INSTRL
   : INSTRL seq INSTR                                                    { $3 : $1 }
   | INSTR                                                               { [$1] }
 
 INSTR :: { G.Instruction }
-INSTR
   : LVALUE asig EXPR                                                    {% do
                                                                           checkConstantReassignment $1
                                                                           return $ G.InstAsig $1 $3 }
@@ -464,13 +426,11 @@ INSTR
   | forEachBegin ID withTitaniteFrom EXPR CODEBLOCK forEachEnd          { G.InstForEach $2 $4 $5 }
 
 FUNCALL :: { (L.Token, G.Id, G.Params) }
-FUNCALL
   : summon ID FUNCPARS                                                  {% do
                                                                           checkIdAvailability $2
                                                                           return ($1, $2, $3) }
 
 IFCASES :: { G.IfCases }
-IFCASES
   : IFCASES IFCASE                                                      { $2 : $1 }
   | IFCASE                                                              { [$1] }
 
