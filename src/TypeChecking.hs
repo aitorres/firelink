@@ -4,6 +4,8 @@ import qualified Lexer as L
 import Data.List (sort)
 
 newtype PropType = PropType (String, Type)
+  deriving Show
+
 data Type
   = BigIntT
   | SmallIntT
@@ -23,6 +25,7 @@ data Type
   | AliasT String
   | Any -- Currently only used in empty set, empty array and null pointers
   | TypeError
+  deriving Show
 
 instance Eq Type where
   BigIntT == BigIntT = True
@@ -40,6 +43,7 @@ instance Eq Type where
   TypeList t == TypeList t' = t == t'
   AliasT s == AliasT s' = s == s'
   TypeError == TypeError = True
+  Any == _ = True
   _ == Any = True
   _ == _ = False
 

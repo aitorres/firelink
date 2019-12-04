@@ -6,6 +6,7 @@ import qualified Lexer as L
 import qualified Grammar as G
 
 import Data.Maybe
+import Data.Sort (sortBy)
 
 type Scope = Int
 type ScopeStack = [Scope]
@@ -63,18 +64,29 @@ isFieldsExtra :: Extra -> Bool
 isFieldsExtra (Fields _ _) = True
 isFieldsExtra _ = False
 
+isArgPosition :: Extra -> Bool
+isArgPosition ArgPosition{} = True
+isArgPosition _ = False
+
+findArgPosition :: [Extra] -> Extra
+findArgPosition = head . filter isArgPosition
+
 findFieldsExtra :: Extra -> Maybe Extra
 findFieldsExtra a@Fields{} = Just a
 findFieldsExtra (CompoundRec _ _ e) = findFieldsExtra e
 findFieldsExtra (Recursive _ e) = findFieldsExtra e
 findFieldsExtra _ = Nothing
 
-extractTypeFromExtra :: Extra -> Maybe Extra
-extractTypeFromExtra a@Recursive{} = Just a
-extractTypeFromExtra a@Compound{} = Just a
-extractTypeFromExtra a@CompoundRec{} = Just a
-extractTypeFromExtra a@Fields{} = Just a
-extractTypeFromExtra a@Simple{} = Just a
+isExtraAType :: Extra -> Bool
+isExtraAType Recursive{} = True
+isExtraAType Compound{} = True
+isExtraAType CompoundRec{} = True
+isExtraAType Fields{} = True
+isExtraAType Simple{} = True
+isExtraAType _ = False
+
+extractTypeFromExtra :: [Extra] -> Extra
+extractTypeFromExtra = head . filter isExtraAType
 
 {-|
     Dictionary entries represent "names" in the programming languages. With
@@ -100,6 +112,15 @@ type ParserMonad = RWS.RWST () SemanticErrors SymTable IO
 
 findAllInScope :: Scope -> Dictionary -> DictionaryEntries
 findAllInScope s dict = filter (\entry -> scope entry == s) $ concatMap snd $ Map.toList dict
+
+sortByArgPosition :: DictionaryEntries -> DictionaryEntries
+sortByArgPosition = sortBy sortFun
+    where
+        sortFun :: DictionaryEntry -> DictionaryEntry -> Ordering
+        sortFun d d' =
+            let (ArgPosition i) = findArgPosition $ extra d in
+            let (ArgPosition j) = findArgPosition $ extra d' in
+                i `compare` j
 
 findChain :: String -> Dictionary -> DictionaryEntries
 findChain = Map.findWithDefault []
