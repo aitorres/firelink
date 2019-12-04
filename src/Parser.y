@@ -195,16 +195,22 @@ NON_OPENER_CODEBLOCK
 NON_OPENER_INSTEND :: { Maybe G.RecoverableError }
 NON_OPENER_INSTEND
   : instructionsEnd                                                     { Nothing }
-  | error                                                               { Just G.MissingInstructionEnd }
+  | error                                                               { Just G.MissingInstructionListEnd }
 
 ALIASES :: { () }
 ALIASES
-  : aliasListBegin ALIASL aliasListEnd                                  {% do
+  : aliasListBegin ALIASL ALIASLISTEND                                  {% do
+                                                                            checkRecoverableError $1 $3
                                                                             addIdsToSymTable $ reverse $2
                                                                             (dict, _, s) <- RWS.get
                                                                             RWS.put (dict, [1, 0], s) }
   | {- empty -}                                                         { () }
 
+
+ALIASLISTEND :: { Maybe G.RecoverableError }
+ALIASLISTEND
+ : aliasListEnd                                                         { Nothing }
+ | error                                                                { Just G.MissingAliasListEnd }
 
 ALIASL :: { [NameDeclaration] }
 ALIASL
@@ -269,12 +275,12 @@ EXPR
 EXPRL :: { [G.Expr] }
 EXPRL
   : {- empty -}                                                         { [] }
-  | EXPRLNOTEMPTY                                                       { $1 }
+  | NONEMPTYEXPRL                                                       { $1 }
 
-EXPRLNOTEMPTY :: { [G.Expr] }
-EXPRLNOTEMPTY
+NONEMPTYEXPRL :: { [G.Expr] }
+NONEMPTYEXPRL
   : EXPR                                                                { [$1] }
-  | EXPRLNOTEMPTY comma EXPR                                           { $3:$1 }
+  | NONEMPTYEXPRL comma EXPR                                            { $3:$1 }
 
 METHODS :: { () }
 METHODS
@@ -391,7 +397,7 @@ INSTEND
   : instructionsEnd                                                     {% do
                                                                              ST.exitScope
                                                                              return Nothing }
-  | error                                                               {% return $ Just G.MissingInstructionEnd }
+  | error                                                               {% return $ Just G.MissingInstructionListEnd }
 
 DECLARS :: { () }
 DECLARS

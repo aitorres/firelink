@@ -151,8 +151,10 @@ data GrammarType
 
 data RecoverableError
   = MissingProgramEnd
-  | MissingInstructionEnd
+  | MissingInstructionListEnd
+  | MissingAliasListEnd
 
 instance Show RecoverableError where
   show MissingProgramEnd = "Unclosed program block: forgot to say " ++ U.bold ++ "farewell ashen one" ++ U.nocolor
-  show MissingInstructionEnd = "Unclosed instruction block: remember that " ++ U.bold ++ "you died" ++ U.nocolor
+  show MissingInstructionListEnd = "Unclosed instruction block: remember that " ++ U.bold ++ "you died" ++ U.nocolor
+  show MissingAliasListEnd = "Unclosed alias list: be thankful of the " ++ U.bold ++ "help received" ++ U.nocolor
