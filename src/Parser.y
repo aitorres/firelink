@@ -922,6 +922,16 @@ checkAsciiOf e = do
     T.CharT -> T.BigIntT
     T.StringT -> T.ArrayT T.BigIntT
     _ -> T.TypeError)
+
+
+checkColConcat :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
+checkColConcat e e' = do
+  t <- getType e
+  t' <- getType e'
+  return (case (t, t') of
+    (a@T.ArrayT{}, a'@T.ArrayT{}) | a == a' -> a
+    (s@T.StringT, s'@T.StringT) -> s
+    _ -> T.TypeError)
 minBigInt :: Int
 minBigInt = - 2147483648
 
@@ -985,10 +995,10 @@ instance TypeCheckable G.BaseExpr where
   getType (G.EvalFunc i params) = functionsCheck i params
   getType (G.MemAccess e) = memAccessCheck e
   getType (G.AsciiOf e) = checkAsciiOf e
+  getType (G.ColConcat e e') = checkColConcat e e'
 
 
   getType (G.Access e1 e2) = return T.TypeError -- TODO: Accessor type
-  getType (G.ColConcat e e') = return T.TypeError
   getType (G.SetUnion e e') = return T.TypeError
   getType (G.SetIntersect e e') = return T.TypeError
   getType (G.SetDiff e e') = return T.TypeError

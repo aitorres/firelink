@@ -44,7 +44,8 @@ in your inventory
     with orange saponite say summon myIntFun granting
         ascii_of throw a patataPointer, |a| to the knight \
     with orange saponite say (throw a patataPointer) lt |a| \
-    with orange saponite say ascii_of patataCuento
+    with orange saponite say ascii_of patataCuento \
+    with orange saponite say patataArray >-< x1
 you died
 
 
