@@ -987,4 +987,44 @@ instance TypeCheckable ST.DictionaryEntry where
 
     | otherwise = error "error on getType for dict entries"
 
+instance TypeCheckable ST.Extra where
+  getType (ST.Recursive s extra) = do
+      t <- getType extra
+      if s == ST.arrow then return $ T.PointerT t
+      else if s == ST.armor then return $ T.SetT t
+      else return T.TypeError -- This should not happen, but life is hard
+
+  -- For the moment, ST.Compound only corresponds to string
+  getType (ST.Compound s _) = return $ T.StringT
+
+  -- For the moment, ST.CompoundRect only corresponds to array
+  getType (ST.CompoundRec s _ extra) = getType extra >>= \t -> return $ T.ArrayT t
+
+  getType (ST.Fields ST.Callable scope) = do
+    (dict, _, _) <- RWS.get
+    types <- mapM getType $ ST.findAllInScope scope dict
+    return $ T.TypeList types
+
+  getType (ST.Fields b scope) = do
+    (dict, _, _) <- RWS.get
+    let entries = ST.findAllInScope scope dict
+    let entryNames = map ST.name entries
+    types <- mapM getType entries
+    case b of
+      ST.Record -> return $ T.RecordT $ map T.PropType $ zip entryNames types
+      _ -> return $ T.UnionT $ map T.PropType $ zip entryNames types
+
+  getType ST.EmptyFunction = return $ T.TypeList []
+
+  getType (ST.Simple s)
+      | s == ST.smallHumanity = return T.SmallIntT
+      | s == ST.humanity = return T.BigIntT
+      | s == ST.hollow = return T.FloatT
+      | s == ST.sign = return T.CharT
+      | s == ST.bonfire = return T.TrileanT
+      | s == ST.void = return T.VoidT
+      | otherwise = return $ T.AliasT s -- works because it always exists
+                                        -- it shouldn't be added otherwise
+
+
 }
