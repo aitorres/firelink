@@ -8,6 +8,7 @@ import Data.Maybe
 import qualified Grammar as G
 import qualified Control.Monad.RWS as RWS
 import qualified TypeChecking as T
+import Utils
 }
 
 %name                                                                     parse
@@ -212,18 +213,15 @@ ALIASL :: { [NameDeclaration] }
   | ALIAS                                                               { [$1] }
 
 ALIAS :: { NameDeclaration }
-  : alias ID TYPE                                                       { (ST.Type, $2, $3) }
+  : alias ID TYPE                                                       { (ST.Type, $2, $3, Nothing) }
 
 LVALUE :: { G.Expr }
   : ID                                                                  {% do
-                                                                            checkIdAvailability $1
                                                                             let (G.Id tk) = $1
                                                                             buildAndCheckExpr tk $ G.IdExpr $1 }
   | EXPR accessor ID                                                    {% do
                                                                             let expr = G.Access $1 $3
-                                                                            ret <- buildAndCheckExpr $2 expr
-                                                                            checkPropertyAvailability ret
-                                                                            return ret }
+                                                                            buildAndCheckExpr $2 expr }
   | EXPR arrOpen EXPR arrClose                                          {% buildAndCheckExpr $2 $ G.IndexAccess $1 $3 }
   | memAccessor EXPR                                                    {% buildAndCheckExpr $1 $ G.MemAccess $2 }
 
@@ -289,7 +287,7 @@ METHOD :: { () }
 
 FUNCPREFIX :: { Maybe (ST.Scope, G.Id) }
   : functionBegin ID METHODPARS functionType TYPE                       {% addFunction (ST.Function,
-                                                                              $2, G.Callable (Just $5) $3) }
+                                                                              $2, G.Callable (Just $5) $3, Nothing) }
 FUNC :: { () }
   : FUNCPREFIX NON_OPENER_CODEBLOCK functionEnd                         {% case $1 of
                                                                             Nothing -> return ()
@@ -297,7 +295,7 @@ FUNC :: { () }
 
 PROCPREFIX :: { Maybe (ST.Scope, G.Id) }
   : procedureBegin ID PROCPARSDEC                                       {% addFunction (ST.Procedure,
-                                                                              $2, G.Callable Nothing $3) }
+                                                                              $2, G.Callable Nothing $3, Nothing) }
 PROC :: { () }
   : PROCPREFIX NON_OPENER_CODEBLOCK procedureEnd                        {% case $1 of
                                                                             Nothing -> return ()
@@ -390,13 +388,10 @@ DECLARSL :: { [NameDeclaration] }
   : DECLARSL comma DECLAR                                               { $3:$1 }
   | DECLAR                                                              { [$1] }
 
-VARTYPE :: { ST.Category }
-  : const                                                               { ST.Constant }
-  | var                                                                 { ST.Variable }
-
 DECLAR :: { NameDeclaration }
-  : VARTYPE ID ofType TYPE                                              { ($1, $2, $4) }
-  | VARTYPE ID ofType TYPE asig EXPR                                    { ($1, $2, $4) }
+  : var ID ofType TYPE                                                  { (ST.Variable, $2, $4, Nothing) }
+  | var ID ofType TYPE asig EXPR                                        { (ST.Variable, $2, $4, Just $6) }
+  | const ID ofType TYPE asig EXPR                                      { (ST.Constant, $2, $4, Just $6) }
 
 INSTRL :: { G.Instructions }
   : INSTRL seq INSTR                                                    { $3 : $1 }
@@ -476,7 +471,7 @@ PARSLIST :: { G.Params }
 
 {
 
-type NameDeclaration = (ST.Category, G.Id, G.GrammarType)
+type NameDeclaration = (ST.Category, G.Id, G.GrammarType, Maybe G.Expr)
 type ArgDeclaration = (G.ArgType, G.Id, G.GrammarType)
 type AliasDeclaration = (G.Id, G.GrammarType)
 type RecordItem = AliasDeclaration
@@ -485,12 +480,7 @@ buildAndCheckExpr :: L.Token -> G.BaseExpr -> ST.ParserMonad G.Expr
 buildAndCheckExpr tk bExpr = do
   t <- getType bExpr
   if t == T.TypeError
-    then RWS.tell [ST.SemanticError "Type error" (L.Token
-      { L.aToken = L.TkId
-      , L.capturedString = "hola"
-      , L.cleanedString = "hola"
-      , L.posn = (L.posn tk)
-      })]
+    then RWS.tell [ST.SemanticError "Type error" tk]
     else return ()
   return G.Expr
     { G.expAst = bExpr
@@ -499,6 +489,7 @@ buildAndCheckExpr tk bExpr = do
     }
 
 extractFieldsForNewScope :: G.GrammarType -> Maybe [RecordItem]
+extractFieldsForNewScope (G.Callable (Just s) _) = extractFieldsForNewScope s
 extractFieldsForNewScope (G.Compound _ s _) = extractFieldsForNewScope s
 extractFieldsForNewScope (G.Record _ s) = Just s
 extractFieldsForNewScope _ = Nothing
@@ -513,10 +504,10 @@ parseErrors errors =
       name = show tk
       line = show $ L.row pn
       column = show $ L.col pn
-      header = "\x1b[1m\x1b[31mYOU DIED!!\x1b[0m Parser error: "
+      header = bold ++ red ++ "YOU DIED!!" ++ nocolor ++ " Parser error: "
       endmsg = "\n\nFix your syntax errors, ashen one."
-      position = "line \x1b[1m\x1b[31m" ++ line ++ "\x1b[0m, column \x1b[1m\x1b[31m" ++ column ++ "\x1b[0m."
-      msg = header ++ "Unexpected token \x1b[1m\x1b[31m" ++ name ++ "\x1b[0m at " ++ position ++ endmsg
+      position = "line " ++ bold ++ red ++ line ++ nocolor ++ ", column " ++ bold ++ red ++ column ++ nocolor ++ "."
+      msg = header ++ "Unexpected token " ++ bold ++ red ++ name ++ nocolor ++ " at " ++ position ++ endmsg
   in  fail msg
 
 addIdsToSymTable :: [NameDeclaration] -> ST.ParserMonad ()
@@ -524,25 +515,38 @@ addIdsToSymTable ids = do
   RWS.mapM_ (addIdToSymTable Nothing) ids
 
 addIdToSymTable :: Maybe Int -> NameDeclaration -> ST.ParserMonad ()
-addIdToSymTable mi d@(c, (G.Id tk@(L.Token {L.aToken=at, L.cleanedString=idName})), t) = do
+addIdToSymTable mi d@(c, gId@(G.Id tk@(L.Token {L.aToken=at, L.cleanedString=idName})), t, maybeExp) = do
   maybeIdEntry <- ST.dictLookup idName
   maybeTypeEntry <- findTypeOnEntryTable t
   (_, (currScope:_), _) <- RWS.get
   case maybeIdEntry of
     -- The name doesn't exists on the table, we just add it
-    Nothing -> insertIdToEntry mi t
-      ST.DictionaryEntry
+    Nothing -> do
+      insertIdToEntry mi t ST.DictionaryEntry
         { ST.name = idName
         , ST.category = c
         , ST.scope = currScope
         , ST.entryType = ST.name <$> maybeTypeEntry
         , ST.extra = []
         }
+      entry <- checkIdAvailability gId
+      case (entry, maybeExp) of
+        (Nothing, _) -> return ()
+        (_, Nothing) -> return ()
+        (Just en, Just exp) -> do
+          checkTypeOfAssignmentOnInit en exp
 
     -- The name does exists on the table, we just add it depending on the scope
     Just entry -> do
       let scope = ST.scope entry
-      if currScope /= scope
+      let category = ST.category entry
+      if category == ST.Type
+      then RWS.tell $ [ST.SemanticError ("Name " ++ show tk ++ " conflicts with an type alias") tk]
+      else if category == ST.Procedure
+      then RWS.tell $ [ST.SemanticError ("Name " ++ show tk ++ " conflicts with a procedure") tk]
+      else if category == ST.Function
+      then RWS.tell $ [ST.SemanticError ("Name " ++ show tk ++ " conflicts with a function") tk]
+      else if currScope /= scope
       then insertIdToEntry mi t ST.DictionaryEntry
         { ST.name = idName
         , ST.category = c
@@ -555,27 +559,34 @@ addIdToSymTable mi d@(c, (G.Id tk@(L.Token {L.aToken=at, L.cleanedString=idName}
 
 insertIdToEntry :: Maybe Int -> G.GrammarType -> ST.DictionaryEntry -> ST.ParserMonad ()
 insertIdToEntry mi t entry = do
-  ex <- buildExtraForType t
+  maybeExtra <- buildExtraForType t
   let pos = (case mi of
               Nothing -> []
               Just i -> [ST.ArgPosition i])
-  ST.addEntry entry{ST.extra = pos ++ ex}
-  -- To add the record params to the dictionary
-  case extractFieldsForNewScope t of
+  case maybeExtra of
     Nothing -> return ()
-    Just s ->  do
-      ST.enterScope
-      addIdsToSymTable $ map (\(a, b) -> (ST.RecordItem, a, b)) s
-      ST.exitScope
-  case extractFunParamsForNewScope t of
-    -- If it is nothing then this is not a function
-    Nothing -> return ()
-    Just s -> do
-      ST.enterScope
-      RWS.mapM_ (\(i, n) -> addIdToSymTable (Just i) n) $ zip [0..] $
-        map (\(argType, i, t) -> (if argType == G.Val
-                             then ST.ValueParam
-                             else ST.RefParam, i, t)) s
+    Just ex -> do
+      ST.addEntry entry{ST.extra = pos ++ ex}
+      -- To add the record params to the dictionary
+      case extractFieldsForNewScope t of
+        Nothing -> return ()
+        Just s ->  do
+          let (ST.Fields _ scope) = fromJust . head $ filter isJust $ map ST.findFieldsExtra ex
+          (dict, scopes, curr) <- RWS.get
+          RWS.put (dict, scope:scopes, curr)
+          addIdsToSymTable $ map (\(a, b) -> (ST.RecordItem, a, b, Nothing)) s
+          ST.exitScope
+      case extractFunParamsForNewScope t of
+        -- If it is nothing then this is not a function
+        Nothing -> return ()
+        Just s -> do
+          (dict, scopes, curr) <- RWS.get
+          let (ST.Fields ST.Callable scope) = head $ filter ST.isFieldsExtra ex
+          RWS.put (dict, scope:scopes, curr)
+          RWS.mapM_ (\(i, n) -> addIdToSymTable (Just i) n) $ zip [0..] $
+            map (\(argType, i, t) -> (if argType == G.Val
+                                then ST.ValueParam
+                                else ST.RefParam, i, t, Nothing)) s
 
 checkConstantReassignment :: G.Expr -> ST.ParserMonad ()
 checkConstantReassignment e = case G.expAst e of
@@ -614,62 +625,13 @@ checkRecoverableError openTk maybeErr = do
       RWS.tell [ST.SemanticError (errorName ++ " (recovered from to continue parsing)") openTk]
       return ()
 
--- The following function only have sense (for the moment) on lvalues
---  - Ids
---  - Records
---  - Arrays
-checkPropertyAvailability :: G.Expr -> ST.ParserMonad ()
-checkPropertyAvailability e = case G.expAst e of
-  -- If it is a record accessing, we need to find the _scope_ of the
-  -- left side of the expression where to search for the variable
-  a@(G.Access expr gId@(G.Id tk@(L.Token {L.cleanedString=s}))) -> do
-    maybeScope <- findScopeToSearchOf expr
-    case maybeScope of
-      Nothing -> RWS.tell [ST.SemanticError ("Property " ++ s ++ " does not exists") tk]
-      Just s -> do
-        (dict, scopes, curr) <- RWS.get
-        RWS.put (dict, s:scopes, curr)
-        checkIdAvailability gId
-        RWS.put (dict, scopes, curr)
-
-  _ -> error "invalid usage of checkPropertyAvailability"
-
 extractFieldsFromExtra :: [ST.Extra] -> ST.Extra
 extractFieldsFromExtra [] = error "The `extra` array doesn't have any `Fields` item"
 extractFieldsFromExtra (s@ST.Fields{} : _) = s
 extractFieldsFromExtra (_:ss) = extractFieldsFromExtra ss
 
-findScopeToSearchOf :: G.Expr -> ST.ParserMonad (Maybe ST.Scope)
-findScopeToSearchOf e = case G.expAst e of
-  -- The scope of an id is just the scope of its entry
-  G.IdExpr gId -> do
-    maybeEntry <- checkIdAvailability gId
-    case maybeEntry of
-      Nothing -> return Nothing
-      Just ST.DictionaryEntry {ST.extra=extra} -> do
-        let (ST.Fields s) = extractFieldsFromExtra extra
-        return $ Just s
-
-  -- The scope of an record accessing is the scope of its accessing property
-  G.Access expr gId -> do
-    maybeScopeOf <- findScopeToSearchOf expr
-    case maybeScopeOf of
-      Nothing -> return Nothing
-      Just s -> do
-        (dict, scopes, curr) <- RWS.get
-        RWS.put (dict, s:scopes, curr)
-        scope <- findScopeToSearchOf $ G.Expr
-                                        { G.expAst=G.IdExpr gId
-                                        , G.expType=T.TypeError
-                                        , G.expTok=(G.expTok expr)}
-        RWS.put (dict, scopes, curr)
-        return scope
-
-  -- The scope of a index acces is the scope of it's id
-  G.IndexAccess expr _ -> findScopeToSearchOf expr
-
 addFunction :: NameDeclaration -> ST.ParserMonad (Maybe (ST.Scope, G.Id))
-addFunction d@(_, i@(G.Id tk@(L.Token {L.cleanedString=idName})), _) = do
+addFunction d@(_, i@(G.Id tk@(L.Token {L.cleanedString=idName})), _, _) = do
   (dict, stack, currScope) <- RWS.get
   maybeEntry <- ST.dictLookup idName
   case maybeEntry of
@@ -715,14 +677,16 @@ findTypeOnEntryTable (G.Callable (Just t) _) = findTypeOnEntryTable t
 
 findTypeOnEntryTable (G.Callable Nothing _) = return Nothing
 
-buildExtraForType :: G.GrammarType -> ST.ParserMonad [ST.Extra]
+buildExtraForType :: G.GrammarType -> ST.ParserMonad (Maybe [ST.Extra])
 
 -- For string alike data types
 buildExtraForType t@(G.Simple _ maybeSize) = do
-  t' <- (ST.name . fromJust) <$> findTypeOnEntryTable t
-  return [case maybeSize of
-    Just e -> ST.Compound t' e
-    Nothing -> ST.Simple t']
+  maybeType <- findTypeOnEntryTable t
+  case maybeType of
+    Nothing -> return Nothing
+    Just t' -> return $ Just [case maybeSize of
+      Just e -> ST.Compound (ST.name t') e
+      Nothing -> ST.Simple (ST.name t')]
 
 -- For array alike data types
 buildExtraForType t@(G.Compound _ tt@(G.Simple _ _) maybeExpr) = do
@@ -730,39 +694,72 @@ buildExtraForType t@(G.Compound _ tt@(G.Simple _ _) maybeExpr) = do
   constructor <- (ST.name . fromJust) <$> findTypeOnEntryTable t -- This call should never fail
   case maybeTypeEntry of
     Just t -> do
-      extras <- buildExtraForType tt
+      extras <- fromJust <$> buildExtraForType tt -- safe
       let newExtra = if null extras then (ST.Simple $ ST.name t) else (head extras)
-      return (case maybeExpr of
+      return $ Just (case maybeExpr of
         Just e -> [ST.CompoundRec constructor e newExtra]
         Nothing -> [ST.Recursive constructor newExtra])
+    Nothing -> return Nothing
 
 buildExtraForType t@(G.Compound _ tt@(G.Compound{}) maybeExpr) = do
-  extra' <- head <$> buildExtraForType tt
-  constructor <- (ST.name . fromJust) <$> findTypeOnEntryTable t -- This call should never fail
-  return $ case maybeExpr of
-    Just e -> [ST.CompoundRec constructor e extra']
-    Nothing -> [ST.Recursive constructor extra']
+  maybeExtra <- buildExtraForType tt
+  case maybeExtra of
+    Nothing -> return Nothing
+    Just (extra':_) -> do
+      constructor <- (ST.name . fromJust) <$> findTypeOnEntryTable t -- This call should never fail
+      return $ case maybeExpr of
+        Just e -> Just [ST.CompoundRec constructor e extra']
+        Nothing -> Just [ST.Recursive constructor extra']
 
 buildExtraForType t@(G.Compound _ tt@(G.Record{}) maybeExpr) = do
-  extra' <- head <$> buildExtraForType tt
-  constructor <- (ST.name . fromJust) <$> findTypeOnEntryTable t -- This call should never fail
-  return $ case maybeExpr of
-    Just e -> [ST.CompoundRec constructor e extra', extra']
-    Nothing -> [ST.Recursive constructor extra', extra']
+  maybeExtra <- buildExtraForType tt
+  case maybeExtra of
+    Nothing -> return Nothing
+    Just (extra':_) -> do
+      constructor <- (ST.name . fromJust) <$> findTypeOnEntryTable t -- This call should never fail
+      return $ case maybeExpr of
+        Just e -> Just [ST.CompoundRec constructor e extra']
+        Nothing -> Just [ST.Recursive constructor extra']
 
-buildExtraForType t@(G.Record _ _) = do
-  (_, _, currScope) <- RWS.get
-  return [ST.Fields $ currScope + 1]
+buildExtraForType t@(G.Record tk _) = do
+  (d, s, currScope) <- RWS.get
+  let constr = (case L.aToken tk of
+                  L.TkRecord -> ST.Record
+                  L.TkUnionStruct -> ST.Union)
 
-buildExtraForType t@(G.Callable _ []) = return [ST.EmptyFunction]
+  let ret = Just [ST.Fields constr $ currScope + 1]
+  RWS.put $ (d, s, currScope + 1)
+  return ret
 
-buildExtraForType t@(G.Callable _ _) = do
-  (_, _, currScope) <- RWS.get
-  return [ST.Fields $ currScope + 1]
+buildExtraForType t@(G.Callable t' []) = do
+  case t' of
+    -- For void functions
+    Nothing -> return $ Just [ST.EmptyFunction]
+    Just tt -> do
+      mExtra <- buildExtraForType tt
+      case mExtra of
+        Nothing -> return Nothing
+        Just extras -> return $ Just (ST.EmptyFunction : extras)
 
+buildExtraForType t@(G.Callable t' _) = do
+  case t' of
+    Nothing -> do
+      (d, s, currScope) <- RWS.get
+      let ret = Just [ST.Fields ST.Callable $ currScope + 1]
+      RWS.put (d, s, currScope + 1)
+      return ret
+    Just tt -> do
+      mExtra <- buildExtraForType tt
+      case mExtra of
+        Nothing -> return $ Nothing
+        Just extras -> do
+          (d, s, currScope) <- RWS.get
+          let ret = Just ((ST.Fields ST.Callable $ currScope + 1) : extras)
+          RWS.put (d, s, currScope + 1)
+          return ret
 
 -- For anything else
-buildExtraForType _ = return []
+buildExtraForType _ = return $ Just []
 
 ------------------
 -- TYPECHECKING --
@@ -789,8 +786,8 @@ isLogicalType = isOneOfTypes T.booleanTypes
 isNumberType :: T.Type -> Bool
 isNumberType t = not . null $ filter (==t) T.numberTypes
 
-isIntegerType :: TypeChecker
-isIntegerType = isOneOfTypes T.integerTypes
+isIntegerType :: T.Type -> Bool
+isIntegerType t = not . null $ filter (==t) T.integerTypes
 
 isComparableType :: TypeChecker
 isComparableType = isOneOfTypes T.comparableTypes
@@ -826,11 +823,11 @@ typeCheck (a, ea) (b, eb) mt = do
               Just t -> t)
       else T.TypeError)
 
-arithmeticCheck :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
-arithmeticCheck a b = typeCheck (a, T.numberTypes) (b, T.numberTypes) Nothing
-
 intArithmeticCheck :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
 intArithmeticCheck a b = typeCheck (a, T.integerTypes) (b, T.integerTypes) Nothing
+
+arithmeticCheck :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
+arithmeticCheck a b = typeCheck (a, T.numberTypes) (b, T.numberTypes) Nothing
 
 logicalCheck :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
 logicalCheck a b = typeCheck (a, T.booleanTypes) (b, T.booleanTypes) Nothing
@@ -846,14 +843,82 @@ equatableCheck a b = do
 comparableCheck :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
 comparableCheck = equatableCheck
 
+checkIndexAccess :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
+checkIndexAccess array index = do
+  arrayType <- getType array
+  indextype <- getType index
+  case arrayType of
+    T.ArrayT t -> if isIntegerType indextype
+      then return t
+      else return T.TypeError
+    _ -> return T.TypeError
 
 functionsCheck :: G.Id -> [G.Expr] -> ST.ParserMonad T.Type
 functionsCheck funId exprs = do
   let exprsTypes = exprsToTypes exprs
-  maybeFunEntry <- checkIdAvailability funId
-  case maybeFunEntry of
-    Nothing -> return T.TypeError
-    Just entry -> return T.TypeError
+  funType <- getType funId
+  case funType of
+    T.FunctionT domain range -> do
+      if exprsTypes == domain
+        then return range
+        else return T.TypeError
+    _ -> return T.TypeError
+
+memAccessCheck :: G.Expr -> ST.ParserMonad T.Type
+memAccessCheck expr = do
+  t <- getType expr
+  case t of
+    T.PointerT t' -> return t'
+    _ -> return T.TypeError
+
+checkAsciiOf :: G.Expr -> ST.ParserMonad T.Type
+checkAsciiOf e = do
+  t <- getType e
+  return (case t of
+    T.CharT -> T.BigIntT
+    T.StringT -> T.ArrayT T.BigIntT
+    _ -> T.TypeError)
+
+
+checkColConcat :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
+checkColConcat e e' = do
+  t <- getType e
+  t' <- getType e'
+  return (case (t, t') of
+    (a@T.ArrayT{}, a'@T.ArrayT{}) | a == a' -> a
+    (s@T.StringT, s'@T.StringT) -> s
+    _ -> T.TypeError)
+
+checkSetOp :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
+checkSetOp e e' = do
+  t <- getType e
+  t' <- getType e'
+  return (case (t, t') of
+    (a@T.SetT{}, a'@T.SetT{}) | a == a' -> a
+    _ -> T.TypeError)
+
+checkAccess :: G.Expr -> G.Id -> ST.ParserMonad T.Type
+checkAccess e (G.Id L.Token{L.cleanedString=i}) = do
+  t <- getType e
+  return (case t of
+    T.RecordT properties -> checkProperty properties
+    T.UnionT properties -> checkProperty properties
+    _ -> T.TypeError)
+  where
+    checkProperty :: [T.PropType] -> T.Type
+    checkProperty props =
+      case filter ((==i) . fst) $ map (\(T.PropType e) -> e) props of
+        ((_,a):_) -> a
+        _ -> T.TypeError
+
+
+checkTypeOfAssignmentOnInit :: ST.DictionaryEntry -> G.Expr -> ST.ParserMonad ()
+checkTypeOfAssignmentOnInit entry expr = do
+  entryType <- getType entry
+  exprType <- getType expr
+  if exprType `T.canBeConvertedTo` entryType
+  then return ()
+  else RWS.tell [ST.SemanticError "Invalid asignment" (G.expTok expr)]
 
 minBigInt :: Int
 minBigInt = - 2147483648
@@ -868,7 +933,11 @@ maxSmallInt :: Int
 maxSmallInt = 32767
 
 instance TypeCheckable G.Id where
-  getType _ = error "not implemented yet"
+  getType gId = do
+    idEntry <- checkIdAvailability gId
+    case idEntry of
+      Nothing -> return T.TypeError
+      Just entry -> getType entry
 
 instance TypeCheckable G.Expr where
   getType = return . G.expType
@@ -878,7 +947,7 @@ instance TypeCheckable G.BaseExpr where
   getType G.TrueLit = return T.TrileanT
   getType G.FalseLit = return T.TrileanT
   getType G.UndiscoveredLit = return T.TrileanT
-  getType G.NullLit = return T.TypeError -- TODO: check if okay
+  getType G.NullLit = return $ T.PointerT T.Any
 
   -- A literal of an integer is valid if it is on the correct range
   getType (G.IntLit n) =
@@ -894,12 +963,11 @@ instance TypeCheckable G.BaseExpr where
   getType (G.ArrayLit a) = containerCheck a T.ArrayT
   getType (G.SetLit a) = containerCheck a T.SetT
 
-  getType (G.EvalFunc id _) = return T.TypeError -- TODO: Check if okay
   getType (G.Add a b) = arithmeticCheck a b
   getType (G.Substract a b) = arithmeticCheck a b
   getType (G.Multiply a b) = arithmeticCheck a b
   getType (G.Divide a b) = arithmeticCheck a b
-  getType (G.Mod a b) =  intArithmeticCheck a b -- TODO: Fix
+  getType (G.Mod a b) = intArithmeticCheck a b
   getType (G.Negative a) = arithmeticCheck a a -- cheating
   getType (G.Lt a b) = comparableCheck a b
   getType (G.Lte a b) = comparableCheck a b
@@ -910,34 +978,82 @@ instance TypeCheckable G.BaseExpr where
   getType (G.And a b) = logicalCheck a b
   getType (G.Or a b) = logicalCheck a b
   getType (G.Not a) = logicalCheck a a -- cheating
-  getType (G.Access e i) = return T.TypeError -- TODO: Accessor type
-  getType (G.IndexAccess e1 e2) = return T.TypeError -- TODO: Accessor type
-  getType (G.MemAccess e) = return T.TypeError -- TODO: Mem access
-  getType _ = return T.TypeError -- TODO: Finish implementation
+  getType (G.IdExpr i) = getType i
+  getType (G.IndexAccess e i) = checkIndexAccess e i
+  getType (G.EvalFunc i params) = functionsCheck i params
+  getType (G.MemAccess e) = memAccessCheck e
+  getType (G.AsciiOf e) = checkAsciiOf e
+  getType (G.ColConcat e e') = checkColConcat e e'
+  getType (G.SetUnion e e') = checkSetOp e e'
+  getType (G.SetIntersect e e') = checkSetOp e e'
+  getType (G.SetDiff e e') = checkSetOp e e'
+  getType (G.Access e i) = checkAccess e i
 
-{-
-    | Procedure
-    | Function
-    | RefParam
-    | ValueParam
 instance TypeCheckable ST.DictionaryEntry where
-  getType entry{ST.entryType=Just entryType, ST.category = cat, ST.extra = extras}
+  getType entry@ST.DictionaryEntry{ST.entryType=Just entryType, ST.category = cat, ST.extra = extras}
     -- If it is an alias, return just the name
-    | cat == T.Type = return $ T.AliasT (ST.name entry)
-    | cat `elem` [T.Procedure, T.Function] = do
-      let isEmptyFunction = not . null $ filter (\e -> case e of
-                                                        ST.EmptyFunction -> True
-                                                        _ -> False) extras
-      range <- (case cat of
-        T.Procedure -> return T.Void
-        T.Function -> getType entry{ST.category=ST.variable}) -- cheating
+    | cat == ST.Type = return $ T.AliasT (ST.name entry)
 
+
+    | cat `elem` [ST.Function, ST.Procedure] = do
+      let isEmptyFunction = not . null $ filter ST.isEmptyFunction extras
+      range <- (case cat of
+        ST.Procedure -> return T.VoidT
+        ST.Function -> getType entry{ST.category=ST.Variable}) -- cheating
       domain <- (if isEmptyFunction
         then return []
-        
-      then return $ T.FunctionT [] (if cat == T.Procedure then T.Void else )
-    | cat `elem` [ST.Variable, ST.Constant, ST.RecordItem, ST.UnionItem, ST.RefParam, ST.ValueParam]
-    case entryType of
- -}
+        else do
+          let fields = head $ filter ST.isFieldsExtra extras
+          (T.TypeList list) <- getType fields
+          return list
+          )
+      return $ T.FunctionT domain range
 
+    | cat `elem` [
+        ST.Variable, ST.Constant,
+        ST.RecordItem, ST.UnionItem,
+        ST.RefParam, ST.ValueParam] = getType $ ST.extractTypeFromExtra extras
+
+
+
+    | otherwise = error "error on getType for dict entries"
+
+instance TypeCheckable ST.Extra where
+  getType (ST.Recursive s extra) = do
+      t <- getType extra
+      if s == ST.arrow then return $ T.PointerT t
+      else if s == ST.armor then return $ T.SetT t
+      else return T.TypeError -- This should not happen, but life is hard
+
+  -- For the moment, ST.Compound only corresponds to string
+  getType (ST.Compound s _) = return $ T.StringT
+
+  -- For the moment, ST.CompoundRect only corresponds to array
+  getType (ST.CompoundRec s _ extra) = getType extra >>= \t -> return $ T.ArrayT t
+
+  getType (ST.Fields ST.Callable scope) = do
+    (dict, _, _) <- RWS.get
+    types <- mapM getType $ ST.sortByArgPosition $ ST.findAllInScope scope dict
+    return $ T.TypeList types
+
+  getType (ST.Fields b scope) = do
+    (dict, _, _) <- RWS.get
+    let entries = ST.findAllInScope scope dict
+    let entryNames = map ST.name entries
+    types <- mapM getType entries
+    case b of
+      ST.Record -> return $ T.RecordT $ map T.PropType $ zip entryNames types
+      _ -> return $ T.UnionT $ map T.PropType $ zip entryNames types
+
+  getType ST.EmptyFunction = return $ T.TypeList []
+
+  getType (ST.Simple s)
+      | s == ST.smallHumanity = return T.SmallIntT
+      | s == ST.humanity = return T.BigIntT
+      | s == ST.hollow = return T.FloatT
+      | s == ST.sign = return T.CharT
+      | s == ST.bonfire = return T.TrileanT
+      | s == ST.void = return T.VoidT
+      | otherwise = return $ T.AliasT s -- works because it always exists
+                                        -- it shouldn't be added otherwise
 }

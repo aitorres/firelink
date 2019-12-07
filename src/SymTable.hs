@@ -6,6 +6,7 @@ import qualified Lexer as L
 import qualified Grammar as G
 
 import Data.Maybe
+import Data.Sort (sortBy)
 
 type Scope = Int
 type ScopeStack = [Scope]
@@ -28,6 +29,8 @@ data Category = Variable
     deriving (Eq, Show)
 
 
+data TypeFields = Callable | Union | Record
+    deriving (Show, Eq)
 
 data Extra
     = Recursive -- For sets alike
@@ -43,8 +46,8 @@ data Extra
         G.Expr -- Size
         Extra -- Type perse
 
-    | Fields -- For functions or names that need to refer to another scope
-             -- in order to construct itself
+    | Fields
+        TypeFields
         Scope -- We only need the scope where the fields live
 
     | EmptyFunction -- For functions/procs that doesn't have any arguments
@@ -56,6 +59,38 @@ data Extra
 
     | ArgPosition Int -- For argument list position
     deriving Show
+
+isFieldsExtra :: Extra -> Bool
+isFieldsExtra (Fields _ _) = True
+isFieldsExtra _ = False
+
+isEmptyFunction :: Extra -> Bool
+isEmptyFunction EmptyFunction = True
+isEmptyFunction _ = False
+
+isArgPosition :: Extra -> Bool
+isArgPosition ArgPosition{} = True
+isArgPosition _ = False
+
+findArgPosition :: [Extra] -> Extra
+findArgPosition = head . filter isArgPosition
+
+findFieldsExtra :: Extra -> Maybe Extra
+findFieldsExtra a@Fields{} = Just a
+findFieldsExtra (CompoundRec _ _ e) = findFieldsExtra e
+findFieldsExtra (Recursive _ e) = findFieldsExtra e
+findFieldsExtra _ = Nothing
+
+isExtraAType :: Extra -> Bool
+isExtraAType Recursive{} = True
+isExtraAType Compound{} = True
+isExtraAType CompoundRec{} = True
+isExtraAType Fields{} = True
+isExtraAType Simple{} = True
+isExtraAType _ = False
+
+extractTypeFromExtra :: [Extra] -> Extra
+extractTypeFromExtra = head . filter isExtraAType
 
 {-|
     Dictionary entries represent "names" in the programming languages. With
@@ -78,6 +113,18 @@ type Dictionary = Map.Map String DictionaryEntries
 type SymTable = (Dictionary, ScopeStack, Int)
 
 type ParserMonad = RWS.RWST () SemanticErrors SymTable IO
+
+findAllInScope :: Scope -> Dictionary -> DictionaryEntries
+findAllInScope s dict = filter (\entry -> scope entry == s) $ concatMap snd $ Map.toList dict
+
+sortByArgPosition :: DictionaryEntries -> DictionaryEntries
+sortByArgPosition = sortBy sortFun
+    where
+        sortFun :: DictionaryEntry -> DictionaryEntry -> Ordering
+        sortFun d d' =
+            let (ArgPosition i) = findArgPosition $ extra d in
+            let (ArgPosition j) = findArgPosition $ extra d' in
+                i `compare` j
 
 findChain :: String -> Dictionary -> DictionaryEntries
 findChain = Map.findWithDefault []

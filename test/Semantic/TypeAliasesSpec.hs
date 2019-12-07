@@ -5,6 +5,7 @@ import qualified Utils as U
 import qualified SymTable as ST
 import qualified Grammar as G
 import qualified Lexer as L
+import qualified Data.Map as Map
 
 program :: String -> String
 program e = "hello ashen one\
@@ -104,9 +105,10 @@ spec = describe "Variable Declarations" $ do
         \   go back\n\
         \you died\n\
         \ farewell ashen one\n"
-        (_, _, errors) <- U.extractSymTable p
+        (_, (dict, _, _), errors) <- U.extractSymTable p
         errors `shouldNotSatisfy` null
         let ST.SemanticError _ L.Token {L.cleanedString=varName, L.posn=pn} = head errors
         varName `shouldBe` "x"
         L.row pn `shouldBe` 4
         L.col pn `shouldBe` 18
+        Map.findWithDefault [] "y" dict `shouldSatisfy` null

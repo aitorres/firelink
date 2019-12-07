@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: aaf9ab4b37a88412d088f5cf24e29f5854ff1838873a8f8ef673e98b72316675
+-- hash: 3ed746264e898b16c11a57751c63a06a6c5cd0791d926263d4d4a845aad3363f
 
 name:           firelink
 version:        0.0.2.0
@@ -49,6 +49,7 @@ library
     , containers
     , extra
     , mtl
+    , sort
     , split
   default-language: Haskell2010
 
@@ -66,6 +67,7 @@ executable firelink-exe
     , extra
     , firelink
     , mtl
+    , sort
     , split
   default-language: Haskell2010
 
@@ -102,6 +104,7 @@ test-suite lexer-tests
     , hspec
     , hspec-discover
     , mtl
+    , sort
     , split
   default-language: Haskell2010
 
@@ -131,6 +134,7 @@ test-suite parser-tests
     , hspec
     , hspec-discover
     , mtl
+    , sort
     , split
   default-language: Haskell2010
 
@@ -160,5 +164,6 @@ test-suite semantic-tests
     , hspec
     , hspec-discover
     , mtl
+    , sort
     , split
   default-language: Haskell2010

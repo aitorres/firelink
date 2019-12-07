@@ -4,6 +4,8 @@ import qualified Lexer as L
 import Data.List (sort)
 
 newtype PropType = PropType (String, Type)
+  deriving Show
+
 data Type
   = BigIntT
   | SmallIntT
@@ -14,14 +16,15 @@ data Type
   | VoidT
   | ArrayT Type
   | SetT Type
-  | EnumT [String]
   | RecordT [PropType]
   | UnionT [PropType]
   | PointerT Type
   | FunctionT [Type] Type
-  | Alias String
+  | TypeList [Type]
+  | AliasT String
   | Any -- Currently only used in empty set, empty array and null pointers
   | TypeError
+  deriving Show
 
 instance Eq Type where
   BigIntT == BigIntT = True
@@ -32,12 +35,14 @@ instance Eq Type where
   StringT == StringT = True
   ArrayT t == ArrayT t' = t == t'
   SetT t == SetT t' = t == t'
-  EnumT pt == EnumT pt' = sort pt == sort pt'
+  UnionT pt == UnionT pt' = sort pt == sort pt'
   RecordT pt == RecordT pt' = sort pt == sort pt'
   PointerT t == PointerT t' = t == t'
   FunctionT ts t == FunctionT ts' t' = ts == ts' && t == t'
+  TypeList t == TypeList t' = t == t'
+  AliasT s == AliasT s' = s == s'
   TypeError == TypeError = True
-  Alias s == Alias s' = s == s'
+  Any == _ = True
   _ == Any = True
   _ == _ = False
 
@@ -72,3 +77,9 @@ comparableTypes = [BigIntT, SmallIntT, FloatT]
 
 showableTypes :: [Type]
 showableTypes = [CharT, StringT, SmallIntT, BigIntT, FloatT]
+
+canBeConvertedTo :: Type -> Type -> Bool
+SmallIntT `canBeConvertedTo` BigIntT = True
+SmallIntT `canBeConvertedTo` FloatT = True
+BigIntT `canBeConvertedTo` FloatT = True
+a `canBeConvertedTo` b = a == b

@@ -26,6 +26,7 @@ dependencies:
 - extra
 - mtl
 - containers
+- sort
 
 library:
   source-dirs: src

@@ -1,0 +1,67 @@
+hello ashen one
+
+requiring help of
+    knight myAlias <1>-chest of type humanity
+help received
+
+invocation y1
+requesting
+    val y2 of type humanity,
+    ref y4 of type myAlias
+with skill of type <1>-chest of type bezel { y3 of type link { y4 of type humanity } }
+    traveling somewhere
+    with
+        var y22 of type humanity
+    in your inventory
+        go back with <$$>
+    you died
+after this return to your world
+
+invocation myIntFun
+requesting
+    val y2 of type humanity,
+    val y3 of type sign
+with skill of type humanity
+    traveling somewhere
+        go back with 1
+    you died
+after this return to your world
+
+traveling somewhere
+with
+    var x1 of type <1>-chest of type bezel {
+        x2 of type bezel {
+            x3 of type arrow to humanity
+        }
+    },
+    var patata of type humanity,
+    var patataArray of type <1>-chest of type humanity,
+    var patataPointer of type arrow to sign,
+    var patataCuento of type <2>-miracle,
+    var mySet of type armor of type <2>-miracle,
+    var accessChecker of type bezel {
+        x of type humanity
+    }
+    -- var myAlias of type myAlias
+in your inventory
+    with orange saponite say patata \ -- patataArray<$ |a| $>
+    with orange saponite say summon myIntFun granting
+        ascii_of throw a patataPointer, |a| to the knight \
+    with orange saponite say (throw a patataPointer) lt |a| \
+    with orange saponite say ascii_of patataCuento \
+    with orange saponite say patataArray >-< x1 \
+    with orange saponite say mySet intersect patata \
+    with orange saponite say (throw a (x1<$ 0 $> ~> x2 ~> x3)) + patata \
+    trust your inventory
+    lit:
+        traveling somewhere
+        with
+            var myAlias of type myAlias
+        in your inventory
+            with orange saponite say myAlias
+        you died
+    inventory closed
+you died
+
+
+farewell ashen one
