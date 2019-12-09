@@ -2,7 +2,8 @@ module Lib
     ( compile
     ) where
 import qualified Control.Monad.RWS as RWS
-import qualified Lexer as L
+import qualified Tokens as T
+import Lexer
 import Parser (parse)
 import qualified SymTable as ST
 import System.Directory (doesFileExist)
@@ -32,31 +33,31 @@ printKey (name, keys) = do
             putStr " - "
             print st
 
-groupTokensByRowNumber :: [Either L.LexError L.Token] -> [[Either L.LexError L.Token]]
+groupTokensByRowNumber :: [Either T.LexError T.Token] -> [[Either T.LexError T.Token]]
 groupTokensByRowNumber = groupBy (\e e' -> getRow e == getRow e')
     where
         getRow e = case e of
-                    Left (L.LexError (pn, _)) -> L.row pn
-                    Right L.Token {L.posn=pn} -> L.row pn
+                    Left (T.LexError (pn, _)) -> fst pn
+                    Right T.Token {T.posn=pn} -> fst pn
 
-lengthOfLine :: [Either L.LexError L.Token] -> Int
+lengthOfLine :: [Either T.LexError T.Token] -> Int
 lengthOfLine tokens = case last tokens of
-    Right tk@L.Token {L.posn=pn} -> L.col pn + length (show tk)
-    Left (L.LexError (pn, s)) -> L.col pn + length s
+    Right tk@T.Token {T.posn=pn} -> snd pn + length (show tk)
+    Left (T.LexError (pn, s)) -> snd pn + length s
 
-joinTokens :: Int -> [Either L.LexError L.Token] -> String
+joinTokens :: Int -> [Either T.LexError T.Token] -> String
 joinTokens _ [] = ""
 joinTokens c (e:tks) = case e of
-    Right tk@L.Token {L.capturedString=s, L.posn=pn} ->
-        replicate (L.col pn - c) ' ' ++ show tk ++ joinTokens (L.col pn + length s) tks
-    Left (L.LexError (pn, s)) ->
-        replicate (L.col pn - c) ' ' ++ s ++ joinTokens (L.col pn + length s) tks
+    Right tk@T.Token {T.capturedString=s, T.posn=pn} ->
+        replicate (snd pn - c) ' ' ++ show tk ++ joinTokens (snd pn + length s) tks
+    Left (T.LexError (pn, s)) ->
+        replicate (snd pn - c) ' ' ++ s ++ joinTokens (snd pn + length s) tks
 
 buildRuler :: Int -> String
 buildRuler = flip replicate '~'
 
-formatLexError :: (L.LexError, [Either L.LexError L.Token]) -> String
-formatLexError (L.LexError (L.AlexPn _ r c, _), tokens) =
+formatLexError :: (T.LexError, [Either T.LexError T.Token]) -> String
+formatLexError (T.LexError ((r, c), _), tokens) =
     printf "%s%sYOU DIED!!%s Lexical error at line %s%s%d%s, column %s%s%d%s:\n%s\n"
         red bold nocolor
         red bold r nocolor
@@ -71,48 +72,48 @@ formatLexError (L.LexError (L.AlexPn _ r c, _), tokens) =
         fs = firstLine ++ errorRuler ++ intercalate "\n" restLines
 
 
-printLexErrors :: [(L.LexError, [Either L.LexError L.Token])] -> IO ()
+printLexErrors :: [(T.LexError, [Either T.LexError T.Token])] -> IO ()
 printLexErrors [] = return ()
 printLexErrors (errorPair:xs) = do
     putStrLn $ formatLexError errorPair
     printLexErrors xs
 
-groupLexErrorWithTokenContext :: [L.LexError] -> L.Tokens -> [(L.LexError, L.Tokens)]
+groupLexErrorWithTokenContext :: [T.LexError] -> [T.Token] -> [(T.LexError, [T.Token])]
 groupLexErrorWithTokenContext [] _ = []
-groupLexErrorWithTokenContext (err@(L.LexError (pn, _)):errors) tokens =
+groupLexErrorWithTokenContext (err@(T.LexError (pn, _)):errors) tokens =
     (err, tks) : groupLexErrorWithTokenContext errors tokens
     where
-        tail' = dropWhile (\L.Token {L.posn=pn'} -> L.row pn /= L.row pn') tokens
-        tks = takeWhile (\L.Token {L.posn=pn'} -> L.row pn' - L.row pn <= 4) tail'
+        tail' = dropWhile (\T.Token {T.posn=pn'} -> fst pn /= fst pn') tokens
+        tks = takeWhile (\T.Token {T.posn=pn'} -> fst pn' - fst pn <= 4) tail'
 
-insertLexErrorOnContext :: L.LexError -> L.Tokens -> [Either L.LexError L.Token]
+insertLexErrorOnContext :: T.LexError -> [T.Token] -> [Either T.LexError T.Token]
 insertLexErrorOnContext l [] = [Left l]
-insertLexErrorOnContext e@(L.LexError (pn, _)) (tk@L.Token {L.posn=pn'} : tks) =
-    if (L.row pn' >= L.row pn) && (L.col pn' >= L.col pn)
+insertLexErrorOnContext e@(T.LexError (pn, _)) (tk@T.Token {T.posn=pn'} : tks) =
+    if (fst pn' >= fst pn) && (snd pn' >= snd pn)
     then Left e : Right tk : map Right tks
     else Right tk : insertLexErrorOnContext e tks
 
-joinTokensOnly :: L.Tokens -> String
+joinTokensOnly :: [T.Token] -> String
 joinTokensOnly = joinTokens (-1) . map Right
 
-numberOfRows :: [L.Token] -> Int
-numberOfRows = foldl (\cu L.Token {L.posn=pn} -> cu `max` L.row pn) (-1)
+numberOfRows :: [T.Token] -> Int
+numberOfRows = foldl (\cu T.Token {T.posn=pn} -> cu `max` fst pn) (-1)
 
-maxDigits :: [L.Token] -> Int
+maxDigits :: [T.Token] -> Int
 maxDigits = length . show . numberOfRows
 
-printProgram :: L.Tokens -> IO ()
+printProgram :: [T.Token] -> IO ()
 printProgram tks =
     mapM_ printRowAndLine groupedByRowNumber
     where
-        groupedByRowNumber :: [L.Tokens]
-        groupedByRowNumber = groupBy (\L.Token {L.posn=t1} L.Token {L.posn=t2} -> L.row t1 == L.row t2) tks
+        groupedByRowNumber :: [[T.Token]]
+        groupedByRowNumber = groupBy (\T.Token {T.posn=t1} T.Token {T.posn=t2} -> fst t1 == fst t2) tks
 
 
-        printRowAndLine :: L.Tokens -> IO ()
+        printRowAndLine :: [T.Token] -> IO ()
         printRowAndLine tks' = do
-            let L.Token {L.posn=pn} = head tks'
-            let row = L.row pn
+            let T.Token {T.posn=pn} = head tks'
+            let row = fst pn
             let lengthOfRowNumber = length $ show row
             putStr $ show row
             putStr $ replicate (maxDigits tks - lengthOfRowNumber) ' '
@@ -121,7 +122,7 @@ printProgram tks =
 
 lexer :: String -> IO ()
 lexer contents = do
-    let (errors, tokens) = L.scanTokens contents
+    let (errors, tokens) = scanTokens contents
     if not $ null errors then do
         printLexErrors
             $ map (\(err, tks) -> (err, insertLexErrorOnContext err tks))
@@ -131,26 +132,26 @@ lexer contents = do
     else
         parserAndSemantic tokens
 
-printSemErrors :: [ST.SemanticError] -> L.Tokens -> IO ()
+printSemErrors :: [ST.SemanticError] -> [T.Token] -> IO ()
 printSemErrors [] _ = do
     putStrLn "Fix your semantic mistakes, ashen one."
     return ()
 printSemErrors (semError:semErrors) tokens = do
-    let (ST.SemanticError errMessage L.Token{L.posn=p}) = semError
-    let tks = filter (\L.Token{L.posn=p'} -> L.row p' == L.row p) tokens
-    let preContext = filter (\L.Token{L.posn=p'} -> L.row p' == L.row p - 1) tokens
-    let postContext = filter (\L.Token{L.posn=p'} -> L.row p' == L.row p + 1) tokens
+    let (ST.SemanticError errMessage T.Token{T.posn=p}) = semError
+    let tks = filter (\T.Token{T.posn=p'} -> fst p' == fst p) tokens
+    let preContext = filter (\T.Token{T.posn=p'} -> fst p' == fst p - 1) tokens
+    let postContext = filter (\T.Token{T.posn=p'} -> fst p' == fst p + 1) tokens
     let nDigits = 2 + maxDigits tks
     RWS.when (not $ null preContext) $ printProgram preContext
     printProgram tks
-    putStr $ buildRuler (nDigits + L.col p)
+    putStr $ buildRuler (nDigits + snd p)
     putStrLn "^"
     putStrLn $ bold ++ red ++ "YOU DIED!!" ++ nocolor ++ " " ++ errMessage
     RWS.when (not $ null postContext) $ printProgram postContext
     putStrLn ""
     printSemErrors semErrors tokens
 
-parserAndSemantic :: L.Tokens -> IO ()
+parserAndSemantic :: [T.Token] -> IO ()
 parserAndSemantic tokens = do
     (_, table, errors) <- RWS.runRWST (parse tokens) () ST.initialState
     -- print errors
@@ -159,7 +160,7 @@ parserAndSemantic tokens = do
         printSemErrors errors tokens
         exitFailure
     else do
-        -- prettyPrintSymTable table
+        prettyPrintSymTable table
         printProgram tokens
         exitSuccess
 

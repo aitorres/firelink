@@ -227,7 +227,8 @@ Se puede acceder al valor en la posición `i` de un arreglo `a` con la sintaxis 
 
 El valor por defecto de un arreglo `<n>-chest of type <tipo>` es un arreglo cuyos valores están inicializados al valor por defecto del tipo dado.
 
-Además, se debe proveer el operador `>-<` que concatena dos arreglos. El tipo de dato que encierra cada arreglo debe ser el mismo, aunque no está sujeto a que ambos arreglos sean del mismo tamaño.
+Además, se debe proveer el operador `>-<` que concatena dos arreglos. El tipo de dato que encierra cada arreglo debe ser el mismo, aunque no está sujeto a que ambos arreglos sean del mismo tamaño. No hay coerción de tipos con el tipo que encierra
+cada arreglo.
 
 Finalmente, se debe proveer el operador unario `size` que retorna un `humanity` con la cantidad de elementos que tenga el arreglo en el momento.
 
@@ -245,6 +246,10 @@ Se deben proveer los siguientes operadores sobre conjuntos:
 - `intersect`: `a intersect b` retorna un `armor` con todos los elementos que estén en `a` y en `b` al mismo tiempo.
 - `diff`: `a diff b` retorna un `armor` con todos los elementos que estén en `a` y no estén en `b`.
 - `size`: `size a` retorna un `humanity` con la cantidad de elementos que tenga el conjunto en el momento.
+
+Las operaciones binarias entre conjuntos y la asignación de literales a variables no hacen coerción de tipos automática.
+Es decir, sí `a` es de tipo `armor of type type1` y `b` es de tipo `armor of type type2`, no se puede realizar `a op b`
+si `type1 != type2` inclusive si hay alguna coerción de tipos entre `type1` y `type2`.
 
 ### Estructurados
 

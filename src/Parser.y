@@ -2,7 +2,7 @@
 module Parser (
   parse) where
 
-import qualified Lexer as L
+import qualified Tokens as T
 import qualified SymTable as ST
 import Data.Maybe
 import qualified Grammar as G
@@ -12,7 +12,7 @@ import Utils
 }
 
 %name                                                                     parse
-%tokentype                                                              { L.Token }
+%tokentype                                                              { T.Token }
 %error                                                                  { parseErrors }
 %monad                                                                  { ST.ParserMonad }
 
@@ -42,136 +42,136 @@ import Utils
 
 
 %token
-  programBegin                                                          { L.Token {L.aToken=L.TkProgramBegin} }
-  programEnd                                                            { L.Token {L.aToken=L.TkProgramEnd} }
+  programBegin                                                          { T.Token {T.aToken=T.TkProgramBegin} }
+  programEnd                                                            { T.Token {T.aToken=T.TkProgramEnd} }
 
-  aliasListBegin                                                        { L.Token {L.aToken=L.TkAliasListBegin} }
-  aliasListEnd                                                          { L.Token {L.aToken=L.TkAliasListEnd} }
-  alias                                                                 { L.Token {L.aToken=L.TkAlias} }
+  aliasListBegin                                                        { T.Token {T.aToken=T.TkAliasListBegin} }
+  aliasListEnd                                                          { T.Token {T.aToken=T.TkAliasListEnd} }
+  alias                                                                 { T.Token {T.aToken=T.TkAlias} }
 
-  id                                                                    { L.Token {L.aToken=L.TkId} }
+  id                                                                    { T.Token {T.aToken=T.TkId} }
 
-  ofType                                                                { L.Token {L.aToken=L.TkOfType} }
+  ofType                                                                { T.Token {T.aToken=T.TkOfType} }
 
-  paramRequest                                                          { L.Token {L.aToken=L.TkRequesting} }
-  parVal                                                                { L.Token {L.aToken=L.TkVal} }
-  parRef                                                                { L.Token {L.aToken=L.TkRef} }
+  paramRequest                                                          { T.Token {T.aToken=T.TkRequesting} }
+  parVal                                                                { T.Token {T.aToken=T.TkVal} }
+  parRef                                                                { T.Token {T.aToken=T.TkRef} }
 
-  bigInt                                                                { L.Token {L.aToken=L.TkBigInt} }
-  smallInt                                                              { L.Token {L.aToken=L.TkSmallInt} }
-  float                                                                 { L.Token {L.aToken=L.TkFloat} }
-  char                                                                  { L.Token {L.aToken=L.TkChar} }
-  bool                                                                  { L.Token {L.aToken=L.TkBool} }
-  ltelit                                                                { L.Token {L.aToken=L.TkLteLit} }
-  string                                                                { L.Token {L.aToken=L.TkString} }
-  array                                                                 { L.Token {L.aToken=L.TkArray} }
-  set                                                                   { L.Token {L.aToken=L.TkSet} }
-  enum                                                                  { L.Token {L.aToken=L.TkEnum} }
-  unionStruct                                                           { L.Token {L.aToken=L.TkUnionStruct} }
-  record                                                                { L.Token {L.aToken=L.TkRecord} }
-  pointer                                                               { L.Token {L.aToken=L.TkPointer} }
+  bigInt                                                                { T.Token {T.aToken=T.TkBigInt} }
+  smallInt                                                              { T.Token {T.aToken=T.TkSmallInt} }
+  float                                                                 { T.Token {T.aToken=T.TkFloat} }
+  char                                                                  { T.Token {T.aToken=T.TkChar} }
+  bool                                                                  { T.Token {T.aToken=T.TkBool} }
+  ltelit                                                                { T.Token {T.aToken=T.TkLteLit} }
+  string                                                                { T.Token {T.aToken=T.TkString} }
+  array                                                                 { T.Token {T.aToken=T.TkArray} }
+  set                                                                   { T.Token {T.aToken=T.TkSet} }
+  enum                                                                  { T.Token {T.aToken=T.TkEnum} }
+  unionStruct                                                           { T.Token {T.aToken=T.TkUnionStruct} }
+  record                                                                { T.Token {T.aToken=T.TkRecord} }
+  pointer                                                               { T.Token {T.aToken=T.TkPointer} }
 
-  intLit                                                                { L.Token {L.aToken=L.TkIntLit} }
-  floatLit                                                              { L.Token {L.aToken=L.TkFloatLit} }
-  charLit                                                               { L.Token {L.aToken=L.TkCharLit} }
-  stringLit                                                             { L.Token {L.aToken=L.TkStringLit} }
-  trueLit                                                               { L.Token {L.aToken=L.TkLit} }
-  falseLit                                                              { L.Token {L.aToken=L.TkUnlit} }
-  unknownLit                                                            { L.Token {L.aToken=L.TkUndiscovered} }
-  nullLit                                                               { L.Token {L.aToken=L.TkNull} }
+  intLit                                                                { T.Token {T.aToken=T.TkIntLit} }
+  floatLit                                                              { T.Token {T.aToken=T.TkFloatLit} }
+  charLit                                                               { T.Token {T.aToken=T.TkCharLit} }
+  stringLit                                                             { T.Token {T.aToken=T.TkStringLit} }
+  trueLit                                                               { T.Token {T.aToken=T.TkLit} }
+  falseLit                                                              { T.Token {T.aToken=T.TkUnlit} }
+  unknownLit                                                            { T.Token {T.aToken=T.TkUndiscovered} }
+  nullLit                                                               { T.Token {T.aToken=T.TkNull} }
 
-  functionBegin                                                         { L.Token {L.aToken=L.TkInvocation} }
-  functionType                                                          { L.Token {L.aToken=L.TkInvocationType} }
-  functionEnd                                                           { L.Token {L.aToken=L.TkInvocationEnd} }
+  functionBegin                                                         { T.Token {T.aToken=T.TkInvocation} }
+  functionType                                                          { T.Token {T.aToken=T.TkInvocationType} }
+  functionEnd                                                           { T.Token {T.aToken=T.TkInvocationEnd} }
 
-  procedureBegin                                                        { L.Token {L.aToken=L.TkSpell} }
-  procedureEnd                                                          { L.Token {L.aToken=L.TkSpellEnd} }
+  procedureBegin                                                        { T.Token {T.aToken=T.TkSpell} }
+  procedureEnd                                                          { T.Token {T.aToken=T.TkSpellEnd} }
 
-  comma                                                                 { L.Token {L.aToken=L.TkComma} }
-  brOpen                                                                { L.Token {L.aToken=L.TkBraceOpen} }
-  brClose                                                               { L.Token {L.aToken=L.TkBraceClosed} }
+  comma                                                                 { T.Token {T.aToken=T.TkComma} }
+  brOpen                                                                { T.Token {T.aToken=T.TkBraceOpen} }
+  brClose                                                               { T.Token {T.aToken=T.TkBraceClosed} }
 
-  with                                                                  { L.Token {L.aToken=L.TkWith} }
-  declarend                                                             { L.Token {L.aToken=L.TkDeclarationEnd} }
+  with                                                                  { T.Token {T.aToken=T.TkWith} }
+  declarend                                                             { T.Token {T.aToken=T.TkDeclarationEnd} }
 
-  const                                                                 { L.Token {L.aToken=L.TkConst} }
-  var                                                                   { L.Token {L.aToken=L.TkVar} }
-  asig                                                                  { L.Token {L.aToken=L.TkAsig} }
+  const                                                                 { T.Token {T.aToken=T.TkConst} }
+  var                                                                   { T.Token {T.aToken=T.TkVar} }
+  asig                                                                  { T.Token {T.aToken=T.TkAsig} }
 
-  instructionsBegin                                                     { L.Token {L.aToken=L.TkInstructionBegin} }
-  instructionsEnd                                                       { L.Token {L.aToken=L.TkInstructionEnd} }
-  seq                                                                   { L.Token {L.aToken=L.TkSeq} }
+  instructionsBegin                                                     { T.Token {T.aToken=T.TkInstructionBegin} }
+  instructionsEnd                                                       { T.Token {T.aToken=T.TkInstructionEnd} }
+  seq                                                                   { T.Token {T.aToken=T.TkSeq} }
 
-  cast                                                                  { L.Token {L.aToken=L.TkCast} }
-  offering                                                              { L.Token {L.aToken=L.TkOffering} }
-  toTheKnight                                                           { L.Token {L.aToken=L.TkInvocationParsEnd} }
+  cast                                                                  { T.Token {T.aToken=T.TkCast} }
+  offering                                                              { T.Token {T.aToken=T.TkOffering} }
+  toTheKnight                                                           { T.Token {T.aToken=T.TkInvocationParsEnd} }
 
-  summon                                                                { L.Token {L.aToken=L.TkSummon} }
-  granting                                                              { L.Token {L.aToken=L.TkGranting} }
-  toTheEstusFlask                                                       { L.Token {L.aToken=L.TkSpellParsEnd} }
+  summon                                                                { T.Token {T.aToken=T.TkSummon} }
+  granting                                                              { T.Token {T.aToken=T.TkGranting} }
+  toTheEstusFlask                                                       { T.Token {T.aToken=T.TkSpellParsEnd} }
 
-  return                                                                { L.Token {L.aToken=L.TkReturn} }
-  returnWith                                                            { L.Token {L.aToken=L.TkReturnWith} }
+  return                                                                { T.Token {T.aToken=T.TkReturn} }
+  returnWith                                                            { T.Token {T.aToken=T.TkReturnWith} }
 
-  print                                                                 { L.Token {L.aToken=L.TkPrint} }
-  read                                                                  { L.Token {L.aToken=L.TkRead} }
+  print                                                                 { T.Token {T.aToken=T.TkPrint} }
+  read                                                                  { T.Token {T.aToken=T.TkRead} }
 
-  whileBegin                                                            { L.Token {L.aToken=L.TkWhile} }
-  whileEnd                                                              { L.Token {L.aToken=L.TkEndWhile} }
-  covenantIsActive                                                      { L.Token {L.aToken=L.TkCovenantIsActive} }
+  whileBegin                                                            { T.Token {T.aToken=T.TkWhile} }
+  whileEnd                                                              { T.Token {T.aToken=T.TkEndWhile} }
+  covenantIsActive                                                      { T.Token {T.aToken=T.TkCovenantIsActive} }
 
-  ifBegin                                                               { L.Token {L.aToken=L.TkIf} }
-  ifEnd                                                                 { L.Token {L.aToken=L.TkEndIf} }
-  colon                                                                 { L.Token {L.aToken=L.TkColon} }
-  else                                                                  { L.Token {L.aToken=L.TkElse} }
+  ifBegin                                                               { T.Token {T.aToken=T.TkIf} }
+  ifEnd                                                                 { T.Token {T.aToken=T.TkEndIf} }
+  colon                                                                 { T.Token {T.aToken=T.TkColon} }
+  else                                                                  { T.Token {T.aToken=T.TkElse} }
 
-  switchBegin                                                           { L.Token {L.aToken=L.TkSwitch} }
-  switchDefault                                                         { L.Token {L.aToken=L.TkSwitchDefault} }
-  switchEnd                                                             { L.Token {L.aToken=L.TkEndSwitch} }
+  switchBegin                                                           { T.Token {T.aToken=T.TkSwitch} }
+  switchDefault                                                         { T.Token {T.aToken=T.TkSwitchDefault} }
+  switchEnd                                                             { T.Token {T.aToken=T.TkEndSwitch} }
 
-  forBegin                                                              { L.Token {L.aToken=L.TkFor} }
-  forEnd                                                                { L.Token {L.aToken=L.TkEndFor} }
-  souls                                                                 { L.Token {L.aToken=L.TkSoul} }
-  untilLevel                                                            { L.Token {L.aToken=L.TkLevel} }
+  forBegin                                                              { T.Token {T.aToken=T.TkFor} }
+  forEnd                                                                { T.Token {T.aToken=T.TkEndFor} }
+  souls                                                                 { T.Token {T.aToken=T.TkSoul} }
+  untilLevel                                                            { T.Token {T.aToken=T.TkLevel} }
 
-  forEachBegin                                                          { L.Token {L.aToken=L.TkForEach} }
-  forEachEnd                                                            { L.Token {L.aToken=L.TkEndForEach} }
-  withTitaniteFrom                                                      { L.Token {L.aToken=L.TkWithTitaniteFrom} }
+  forEachBegin                                                          { T.Token {T.aToken=T.TkForEach} }
+  forEachEnd                                                            { T.Token {T.aToken=T.TkEndForEach} }
+  withTitaniteFrom                                                      { T.Token {T.aToken=T.TkWithTitaniteFrom} }
 
-  parensOpen                                                            { L.Token {L.aToken=L.TkParensOpen} }
-  parensClosed                                                          { L.Token {L.aToken=L.TkParensClosed} }
+  parensOpen                                                            { T.Token {T.aToken=T.TkParensOpen} }
+  parensClosed                                                          { T.Token {T.aToken=T.TkParensClosed} }
 
-  plus                                                                  { L.Token {L.aToken=L.TkPlus} }
-  minus                                                                 { L.Token {L.aToken=L.TkMinus} }
-  mult                                                                  { L.Token {L.aToken=L.TkMult} }
-  div                                                                   { L.Token {L.aToken=L.TkDiv} }
-  mod                                                                   { L.Token {L.aToken=L.TkMod} }
-  lt                                                                    { L.Token {L.aToken=L.TkLt} }
-  gt                                                                    { L.Token {L.aToken=L.TkGt} }
-  lte                                                                   { L.Token {L.aToken=L.TkLte} }
-  gte                                                                   { L.Token {L.aToken=L.TkGte} }
-  eq                                                                    { L.Token {L.aToken=L.TkEq} }
-  neq                                                                   { L.Token {L.aToken=L.TkNeq} }
-  not                                                                   { L.Token {L.aToken=L.TkNot} }
-  and                                                                   { L.Token {L.aToken=L.TkAnd} }
-  or                                                                    { L.Token {L.aToken=L.TkOr} }
-  asciiOf                                                               { L.Token {L.aToken=L.TkAsciiOf} }
-  colConcat                                                             { L.Token {L.aToken=L.TkConcat} }
-  union                                                                 { L.Token {L.aToken=L.TkUnion} }
-  intersect                                                             { L.Token {L.aToken=L.TkIntersect} }
-  diff                                                                  { L.Token {L.aToken=L.TkDiff} }
-  size                                                                  { L.Token {L.aToken=L.TkSize} }
+  plus                                                                  { T.Token {T.aToken=T.TkPlus} }
+  minus                                                                 { T.Token {T.aToken=T.TkMinus} }
+  mult                                                                  { T.Token {T.aToken=T.TkMult} }
+  div                                                                   { T.Token {T.aToken=T.TkDiv} }
+  mod                                                                   { T.Token {T.aToken=T.TkMod} }
+  lt                                                                    { T.Token {T.aToken=T.TkLt} }
+  gt                                                                    { T.Token {T.aToken=T.TkGt} }
+  lte                                                                   { T.Token {T.aToken=T.TkLte} }
+  gte                                                                   { T.Token {T.aToken=T.TkGte} }
+  eq                                                                    { T.Token {T.aToken=T.TkEq} }
+  neq                                                                   { T.Token {T.aToken=T.TkNeq} }
+  not                                                                   { T.Token {T.aToken=T.TkNot} }
+  and                                                                   { T.Token {T.aToken=T.TkAnd} }
+  or                                                                    { T.Token {T.aToken=T.TkOr} }
+  asciiOf                                                               { T.Token {T.aToken=T.TkAsciiOf} }
+  colConcat                                                             { T.Token {T.aToken=T.TkConcat} }
+  union                                                                 { T.Token {T.aToken=T.TkUnion} }
+  intersect                                                             { T.Token {T.aToken=T.TkIntersect} }
+  diff                                                                  { T.Token {T.aToken=T.TkDiff} }
+  size                                                                  { T.Token {T.aToken=T.TkSize} }
 
-  arrOpen                                                               { L.Token {L.aToken=L.TkArrayOpen} }
-  arrClose                                                              { L.Token {L.aToken=L.TkArrayClose} }
-  setOpen                                                               { L.Token {L.aToken=L.TkSetOpen} }
-  setClose                                                              { L.Token {L.aToken=L.TkSetClose} }
+  arrOpen                                                               { T.Token {T.aToken=T.TkArrayOpen} }
+  arrClose                                                              { T.Token {T.aToken=T.TkArrayClose} }
+  setOpen                                                               { T.Token {T.aToken=T.TkSetOpen} }
+  setClose                                                              { T.Token {T.aToken=T.TkSetClose} }
 
-  accessor                                                              { L.Token {L.aToken=L.TkAccessor} }
-  memAccessor                                                           { L.Token {L.aToken=L.TkAccessMemory} }
+  accessor                                                              { T.Token {T.aToken=T.TkAccessor} }
+  memAccessor                                                           { T.Token {T.aToken=T.TkAccessMemory} }
 
-  malloc                                                                { L.Token {L.aToken=L.TkRequestMemory} }
-  free                                                                  { L.Token {L.aToken=L.TkFreeMemory} }
+  malloc                                                                { T.Token {T.aToken=T.TkRequestMemory} }
+  free                                                                  { T.Token {T.aToken=T.TkFreeMemory} }
 %%
 
 PROGRAM :: { G.Program }
@@ -226,10 +226,10 @@ LVALUE :: { G.Expr }
   | memAccessor EXPR                                                    {% buildAndCheckExpr $1 $ G.MemAccess $2 }
 
 EXPR :: { G.Expr }
-  : intLit                                                              {% buildAndCheckExpr $1 $ G.IntLit (read (L.cleanedString $1) :: Int) }
-  | floatLit                                                            {% buildAndCheckExpr $1 $ G.FloatLit (read (L.cleanedString $1) :: Float) }
-  | charLit                                                             {% buildAndCheckExpr $1 $ G.CharLit $ head (L.cleanedString $1) }
-  | stringLit                                                           {% buildAndCheckExpr $1 $ G.StringLit (L.cleanedString $1) }
+  : intLit                                                              {% buildAndCheckExpr $1 $ G.IntLit (read (T.cleanedString $1) :: Int) }
+  | floatLit                                                            {% buildAndCheckExpr $1 $ G.FloatLit (read (T.cleanedString $1) :: Float) }
+  | charLit                                                             {% buildAndCheckExpr $1 $ G.CharLit $ head (T.cleanedString $1) }
+  | stringLit                                                           {% buildAndCheckExpr $1 $ G.StringLit (T.cleanedString $1) }
   | trueLit                                                             {% buildAndCheckExpr $1 G.TrueLit }
   | falseLit                                                            {% buildAndCheckExpr $1 G.FalseLit }
   | unknownLit                                                          {% buildAndCheckExpr $1 G.UndiscoveredLit }
@@ -364,7 +364,7 @@ CODEBLOCK :: { G.CodeBlock }
                                                                              checkRecoverableError $1 $3
                                                                              return $ G.CodeBlock $ reverse $2 }
 
-INSTBEGIN :: { L.Token }
+INSTBEGIN :: { T.Token }
 INSTBEGIN : instructionsBegin                                           {% do
                                                                              ST.enterScope
                                                                              return $1 }
@@ -420,7 +420,7 @@ INSTR :: { G.Instruction }
   | forBegin ID with EXPR souls untilLevel EXPR CODEBLOCK forEnd        { G.InstFor $2 $4 $7 $8 }
   | forEachBegin ID withTitaniteFrom EXPR CODEBLOCK forEachEnd          { G.InstForEach $2 $4 $5 }
 
-FUNCALL :: { (L.Token, G.Id, G.Params) }
+FUNCALL :: { (T.Token, G.Id, G.Params) }
   : summon ID FUNCPARS                                                  {% do
                                                                           checkIdAvailability $2
                                                                           return ($1, $2, $3) }
@@ -476,7 +476,7 @@ type ArgDeclaration = (G.ArgType, G.Id, G.GrammarType)
 type AliasDeclaration = (G.Id, G.GrammarType)
 type RecordItem = AliasDeclaration
 
-buildAndCheckExpr :: L.Token -> G.BaseExpr -> ST.ParserMonad G.Expr
+buildAndCheckExpr :: T.Token -> G.BaseExpr -> ST.ParserMonad G.Expr
 buildAndCheckExpr tk bExpr = do
   t <- getType bExpr
   if t == T.TypeError
@@ -498,12 +498,12 @@ extractFunParamsForNewScope :: G.GrammarType -> Maybe [ArgDeclaration]
 extractFunParamsForNewScope (G.Callable _ s) = Just s
 extractFunParamsForNewScope _ = Nothing
 
-parseErrors :: [L.Token] -> ST.ParserMonad a
+parseErrors :: [T.Token] -> ST.ParserMonad a
 parseErrors errors =
-  let tk@L.Token {L.aToken=abst, L.posn=pn} = errors !! 0
+  let tk@T.Token {T.aToken=abst, T.posn=pn} = errors !! 0
       name = show tk
-      line = show $ L.row pn
-      column = show $ L.col pn
+      line = show $ fst pn
+      column = show $ snd pn
       header = bold ++ red ++ "YOU DIED!!" ++ nocolor ++ " Parser error: "
       endmsg = "\n\nFix your syntax errors, ashen one."
       position = "line " ++ bold ++ red ++ line ++ nocolor ++ ", column " ++ bold ++ red ++ column ++ nocolor ++ "."
@@ -515,7 +515,7 @@ addIdsToSymTable ids = do
   RWS.mapM_ (addIdToSymTable Nothing) ids
 
 addIdToSymTable :: Maybe Int -> NameDeclaration -> ST.ParserMonad ()
-addIdToSymTable mi d@(c, gId@(G.Id tk@(L.Token {L.aToken=at, L.cleanedString=idName})), t, maybeExp) = do
+addIdToSymTable mi d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idName})), t, maybeExp) = do
   maybeIdEntry <- ST.dictLookup idName
   maybeTypeEntry <- findTypeOnEntryTable t
   (_, (currScope:_), _) <- RWS.get
@@ -590,7 +590,7 @@ insertIdToEntry mi t entry = do
 
 checkConstantReassignment :: G.Expr -> ST.ParserMonad ()
 checkConstantReassignment e = case G.expAst e of
-  G.IdExpr (G.Id tk@(L.Token {L.cleanedString=idName})) -> do
+  G.IdExpr (G.Id tk@(T.Token {T.cleanedString=idName})) -> do
     maybeEntry <- ST.dictLookup idName
     case maybeEntry of
       Nothing -> do
@@ -606,7 +606,7 @@ checkConstantReassignment e = case G.expAst e of
   _ -> return ()
 
 checkIdAvailability :: G.Id -> ST.ParserMonad (Maybe ST.DictionaryEntry)
-checkIdAvailability (G.Id tk@(L.Token {L.cleanedString=idName})) = do
+checkIdAvailability (G.Id tk@(T.Token {T.cleanedString=idName})) = do
   maybeEntry <- ST.dictLookup idName
   case maybeEntry of
     Nothing -> do
@@ -615,7 +615,7 @@ checkIdAvailability (G.Id tk@(L.Token {L.cleanedString=idName})) = do
     Just e -> do
       return $ Just e
 
-checkRecoverableError :: L.Token -> Maybe G.RecoverableError -> ST.ParserMonad ()
+checkRecoverableError :: T.Token -> Maybe G.RecoverableError -> ST.ParserMonad ()
 checkRecoverableError openTk maybeErr = do
   case maybeErr of
     Nothing ->
@@ -631,7 +631,7 @@ extractFieldsFromExtra (s@ST.Fields{} : _) = s
 extractFieldsFromExtra (_:ss) = extractFieldsFromExtra ss
 
 addFunction :: NameDeclaration -> ST.ParserMonad (Maybe (ST.Scope, G.Id))
-addFunction d@(_, i@(G.Id tk@(L.Token {L.cleanedString=idName})), _, _) = do
+addFunction d@(_, i@(G.Id tk@(T.Token {T.cleanedString=idName})), _, _) = do
   (dict, stack, currScope) <- RWS.get
   maybeEntry <- ST.dictLookup idName
   case maybeEntry of
@@ -648,7 +648,7 @@ addFunction d@(_, i@(G.Id tk@(L.Token {L.cleanedString=idName})), _, _) = do
         return $ Just (currScope, i)
 
 updateCodeBlockOfFun :: ST.Scope -> G.Id -> G.CodeBlock -> ST.ParserMonad ()
-updateCodeBlockOfFun currScope (G.Id tk@(L.Token {L.cleanedString=idName})) code = do
+updateCodeBlockOfFun currScope (G.Id tk@(T.Token {T.cleanedString=idName})) code = do
   let f x = (if and [ST.scope x == currScope, ST.name x == idName, ST.category x `elem` [ST.Function, ST.Procedure]]
             then let e = ST.extra x in x{ST.extra = (ST.CodeBlock code) : e}
             else x)
@@ -723,9 +723,9 @@ buildExtraForType t@(G.Compound _ tt@(G.Record{}) maybeExpr) = do
 
 buildExtraForType t@(G.Record tk _) = do
   (d, s, currScope) <- RWS.get
-  let constr = (case L.aToken tk of
-                  L.TkRecord -> ST.Record
-                  L.TkUnionStruct -> ST.Union)
+  let constr = (case T.aToken tk of
+                  T.TkRecord -> ST.Record
+                  T.TkUnionStruct -> ST.Union)
 
   let ret = Just [ST.Fields constr $ currScope + 1]
   RWS.put $ (d, s, currScope + 1)
@@ -898,7 +898,7 @@ checkSetOp e e' = do
     _ -> T.TypeError)
 
 checkAccess :: G.Expr -> G.Id -> ST.ParserMonad T.Type
-checkAccess e (G.Id L.Token{L.cleanedString=i}) = do
+checkAccess e (G.Id T.Token{T.cleanedString=i}) = do
   t <- getType e
   return (case t of
     T.RecordT properties -> checkProperty properties

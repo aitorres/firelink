@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.33.0.
+-- This file has been generated from package.yaml by hpack version 0.31.2.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: bbc8cc1bd456fc070661905050a4e88a01ee6ec970f6b846af367ff1c4e1d6cb
+-- hash: 49156deff0594aebb5bde68770a79cb14aa44ff46abf2f83e5df3503e2642bc6
 
 name:           firelink
 version:        0.1.0.0
@@ -32,6 +32,7 @@ library
       Lib
       Parser
       SymTable
+      Tokens
       TypeChecking
       Utils
   other-modules:

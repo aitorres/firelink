@@ -2,7 +2,7 @@ module SymTable where
 
 import qualified Control.Monad.RWS as RWS
 import qualified Data.Map.Strict as Map
-import qualified Lexer as L
+import qualified Tokens as T
 import qualified Grammar as G
 
 import Data.Maybe
@@ -12,7 +12,7 @@ type Scope = Int
 type ScopeStack = [Scope]
 
 
-data SemanticError = SemanticError String L.Token
+data SemanticError = SemanticError String T.Token
     deriving Show
 type SemanticErrors = [SemanticError]
 
@@ -225,18 +225,18 @@ initialState = (Map.fromList l, [1, 0], 1)
             , (void, [DictionaryEntry void Type 0 Nothing []])
             ]
 
-tokensToEntryName :: L.Token -> String
-tokensToEntryName tk@L.Token {L.aToken=at, L.cleanedString=s} = case at of
-    L.TkBigInt -> humanity
-    L.TkSmallInt -> smallHumanity
-    L.TkFloat -> hollow
-    L.TkChar -> sign
-    L.TkBool -> bonfire
-    L.TkString -> miracle
-    L.TkArray -> chest
-    L.TkSet -> armor
-    L.TkRecord -> bezel
-    L.TkUnionStruct -> link
-    L.TkId -> s
-    L.TkPointer -> arrow
+tokensToEntryName :: T.Token -> String
+tokensToEntryName tk@T.Token {T.aToken=at, T.cleanedString=s} = case at of
+    T.TkBigInt -> humanity
+    T.TkSmallInt -> smallHumanity
+    T.TkFloat -> hollow
+    T.TkChar -> sign
+    T.TkBool -> bonfire
+    T.TkString -> miracle
+    T.TkArray -> chest
+    T.TkSet -> armor
+    T.TkRecord -> bezel
+    T.TkUnionStruct -> link
+    T.TkId -> s
+    T.TkPointer -> arrow
     a -> error $ "Token " ++ show tk ++ " doesn't map to anything"

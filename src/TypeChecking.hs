@@ -1,6 +1,5 @@
 module TypeChecking where
 
-import qualified Lexer as L
 import Data.List (sort)
 
 newtype PropType = PropType (String, Type)

@@ -1,6 +1,6 @@
 module Grammar where
 
-import Lexer (Token)
+import Tokens (Token)
 import TypeChecking (Type(..))
 import Data.List (intercalate)
 import qualified Utils as U
