@@ -5,6 +5,7 @@ import qualified Control.Monad.RWS as RWS
 import qualified Lexer as L
 import Parser (parse)
 import qualified SymTable as ST
+import System.Directory (doesFileExist)
 import System.Environment (getArgs)
 import System.IO (openFile, IOMode(..), hGetContents)
 import qualified Data.Map as Map
@@ -165,6 +166,12 @@ mainFunc = do
         putStrLn "Usage: \t stack run <path>"
     else do
         let programFile = head args
-        handle <- openFile programFile ReadMode
-        contents <- hGetContents handle
-        lexer contents
+        fileExists <- doesFileExist programFile
+        if fileExists then do
+            handle <- openFile programFile ReadMode
+            contents <- hGetContents handle
+            lexer contents
+        else do
+            putStrLn $ bold ++ red ++ "YOU DIED!!" ++ nocolor ++ " Compiler error."
+            putStrLn $ "Your journey cannot be started from " ++ programFile ++ ", ashen one. "
+            putStrLn $ bold ++ "The file could not be found." ++ nocolor
