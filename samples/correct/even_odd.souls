@@ -1,0 +1,57 @@
+hello ashen one
+
+invocation even
+requesting
+    val n of type humanity
+with skill of type bonfire
+    traveling somewhere
+        trust your inventory
+        n eq 0:
+            traveling somewhere
+                go back with lit
+            you died
+        n eq 1:
+            traveling somewhere
+                go back with unlit
+            you died
+        liar!:
+            traveling somewhere
+                go back with summon odd granting n - 1 to the knight
+            you died
+        inventory closed
+    you died
+after this return to your world
+
+invocation odd
+requesting
+    val n of type humanity
+with skill of type bonfire
+    traveling somewhere
+        trust your inventory
+        n eq 0:
+            traveling somewhere
+                go back with unlit
+            you died
+        n eq 1:
+            traveling somewhere
+                go back with lit
+            you died
+        liar!:
+            traveling somewhere
+                go back with summon even granting n - 1 to the knight
+            you died
+        inventory closed
+    you died
+after this return to your world
+
+traveling somewhere
+with
+    var n of type humanity
+in your inventory
+    with orange saponite say @Enter n: @ \
+    transpose into n \
+    n <<= summon even granting n to the knight \
+    with orange saponite say n
+you died
+
+farewell ashen one
