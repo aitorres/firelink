@@ -4,10 +4,10 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 4c5c292bd2587f1fa870a68982cec4eeba1086a337d3258fdd737a11a03f13cc
+-- hash: bbc8cc1bd456fc070661905050a4e88a01ee6ec970f6b846af367ff1c4e1d6cb
 
 name:           firelink
-version:        0.0.2.0
+version:        0.1.0.0
 description:    Please see the README on GitHub at <https://github.com/aitorres/firelink#readme>
 homepage:       https://github.com/aitorres/firelink#readme
 bug-reports:    https://github.com/aitorres/firelink/issues
