@@ -24,6 +24,7 @@ dependencies:
 - array
 - split
 - directory
+- filepath
 - extra
 - mtl
 - containers
