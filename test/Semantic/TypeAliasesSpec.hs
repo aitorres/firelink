@@ -53,7 +53,7 @@ spec = describe "Variable Declarations" $ do
     it "allows to define aliases to custom user defined record data types" $ do
         dict <- test "knight x bezel { y of type humanity }" alias{ST.entryType = Just "bezel"}
             U.extractFieldsFromExtra
-            (\(ST.Fields 2) -> True)
+            (\(ST.Fields ST.Record 2) -> True)
         U.testEntry dict alias
             { ST.name="y"
             , ST.category=ST.RecordItem
@@ -62,7 +62,7 @@ spec = describe "Variable Declarations" $ do
     it "allows to define aliases to custom user defined record data types with more than 1 field" $ do
         dict <- test "knight x bezel { y of type humanity, z of type sign }"
             alias{ST.entryType = Just "bezel"} U.extractFieldsFromExtra
-            (\(ST.Fields 2) -> True)
+            (\(ST.Fields ST.Record 2) -> True)
         U.testEntry dict alias
             { ST.name="y"
             , ST.category=ST.RecordItem

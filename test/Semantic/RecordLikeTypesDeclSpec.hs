@@ -36,7 +36,7 @@ spec = do
         it "allows declare variable of `record` type" $ do
             dict <- test "bezel { y of type humanity, z of type sign }"
                 varEntry{ST.entryType = Just "bezel"} U.extractFieldsFromExtra
-                (\(ST.Fields 2) -> True)
+                (\(ST.Fields ST.Record 2) -> True)
             U.testEntry dict varEntry
                 { ST.name="y"
                 , ST.category=ST.RecordItem
@@ -50,7 +50,7 @@ spec = do
         it "allows declare `union` type variables" $ do
             dict <- test "link { y of type humanity, z of type sign }"
                 varEntry{ST.entryType = Just "link"} U.extractFieldsFromExtra
-                (\(ST.Fields 2) -> True)
+                (\(ST.Fields ST.Union 2) -> True)
             U.testEntry dict varEntry
                 { ST.name="y"
                 , ST.category=ST.RecordItem
@@ -78,7 +78,7 @@ spec = do
             (_, (dict, _, _), _) <- U.extractSymTable p
             U.testEntry dict varEntry
                 { ST.name = "y", ST.entryType = Just "bezel" }
-                U.extractFieldsFromExtra (\(ST.Fields 2) -> True)
+                U.extractFieldsFromExtra (\(ST.Fields ST.Record 2) -> True)
             U.testEntry dict varEntry
                 { ST.name = "b", ST.entryType = Just "humanity" }
                 U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
@@ -104,15 +104,15 @@ spec = do
             errors `shouldSatisfy` null
             U.testEntry dict varEntry
                 { ST.entryType = Just "bezel" }
-                U.extractFieldsFromExtra (\(ST.Fields 2) -> True)
+                U.extractFieldsFromExtra (\(ST.Fields ST.Record 2) -> True)
             U.testEntry dict varEntry
                 { ST.entryType = Just "bezel", ST.scope = 2, ST.category = ST.RecordItem }
-                U.extractFieldsFromExtra (\(ST.Fields 3) -> True)
+                U.extractFieldsFromExtra (\(ST.Fields ST.Record 3) -> True)
             U.testEntry dict varEntry
                 { ST.entryType = Just "humanity", ST.scope = 3, ST.category = ST.RecordItem }
                 U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
     describe "Record like variable accessing" $ do
-        it "allows to access records properties" $
+        it "allows to access ST.records properties" $
             U.shouldNotError "hello ashen one\n\
 
             \traveling somewhere\n\
@@ -128,7 +128,7 @@ spec = do
             \you died\n\
 
             \farewell ashen one"
-        it "allows to access records properties on deeper levels" $
+        it "allows to access ST.records properties on deeper levels" $
             U.shouldNotError "hello ashen one\n\
 
             \traveling somewhere\n\
@@ -146,7 +146,7 @@ spec = do
             \you died\n\
 
             \farewell ashen one"
-        it "allows to access records properties with the same name" $
+        it "allows to access ST.records properties with the same name" $
             U.shouldNotError "hello ashen one\n\
 
             \traveling somewhere\n\
@@ -162,7 +162,7 @@ spec = do
             \you died\n\
 
             \farewell ashen one"
-        it "rejects to access records properties that doesn't exist" $ do
+        it "rejects to access ST.records properties that doesn't exist" $ do
             let p = "hello ashen one\n\
 
             \traveling somewhere\n\
@@ -184,7 +184,7 @@ spec = do
             varName `shouldBe` "z"
             L.col pn `shouldBe` 34
             L.row pn `shouldBe` 8
-        it "allows to access record properties of arrays of records" $
+        it "allows to access ST.record properties of arrays of records" $
             U.shouldNotError "hello ashen one\n\
 
             \traveling somewhere\n\
@@ -202,7 +202,7 @@ spec = do
             \you died\n\
 
             \farewell ashen one"
-        it "rejects to access record properties of arrays of any type that is not record" $ do
+        it "rejects to access ST.record properties of arrays of any type that is not record" $ do
             let p = "hello ashen one\n\
 
             \traveling somewhere\n\

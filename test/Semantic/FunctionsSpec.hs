@@ -57,7 +57,7 @@ spec = do
             \ farewell ashen one"
             (_, (dict, _, _), _) <- U.extractSymTable p
             U.testEntry dict varEntry U.extractFieldsFromExtra
-                (\(ST.Fields 2) -> True)
+                (\(ST.Fields ST.Callable 2) -> True)
             U.testEntry dict varEntry
                 { ST.scope = 2
                 , ST.name = "x"
