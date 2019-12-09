@@ -5,7 +5,6 @@ import qualified Data.Map.Strict as Map
 import qualified Tokens as T
 import qualified Grammar as G
 
-import Data.Maybe
 import Data.Sort (sortBy)
 
 type Scope = Int
@@ -239,4 +238,4 @@ tokensToEntryName tk@T.Token {T.aToken=at, T.cleanedString=s} = case at of
     T.TkUnionStruct -> link
     T.TkId -> s
     T.TkPointer -> arrow
-    a -> error $ "Token " ++ show tk ++ " doesn't map to anything"
+    _ -> error $ "Token " ++ show tk ++ " doesn't map to anything"

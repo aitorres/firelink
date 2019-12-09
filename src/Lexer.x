@@ -4,7 +4,6 @@ module Lexer (
     ) where
 import Data.List.Extra (replace)
 import Tokens
-import qualified Utils as U
 }
 %wrapper "monadUserState"
 
@@ -164,10 +163,10 @@ tokens :-
 {
 
 makeToken :: AbstractToken -> AlexAction AlexUserState
-makeToken token ((AlexPn _ r c), _, _, str) len = do
+makeToken tk' ((AlexPn _ r c), _, _, str) len = do
     let str' = take len str
     addTokenToState Token {
-        aToken=token,
+        aToken=tk',
         cleanedString=str',
         capturedString=str',
         posn=(r, c)
@@ -194,11 +193,11 @@ getUserState :: Alex AlexUserState
 getUserState = Alex $ \s@AlexState{alex_ust=ust} -> Right (s, ust)
 
 addTokenToState :: Token -> Alex ()
-addTokenToState token = Alex $ \s@AlexState{alex_ust=ust}
+addTokenToState tk' = Alex $ \s@AlexState{alex_ust=ust}
     -> Right (s{
         alex_ust = (
             let LexerResult errors tokens = ust in
-                LexerResult errors (token:tokens))
+                LexerResult errors (tk':tokens))
     }, ())
 
 addErrorToState :: LexError -> Alex ()

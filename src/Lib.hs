@@ -24,11 +24,11 @@ prettyPrintSymTable (dict, _, _) = do
 printKey :: (String, [ST.DictionaryEntry]) -> IO ()
 printKey (name, keys) = do
     printf "Entries for name \"%s\": \n" name
-    mapM_ printKey keys
+    mapM_ printKey' keys
     putStrLn ""
     where
-        printKey :: ST.DictionaryEntry -> IO ()
-        printKey st = do
+        printKey' :: ST.DictionaryEntry -> IO ()
+        printKey' st = do
             putStrLn ""
             putStr " - "
             print st
