@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.31.2.
+-- This file has been generated from package.yaml by hpack version 0.33.0.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 3ed746264e898b16c11a57751c63a06a6c5cd0791d926263d4d4a845aad3363f
+-- hash: 8a5d1ee71302b394109d87730d815fdd28b991a5c9f2975a5f6f73459484d142
 
 name:           firelink
 version:        0.0.2.0
@@ -47,6 +47,7 @@ library
       array
     , base >=4.7 && <5
     , containers
+    , directory
     , extra
     , mtl
     , sort
@@ -64,6 +65,7 @@ executable firelink-exe
       array
     , base >=4.7 && <5
     , containers
+    , directory
     , extra
     , firelink
     , mtl
@@ -99,6 +101,7 @@ test-suite lexer-tests
       array
     , base >=4.7 && <5
     , containers
+    , directory
     , extra
     , firelink
     , hspec
@@ -129,6 +132,7 @@ test-suite parser-tests
       array
     , base >=4.7 && <5
     , containers
+    , directory
     , extra
     , firelink
     , hspec
@@ -159,6 +163,7 @@ test-suite semantic-tests
       array
     , base >=4.7 && <5
     , containers
+    , directory
     , extra
     , firelink
     , hspec
