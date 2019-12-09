@@ -1,5 +1,5 @@
 module Lib
-    ( mainFunc
+    ( compile
     ) where
 import qualified Control.Monad.RWS as RWS
 import qualified Lexer as L
@@ -7,6 +7,7 @@ import Parser (parse)
 import qualified SymTable as ST
 import System.Directory (doesFileExist)
 import System.Environment (getArgs)
+import System.Exit (exitSuccess, exitFailure)
 import System.IO (openFile, IOMode(..), hGetContents)
 import qualified Data.Map as Map
 import Data.List (intercalate, groupBy)
@@ -125,6 +126,7 @@ lexer contents = do
             $ map (\(err, tks) -> (err, insertLexErrorOnContext err tks))
             $ groupLexErrorWithTokenContext errors tokens
         putStrLn "Fix your lexical mistakes, ashen one."
+        exitFailure
     else
         parserAndSemantic tokens
 
@@ -152,18 +154,22 @@ parserAndSemantic tokens = do
     (_, table, errors) <- RWS.runRWST (parse tokens) () ST.initialState
     -- print errors
     -- prettyPrintSymTable table
-    if not $ null errors then printSemErrors errors tokens
+    if not $ null errors then do
+        printSemErrors errors tokens
+        exitFailure
     else do
         -- prettyPrintSymTable table
         printProgram tokens
+        exitSuccess
 
-mainFunc :: IO ()
-mainFunc = do
+compile :: IO ()
+compile = do
     args <- getArgs
     if null args then do
         putStrLn $ red ++ bold ++ "FireLink" ++ nocolor
         putStrLn $ "Your journey must be started from a " ++ bold ++ red ++ "<file path>" ++ nocolor ++ ", ashen one."
         putStrLn "Usage: \t stack run <path>"
+        exitFailure
     else do
         let programFile = head args
         fileExists <- doesFileExist programFile
@@ -175,3 +181,4 @@ mainFunc = do
             putStrLn $ bold ++ red ++ "YOU DIED!!" ++ nocolor ++ " Compiler error."
             putStrLn $ "Your journey cannot be started from " ++ programFile ++ ", ashen one. "
             putStrLn $ bold ++ "The file could not be found." ++ nocolor
+            exitFailure
