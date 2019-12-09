@@ -1,0 +1,31 @@
+hello ashen one
+
+invocation fact
+requesting
+    val n of type humanity
+with skill of type humanity
+    traveling somewhere
+    with
+        var i of type humanity <<= 1,
+        var r of type humanity <<= 1
+    in your inventory
+        upgrading i with 1 soul until level n + 1
+            traveling somewhere
+                r <<= r*i
+            you died
+        max level reached \
+        go back with r
+    you died
+after this return to your world
+
+traveling somewhere
+with
+    var n of type humanity
+in your inventory
+    with orange saponite say @Enter n: @ \
+    transpose into n \
+    n <<= summon fact granting n to the knight \
+    with orange saponite say n
+you died
+
+farewell ashen one
