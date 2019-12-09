@@ -8,6 +8,7 @@ import qualified SymTable as ST
 import System.Directory (doesFileExist)
 import System.Environment (getArgs)
 import System.Exit (exitSuccess, exitFailure)
+import System.FilePath (takeExtension)
 import System.IO (openFile, IOMode(..), hGetContents)
 import qualified Data.Map as Map
 import Data.List (intercalate, groupBy)
@@ -162,6 +163,21 @@ parserAndSemantic tokens = do
         printProgram tokens
         exitSuccess
 
+raiseCompilerError :: String -> IO ()
+raiseCompilerError msg = do
+    putStrLn $ bold ++ red ++ "YOU DIED!!" ++ nocolor ++ " Compiler error"
+    putStrLn msg
+    exitFailure
+
+
+failByNonExistantFile :: String -> IO ()
+failByNonExistantFile f =
+    raiseCompilerError $ "Your journey cannot be started from " ++ f ++ ", ashen one, as " ++ bold ++ "the file could not be found" ++ nocolor ++ "."
+
+failByFileExtension :: IO ()
+failByFileExtension =
+    raiseCompilerError $ "The filename MUST have the " ++ bold ++ ".souls" ++ nocolor ++ " extension, ashen one."
+
 compile :: IO ()
 compile = do
     args <- getArgs
@@ -173,12 +189,10 @@ compile = do
     else do
         let programFile = head args
         fileExists <- doesFileExist programFile
-        if fileExists then do
-            handle <- openFile programFile ReadMode
-            contents <- hGetContents handle
-            lexer contents
-        else do
-            putStrLn $ bold ++ red ++ "YOU DIED!!" ++ nocolor ++ " Compiler error."
-            putStrLn $ "Your journey cannot be started from " ++ programFile ++ ", ashen one. "
-            putStrLn $ bold ++ "The file could not be found." ++ nocolor
-            exitFailure
+        if fileExists then
+            if takeExtension programFile /= ".souls" then failByFileExtension
+            else do
+                handle <- openFile programFile ReadMode
+                contents <- hGetContents handle
+                lexer contents
+        else failByNonExistantFile programFile
