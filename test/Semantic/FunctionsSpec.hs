@@ -4,7 +4,7 @@ import Test.Hspec
 import qualified Utils as U
 import qualified SymTable as ST
 import qualified Grammar as G
-import qualified Lexer as L
+import qualified Tokens as T
 
 varEntry :: ST.DictionaryEntry
 varEntry = ST.DictionaryEntry
@@ -135,10 +135,10 @@ spec = do
             \ farewell ashen one"
             (_, (_, _, _), errors) <- U.extractSymTable p
             errors `shouldNotSatisfy` null
-            let ST.SemanticError _ L.Token {L.cleanedString=varName, L.posn=pn} = head errors
+            let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
             varName `shouldBe` "x"
-            L.row pn `shouldBe` 5
-            L.col pn `shouldBe` 8
+            T.row pn `shouldBe` 5
+            T.col pn `shouldBe` 8
         it "rejects to declare variables on the first scope of a function whose names are on the arg list" $ do
             let p = "hello ashen one\n\
 
@@ -163,10 +163,10 @@ spec = do
             \ farewell ashen one"
             (_, (_, _, _), errors) <- U.extractSymTable p
             errors `shouldNotSatisfy` null
-            let ST.SemanticError _ L.Token {L.cleanedString=varName, L.posn=pn} = head errors
+            let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
             varName `shouldBe` "x"
-            L.row pn `shouldBe` 8
-            L.col pn `shouldBe` 8
+            T.row pn `shouldBe` 8
+            T.col pn `shouldBe` 8
         it "allows to declare variables on the second (2<=) scope of a function whose names are on the arg list" $ do
             let p = "hello ashen one\n\
 
@@ -300,10 +300,10 @@ spec = do
             \ farewell ashen one"
             (_, _, errors) <- U.extractSymTable p
             errors `shouldNotSatisfy` null
-            let ST.SemanticError _ L.Token {L.cleanedString=varName, L.posn=pn} = head errors
+            let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
             varName `shouldBe` "fun2"
-            L.row pn `shouldBe` 9
-            L.col pn `shouldBe` 36
+            T.row pn `shouldBe` 9
+            T.col pn `shouldBe` 36
         it "allows recursion" $ do
             let p = "hello ashen one\n\
 

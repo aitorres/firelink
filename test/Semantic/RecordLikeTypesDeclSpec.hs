@@ -3,7 +3,7 @@ module RecordLikeTypesDeclSpec where
 import Test.Hspec
 import qualified Utils as U
 import qualified SymTable as ST
-import qualified Lexer as L
+import qualified Tokens as T
 
 program :: String -> String
 program e = "hello ashen one\
@@ -180,10 +180,10 @@ spec = do
             \farewell ashen one"
             (_, _, errors) <- U.extractSymTable p
             errors `shouldNotSatisfy` null
-            let ST.SemanticError _ L.Token {L.cleanedString=varName, L.posn=pn} = head errors
+            let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
             varName `shouldBe` "z"
-            L.col pn `shouldBe` 34
-            L.row pn `shouldBe` 8
+            T.col pn `shouldBe` 34
+            T.row pn `shouldBe` 8
         it "allows to access ST.record properties of arrays of records" $
             U.shouldNotError "hello ashen one\n\
 
@@ -218,10 +218,10 @@ spec = do
             \farewell ashen one"
             (_, _, errors) <- U.extractSymTable p
             errors `shouldNotSatisfy` null
-            let ST.SemanticError _ L.Token {L.cleanedString=varName, L.posn=pn} = head errors
+            let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
             varName `shouldBe` "z"
-            L.col pn `shouldBe` 39
-            L.row pn `shouldBe` 6
+            T.col pn `shouldBe` 39
+            T.row pn `shouldBe` 6
         it "accepts valid x<$0$> ~> y ~> z<$0$> ~> a" $
             U.shouldNotError "hello ashen one\n\
 
@@ -264,7 +264,7 @@ spec = do
             \farewell ashen one"
             (_, _, errors) <- U.extractSymTable p
             errors `shouldNotSatisfy` null
-            let ST.SemanticError _ L.Token {L.cleanedString=varName, L.posn=pn} = head errors
+            let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
             varName `shouldBe` "b"
-            L.col pn `shouldBe` 54
-            L.row pn `shouldBe` 12
+            T.col pn `shouldBe` 54
+            T.row pn `shouldBe` 12

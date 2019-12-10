@@ -3,7 +3,7 @@ module VariablesSpec where
 import Test.Hspec
 import qualified Utils as U
 import qualified SymTable as ST
-import qualified Lexer as L
+import qualified Tokens as T
 
 program :: String -> String
 program e =
@@ -32,10 +32,10 @@ spec = describe "Constants" $ do
     let p = program "b <<= 1"
     (_, _, errors) <- U.extractSymTable p
     errors `shouldNotSatisfy` null
-    let ST.SemanticError _ L.Token {L.cleanedString=varName, L.posn=pn} = head errors
+    let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
     varName `shouldBe` "b"
-    L.row pn `shouldBe` 9
-    L.col pn `shouldBe` 5
+    T.row pn `shouldBe` 9
+    T.col pn `shouldBe` 5
 
   it "allows to use constants on expressions" $ do
     let p = program "with orange saponite say b"
@@ -45,10 +45,10 @@ spec = describe "Constants" $ do
     let p = program "c<$0$> <<= 1"
     (_, _, errors) <- U.extractSymTable p
     errors `shouldNotSatisfy` null
-    let ST.SemanticError _ L.Token {L.cleanedString=varName, L.posn=pn} = head errors
+    let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
     varName `shouldBe` "c"
-    L.row pn `shouldBe` 9
-    L.col pn `shouldBe` 5
+    T.row pn `shouldBe` 9
+    T.col pn `shouldBe` 5
 
   it "allows variable reassignments" $ do
     let p = program "a <<= 3"

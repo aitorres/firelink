@@ -3,7 +3,7 @@ module ConditionalStructuresSpec where
 import Test.Hspec
 import Utils
 import Grammar
-import Lexer
+import Tokens
 
 
 spec :: Spec

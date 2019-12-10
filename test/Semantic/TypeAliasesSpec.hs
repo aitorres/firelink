@@ -4,7 +4,7 @@ import Test.Hspec
 import qualified Utils as U
 import qualified SymTable as ST
 import qualified Grammar as G
-import qualified Lexer as L
+import qualified Tokens as T
 import qualified Data.Map as Map
 
 program :: String -> String
@@ -107,8 +107,8 @@ spec = describe "Variable Declarations" $ do
         \ farewell ashen one\n"
         (_, (dict, _, _), errors) <- U.extractSymTable p
         errors `shouldNotSatisfy` null
-        let ST.SemanticError _ L.Token {L.cleanedString=varName, L.posn=pn} = head errors
+        let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
         varName `shouldBe` "x"
-        L.row pn `shouldBe` 4
-        L.col pn `shouldBe` 18
+        T.row pn `shouldBe` 4
+        T.col pn `shouldBe` 18
         Map.findWithDefault [] "y" dict `shouldSatisfy` null

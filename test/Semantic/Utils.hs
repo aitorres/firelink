@@ -2,6 +2,7 @@ module Utils where
 
 import qualified SymTable as ST
 import qualified Lexer as L
+import qualified Tokens as T
 import Test.Hspec
 import Parser
 import qualified Grammar as G
@@ -111,7 +112,7 @@ testError :: String -> String -> Int -> Int -> IO ()
 testError program varName col row = do
     (_, _, errors) <- extractSymTable program
     errors `shouldNotSatisfy` null
-    let ST.SemanticError _ L.Token {L.cleanedString=varName', L.posn=pn} = head errors
+    let ST.SemanticError _ T.Token {T.cleanedString=varName', T.posn=pn} = head errors
     varName `shouldBe` varName'
     col `shouldBe` 10
     row `shouldBe` 6

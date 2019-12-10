@@ -6,7 +6,7 @@ Maintainer  : 14-10924@usb.ve, 14-11082@usb.ve
 Stability   : experimental
 -}
 module Tokens (
-    Token(..), AbstractToken(..), LexError(..), LexErrors) where
+    Token(..), AbstractToken(..), LexError(..), LexErrors, col, row) where
 import qualified Utils as U
 
 -- |All the posible tokens of the language
@@ -212,6 +212,15 @@ instance Show AbstractToken where
     show _ = "epale chamito falto yo"
 
 type TkPosition = (Int, Int)
+
+-- | Retrieve column number
+col :: TkPosition -> Int
+col (_, c) = c
+
+-- | Retrieve row number
+row :: TkPosition -> Int
+row (r, _) = r
+
 
 -- |Full token with all the description and position info
 data Token = Token

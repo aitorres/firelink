@@ -3,7 +3,7 @@ module ExpressionsSpec where
 import Test.Hspec
 import Utils
 import Grammar
-import Lexer
+import Tokens
 
 buildProgramWithExpr :: String -> String
 buildProgramWithExpr e = "\

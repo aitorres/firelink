@@ -3,7 +3,7 @@ module InstructionsSpec where
 import Test.Hspec
 import Grammar
 import Utils
-import Lexer
+import Tokens
 
 buildProgram :: String -> String
 buildProgram s = "\

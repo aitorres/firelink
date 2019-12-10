@@ -2,6 +2,7 @@ module ProgramMethodsSpec where
 
 import Test.Hspec
 import Lexer
+import Tokens
 import Utils (getAbstractToken)
 
 spec :: Spec

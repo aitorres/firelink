@@ -4,7 +4,7 @@ import Test.Hspec
 import qualified Utils as U
 import qualified SymTable as ST
 import qualified Grammar as G
-import qualified Lexer as L
+import qualified Tokens as T
 
 program :: String -> String
 program e = "hello ashen one\
@@ -173,10 +173,10 @@ spec = do
             \ farewell ashen one"
             (_, (dict, _, _), errors) <- U.extractSymTable p
             errors `shouldNotSatisfy` null
-            let ST.SemanticError _ L.Token {L.cleanedString=varName, L.posn=pn} = head errors
+            let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
             varName `shouldBe` "x"
-            L.row pn `shouldBe` 5
-            L.col pn `shouldBe` 9
+            T.row pn `shouldBe` 5
+            T.col pn `shouldBe` 9
             U.testEntry dict varEntry
                 { ST.entryType = Just "humanity" }
                 U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
@@ -245,10 +245,10 @@ spec = do
             \farewell ashen one"
             errors <- U.extractErrors p
             errors `shouldNotSatisfy` null
-            let ST.SemanticError _ L.Token {L.cleanedString=varName, L.posn=pn} = head errors
+            let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
             varName `shouldBe` "y"
-            L.row pn `shouldBe` 6
-            L.col pn `shouldBe` 4
+            T.row pn `shouldBe` 6
+            T.col pn `shouldBe` 4
         it "Allows to use already declared variables on IO input" $ do
             let p = "hello ashen one \
 
@@ -277,10 +277,10 @@ spec = do
             \farewell ashen one"
             errors <- U.extractErrors p
             errors `shouldNotSatisfy` null
-            let ST.SemanticError _ L.Token {L.cleanedString=varName, L.posn=pn} = head errors
+            let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
             varName `shouldBe` "y"
-            L.row pn `shouldBe` 6
-            L.col pn `shouldBe` 19
+            T.row pn `shouldBe` 6
+            T.col pn `shouldBe` 19
         it "Allows to use already declared variables on switch statements" $ do
             let p = "hello ashen one \
 
@@ -319,10 +319,10 @@ spec = do
             \farewell ashen one"
             errors <- U.extractErrors p
             errors `shouldNotSatisfy` null
-            let ST.SemanticError _ L.Token {L.cleanedString=varName, L.posn=pn} = head errors
+            let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
             varName `shouldBe` "y"
-            L.row pn `shouldBe` 6
-            L.col pn `shouldBe` 23
+            T.row pn `shouldBe` 6
+            T.col pn `shouldBe` 23
 
 
         it "Rejects to use not declared variables in any scope" $ do
@@ -339,7 +339,7 @@ spec = do
             \ farewell ashen one"
             errors <- U.extractErrors p
             errors `shouldNotSatisfy` null
-            let ST.SemanticError _ L.Token {L.cleanedString=varName, L.posn=pn} = head errors
+            let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
             varName `shouldBe` "y"
-            L.row pn `shouldBe` 6
-            L.col pn `shouldBe` 29
+            T.row pn `shouldBe` 6
+            T.col pn `shouldBe` 29

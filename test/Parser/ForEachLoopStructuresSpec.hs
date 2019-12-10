@@ -3,7 +3,7 @@ module ForEachLoopStructuresSpec where
 import Test.Hspec
 import Utils
 import Grammar
-import Lexer
+import Tokens
 
 buildProgram :: String -> String
 buildProgram c = "\
