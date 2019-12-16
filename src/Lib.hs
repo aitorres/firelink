@@ -148,14 +148,12 @@ printSemErrors (semError:semErrors) tokens = do
     putStrLn "^"
     putStrLn $ bold ++ red ++ "YOU DIED!!" ++ nocolor ++ " " ++ errMessage
     RWS.when (not $ null postContext) $ printProgram postContext
-    putStrLn ""
+    putStrLn "\n"
     printSemErrors semErrors tokens
 
 parserAndSemantic :: [T.Token] -> IO ()
 parserAndSemantic tokens = do
     (_, table, errors) <- RWS.runRWST (parse tokens) () ST.initialState
-    -- print errors
-    -- prettyPrintSymTable table
     if not $ null errors then do
         printSemErrors errors tokens
         exitFailure
