@@ -767,11 +767,6 @@ buildExtraForType _ = return $ Just []
 
 class TypeCheckable a where
   getType :: a -> ST.ParserMonad T.Type
-  typeMatches :: a -> a -> ST.ParserMonad Bool
-  typeMatches a b = do
-    aType <- getType a
-    bType <- getType b
-    return (aType == bType)
 
 isOneOfTypes :: [T.Type] -> G.Expr -> ST.ParserMonad Bool
 isOneOfTypes ts a = do
