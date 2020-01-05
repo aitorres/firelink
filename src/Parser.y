@@ -771,7 +771,7 @@ class TypeCheckable a where
 isOneOfTypes :: [T.Type] -> G.Expr -> ST.ParserMonad Bool
 isOneOfTypes ts a = do
   t <- getType a
-  return $ not . null $ filter (== t) ts
+  return $ t `elem` ts
 
 type TypeChecker = G.Expr -> ST.ParserMonad Bool
 
@@ -779,16 +779,10 @@ isLogicalType :: TypeChecker
 isLogicalType = isOneOfTypes T.booleanTypes
 
 isNumberType :: T.Type -> Bool
-isNumberType t = not . null $ filter (==t) T.numberTypes
+isNumberType t = t `elem` T.numberTypes
 
 isIntegerType :: T.Type -> Bool
-isIntegerType t = not . null $ filter (==t) T.integerTypes
-
-isComparableType :: TypeChecker
-isComparableType = isOneOfTypes T.comparableTypes
-
-isShowableType :: TypeChecker
-isShowableType = isOneOfTypes T.showableTypes
+isIntegerType t = t `elem` T.integerTypes
 
 exprsToTypes :: [G.Expr] -> [T.Type]
 exprsToTypes = map G.expType
