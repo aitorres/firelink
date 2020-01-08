@@ -406,8 +406,9 @@ INSTR :: { G.Instruction }
   | cast ID PROCPARS                                                    {% do
                                                                           checkIdAvailability $2
                                                                           return $ G.InstCallProc $2 $3 }
-  | FUNCALL                                                             { let (_, i, params) = $1 in
-                                                                              G.InstCallFunc i params }
+  | FUNCALL                                                             {% let (tk, i, params) = $1 in do
+                                                                          buildAndCheckExpr tk $ G.EvalFunc i params
+                                                                          return $ G.InstCallFunc i params }
   | return                                                              { G.InstReturn }
   | returnWith EXPR                                                     { G.InstReturnWith $2 }
   | print EXPR                                                          { G.InstPrint $2 }
@@ -421,9 +422,7 @@ INSTR :: { G.Instruction }
   | forEachBegin ID withTitaniteFrom EXPR CODEBLOCK forEachEnd          { G.InstForEach $2 $4 $5 }
 
 FUNCALL :: { (T.Token, G.Id, G.Params) }
-  : summon ID FUNCPARS                                                  {% do
-                                                                          checkIdAvailability $2
-                                                                          return ($1, $2, $3) }
+  : summon ID FUNCPARS                                                  { ($1, $2, $3) }
 
 IFCASES :: { G.IfCases }
   : IFCASES IFCASE                                                      { $2 : $1 }
