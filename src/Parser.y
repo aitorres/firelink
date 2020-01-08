@@ -237,27 +237,27 @@ EXPR :: { G.Expr }
   | arrOpen EXPRL arrClose                                              {% buildAndCheckExpr $1 $ G.ArrayLit $ reverse $2 }
   | setOpen EXPRL setClose                                              {% buildAndCheckExpr $1 $ G.SetLit $ reverse $2 }
   | parensOpen EXPR parensClosed                                        { $2{G.expTok=$1} }
-  | minus EXPR                                                          {% buildAndCheckExpr $1 $ G.Negative $2 }
-  | not EXPR                                                            {% buildAndCheckExpr $1 $ G.Not $2 }
+  | minus EXPR                                                          {% buildAndCheckExpr $1 $ G.Op1 G.Negate $2 }
+  | not EXPR                                                            {% buildAndCheckExpr $1 $ G.Op1 G.Not $2 }
   | asciiOf EXPR                                                        {% buildAndCheckExpr $1 $ G.AsciiOf $2 }
   | size EXPR                                                           {% buildAndCheckExpr $1 $ G.SetSize $2 }
-  | EXPR plus EXPR                                                      {% buildAndCheckExpr $2 $ G.Add $1 $3 }
-  | EXPR minus EXPR                                                     {% buildAndCheckExpr $2 $ G.Substract $1 $3 }
-  | EXPR mult EXPR                                                      {% buildAndCheckExpr $2 $ G.Multiply $1 $3 }
-  | EXPR div EXPR                                                       {% buildAndCheckExpr $2 $ G.Divide $1 $3 }
-  | EXPR mod EXPR                                                       {% buildAndCheckExpr $2 $ G.Mod $1 $3 }
-  | EXPR lt EXPR                                                        {% buildAndCheckExpr $2 $ G.Lt $1 $3 }
-  | EXPR gt EXPR                                                        {% buildAndCheckExpr $2 $ G.Gt $1 $3 }
-  | EXPR lte EXPR                                                       {% buildAndCheckExpr $2 $ G.Lte $1 $3 }
-  | EXPR gte EXPR                                                       {% buildAndCheckExpr $2 $ G.Gte $1 $3 }
-  | EXPR eq EXPR                                                        {% buildAndCheckExpr $2 $ G.Eq $1 $3 }
-  | EXPR neq EXPR                                                       {% buildAndCheckExpr $2 $ G.Neq $1 $3 }
-  | EXPR and EXPR                                                       {% buildAndCheckExpr $2 $ G.And $1 $3 }
-  | EXPR or EXPR                                                        {% buildAndCheckExpr $2 $ G.Or $1 $3 }
-  | EXPR colConcat EXPR                                                 {% buildAndCheckExpr $2 $ G.ColConcat $1 $3 }
-  | EXPR union EXPR                                                     {% buildAndCheckExpr $2 $ G.SetUnion $1 $3 }
-  | EXPR intersect EXPR                                                 {% buildAndCheckExpr $2 $ G.SetIntersect $1 $3 }
-  | EXPR diff EXPR                                                      {% buildAndCheckExpr $2 $ G.SetDiff $1 $3 }
+  | EXPR plus EXPR                                                      {% buildAndCheckExpr $2 $ G.Op2 G.Add $1 $3 }
+  | EXPR minus EXPR                                                     {% buildAndCheckExpr $2 $ G.Op2 G.Substract $1 $3 }
+  | EXPR mult EXPR                                                      {% buildAndCheckExpr $2 $ G.Op2 G.Multiply $1 $3 }
+  | EXPR div EXPR                                                       {% buildAndCheckExpr $2 $ G.Op2 G.Divide $1 $3 }
+  | EXPR mod EXPR                                                       {% buildAndCheckExpr $2 $ G.Op2 G.Mod $1 $3 }
+  | EXPR lt EXPR                                                        {% buildAndCheckExpr $2 $ G.Op2 G.Lt $1 $3 }
+  | EXPR gt EXPR                                                        {% buildAndCheckExpr $2 $ G.Op2 G.Gt $1 $3 }
+  | EXPR lte EXPR                                                       {% buildAndCheckExpr $2 $ G.Op2 G.Lte $1 $3 }
+  | EXPR gte EXPR                                                       {% buildAndCheckExpr $2 $ G.Op2 G.Gte $1 $3 }
+  | EXPR eq EXPR                                                        {% buildAndCheckExpr $2 $ G.Op2 G.Eq $1 $3 }
+  | EXPR neq EXPR                                                       {% buildAndCheckExpr $2 $ G.Op2 G.Neq $1 $3 }
+  | EXPR and EXPR                                                       {% buildAndCheckExpr $2 $ G.Op2 G.And $1 $3 }
+  | EXPR or EXPR                                                        {% buildAndCheckExpr $2 $ G.Op2 G.Or $1 $3 }
+  | EXPR colConcat EXPR                                                 {% buildAndCheckExpr $2 $ G.Op2 G.ColConcat $1 $3 }
+  | EXPR union EXPR                                                     {% buildAndCheckExpr $2 $ G.Op2 G.SetUnion $1 $3 }
+  | EXPR intersect EXPR                                                 {% buildAndCheckExpr $2 $ G.Op2 G.SetIntersect $1 $3 }
+  | EXPR diff EXPR                                                      {% buildAndCheckExpr $2 $ G.Op2 G.SetDifference $1 $3 }
   | FUNCALL                                                             {% let (tk, i, params) = $1 in buildAndCheckExpr tk $ G.EvalFunc i params }
   | LVALUE                                                              { $1 }
 
@@ -952,30 +952,32 @@ instance TypeCheckable G.BaseExpr where
   getType (G.ArrayLit a) = containerCheck a T.ArrayT
   getType (G.SetLit a) = containerCheck a T.SetT
 
-  getType (G.Add a b) = arithmeticCheck a b
-  getType (G.Substract a b) = arithmeticCheck a b
-  getType (G.Multiply a b) = arithmeticCheck a b
-  getType (G.Divide a b) = arithmeticCheck a b
-  getType (G.Mod a b) = intArithmeticCheck a b
-  getType (G.Negative a) = arithmeticCheck a a -- cheating
-  getType (G.Lt a b) = comparableCheck a b
-  getType (G.Lte a b) = comparableCheck a b
-  getType (G.Gt a b) = comparableCheck a b
-  getType (G.Gte a b) = comparableCheck a b
-  getType (G.Eq a b) = equatableCheck a b
-  getType (G.Neq a b) = equatableCheck a b
-  getType (G.And a b) = logicalCheck a b
-  getType (G.Or a b) = logicalCheck a b
-  getType (G.Not a) = logicalCheck a a -- cheating
+  getType (G.Op1 G.Negate a) = arithmeticCheck a a -- cheating
+  getType (G.Op1 G.Not a) = logicalCheck a a -- cheating
+
+  getType (G.Op2 G.Add a b) = arithmeticCheck a b
+  getType (G.Op2 G.Substract a b) = arithmeticCheck a b
+  getType (G.Op2 G.Multiply a b) = arithmeticCheck a b
+  getType (G.Op2 G.Divide a b) = arithmeticCheck a b
+  getType (G.Op2 G.Mod a b) = intArithmeticCheck a b
+  getType (G.Op2 G.Lt a b) = comparableCheck a b
+  getType (G.Op2 G.Lte a b) = comparableCheck a b
+  getType (G.Op2 G.Gt a b) = comparableCheck a b
+  getType (G.Op2 G.Gte a b) = comparableCheck a b
+  getType (G.Op2 G.Eq a b) = equatableCheck a b
+  getType (G.Op2 G.Neq a b) = equatableCheck a b
+  getType (G.Op2 G.And a b) = logicalCheck a b
+  getType (G.Op2 G.Or a b) = logicalCheck a b
+  getType (G.Op2 G.SetUnion e e') = checkSetOp e e'
+  getType (G.Op2 G.SetIntersect e e') = checkSetOp e e'
+  getType (G.Op2 G.SetDifference e e') = checkSetOp e e'
+  getType (G.Op2 G.ColConcat e e') = checkColConcat e e'
+
   getType (G.IdExpr i) = getType i
   getType (G.IndexAccess e i) = checkIndexAccess e i
   getType (G.EvalFunc i params) = functionsCheck i params
   getType (G.MemAccess e) = memAccessCheck e
   getType (G.AsciiOf e) = checkAsciiOf e
-  getType (G.ColConcat e e') = checkColConcat e e'
-  getType (G.SetUnion e e') = checkSetOp e e'
-  getType (G.SetIntersect e e') = checkSetOp e e'
-  getType (G.SetDiff e e') = checkSetOp e e'
   getType (G.Access e i) = checkAccess e i
 
 instance TypeCheckable ST.DictionaryEntry where
