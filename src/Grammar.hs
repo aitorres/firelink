@@ -38,6 +38,7 @@ data BaseExpr
   | AsciiOf Expr
   | SetSize Expr
   | EvalFunc Id Params
+  | Caster Expr Type
 
 data Op1 = Negate | Not
   deriving Eq
@@ -45,6 +46,21 @@ data Op2
   = Add | Substract | Multiply | Divide | Mod | Lt | Gt | Lte | Gte | Eq | Neq | And | Or
   | SetUnion | SetIntersect | SetDifference | ColConcat
   deriving Eq
+
+arithmeticOp2 :: [Op2]
+arithmeticOp2 = [Add, Substract, Multiply, Divide, Mod]
+
+comparableOp2 :: [Op2]
+comparableOp2 = [Lt, Gt, Lte, Gte, Eq, Neq]
+
+booleanOp2 :: [Op2]
+booleanOp2 = [And, Or]
+
+setOp2 :: [Op2]
+setOp2 = [SetUnion, SetIntersect, SetDifference]
+
+arrayOp2 :: [Op2]
+arrayOp2 = [ColConcat]
 
 
 instance Show Op1 where

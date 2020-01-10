@@ -477,14 +477,11 @@ type RecordItem = AliasDeclaration
 
 buildAndCheckExpr :: T.Token -> G.BaseExpr -> ST.ParserMonad G.Expr
 buildAndCheckExpr tk bExpr = do
-  t <- getType bExpr
-  if t == T.TypeError
-    then RWS.tell [ST.SemanticError (T.typeMismatchMessage tk)tk]
-    else return ()
+  (expr, t) <- buildType bExpr tk
   return G.Expr
-    { G.expAst = bExpr
-    , G.expType = t
-    , G.expTok = tk
+    { G.expAst = expr,
+      G.expType = t,
+      G.expTok = tk
     }
 
 extractFieldsForNewScope :: G.GrammarType -> Maybe [RecordItem]
@@ -786,17 +783,51 @@ isIntegerType t = t `elem` T.integerTypes
 exprsToTypes :: [G.Expr] -> [T.Type]
 exprsToTypes = map G.expType
 
-containerCheck :: [G.Expr] -> (T.Type -> T.Type) -> ST.ParserMonad T.Type
-containerCheck [] c = return $ c T.Any
-containerCheck exprs constructor = do
+
+-- this functions assumes that expressions can be casted to the
+-- target type if they are different
+addCastToExprs :: [(G.Expr, T.Type)] -> [G.Expr]
+addCastToExprs = map caster
+  where
+    caster :: (G.Expr, T.Type) -> G.Expr
+    caster (expr, t) = let t' = G.expType expr in
+      if t == t' then expr
+      else expr{G.expAst = G.Caster expr t'}
+
+containerCheck :: [G.Expr] -> ([G.Expr] -> G.BaseExpr) -> (T.Type -> T.Type) -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
+containerCheck [] c c' _ = return (c T.Any, c' [])
+containerCheck exprs exprCons typeCons tk = do
   let types = exprsToTypes exprs
-  let t = head types
-  let allAreSameType = and $ map (==t) types
-  return (
-    if allAreSameType && t /= T.TypeError
-    then constructor t
-    else T.TypeError
-    )
+  let t = findTypeForContainerLiteral types
+  -- if t == T.TypeError
+  -- then RWS.tell [ST.SemanticError (T.typeMismatchMessage tk)tk]
+  -- else return ()
+
+  case t of
+    -- case when there is already a type error on the list
+    (Nothing, T.TypeError) -> return (T.TypeError, exprCons exprs)
+
+    -- a particular expression couldn't be casted to the accumulated type
+    (Just x, T.TypeError) -> do
+      let tk = G.expTok $ exprs !! x -- not so efficient, but works
+      RWS.tell [ST.SemanticError ("Type of item #" ++ show x ++ " of list mismatch") tk]
+      return (T.TypeError, exprCons exprs)
+
+    -- when a real type is found, we can safely ignore the first part of the tuple
+    (_, t') -> do
+      let castedExprs = addCastToExprs $ zip exprs (replicate (length exprs) t')
+      return (typeCons t', exprCons castedExprs)
+
+findTypeForContainerLiteral :: [T.Type] -> (Maybe Int, T.Type)
+findTypeForContainerLiteral [] = (Nothing, T.Any)
+findTypeForContainerLiteral types = findT (zip [0..] types) (head types)
+  where
+    findT :: [(Int, T.Type)] -> T.Type -> (Maybe Int, T.Type)
+    findT [] a = (Nothing, a)
+    findT ((i, a) : xs) b =
+      if a `T.canBeConvertedTo` b then findT xs b
+      else if b `T.canBeConvertedTo` a then findT xs a
+      else (Just i, T.TypeError)
 
 typeCheck :: (G.Expr, [T.Type]) -> (G.Expr, [T.Type]) -> Maybe T.Type -> ST.ParserMonad T.Type
 typeCheck (a, ea) (b, eb) mt = do
@@ -831,41 +862,84 @@ equatableCheck a b = do
 comparableCheck :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
 comparableCheck = equatableCheck
 
-checkIndexAccess :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
-checkIndexAccess array index = do
+checkIndexAccess :: G.Expr -> G.Expr -> T.Token -> ST.ParserMonad T.Type
+checkIndexAccess array index tk = do
   arrayType <- getType array
   indextype <- getType index
   case arrayType of
     T.ArrayT t -> if isIntegerType indextype
       then return t
       else return T.TypeError
-    _ -> return T.TypeError
+    T.TypeError -> return T.TypeError
+    _ -> do
+      RWS.tell [ST.SemanticError "Left side is not a chest" tk]
+      return T.TypeError
 
-functionsCheck :: G.Id -> [G.Expr] -> ST.ParserMonad T.Type
-functionsCheck funId exprs = do
-  let exprsTypes = exprsToTypes exprs
+functionsCheck :: G.Id -> [G.Expr] -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
+functionsCheck funId exprs tk = do
   funType <- getType funId
   case funType of
     T.FunctionT domain range -> do
-      if exprsTypes == domain
-        then return range
-        else return T.TypeError
-    _ -> return T.TypeError
+      let exprsTypes = exprsToTypes exprs
+      let exprsTypesL = length exprsTypes
+      let domainL = length domain
+      let originalExpr = G.EvalFunc funId exprs
+      if exprsTypesL < domainL then do
+        RWS.tell [ST.SemanticError "Function " ++ show funId ++ " received less arguments than it expected" tk]
+        return (T.TypeError, originalExpr)
+      else if exprsTypesL > domainL then do
+        RWS.tell [ST.SemanticError "Function " ++ show funId ++ " received more arguments than it expected" tk]
+        return (T.TypeError, originalExpr)
+      else do
+        if T.TypeError `elem` exprsTypes then
+          return (T.TypeError, originalExpr)
+        else case findInvalidArgument $ zip exprsTypes domain of
+          -- all looking good, now cast each argument to it's correspondent parameter type
+          Nothing -> do
+            let castedExprs = addCastToExprs $ zip exprs domain
+            return (range, G.EvalFunc funId castedExprs)
 
-memAccessCheck :: G.Expr -> ST.ParserMonad T.Type
-memAccessCheck expr = do
+          -- oh oh, an argument could not be implicitly casted to its correspondent argument
+          Just x -> do
+            RWS.tell [ST.SemanticError ("Argument #" ++ show x ++ " type mismatch with parameter #" ++ show x ++ " type") tk]
+            return (T.TypeError, originalExpr)
+
+    T.TypeError -> return T.TypeError -- we don't need to log - getType already does that
+    _ -> do
+      RWS.tell [ST.SemanticError "You're trying to call a non-callable expression" tk]
+      return T.TypeError
+  where
+    -- left side is the type of the argument, right side is the parameter type
+    findInvalidArgument :: [(T.Type, T.Type)] -> Maybe Int
+    findInvalidArgument ts = findInvalid ts 0
+
+    findInvalid :: [(T.Type, T.Type)] -> Int -> Maybe Int
+    findInvalid [] _ = Nothing
+    findInvalid ((argT, paramT) : xs) i = if argT `T.canBeConvertedTo` paramT
+      then findInvalid xs (i + 1)
+      else Just i
+
+
+memAccessCheck :: G.Expr -> T.Token -> ST.ParserMonad T.Type
+memAccessCheck expr tk = do
   t <- getType expr
   case t of
     T.PointerT t' -> return t'
-    _ -> return T.TypeError
+    T.TypeError -> return T.TypeError
+    _ -> do
+      RWS.tell [ST.SemanticError "Trying to access memory of non-arrow variable" tk]
+      return T.TypeError
 
-checkAsciiOf :: G.Expr -> ST.ParserMonad T.Type
-checkAsciiOf e = do
+checkAsciiOf :: G.Expr -> T.Token -> ST.ParserMonad T.Type
+checkAsciiOf e tk = do
   t <- getType e
-  return (case t of
-    T.CharT -> T.BigIntT
-    T.StringT -> T.ArrayT T.BigIntT
-    _ -> T.TypeError)
+  case t of
+    T.CharT -> return T.BigIntT
+    T.StringT -> return $ T.ArrayT T.BigIntT
+    T.TypeError -> T.TypeError
+    _ -> do
+      RWS.tell [ST.SemanticError "ascii_of requires argument to be a miracle or a sign", tk]
+      return T.TypeError
 
 
 checkColConcat :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
@@ -885,19 +959,51 @@ checkSetOp e e' = do
     (a@T.SetT{}, a'@T.SetT{}) | a == a' -> a
     _ -> T.TypeError)
 
-checkAccess :: G.Expr -> G.Id -> ST.ParserMonad T.Type
-checkAccess e (G.Id T.Token{T.cleanedString=i}) = do
+checkAccess :: G.Expr -> G.Id -> T.Token -> ST.ParserMonad T.Type
+checkAccess e (G.Id T.Token{T.cleanedString=i}) tk = do
   t <- getType e
-  return (case t of
+  case t of
     T.RecordT properties -> checkProperty properties
     T.UnionT properties -> checkProperty properties
-    _ -> T.TypeError)
+    T.TypeError -> return T.TypeError
+    _ -> do
+      RWS.tell [ST.SemanticError "Left side of access is not a record nor union" tk]
+      return T.TypeError
   where
-    checkProperty :: [T.PropType] -> T.Type
+    checkProperty :: [T.PropType] -> ST.ParserMonad T.Type
     checkProperty props =
       case filter ((==i) . fst) $ map (\(T.PropType e) -> e) props of
-        ((_,a):_) -> a
-        _ -> T.TypeError
+        ((_,a):_) -> return a
+        _ -> do
+          RWS.tell [ST.SemanticError "Property " ++ i ++ " doesn't exist" tk]
+          return T.TypeError
+
+
+binaryOpCheck :: G.Expr -> G.Expr -> G.Op2 -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
+binaryOpCheck leftExpr rightExpr op tk =
+  leftType <- getType leftExpr
+  rightType <- getType rightExpr
+  if leftType == T.TypeError || rightType == T.TypeError then
+    return (T.TypeError, G.Op2 op leftExpr rightExpr)
+  else if leftType `T.canBeConvertedTo` rightType then
+    let [castedLeftExpr] = addCastToExprs [(leftExpr, rightType)]
+    checkIfInExpected castedLeftExpr rightExpr
+  else if rightType `T.canBeConvertedTo` leftType then
+    let [castedRightExpr] = addCastToExprs [(rightExpr, leftType)]
+    checkIfInExpected leftExpr castedRightExpr
+  else do
+    RWS.tell [ST.SemanticError "Left and right side of operand can't be operated together" tk]
+    return (T.TypeError, G.Op2 op leftExpr rightExpr)
+
+  where
+    expectedForOperands :: G.Op2 -> [T.Type]
+    expectedForOperands op
+      | op `elem` G.arithmeticOp2
+    checkIfInExpected :: G.Expr -> G.Expr -> ST.ParserMonad (T.Type, G.BaseExpr)
+    checkIfInExpected leftExpr rightExpr = do
+      -- leftExpr and rightExpr have here the same type so it doesn't matter what we choose
+      finalType <- getType leftExpr
+      
 
 
 checkTypeOfAssignmentOnInit :: ST.DictionaryEntry -> G.Expr -> ST.ParserMonad ()
@@ -920,6 +1026,60 @@ minSmallInt = - 32768
 maxSmallInt :: Int
 maxSmallInt = 32767
 
+buildTypeForNonCasterExprs :: ST.ParserMonad T.Type -> G.BaseExpr -> ST.ParserMonad (T.Type, G.BaseExpr)
+buildTypeForNonCasterExprs tt bExpr = tt >>= \t -> return (tt, bExpr)
+
+
+buildType :: G.BaseExpr -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
+buildType bExpr tk = case bExpr of
+  -- Language literals, their types can be (almost everytime) infered
+  G.TrueLit -> return (T.TrileanT, bExpr)
+  G.FalseLit -> return (T.TrileanT, bExpr)
+  G.UndiscoveredLit -> return (T.TrileanT, bExpr)
+  G.NullLit -> return (T.PointerT T.Any, bExpr)
+
+  -- A literal of an integer is valid if it is on the correct range
+  G.IntLit n ->
+    if minSmallInt <= n && n <= maxSmallInt
+    then return (T.SmallIntT, bExpr)
+    else if minBigInt <= n && n <= maxBigInt
+    then return (T.BigIntT, bExpr)
+    else error "TODO: check for the int size, modify grammar to carry token position"
+  G.FloatLit _ -> return (T.FloatT, bExpr)
+  G.CharLit _ -> return (T.CharT, bExpr)
+  G.StringLit _ -> return (T.StringT, bExpr)
+
+  G.ArrayLit exprs -> containerCheck exprs T.ArrayT G.ArrayLit
+  G.SetLit exprs -> containerCheck exprs T.SetT G.SetLit
+
+  G.Op1 G.Negate a -> arithmeticCheck a a -- cheating
+  G.Op1 G.Not a -> logicalCheck a a -- cheating
+
+  G.Op2 G.Add a b -> arithmeticCheck a b
+  G.Op2 G.Substract a b -> arithmeticCheck a b
+  G.Op2 G.Multiply a b -> arithmeticCheck a b
+  G.Op2 G.Divide a b -> arithmeticCheck a b
+  G.Op2 G.Mod a b -> intArithmeticCheck a b
+  G.Op2 G.Lt a b -> comparableCheck a b
+  G.Op2 G.Lte a b -> comparableCheck a b
+  G.Op2 G.Gt a b -> comparableCheck a b
+  G.Op2 G.Gte a b -> comparableCheck a b
+  G.Op2 G.Eq a b -> equatableCheck a b
+  G.Op2 G.Neq a b -> equatableCheck a b
+  G.Op2 G.And a b -> logicalCheck a b
+  G.Op2 G.Or a b -> logicalCheck a b
+  G.Op2 G.SetUnion e e' -> checkSetOp e e'
+  G.Op2 G.SetIntersect e e' -> checkSetOp e e'
+  G.Op2 G.SetDifference e e' -> checkSetOp e e'
+  G.Op2 G.ColConcat e e' -> checkColConcat e e'
+
+  G.IdExpr i -> buildTypeForNonCasterExprs (getType i) bExpr
+  G.IndexAccess e i -> buildTypeForNonCasterExprs (checkIndexAccess e i tk) bExpr
+  G.EvalFunc i params -> functionsCheck i params tk
+  G.MemAccess e -> buildTypeForNonCasterExprs (memAccessCheck e tk) bExpr
+  G.AsciiOf e -> buildTypeForNonCasterExprs (checkAsciiOf e tk) bExpr
+  G.Access e i -> buildTypeForNonCasterExprs (checkAccess e i tk) bExpr
+
 instance TypeCheckable G.Id where
   getType gId = do
     idEntry <- checkIdAvailability gId
@@ -929,55 +1089,6 @@ instance TypeCheckable G.Id where
 
 instance TypeCheckable G.Expr where
   getType = return . G.expType
-
-instance TypeCheckable G.BaseExpr where
-  -- Language literals, their types can be (almost everytime) infered
-  getType G.TrueLit = return T.TrileanT
-  getType G.FalseLit = return T.TrileanT
-  getType G.UndiscoveredLit = return T.TrileanT
-  getType G.NullLit = return $ T.PointerT T.Any
-
-  -- A literal of an integer is valid if it is on the correct range
-  getType (G.IntLit n) =
-    if minSmallInt <= n && n <= maxSmallInt
-    then return T.SmallIntT
-    else if minBigInt <= n && n <= maxBigInt
-    then return T.BigIntT
-    else error "TODO: check for the int size, modify grammar to carry token position"
-  getType (G.FloatLit _) = return T.FloatT
-  getType (G.CharLit _) = return T.CharT
-  getType (G.StringLit _) = return T.StringT
-
-  getType (G.ArrayLit a) = containerCheck a T.ArrayT
-  getType (G.SetLit a) = containerCheck a T.SetT
-
-  getType (G.Op1 G.Negate a) = arithmeticCheck a a -- cheating
-  getType (G.Op1 G.Not a) = logicalCheck a a -- cheating
-
-  getType (G.Op2 G.Add a b) = arithmeticCheck a b
-  getType (G.Op2 G.Substract a b) = arithmeticCheck a b
-  getType (G.Op2 G.Multiply a b) = arithmeticCheck a b
-  getType (G.Op2 G.Divide a b) = arithmeticCheck a b
-  getType (G.Op2 G.Mod a b) = intArithmeticCheck a b
-  getType (G.Op2 G.Lt a b) = comparableCheck a b
-  getType (G.Op2 G.Lte a b) = comparableCheck a b
-  getType (G.Op2 G.Gt a b) = comparableCheck a b
-  getType (G.Op2 G.Gte a b) = comparableCheck a b
-  getType (G.Op2 G.Eq a b) = equatableCheck a b
-  getType (G.Op2 G.Neq a b) = equatableCheck a b
-  getType (G.Op2 G.And a b) = logicalCheck a b
-  getType (G.Op2 G.Or a b) = logicalCheck a b
-  getType (G.Op2 G.SetUnion e e') = checkSetOp e e'
-  getType (G.Op2 G.SetIntersect e e') = checkSetOp e e'
-  getType (G.Op2 G.SetDifference e e') = checkSetOp e e'
-  getType (G.Op2 G.ColConcat e e') = checkColConcat e e'
-
-  getType (G.IdExpr i) = getType i
-  getType (G.IndexAccess e i) = checkIndexAccess e i
-  getType (G.EvalFunc i params) = functionsCheck i params
-  getType (G.MemAccess e) = memAccessCheck e
-  getType (G.AsciiOf e) = checkAsciiOf e
-  getType (G.Access e i) = checkAccess e i
 
 instance TypeCheckable ST.DictionaryEntry where
   getType entry@ST.DictionaryEntry{ST.entryType=Just entryType, ST.category = cat, ST.extra = extras}

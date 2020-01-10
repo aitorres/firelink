@@ -79,6 +79,8 @@ canBeConvertedTo :: Type -> Type -> Bool
 SmallIntT `canBeConvertedTo` BigIntT = True
 SmallIntT `canBeConvertedTo` FloatT = True
 BigIntT `canBeConvertedTo` FloatT = True
+SetT a `canBeConvertedTo` SetT b = a `canBeConvertedTo` b
+ArrayT a `canBeConvertedTo` ArrayT b = a `canBeConvertedTo` b
 a `canBeConvertedTo` b = a == b
 
 typeMismatchMessage :: T.Token -> String
