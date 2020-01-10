@@ -842,25 +842,11 @@ typeCheck (a, ea) (b, eb) mt = do
               Just t -> t)
       else T.TypeError)
 
-intArithmeticCheck :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
-intArithmeticCheck a b = typeCheck (a, T.integerTypes) (b, T.integerTypes) Nothing
-
 arithmeticCheck :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
 arithmeticCheck a b = typeCheck (a, T.numberTypes) (b, T.numberTypes) Nothing
 
 logicalCheck :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
 logicalCheck a b = typeCheck (a, T.booleanTypes) (b, T.booleanTypes) Nothing
-
-equatableCheck :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
-equatableCheck a b = do
-  t <- typeCheck (a, T.numberTypes) (b, T.numberTypes) (Just T.TrileanT)
-  t' <- typeCheck (a, [T.CharT]) (b, [T.CharT]) (Just T.TrileanT)
-  if t /= T.TypeError || t' /= T.TypeError
-    then return T.TrileanT
-    else return T.TypeError
-
-comparableCheck :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
-comparableCheck = equatableCheck
 
 checkIndexAccess :: G.Expr -> G.Expr -> T.Token -> ST.ParserMonad T.Type
 checkIndexAccess array index tk = do
@@ -980,30 +966,41 @@ checkAccess e (G.Id T.Token{T.cleanedString=i}) tk = do
 
 
 binaryOpCheck :: G.Expr -> G.Expr -> G.Op2 -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
-binaryOpCheck leftExpr rightExpr op tk =
+binaryOpCheck leftExpr rightExpr op tk = do
   leftType <- getType leftExpr
   rightType <- getType rightExpr
   if leftType == T.TypeError || rightType == T.TypeError then
     return (T.TypeError, G.Op2 op leftExpr rightExpr)
   else if leftType `T.canBeConvertedTo` rightType then
-    let [castedLeftExpr] = addCastToExprs [(leftExpr, rightType)]
+    let [castedLeftExpr] = addCastToExprs [(leftExpr, rightType)] in
     checkIfInExpected castedLeftExpr rightExpr
   else if rightType `T.canBeConvertedTo` leftType then
-    let [castedRightExpr] = addCastToExprs [(rightExpr, leftType)]
+    let [castedRightExpr] = addCastToExprs [(rightExpr, leftType)] in
     checkIfInExpected leftExpr castedRightExpr
   else do
     RWS.tell [ST.SemanticError "Left and right side of operand can't be operated together" tk]
     return (T.TypeError, G.Op2 op leftExpr rightExpr)
 
   where
-    expectedForOperands :: G.Op2 -> [T.Type]
-    expectedForOperands op
-      | op `elem` G.arithmeticOp2
+    expectedForOperand :: [T.Type]
+    expectedForOperand
+      | op `elem` G.arithmeticOp2 = T.arithmeticTypes
+      | op `elem` G.comparableOp2 = T.anySingleton -- we can compare any type if they are the same
+      | op `elem` G.booleanOp2 = T.booleanSingleton
+      | op `elem` G.setOp2 = T.anySetSingleton
+      | op `elem` G.arrayOp2 = T.anyArraySingleton
+      | otherwise = error (show op ++ " doesn't have a value in expectedForOperand function")
     checkIfInExpected :: G.Expr -> G.Expr -> ST.ParserMonad (T.Type, G.BaseExpr)
-    checkIfInExpected leftExpr rightExpr = do
-      -- leftExpr and rightExpr have here the same type so it doesn't matter what we choose
-      finalType <- getType leftExpr
-      
+    checkIfInExpected l r = do
+      -- l and r have here the same type so it doesn't matter what we choose
+      finalType <- getType l
+      let exp = G.Op2 op l r
+      if finalType `elem` expectedForOperand then
+        return (finalType, exp)
+      else do
+        RWS.tell [ST.SemanticError (T.typeMismatchMessage tk) tk]
+        return (T.TypeError, exp)
+
 
 
 checkTypeOfAssignmentOnInit :: ST.DictionaryEntry -> G.Expr -> ST.ParserMonad ()
@@ -1055,23 +1052,7 @@ buildType bExpr tk = case bExpr of
   G.Op1 G.Negate a -> arithmeticCheck a a -- cheating
   G.Op1 G.Not a -> logicalCheck a a -- cheating
 
-  G.Op2 G.Add a b -> arithmeticCheck a b
-  G.Op2 G.Substract a b -> arithmeticCheck a b
-  G.Op2 G.Multiply a b -> arithmeticCheck a b
-  G.Op2 G.Divide a b -> arithmeticCheck a b
-  G.Op2 G.Mod a b -> intArithmeticCheck a b
-  G.Op2 G.Lt a b -> comparableCheck a b
-  G.Op2 G.Lte a b -> comparableCheck a b
-  G.Op2 G.Gt a b -> comparableCheck a b
-  G.Op2 G.Gte a b -> comparableCheck a b
-  G.Op2 G.Eq a b -> equatableCheck a b
-  G.Op2 G.Neq a b -> equatableCheck a b
-  G.Op2 G.And a b -> logicalCheck a b
-  G.Op2 G.Or a b -> logicalCheck a b
-  G.Op2 G.SetUnion e e' -> checkSetOp e e'
-  G.Op2 G.SetIntersect e e' -> checkSetOp e e'
-  G.Op2 G.SetDifference e e' -> checkSetOp e e'
-  G.Op2 G.ColConcat e e' -> checkColConcat e e'
+  G.Op2 op a b -> binaryOpCheck a b op tk
 
   G.IdExpr i -> buildTypeForNonCasterExprs (getType i) bExpr
   G.IndexAccess e i -> buildTypeForNonCasterExprs (checkIndexAccess e i tk) bExpr

@@ -42,6 +42,13 @@ data BaseExpr
 
 data Op1 = Negate | Not
   deriving Eq
+
+arithmeticOp1 :: [Op1]
+arithmeticOp1 = [Negate]
+
+booleanOp1 :: [Op1]
+booleanOp1 = [Not]
+
 data Op2
   = Add | Substract | Multiply | Divide | Mod | Lt | Gt | Lte | Gte | Eq | Neq | And | Or
   | SetUnion | SetIntersect | SetDifference | ColConcat
@@ -61,7 +68,6 @@ setOp2 = [SetUnion, SetIntersect, SetDifference]
 
 arrayOp2 :: [Op2]
 arrayOp2 = [ColConcat]
-
 
 instance Show Op1 where
   show Negate = "-"
