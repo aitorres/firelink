@@ -183,6 +183,7 @@ instance Show AbstractToken where
     show TkNot = U.brightMagenta ++ U.bold
     show TkId = U.bold
     show TkIntLit = U.blue ++ U.bold
+    show TkFloatLit = U.blue ++ U.bold
     show TkCharLit = U.yellow
     show TkStringLit = U.yellow
     show TkParensOpen = ""

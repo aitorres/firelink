@@ -477,7 +477,7 @@ type RecordItem = AliasDeclaration
 
 buildAndCheckExpr :: T.Token -> G.BaseExpr -> ST.ParserMonad G.Expr
 buildAndCheckExpr tk bExpr = do
-  (expr, t) <- buildType bExpr tk
+  (t, expr) <- buildType bExpr tk
   return G.Expr
     { G.expAst = expr,
       G.expType = t,
@@ -764,25 +764,11 @@ buildExtraForType _ = return $ Just []
 class TypeCheckable a where
   getType :: a -> ST.ParserMonad T.Type
 
-isOneOfTypes :: [T.Type] -> G.Expr -> ST.ParserMonad Bool
-isOneOfTypes ts a = do
-  t <- getType a
-  return $ t `elem` ts
-
-type TypeChecker = G.Expr -> ST.ParserMonad Bool
-
-isLogicalType :: TypeChecker
-isLogicalType = isOneOfTypes T.booleanTypes
-
-isNumberType :: T.Type -> Bool
-isNumberType t = t `elem` T.numberTypes
-
 isIntegerType :: T.Type -> Bool
 isIntegerType t = t `elem` T.integerTypes
 
 exprsToTypes :: [G.Expr] -> [T.Type]
 exprsToTypes = map G.expType
-
 
 -- this functions assumes that expressions can be casted to the
 -- target type if they are different
@@ -794,9 +780,9 @@ addCastToExprs = map caster
       if t == t' then expr
       else expr{G.expAst = G.Caster expr t'}
 
-containerCheck :: [G.Expr] -> ([G.Expr] -> G.BaseExpr) -> (T.Type -> T.Type) -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
+containerCheck :: [G.Expr] -> (T.Type -> T.Type) -> ([G.Expr] -> G.BaseExpr) -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
 containerCheck [] c c' _ = return (c T.Any, c' [])
-containerCheck exprs exprCons typeCons tk = do
+containerCheck exprs typeCons exprCons tk = do
   let types = exprsToTypes exprs
   let t = findTypeForContainerLiteral types
   -- if t == T.TypeError
@@ -842,12 +828,6 @@ typeCheck (a, ea) (b, eb) mt = do
               Just t -> t)
       else T.TypeError)
 
-arithmeticCheck :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
-arithmeticCheck a b = typeCheck (a, T.numberTypes) (b, T.numberTypes) Nothing
-
-logicalCheck :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
-logicalCheck a b = typeCheck (a, T.booleanTypes) (b, T.booleanTypes) Nothing
-
 checkIndexAccess :: G.Expr -> G.Expr -> T.Token -> ST.ParserMonad T.Type
 checkIndexAccess array index tk = do
   arrayType <- getType array
@@ -864,17 +844,17 @@ checkIndexAccess array index tk = do
 functionsCheck :: G.Id -> [G.Expr] -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
 functionsCheck funId exprs tk = do
   funType <- getType funId
+  let originalExpr = G.EvalFunc funId exprs
   case funType of
     T.FunctionT domain range -> do
       let exprsTypes = exprsToTypes exprs
       let exprsTypesL = length exprsTypes
       let domainL = length domain
-      let originalExpr = G.EvalFunc funId exprs
       if exprsTypesL < domainL then do
-        RWS.tell [ST.SemanticError "Function " ++ show funId ++ " received less arguments than it expected" tk]
+        RWS.tell [ST.SemanticError ("Function " ++ show funId ++ " received less arguments than it expected") tk]
         return (T.TypeError, originalExpr)
       else if exprsTypesL > domainL then do
-        RWS.tell [ST.SemanticError "Function " ++ show funId ++ " received more arguments than it expected" tk]
+        RWS.tell [ST.SemanticError ("Function " ++ show funId ++ " received more arguments than it expected") tk]
         return (T.TypeError, originalExpr)
       else do
         if T.TypeError `elem` exprsTypes then
@@ -890,10 +870,10 @@ functionsCheck funId exprs tk = do
             RWS.tell [ST.SemanticError ("Argument #" ++ show x ++ " type mismatch with parameter #" ++ show x ++ " type") tk]
             return (T.TypeError, originalExpr)
 
-    T.TypeError -> return T.TypeError -- we don't need to log - getType already does that
+    T.TypeError -> return (T.TypeError, originalExpr) -- we don't need to log - getType already does that
     _ -> do
       RWS.tell [ST.SemanticError "You're trying to call a non-callable expression" tk]
-      return T.TypeError
+      return (T.TypeError, originalExpr)
   where
     -- left side is the type of the argument, right side is the parameter type
     findInvalidArgument :: [(T.Type, T.Type)] -> Maybe Int
@@ -922,9 +902,9 @@ checkAsciiOf e tk = do
   case t of
     T.CharT -> return T.BigIntT
     T.StringT -> return $ T.ArrayT T.BigIntT
-    T.TypeError -> T.TypeError
+    T.TypeError -> return T.TypeError
     _ -> do
-      RWS.tell [ST.SemanticError "ascii_of requires argument to be a miracle or a sign", tk]
+      RWS.tell [ST.SemanticError ("ascii_of requires argument to be a miracle or a sign") tk]
       return T.TypeError
 
 
@@ -961,9 +941,25 @@ checkAccess e (G.Id T.Token{T.cleanedString=i}) tk = do
       case filter ((==i) . fst) $ map (\(T.PropType e) -> e) props of
         ((_,a):_) -> return a
         _ -> do
-          RWS.tell [ST.SemanticError "Property " ++ i ++ " doesn't exist" tk]
+          RWS.tell [ST.SemanticError ("Property " ++ i ++ " doesn't exist") tk]
           return T.TypeError
 
+unaryOpCheck :: G.Expr -> G.Op1 -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
+unaryOpCheck expr op tk = do
+  t <- getType expr
+  let finalExpr = G.Op1 op expr
+  if t == T.TypeError then
+    return (T.TypeError, finalExpr)
+  else if t `elem` expectedForOperand then
+    let finalType = if op == G.Negate then t else T.TrileanT in
+    return (finalType, finalExpr)
+  else do
+    RWS.tell [ST.SemanticError (T.typeMismatchMessage tk) tk]
+    return (T.TypeError, finalExpr)
+  where
+    expectedForOperand
+      | op == G.Negate = T.arithmeticTypes
+      | otherwise = T.booleanSingleton
 
 binaryOpCheck :: G.Expr -> G.Expr -> G.Op2 -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
 binaryOpCheck leftExpr rightExpr op tk = do
@@ -982,20 +978,23 @@ binaryOpCheck leftExpr rightExpr op tk = do
     return (T.TypeError, G.Op2 op leftExpr rightExpr)
 
   where
-    expectedForOperand :: [T.Type]
-    expectedForOperand
+    expectedForOperands :: [T.Type]
+    expectedForOperands
       | op `elem` G.arithmeticOp2 = T.arithmeticTypes
       | op `elem` G.comparableOp2 = T.anySingleton -- we can compare any type if they are the same
       | op `elem` G.booleanOp2 = T.booleanSingleton
       | op `elem` G.setOp2 = T.anySetSingleton
       | op `elem` G.arrayOp2 = T.anyArraySingleton
-      | otherwise = error (show op ++ " doesn't have a value in expectedForOperand function")
+      | otherwise = error (show op ++ " doesn't have a value in expectedForOperands function")
     checkIfInExpected :: G.Expr -> G.Expr -> ST.ParserMonad (T.Type, G.BaseExpr)
     checkIfInExpected l r = do
       -- l and r have here the same type so it doesn't matter what we choose
-      finalType <- getType l
+      t <- getType l
       let exp = G.Op2 op l r
-      if finalType `elem` expectedForOperand then
+      if t `elem` expectedForOperands then
+
+        -- the final type depends on the operator
+        let finalType = if op `elem` G.comparableOp2 then T.TrileanT else t in
         return (finalType, exp)
       else do
         RWS.tell [ST.SemanticError (T.typeMismatchMessage tk) tk]
@@ -1024,7 +1023,7 @@ maxSmallInt :: Int
 maxSmallInt = 32767
 
 buildTypeForNonCasterExprs :: ST.ParserMonad T.Type -> G.BaseExpr -> ST.ParserMonad (T.Type, G.BaseExpr)
-buildTypeForNonCasterExprs tt bExpr = tt >>= \t -> return (tt, bExpr)
+buildTypeForNonCasterExprs tt bExpr = tt >>= \t -> return (t, bExpr)
 
 
 buildType :: G.BaseExpr -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
@@ -1046,11 +1045,10 @@ buildType bExpr tk = case bExpr of
   G.CharLit _ -> return (T.CharT, bExpr)
   G.StringLit _ -> return (T.StringT, bExpr)
 
-  G.ArrayLit exprs -> containerCheck exprs T.ArrayT G.ArrayLit
-  G.SetLit exprs -> containerCheck exprs T.SetT G.SetLit
+  G.ArrayLit exprs -> containerCheck exprs T.ArrayT G.ArrayLit tk
+  G.SetLit exprs -> containerCheck exprs T.SetT G.SetLit tk
 
-  G.Op1 G.Negate a -> arithmeticCheck a a -- cheating
-  G.Op1 G.Not a -> logicalCheck a a -- cheating
+  G.Op1 op a -> unaryOpCheck a op tk
 
   G.Op2 op a b -> binaryOpCheck a b op tk
 
