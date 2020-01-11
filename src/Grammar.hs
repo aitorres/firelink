@@ -17,6 +17,7 @@ instance Show Id where
   show (Id tk) = show tk
 
 data BaseExpr
+  -- Literals
   = TrueLit
   | FalseLit
   | UndiscoveredLit
@@ -27,32 +28,69 @@ data BaseExpr
   | StringLit String
   | ArrayLit [Expr]
   | SetLit [Expr]
-  | EvalFunc Id Params
-  | Add Expr Expr
-  | Substract Expr Expr
-  | Multiply Expr Expr
-  | Divide Expr Expr
-  | Mod Expr Expr
-  | Negative Expr
-  | Lt Expr Expr
-  | Gt Expr Expr
-  | Lte Expr Expr
-  | Gte Expr Expr
-  | Eq Expr Expr
-  | Neq Expr Expr
-  | And Expr Expr
-  | Or Expr Expr
-  | Not Expr
+
+  | Op1 Op1 Expr
+  | Op2 Op2 Expr Expr
   | Access Expr Id
   | IndexAccess Expr Expr
   | MemAccess Expr
   | IdExpr Id
   | AsciiOf Expr
-  | ColConcat Expr Expr
-  | SetUnion Expr Expr
-  | SetIntersect Expr Expr
-  | SetDiff Expr Expr
   | SetSize Expr
+  | EvalFunc Id Params
+  | Caster Expr Type
+
+data Op1 = Negate | Not
+  deriving Eq
+
+arithmeticOp1 :: [Op1]
+arithmeticOp1 = [Negate]
+
+booleanOp1 :: [Op1]
+booleanOp1 = [Not]
+
+data Op2
+  = Add | Substract | Multiply | Divide | Mod | Lt | Gt | Lte | Gte | Eq | Neq | And | Or
+  | SetUnion | SetIntersect | SetDifference | ColConcat
+  deriving Eq
+
+arithmeticOp2 :: [Op2]
+arithmeticOp2 = [Add, Substract, Multiply, Divide, Mod]
+
+comparableOp2 :: [Op2]
+comparableOp2 = [Lt, Gt, Lte, Gte, Eq, Neq]
+
+booleanOp2 :: [Op2]
+booleanOp2 = [And, Or]
+
+setOp2 :: [Op2]
+setOp2 = [SetUnion, SetIntersect, SetDifference]
+
+arrayOp2 :: [Op2]
+arrayOp2 = [ColConcat]
+
+instance Show Op1 where
+  show Negate = "-"
+  show Not = "not"
+
+instance Show Op2 where
+  show Add = "+"
+  show Substract = "-"
+  show Multiply = "*"
+  show Divide = "/"
+  show Mod = "%"
+  show Lt = "lt"
+  show Gt = "gt"
+  show Lte = "lte"
+  show Gte = "gte"
+  show Eq = "eq"
+  show Neq = "neq"
+  show And = "and"
+  show Or = "or"
+  show SetUnion = "union"
+  show SetIntersect = "intersect"
+  show SetDifference = "diff"
+  show ColConcat = ">-<"
 
 joinExprList :: [Expr] -> String
 joinExprList = intercalate ", " . map show
@@ -69,30 +107,13 @@ instance Show BaseExpr where
   show (ArrayLit exprs) = "<$" ++ joinExprList exprs ++ "$>"
   show (SetLit exprs) = "{$" ++ joinExprList exprs ++ "$}"
   show (EvalFunc i params) = show i ++ "(" ++ joinExprList params ++ ")"
-  show (Add e e') = show e ++ " + " ++ show e'
-  show (Substract e e') = show e ++ " - " ++ show e'
-  show (Multiply e e') = show e ++ " * " ++ show e'
-  show (Divide e e') = show e ++ " / " ++ show e'
-  show (Mod e e') = show e ++ " % " ++ show e'
-  show (Negative e) = "- " ++ show e
-  show (Lt e e') = show e ++ " lt " ++ show e'
-  show (Gt e e') = show e ++ " gt " ++ show e'
-  show (Lte e e') = show e ++ " lte " ++ show e'
-  show (Gte e e') = show e ++ " gte " ++ show e'
-  show (Eq e e') = show e ++ " eq " ++ show e'
-  show (Neq e e') = show e ++ " neq " ++ show e'
-  show (And e e') = show e ++ " and " ++ show e'
-  show (Or e e') = show e ++ " or " ++ show e'
-  show (Not e) = "not " ++ show e
+  show (Op1 o e) = show o ++ " " ++ show e
+  show (Op2 o e e') = show e ++ " " ++ show o ++ " " ++ show e'
   show (Access e i) = show e ++ "~>" ++ show i
   show (IndexAccess e e') = show e ++ "<$" ++ show e' ++ "$>"
   show (MemAccess e) = "throw a " ++ show e
   show (IdExpr i) = show i
   show (AsciiOf e) = "ascii_of " ++ show e
-  show (ColConcat e e') = show e ++ ">-<" ++ show e'
-  show (SetUnion e e') = show e ++ " union " ++ show e'
-  show (SetIntersect e e') = show e ++ " intersect " ++ show e'
-  show (SetDiff e e') = show e ++ " diff " ++ show e'
   show (SetSize s) = "size " ++ show s
 
 data Expr = Expr {

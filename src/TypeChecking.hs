@@ -63,11 +63,11 @@ instance Eq PropType where
 instance Ord PropType where
   PropType (s, _) <= PropType (s', _) = s <= s'
 
-booleanTypes :: [Type]
-booleanTypes = [TrileanT]
+booleanSingleton :: [Type]
+booleanSingleton = [TrileanT]
 
-numberTypes :: [Type]
-numberTypes = [BigIntT, SmallIntT, FloatT]
+arithmeticTypes :: [Type]
+arithmeticTypes = [BigIntT, SmallIntT, FloatT]
 
 integerTypes :: [Type]
 integerTypes = [BigIntT, SmallIntT]
@@ -75,13 +75,21 @@ integerTypes = [BigIntT, SmallIntT]
 comparableTypes :: [Type]
 comparableTypes = [BigIntT, SmallIntT, FloatT]
 
-showableTypes :: [Type]
-showableTypes = [CharT, StringT, SmallIntT, BigIntT, FloatT]
+anySingleton :: [Type]
+anySingleton = [Any]
+
+anySetSingleton :: [Type]
+anySetSingleton = [SetT Any]
+
+anyArraySingleton :: [Type]
+anyArraySingleton = [ArrayT Any]
 
 canBeConvertedTo :: Type -> Type -> Bool
 SmallIntT `canBeConvertedTo` BigIntT = True
 SmallIntT `canBeConvertedTo` FloatT = True
 BigIntT `canBeConvertedTo` FloatT = True
+SetT a `canBeConvertedTo` SetT b = a `canBeConvertedTo` b
+ArrayT a `canBeConvertedTo` ArrayT b = a `canBeConvertedTo` b
 a `canBeConvertedTo` b = a == b
 
 typeMismatchMessage :: T.Token -> String
