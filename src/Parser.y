@@ -575,14 +575,19 @@ insertIdToEntry mi t entry = do
       case extractFunParamsForNewScope t of
         -- If it is nothing then this is not a function
         Nothing -> return ()
-        Just s -> do
-          (dict, scopes, curr) <- RWS.get
-          let (ST.Fields ST.Callable scope) = head $ filter ST.isFieldsExtra ex
-          RWS.put (dict, scope:scopes, curr)
-          RWS.mapM_ (\(i, n) -> addIdToSymTable (Just i) n) $ zip [0..] $
-            map (\(argType, i, t) -> (if argType == G.Val
-                                then ST.ValueParam
-                                else ST.RefParam, i, t, Nothing)) s
+
+        Just s ->
+          -- it can be a function without parameters
+          if not $ null $ filter ST.isEmptyFunction ex then
+            return ()
+          else do
+            (dict, scopes, curr) <- RWS.get
+            let (ST.Fields ST.Callable scope) = head $ filter ST.isFieldsExtra ex
+            RWS.put (dict, scope:scopes, curr)
+            RWS.mapM_ (\(i, n) -> addIdToSymTable (Just i) n) $ zip [0..] $
+              map (\(argType, i, t) -> (if argType == G.Val
+                                  then ST.ValueParam
+                                  else ST.RefParam, i, t, Nothing)) s
 
 checkConstantReassignment :: G.Expr -> ST.ParserMonad ()
 checkConstantReassignment e = case G.expAst e of
@@ -635,13 +640,8 @@ addFunction d@(_, i@(G.Id tk@(T.Token {T.cleanedString=idName})), _, _) = do
       addIdToSymTable Nothing d
       return $ Just (currScope, i)
     Just entry -> do
-      if ST.scope entry == currScope
-      then do
-        RWS.tell [ST.SemanticError ("Name " ++ idName ++ " was already declared on this scope") tk]
-        return Nothing
-      else do
-        addIdToSymTable Nothing d
-        return $ Just (currScope, i)
+      RWS.tell [ST.SemanticError ("Function " ++ idName ++ " was already declared") tk]
+      return Nothing
 
 updateCodeBlockOfFun :: ST.Scope -> G.Id -> G.CodeBlock -> ST.ParserMonad ()
 updateCodeBlockOfFun currScope (G.Id tk@(T.Token {T.cleanedString=idName})) code = do
