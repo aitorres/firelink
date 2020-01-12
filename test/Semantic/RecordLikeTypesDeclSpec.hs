@@ -181,8 +181,8 @@ spec = do
             (_, _, errors) <- U.extractSymTable p
             errors `shouldNotSatisfy` null
             let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
-            varName `shouldBe` "z"
-            T.col pn `shouldBe` 34
+            varName `shouldBe` "~>"
+            T.col pn `shouldBe` 31
             T.row pn `shouldBe` 8
         it "allows to access ST.record properties of arrays of records" $
             U.shouldNotError "hello ashen one\n\
@@ -219,8 +219,8 @@ spec = do
             (_, _, errors) <- U.extractSymTable p
             errors `shouldNotSatisfy` null
             let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
-            varName `shouldBe` "z"
-            T.col pn `shouldBe` 39
+            varName `shouldBe` "~>"
+            T.col pn `shouldBe` 36
             T.row pn `shouldBe` 6
         it "accepts valid x<$0$> ~> y ~> z<$0$> ~> a" $
             U.shouldNotError "hello ashen one\n\
@@ -265,6 +265,6 @@ spec = do
             (_, _, errors) <- U.extractSymTable p
             errors `shouldNotSatisfy` null
             let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
-            varName `shouldBe` "b"
-            T.col pn `shouldBe` 54
+            varName `shouldBe` "~>"
+            T.col pn `shouldBe` 51
             T.row pn `shouldBe` 12

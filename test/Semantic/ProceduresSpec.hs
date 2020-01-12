@@ -255,7 +255,7 @@ spec = do
 
 
             \ traveling somewhere \
-            \ with orange saponite say summon fun \
+            \   cast fun \
             \ you died \
             \ farewell ashen one"
             (_, _, errors) <- U.extractSymTable p
@@ -264,7 +264,9 @@ spec = do
             let p = "hello ashen one\n\
 
             \spell fun\n\
-
+            \requesting\n\
+            \   val i of type humanity\n\
+            \to the estus flask\n\
             \traveling somewhere\n\
             \   go back\n\
             \you died\n\
@@ -273,7 +275,7 @@ spec = do
 
 
             \ traveling somewhere\n\
-            \ with orange saponite say summon fun\n\
+            \   cast fun offering 1 to the estus flask \n\
             \ you died \
             \ farewell ashen one"
             (_, _, errors) <- U.extractSymTable p
