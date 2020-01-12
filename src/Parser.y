@@ -815,19 +815,6 @@ findTypeForContainerLiteral types = findT (zip [0..] types) (head types)
       else if b `T.canBeConvertedTo` a then findT xs a
       else (Just i, T.TypeError)
 
-typeCheck :: (G.Expr, [T.Type]) -> (G.Expr, [T.Type]) -> Maybe T.Type -> ST.ParserMonad T.Type
-typeCheck (a, ea) (b, eb) mt = do
-  let aType = G.expType a
-  let bType = G.expType b
-  let correctType = aType `elem` ea
-  let correctType' = bType `elem` eb
-  return (
-    if correctType && correctType'
-      then (case mt of
-              Nothing -> aType `max` bType
-              Just t -> t)
-      else T.TypeError)
-
 checkIndexAccess :: G.Expr -> G.Expr -> T.Token -> ST.ParserMonad T.Type
 checkIndexAccess array index tk = do
   arrayType <- getType array
@@ -908,23 +895,6 @@ checkAsciiOf e tk = do
       return T.TypeError
 
 
-checkColConcat :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
-checkColConcat e e' = do
-  t <- getType e
-  t' <- getType e'
-  return (case (t, t') of
-    (a@T.ArrayT{}, a'@T.ArrayT{}) | a == a' -> a
-    (s@T.StringT, s'@T.StringT) -> s
-    _ -> T.TypeError)
-
-checkSetOp :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
-checkSetOp e e' = do
-  t <- getType e
-  t' <- getType e'
-  return (case (t, t') of
-    (a@T.SetT{}, a'@T.SetT{}) | a == a' -> a
-    _ -> T.TypeError)
-
 checkAccess :: G.Expr -> G.Id -> T.Token -> ST.ParserMonad T.Type
 checkAccess e (G.Id T.Token{T.cleanedString=i}) tk = do
   t <- getType e
@@ -1001,6 +971,15 @@ binaryOpCheck leftExpr rightExpr op tk = do
         return (T.TypeError, exp)
 
 
+checkSetSize :: G.Expr -> T.Token -> ST.ParserMonad T.Type
+checkSetSize expr tk = do
+  t <- getType expr
+  case t of
+    T.SetT _ -> return T.BigIntT
+    T.TypeError -> return T.TypeError
+    _ -> do
+      RWS.tell [ST.SemanticError "`size` expects a set" tk]
+      return T.TypeError
 
 checkTypeOfAssignmentOnInit :: ST.DictionaryEntry -> G.Expr -> ST.ParserMonad ()
 checkTypeOfAssignmentOnInit entry expr = do
@@ -1058,6 +1037,7 @@ buildType bExpr tk = case bExpr of
   G.MemAccess e -> buildTypeForNonCasterExprs (memAccessCheck e tk) bExpr
   G.AsciiOf e -> buildTypeForNonCasterExprs (checkAsciiOf e tk) bExpr
   G.Access e i -> buildTypeForNonCasterExprs (checkAccess e i tk) bExpr
+  G.SetSize e -> buildTypeForNonCasterExprs (checkSetSize e tk) bExpr
 
 instance TypeCheckable G.Id where
   getType gId = do
