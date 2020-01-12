@@ -22,13 +22,13 @@ import Utils
 %left ARRCLOSE
 
 %left eq neq
+%nonassoc lt lte gt gte
 %left plus minus
 %left mult div mod
 %left NEG
 
 %left and or
 
-%nonassoc lt lte gt gte
 
 %left colConcat
 %left diff
