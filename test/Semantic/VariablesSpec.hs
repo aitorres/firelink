@@ -56,6 +56,6 @@ spec = describe "Constants" $ do
     errors `shouldSatisfy` null
 
   it "allows variable arrays reassignments" $ do
-    let p = program "a<$0$> <<= 3"
+    let p = program "d<$0$> <<= 3"
     (_, _, errors) <- U.extractSymTable p
     errors `shouldSatisfy` null

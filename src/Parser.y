@@ -536,7 +536,7 @@ addIdToSymTable mi d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idN
     Just entry -> do
       let scope = ST.scope entry
       let category = ST.category entry
-      if category == ST.Type
+      if category == ST.Type && c /= ST.RecordItem
       then RWS.tell $ [ST.SemanticError ("Name " ++ show tk ++ " conflicts with an type alias") tk]
       else if category == ST.Procedure
       then RWS.tell $ [ST.SemanticError ("Name " ++ show tk ++ " conflicts with a procedure") tk]
