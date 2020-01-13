@@ -542,6 +542,8 @@ addIdToSymTable mi d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idN
       then RWS.tell $ [ST.SemanticError ("Name " ++ show tk ++ " conflicts with a procedure") tk]
       else if category == ST.Function
       then RWS.tell $ [ST.SemanticError ("Name " ++ show tk ++ " conflicts with a function") tk]
+      else if category == ST.RefParam || category == ST.ValueParam
+      then RWS.tell $ [ST.SemanticError ("Name "++ show tk ++ " conflicts with a formal param") tk]
       else if currScope /= scope
       then insertIdToEntry mi t ST.DictionaryEntry
         { ST.name = idName
