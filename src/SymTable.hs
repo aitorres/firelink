@@ -11,7 +11,11 @@ type Scope = Int
 type ScopeStack = [Scope]
 
 
-data SemanticError = SemanticError String T.Token
+data SemanticError = SemanticError
+    { stMessage :: String
+    , stLeftToken :: T.Token
+    , stRightToken :: T.Token
+    }
     deriving Show
 type SemanticErrors = [SemanticError]
 

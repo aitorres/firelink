@@ -92,39 +92,3 @@ SetT a `canBeConvertedTo` SetT b = a `canBeConvertedTo` b
 ArrayT a `canBeConvertedTo` ArrayT b = a `canBeConvertedTo` b
 a `canBeConvertedTo` b = a == b
 
-typeMismatchMessage :: T.Token -> String
-typeMismatchMessage t =
-  "Type error near " ++ show t ++ ": " ++ typeMismatchInfo t
-
-numericMismatchMessage :: String
-numericMismatchMessage = "numeric operands expected"
-
-integerMismatchMessage :: String
-integerMismatchMessage = "integer operands expected"
-
-booleanMismatchMessage :: String
-booleanMismatchMessage = "boolean operands expected"
-
-comparableMismatchMessage :: String
-comparableMismatchMessage = "same-type operands expected"
-
-collectionMismatchMessage :: String
-collectionMismatchMessage = "compatible collection-type operands expected"
-
-typeMismatchInfo :: T.Token -> String
-typeMismatchInfo T.Token{T.aToken = T.TkPlus} = numericMismatchMessage
-typeMismatchInfo T.Token{T.aToken = T.TkMinus} = numericMismatchMessage
-typeMismatchInfo T.Token{T.aToken = T.TkMult} = numericMismatchMessage
-typeMismatchInfo T.Token{T.aToken = T.TkDiv} = numericMismatchMessage
-typeMismatchInfo T.Token{T.aToken = T.TkMod} = integerMismatchMessage
-typeMismatchInfo T.Token{T.aToken = T.TkLt} = comparableMismatchMessage
-typeMismatchInfo T.Token{T.aToken = T.TkGt} = comparableMismatchMessage
-typeMismatchInfo T.Token{T.aToken = T.TkLte} = comparableMismatchMessage
-typeMismatchInfo T.Token{T.aToken = T.TkGte} = comparableMismatchMessage
-typeMismatchInfo T.Token{T.aToken = T.TkEq} = comparableMismatchMessage
-typeMismatchInfo T.Token{T.aToken = T.TkNeq} = comparableMismatchMessage
-typeMismatchInfo T.Token{T.aToken = T.TkAnd} = booleanMismatchMessage
-typeMismatchInfo T.Token{T.aToken = T.TkOr} = booleanMismatchMessage
-typeMismatchInfo T.Token{T.aToken = T.TkNot} = booleanMismatchMessage
-typeMismatchInfo T.Token{T.aToken = T.TkConcat} = collectionMismatchMessage
-typeMismatchInfo _ = "(oops! there should be a message here, please fill an issue on Github)"

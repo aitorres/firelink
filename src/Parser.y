@@ -179,9 +179,9 @@ PROGRAM :: { G.Program }
                                                                              checkRecoverableError $1 $5
                                                                              return $ G.Program $4 }
 
-PROGRAMEND :: { Maybe G.RecoverableError }
-  : programEnd                                                          { Nothing }
-  | error                                                               { Just G.MissingProgramEnd }
+PROGRAMEND :: { Either G.RecoverableError T.Token }
+  : programEnd                                                          { Right $1 }
+  | error                                                               { Left G.MissingProgramEnd }
 
 NON_OPENER_CODEBLOCK :: { G.CodeBlock }
   : instructionsBegin DECLARS INSTRL NON_OPENER_INSTEND                 {% do
@@ -191,9 +191,9 @@ NON_OPENER_CODEBLOCK :: { G.CodeBlock }
                                                                              checkRecoverableError $1 $3
                                                                              return $ G.CodeBlock $ reverse $2 }
 
-NON_OPENER_INSTEND :: { Maybe G.RecoverableError }
-  : instructionsEnd                                                     { Nothing }
-  | error                                                               { Just G.MissingInstructionListEnd }
+NON_OPENER_INSTEND :: { Either G.RecoverableError T.Token }
+  : instructionsEnd                                                     { Right $1 }
+  | error                                                               { Left G.MissingInstructionListEnd }
 
 ALIASES :: { () }
   : aliasListBegin ALIASL ALIASLISTEND                                  {% do
@@ -204,9 +204,9 @@ ALIASES :: { () }
   | {- empty -}                                                         { () }
 
 
-ALIASLISTEND :: { Maybe G.RecoverableError }
- : aliasListEnd                                                         { Nothing }
- | error                                                                { Just G.MissingAliasListEnd }
+ALIASLISTEND :: { Either G.RecoverableError T.Token }
+ : aliasListEnd                                                         { Right $1 }
+ | error                                                                { Left G.MissingAliasListEnd }
 
 ALIASL :: { [NameDeclaration] }
   : ALIASL comma ALIAS                                                  { $3:$1 }
@@ -218,48 +218,54 @@ ALIAS :: { NameDeclaration }
 LVALUE :: { G.Expr }
   : ID                                                                  {% do
                                                                             let (G.Id tk) = $1
-                                                                            buildAndCheckExpr tk $ G.IdExpr $1 }
+                                                                            buildAndCheckExpr tk tk $ G.IdExpr $1 }
   | EXPR accessor ID                                                    {% do
                                                                             let expr = G.Access $1 $3
-                                                                            buildAndCheckExpr $2 expr }
-  | EXPR arrOpen EXPR arrClose                                          {% buildAndCheckExpr $2 $ G.IndexAccess $1 $3 }
-  | memAccessor EXPR                                                    {% buildAndCheckExpr $1 $ G.MemAccess $2 }
+                                                                            let (G.Id rightTk) = $3
+                                                                            buildAndCheckExpr (G.expLeftTok $1) rightTk expr }
+  | EXPR arrOpen EXPR arrClose                                          {% buildAndCheckExpr (G.expLeftTok $1) $4 $ G.IndexAccess $1 $3 }
+  | memAccessor EXPR                                                    {% buildAndCheckExpr $1 (G.expRightTok $2) $ G.MemAccess $2 }
 
 EXPR :: { G.Expr }
-  : intLit                                                              {% buildAndCheckExpr $1 $ G.IntLit (read (T.cleanedString $1) :: Int) }
-  | floatLit                                                            {% buildAndCheckExpr $1 $ G.FloatLit (read (T.cleanedString $1) :: Float) }
-  | charLit                                                             {% buildAndCheckExpr $1 $ G.CharLit $ head (T.cleanedString $1) }
-  | stringLit                                                           {% buildAndCheckExpr $1 $ G.StringLit (T.cleanedString $1) }
-  | trueLit                                                             {% buildAndCheckExpr $1 G.TrueLit }
-  | falseLit                                                            {% buildAndCheckExpr $1 G.FalseLit }
-  | unknownLit                                                          {% buildAndCheckExpr $1 G.UndiscoveredLit }
-  | nullLit                                                             {% buildAndCheckExpr $1 G.NullLit }
-  | arrOpen EXPRL arrClose                                              {% buildAndCheckExpr $1 $ G.ArrayLit $ reverse $2 }
-  | setOpen EXPRL setClose                                              {% buildAndCheckExpr $1 $ G.SetLit $ reverse $2 }
-  | parensOpen EXPR parensClosed                                        { $2{G.expTok=$1} }
-  | minus EXPR                                                          {% buildAndCheckExpr $1 $ G.Op1 G.Negate $2 }
-  | not EXPR                                                            {% buildAndCheckExpr $1 $ G.Op1 G.Not $2 }
-  | asciiOf EXPR                                                        {% buildAndCheckExpr $1 $ G.AsciiOf $2 }
-  | size EXPR                                                           {% buildAndCheckExpr $1 $ G.SetSize $2 }
-  | EXPR plus EXPR                                                      {% buildAndCheckExpr $2 $ G.Op2 G.Add $1 $3 }
-  | EXPR minus EXPR                                                     {% buildAndCheckExpr $2 $ G.Op2 G.Substract $1 $3 }
-  | EXPR mult EXPR                                                      {% buildAndCheckExpr $2 $ G.Op2 G.Multiply $1 $3 }
-  | EXPR div EXPR                                                       {% buildAndCheckExpr $2 $ G.Op2 G.Divide $1 $3 }
-  | EXPR mod EXPR                                                       {% buildAndCheckExpr $2 $ G.Op2 G.Mod $1 $3 }
-  | EXPR lt EXPR                                                        {% buildAndCheckExpr $2 $ G.Op2 G.Lt $1 $3 }
-  | EXPR gt EXPR                                                        {% buildAndCheckExpr $2 $ G.Op2 G.Gt $1 $3 }
-  | EXPR lte EXPR                                                       {% buildAndCheckExpr $2 $ G.Op2 G.Lte $1 $3 }
-  | EXPR gte EXPR                                                       {% buildAndCheckExpr $2 $ G.Op2 G.Gte $1 $3 }
-  | EXPR eq EXPR                                                        {% buildAndCheckExpr $2 $ G.Op2 G.Eq $1 $3 }
-  | EXPR neq EXPR                                                       {% buildAndCheckExpr $2 $ G.Op2 G.Neq $1 $3 }
-  | EXPR and EXPR                                                       {% buildAndCheckExpr $2 $ G.Op2 G.And $1 $3 }
-  | EXPR or EXPR                                                        {% buildAndCheckExpr $2 $ G.Op2 G.Or $1 $3 }
-  | EXPR colConcat EXPR                                                 {% buildAndCheckExpr $2 $ G.Op2 G.ColConcat $1 $3 }
-  | EXPR union EXPR                                                     {% buildAndCheckExpr $2 $ G.Op2 G.SetUnion $1 $3 }
-  | EXPR intersect EXPR                                                 {% buildAndCheckExpr $2 $ G.Op2 G.SetIntersect $1 $3 }
-  | EXPR diff EXPR                                                      {% buildAndCheckExpr $2 $ G.Op2 G.SetDifference $1 $3 }
-  | FUNCALL                                                             {% let (tk, i, params) = $1 in buildAndCheckExpr tk $ G.EvalFunc i params }
+  : intLit                                                              {% buildAndCheckExpr $1 $1 $ G.IntLit (read (T.cleanedString $1) :: Int) }
+  | floatLit                                                            {% buildAndCheckExpr $1 $1 $ G.FloatLit (read (T.cleanedString $1) :: Float) }
+  | charLit                                                             {% buildAndCheckExpr $1 $1 $ G.CharLit $ head (T.cleanedString $1) }
+  | stringLit                                                           {% buildAndCheckExpr $1 $1 $ G.StringLit (T.cleanedString $1) }
+  | trueLit                                                             {% buildAndCheckExpr $1 $1 G.TrueLit }
+  | falseLit                                                            {% buildAndCheckExpr $1 $1 G.FalseLit }
+  | unknownLit                                                          {% buildAndCheckExpr $1 $1 G.UndiscoveredLit }
+  | nullLit                                                             {% buildAndCheckExpr $1 $1 G.NullLit }
+  | arrOpen EXPRL arrClose                                              {% buildAndCheckExpr $1 $3 $ G.ArrayLit $ reverse $2 }
+  | setOpen EXPRL setClose                                              {% buildAndCheckExpr $1 $3 $ G.SetLit $ reverse $2 }
+  | parensOpen EXPR parensClosed                                        { $2{G.expLeftTok = $1, G.expRightTok = $3} }
+  | minus EXPR                                                          {% buildAndCheckExpr $1 (G.expRightTok $2) $ G.Op1 G.Negate $2 }
+  | not EXPR                                                            {% buildAndCheckExpr $1 (G.expRightTok $2) $ G.Op1 G.Not $2 }
+  | asciiOf EXPR                                                        {% buildAndCheckExpr $1 (G.expRightTok $2) $ G.AsciiOf $2 }
+  | size EXPR                                                           {% buildAndCheckExpr $1 (G.expRightTok $2) $ G.SetSize $2 }
+  | EXPR BINOP EXPR                                                     {% buildAndCheckExpr (G.expLeftTok $1) (G.expRightTok $3) $ G.Op2 $2 $1 $3 }
+  | FUNCALL                                                             {% let (leftTk, rightTk, i, params) = $1 in buildAndCheckExpr leftTk rightTk $ G.EvalFunc i params }
   | LVALUE                                                              { $1 }
+
+BINOP :: { G.Op2 }
+  : plus                                                                { G.Add }
+  | minus                                                               { G.Substract }
+  | mult                                                                { G.Multiply }
+  | div                                                                 { G.Divide }
+  | mod                                                                 { G.Mod }
+  | lt                                                                  { G.Lt }
+  | gt                                                                  { G.Gt }
+  | lte                                                                 { G.Lte }
+  | gte                                                                 { G.Gte }
+  | eq                                                                  { G.Eq }
+  | neq                                                                 { G.Neq }
+  | and                                                                 { G.And }
+  | or                                                                  { G.Or }
+  | colConcat                                                           { G.ColConcat }
+  | union                                                               { G.SetUnion }
+  | intersect                                                           { G.SetIntersect }
+  | diff                                                                { G.SetDifference }
+
+
 
 EXPRL :: { [G.Expr] }
   : {- empty -}                                                         { [] }
@@ -338,9 +344,9 @@ TYPE :: { G.GrammarType }
                                                                              checkRecoverableError $2 $4
                                                                              return $ G.Record $1 $ reverse $3 }
 
-BRCLOSE :: { Maybe G.RecoverableError }
-  : brClose                                                             { Nothing }
-  | error                                                               { Just G.MissingClosingBrace }
+BRCLOSE :: { Either G.RecoverableError T.Token }
+  : brClose                                                             { Right $1 }
+  | error                                                               { Left G.MissingClosingBrace }
 
 ENUMITS :: { [Int] }
   : ENUMITS comma ID                                                    { [] }
@@ -369,20 +375,20 @@ INSTBEGIN : instructionsBegin                                           {% do
                                                                              ST.enterScope
                                                                              return $1 }
 
-INSTEND :: { Maybe G.RecoverableError }
+INSTEND :: { Either G.RecoverableError T.Token }
   : instructionsEnd                                                     {% do
                                                                              ST.exitScope
-                                                                             return Nothing }
-  | error                                                               { Just G.MissingInstructionListEnd }
+                                                                             return $ Right $1 }
+  | error                                                               { Left G.MissingInstructionListEnd }
 
 DECLARS :: { () }
   : with DECLARSL DECLAREND                                             {% do
                                                                              checkRecoverableError $1 $3
                                                                              addIdsToSymTable (reverse $2) }
 
-DECLAREND :: { Maybe G.RecoverableError }
-  : declarend                                                           { Nothing }
-  | error                                                               { Just G.MissingDeclarationListEnd }
+DECLAREND :: { Either G.RecoverableError T.Token }
+  : declarend                                                           { Right $1 }
+  | error                                                               { Left G.MissingDeclarationListEnd }
 
 DECLARSL :: { [NameDeclaration] }
   : DECLARSL comma DECLAR                                               { $3:$1 }
@@ -406,8 +412,8 @@ INSTR :: { G.Instruction }
   | cast ID PROCPARS                                                    {% do
                                                                           checkIdAvailability $2
                                                                           return $ G.InstCallProc $2 $3 }
-  | FUNCALL                                                             {% let (tk, i, params) = $1 in do
-                                                                          buildAndCheckExpr tk $ G.EvalFunc i params
+  | FUNCALL                                                             {% let (leftTk, rightTk, i, params) = $1 in do
+                                                                          buildAndCheckExpr leftTk rightTk $ G.EvalFunc i params
                                                                           return $ G.InstCallFunc i params }
   | return                                                              { G.InstReturn }
   | returnWith EXPR                                                     { G.InstReturnWith $2 }
@@ -421,8 +427,10 @@ INSTR :: { G.Instruction }
   | forBegin ID with EXPR souls untilLevel EXPR CODEBLOCK forEnd        { G.InstFor $2 $4 $7 $8 }
   | forEachBegin ID withTitaniteFrom EXPR CODEBLOCK forEachEnd          { G.InstForEach $2 $4 $5 }
 
-FUNCALL :: { (T.Token, G.Id, G.Params) }
-  : summon ID FUNCPARS                                                  { ($1, $2, $3) }
+FUNCALL :: { (T.Token, T.Token, G.Id, G.Params) }
+  : summon ID FUNCPARS                                                  { case snd $3 of
+                                                                            Just rightTk -> ($1, rightTk, $2, fst $3)
+                                                                            _ -> let G.Id tk = $2 in ($1, tk, $2, fst $3) }
 
 IFCASES :: { G.IfCases }
   : IFCASES IFCASE                                                      { $2 : $1 }
@@ -444,15 +452,18 @@ SWITCHCASE :: { G.SwitchCase }
 DEFAULTCASE :: { G.SwitchCase }
   : switchDefault colon CODEBLOCK                                       { G.DefaultCase $3 }
 
-FUNCPARS :: { G.Params }
+FUNCPARS :: { (G.Params, Maybe T.Token) }
   : granting PARSLIST TOTHEKNIGHT                                       {% do
                                                                              checkRecoverableError $1 $3
-                                                                             return $ reverse $2 }
-  | {- empty -}                                                         { [] }
+                                                                             let params = reverse $2
+                                                                             return $ (params, case $3 of
+                                                                               Left _ -> Just $ G.expRightTok $ last params
+                                                                               Right s -> Just s) }
+  | {- empty -}                                                         { ([], Nothing) }
 
-TOTHEKNIGHT :: { Maybe G.RecoverableError }
-  : toTheKnight                                                         { Nothing }
-  | error                                                               { Just G.MissingFunCallEnd }
+TOTHEKNIGHT :: { Either G.RecoverableError T.Token }
+  : toTheKnight                                                         { Right $1 }
+  | error                                                               { Left G.MissingFunCallEnd }
 
 PROCPARS :: { G.Params }
   : offering PARSLIST TOTHEESTUSFLASK                                   {% do
@@ -460,9 +471,9 @@ PROCPARS :: { G.Params }
                                                                              return $ reverse $2 }
   | {- empty -}                                                         { [] }
 
-TOTHEESTUSFLASK :: { Maybe G.RecoverableError }
-  : toTheEstusFlask                                                     { Nothing }
-  | error                                                               { Just G.MissingProcCallEnd }
+TOTHEESTUSFLASK :: { Either G.RecoverableError T.Token }
+  : toTheEstusFlask                                                     { Right $1 }
+  | error                                                               { Left G.MissingProcCallEnd }
 
 PARSLIST :: { G.Params }
   : PARSLIST comma EXPR                                                 { $3 : $1 }
@@ -475,13 +486,14 @@ type ArgDeclaration = (G.ArgType, G.Id, G.GrammarType)
 type AliasDeclaration = (G.Id, G.GrammarType)
 type RecordItem = AliasDeclaration
 
-buildAndCheckExpr :: T.Token -> G.BaseExpr -> ST.ParserMonad G.Expr
-buildAndCheckExpr tk bExpr = do
-  (t, expr) <- buildType bExpr tk
+buildAndCheckExpr :: T.Token -> T.Token -> G.BaseExpr -> ST.ParserMonad G.Expr
+buildAndCheckExpr leftTk rightTk bExpr = do
+  (t, expr) <- buildType bExpr leftTk rightTk
   return G.Expr
     { G.expAst = expr,
       G.expType = t,
-      G.expTok = tk
+      G.expLeftTok = leftTk,
+      G.expRightTok = rightTk
     }
 
 extractFieldsForNewScope :: G.GrammarType -> Maybe [RecordItem]
@@ -537,11 +549,11 @@ addIdToSymTable mi d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idN
       let scope = ST.scope entry
       let category = ST.category entry
       if category == ST.Type && c /= ST.RecordItem
-      then RWS.tell $ [ST.SemanticError ("Name " ++ show tk ++ " conflicts with an type alias") tk]
+      then RWS.tell $ [ST.SemanticError ("Name " ++ show tk ++ " conflicts with an type alias") tk tk]
       else if category == ST.Procedure
-      then RWS.tell $ [ST.SemanticError ("Name " ++ show tk ++ " conflicts with a procedure") tk]
+      then RWS.tell $ [ST.SemanticError ("Name " ++ show tk ++ " conflicts with a procedure") tk tk]
       else if category == ST.Function
-      then RWS.tell $ [ST.SemanticError ("Name " ++ show tk ++ " conflicts with a function") tk]
+      then RWS.tell $ [ST.SemanticError ("Name " ++ show tk ++ " conflicts with a function") tk tk]
       else if currScope /= scope
       then insertIdToEntry mi t ST.DictionaryEntry
         { ST.name = idName
@@ -550,7 +562,7 @@ addIdToSymTable mi d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idN
         , ST.entryType = ST.name <$> maybeTypeEntry
         , ST.extra = []
         }
-      else RWS.tell $ [ST.SemanticError ("Name " ++ idName ++ " was already declared on this scope") tk]
+      else RWS.tell $ [ST.SemanticError ("Name " ++ idName ++ " was already declared on this scope") tk tk]
 
 
 insertIdToEntry :: Maybe Int -> G.GrammarType -> ST.DictionaryEntry -> ST.ParserMonad ()
@@ -599,7 +611,7 @@ checkConstantReassignment e = case G.expAst e of
       Just e ->
         case (ST.category e) of
           ST.Constant -> do
-            RWS.tell [ST.SemanticError ("Name " ++ idName ++ " is a constant and must not be reassigned") tk]
+            RWS.tell [ST.SemanticError ("Name " ++ idName ++ " is a constant and must not be reassigned") tk tk]
             return ()
           _ ->
             return ()
@@ -611,19 +623,19 @@ checkIdAvailability (G.Id tk@(T.Token {T.cleanedString=idName})) = do
   maybeEntry <- ST.dictLookup idName
   case maybeEntry of
     Nothing -> do
-      RWS.tell [ST.SemanticError ("Name " ++ idName ++ " is not available on this scope") tk]
+      RWS.tell [ST.SemanticError ("Name " ++ idName ++ " is not available on this scope") tk tk]
       return Nothing
     Just e -> do
       return $ Just e
 
-checkRecoverableError :: T.Token -> Maybe G.RecoverableError -> ST.ParserMonad ()
+checkRecoverableError :: T.Token -> Either G.RecoverableError a -> ST.ParserMonad ()
 checkRecoverableError openTk maybeErr = do
   case maybeErr of
-    Nothing ->
+    Right _ ->
       return ()
-    Just err -> do
+    Left err -> do
       let errorName = show err
-      RWS.tell [ST.SemanticError (errorName ++ " (recovered from to continue parsing)") openTk]
+      RWS.tell [ST.SemanticError (errorName ++ " (recovered from to continue parsing)") openTk openTk]
       return ()
 
 extractFieldsFromExtra :: [ST.Extra] -> ST.Extra
@@ -640,7 +652,7 @@ addFunction d@(_, i@(G.Id tk@(T.Token {T.cleanedString=idName})), _, _) = do
       addIdToSymTable Nothing d
       return $ Just (currScope, i)
     Just entry -> do
-      RWS.tell [ST.SemanticError ("Function " ++ idName ++ " was already declared") tk]
+      RWS.tell [ST.SemanticError ("Function " ++ idName ++ " was already declared") tk tk]
       return Nothing
 
 updateCodeBlockOfFun :: ST.Scope -> G.Id -> G.CodeBlock -> ST.ParserMonad ()
@@ -657,7 +669,7 @@ findTypeOnEntryTable (G.Simple tk mSize) = do
   maybeEntry <- ST.dictLookup $ ST.tokensToEntryName tk
   case maybeEntry of
     Nothing -> do
-      RWS.tell [ST.SemanticError ("Type " ++ (show tk) ++ " not found") tk]
+      RWS.tell [ST.SemanticError ("Type " ++ (show tk) ++ " not found") tk tk]
       return maybeEntry
     _ -> return maybeEntry
 
@@ -780,23 +792,21 @@ addCastToExprs = map caster
       if t == t' then expr
       else expr{G.expAst = G.Caster expr t'}
 
-containerCheck :: [G.Expr] -> (T.Type -> T.Type) -> ([G.Expr] -> G.BaseExpr) -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
-containerCheck [] c c' _ = return (c T.Any, c' [])
-containerCheck exprs typeCons exprCons tk = do
+containerCheck :: [G.Expr] -> (T.Type -> T.Type) -> ([G.Expr] -> G.BaseExpr) -> ST.ParserMonad (T.Type, G.BaseExpr)
+containerCheck [] c c' = return (c T.Any, c' [])
+containerCheck exprs typeCons exprCons = do
   let types = exprsToTypes exprs
   let t = findTypeForContainerLiteral types
-  -- if t == T.TypeError
-  -- then RWS.tell [ST.SemanticError (T.typeMismatchMessage tk)tk]
-  -- else return ()
-
   case t of
     -- case when there is already a type error on the list
     (Nothing, T.TypeError) -> return (T.TypeError, exprCons exprs)
 
     -- a particular expression couldn't be casted to the accumulated type
     (Just x, T.TypeError) -> do
-      let tk = G.expTok $ exprs !! x -- not so efficient, but works
-      RWS.tell [ST.SemanticError ("Type of item #" ++ show x ++ " of list mismatch") tk]
+      let erroredExpr = exprs !! x -- not so efficient, but works
+      let leftTk = G.expLeftTok erroredExpr
+      let rightTk = G.expRightTok erroredExpr
+      RWS.tell [ST.SemanticError ("Type of item #" ++ show x ++ " of list mismatch") leftTk rightTk]
       return (T.TypeError, exprCons exprs)
 
     -- when a real type is found, we can safely ignore the first part of the tuple
@@ -815,21 +825,23 @@ findTypeForContainerLiteral types = findT (zip [0..] types) (head types)
       else if b `T.canBeConvertedTo` a then findT xs a
       else (Just i, T.TypeError)
 
-checkIndexAccess :: G.Expr -> G.Expr -> T.Token -> ST.ParserMonad T.Type
-checkIndexAccess array index tk = do
+checkIndexAccess :: G.Expr -> G.Expr -> ST.ParserMonad T.Type
+checkIndexAccess array index = do
   arrayType <- getType array
   indextype <- getType index
   case arrayType of
     T.ArrayT t -> if isIntegerType indextype
       then return t
-      else return T.TypeError
+      else do
+        RWS.tell [ST.SemanticError "Index is not an humanity" (G.expLeftTok index) (G.expRightTok index)]
+        return T.TypeError
     T.TypeError -> return T.TypeError
     _ -> do
-      RWS.tell [ST.SemanticError "Left side is not a chest" tk]
+      RWS.tell [ST.SemanticError "Indexed expression is not a chest" (G.expLeftTok array) (G.expRightTok array)]
       return T.TypeError
 
-functionsCheck :: G.Id -> [G.Expr] -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
-functionsCheck funId exprs tk = do
+functionsCheck :: G.Id -> [G.Expr] -> T.Token -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
+functionsCheck funId exprs leftTk rightTk = do
   funType <- getType funId
   let originalExpr = G.EvalFunc funId exprs
   case funType of
@@ -838,10 +850,10 @@ functionsCheck funId exprs tk = do
       let exprsTypesL = length exprsTypes
       let domainL = length domain
       if exprsTypesL < domainL then do
-        RWS.tell [ST.SemanticError ("Function " ++ show funId ++ " received less arguments than it expected") tk]
+        RWS.tell [ST.SemanticError ("Function " ++ show funId ++ " received less arguments than it expected") leftTk rightTk]
         return (T.TypeError, originalExpr)
       else if exprsTypesL > domainL then do
-        RWS.tell [ST.SemanticError ("Function " ++ show funId ++ " received more arguments than it expected") tk]
+        RWS.tell [ST.SemanticError ("Function " ++ show funId ++ " received more arguments than it expected") leftTk rightTk]
         return (T.TypeError, originalExpr)
       else do
         if T.TypeError `elem` exprsTypes then
@@ -854,12 +866,15 @@ functionsCheck funId exprs tk = do
 
           -- oh oh, an argument could not be implicitly casted to its correspondent argument
           Just x -> do
-            RWS.tell [ST.SemanticError ("Argument #" ++ show x ++ " type mismatch with parameter #" ++ show x ++ " type") tk]
+            let expr = exprs !! x
+            let leftTk = G.expLeftTok expr
+            let rightTk = G.expRightTok expr
+            RWS.tell [ST.SemanticError ("Argument #" ++ show x ++ " type mismatch with parameter #" ++ show x ++ " type") leftTk rightTk]
             return (T.TypeError, originalExpr)
 
     T.TypeError -> return (T.TypeError, originalExpr) -- we don't need to log - getType already does that
     _ -> do
-      RWS.tell [ST.SemanticError "You're trying to call a non-callable expression" tk]
+      RWS.tell [ST.SemanticError "You're trying to call a non-callable expression" leftTk rightTk]
       return (T.TypeError, originalExpr)
   where
     -- left side is the type of the argument, right side is the parameter type
@@ -880,7 +895,7 @@ memAccessCheck expr tk = do
     T.PointerT t' -> return t'
     T.TypeError -> return T.TypeError
     _ -> do
-      RWS.tell [ST.SemanticError "Trying to access memory of non-arrow variable" tk]
+      RWS.tell [ST.SemanticError "Trying to access memory of non-arrow variable" tk (G.expRightTok expr)]
       return T.TypeError
 
 checkAsciiOf :: G.Expr -> T.Token -> ST.ParserMonad T.Type
@@ -891,27 +906,29 @@ checkAsciiOf e tk = do
     T.StringT -> return $ T.ArrayT T.BigIntT
     T.TypeError -> return T.TypeError
     _ -> do
-      RWS.tell [ST.SemanticError ("ascii_of requires argument to be a miracle or a sign") tk]
+      RWS.tell [ST.SemanticError ("ascii_of requires argument to be a miracle or a sign") tk (G.expRightTok e)]
       return T.TypeError
 
 
-checkAccess :: G.Expr -> G.Id -> T.Token -> ST.ParserMonad T.Type
-checkAccess e (G.Id T.Token{T.cleanedString=i}) tk = do
+checkAccess :: G.Expr -> G.Id -> ST.ParserMonad T.Type
+checkAccess e (G.Id rightTk@T.Token{T.cleanedString=i}) = do
   t <- getType e
   case t of
     T.RecordT properties -> checkProperty properties
     T.UnionT properties -> checkProperty properties
     T.TypeError -> return T.TypeError
     _ -> do
-      RWS.tell [ST.SemanticError "Left side of access is not a record nor union" tk]
+      RWS.tell [ST.SemanticError "Left side of access is not a record nor union" leftTk rightTk]
       return T.TypeError
   where
+    leftTk :: T.Token
+    leftTk = G.expLeftTok e
     checkProperty :: [T.PropType] -> ST.ParserMonad T.Type
     checkProperty props =
       case filter ((==i) . fst) $ map (\(T.PropType e) -> e) props of
         ((_,a):_) -> return a
         _ -> do
-          RWS.tell [ST.SemanticError ("Property " ++ i ++ " doesn't exist") tk]
+          RWS.tell [ST.SemanticError ("Property " ++ i ++ " doesn't exist") leftTk rightTk]
           return T.TypeError
 
 unaryOpCheck :: G.Expr -> G.Op1 -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
@@ -924,15 +941,20 @@ unaryOpCheck expr op tk = do
     let finalType = if op == G.Negate then t else T.TrileanT in
     return (finalType, finalExpr)
   else do
-    RWS.tell [ST.SemanticError (T.typeMismatchMessage tk) tk]
+    RWS.tell [ST.SemanticError (typeMismatchMessage op msgFor) tk (G.expRightTok expr)]
     return (T.TypeError, finalExpr)
   where
+    msgFor :: G.Op1 -> String
+    msgFor G.Not = booleanMismatchMessage
+    msgFor G.Negate = numericMismatchMessage
+
+    expectedForOperand :: [T.Type]
     expectedForOperand
       | op == G.Negate = T.arithmeticTypes
       | otherwise = T.booleanSingleton
 
-binaryOpCheck :: G.Expr -> G.Expr -> G.Op2 -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
-binaryOpCheck leftExpr rightExpr op tk = do
+binaryOpCheck :: G.Expr -> G.Expr -> G.Op2 -> ST.ParserMonad (T.Type, G.BaseExpr)
+binaryOpCheck leftExpr rightExpr op = do
   leftType <- getType leftExpr
   rightType <- getType rightExpr
   if leftType == T.TypeError || rightType == T.TypeError then
@@ -944,10 +966,31 @@ binaryOpCheck leftExpr rightExpr op tk = do
     let [castedRightExpr] = addCastToExprs [(rightExpr, leftType)] in
     checkIfInExpected leftExpr castedRightExpr
   else do
-    RWS.tell [ST.SemanticError "Left and right side of operand can't be operated together" tk]
+    RWS.tell [ST.SemanticError "Left and right side of operand can't be operated together" (G.expLeftTok leftExpr) (G.expRightTok rightExpr)]
     return (T.TypeError, G.Op2 op leftExpr rightExpr)
 
   where
+    msgFor :: G.Op2 -> String
+    msgFor G.Add = numericMismatchMessage
+    msgFor G.Substract = numericMismatchMessage
+    msgFor G.Multiply = numericMismatchMessage
+    msgFor G.Divide = numericMismatchMessage
+    msgFor G.Mod = integerMismatchMessage
+    msgFor G.Lt = comparableMismatchMessage
+    msgFor G.Gt = comparableMismatchMessage
+    msgFor G.Lte = comparableMismatchMessage
+    msgFor G.Gte = comparableMismatchMessage
+    msgFor G.Eq = comparableMismatchMessage
+    msgFor G.Neq = comparableMismatchMessage
+    msgFor G.And = booleanMismatchMessage
+    msgFor G.Or = booleanMismatchMessage
+    msgFor G.ColConcat = collectionMismatchMessage
+    msgFor a = "(oops! there should be a message here, please fill an issue on Github). Failed opr: " ++ show a
+
+    leftTk :: T.Token
+    leftTk = G.expLeftTok leftExpr
+    rightTk :: T.Token
+    rightTk = G.expRightTok rightExpr
     expectedForOperands :: [T.Type]
     expectedForOperands
       | op `elem` G.arithmeticOp2 = T.arithmeticTypes
@@ -967,18 +1010,18 @@ binaryOpCheck leftExpr rightExpr op tk = do
         let finalType = if op `elem` G.comparableOp2 then T.TrileanT else t in
         return (finalType, exp)
       else do
-        RWS.tell [ST.SemanticError (T.typeMismatchMessage tk) tk]
+        RWS.tell [ST.SemanticError (typeMismatchMessage op msgFor) leftTk rightTk]
         return (T.TypeError, exp)
 
 
-checkSetSize :: G.Expr -> T.Token -> ST.ParserMonad T.Type
-checkSetSize expr tk = do
+checkSetSize :: G.Expr -> T.Token -> T.Token -> ST.ParserMonad T.Type
+checkSetSize expr leftTk rightTk = do
   t <- getType expr
   case t of
     T.SetT _ -> return T.BigIntT
     T.TypeError -> return T.TypeError
     _ -> do
-      RWS.tell [ST.SemanticError "`size` expects a set" tk]
+      RWS.tell [ST.SemanticError "`size` expects a set" leftTk rightTk]
       return T.TypeError
 
 checkTypeOfAssignmentOnInit :: ST.DictionaryEntry -> G.Expr -> ST.ParserMonad ()
@@ -987,7 +1030,7 @@ checkTypeOfAssignmentOnInit entry expr = do
   exprType <- getType expr
   if exprType `T.canBeConvertedTo` entryType
   then return ()
-  else RWS.tell [ST.SemanticError "Invalid asignment" (G.expTok expr)]
+  else RWS.tell [ST.SemanticError "Invalid asignment" (G.expLeftTok expr) (G.expRightTok expr)]
 
 minBigInt :: Int
 minBigInt = - 2147483648
@@ -1005,8 +1048,8 @@ buildTypeForNonCasterExprs :: ST.ParserMonad T.Type -> G.BaseExpr -> ST.ParserMo
 buildTypeForNonCasterExprs tt bExpr = tt >>= \t -> return (t, bExpr)
 
 
-buildType :: G.BaseExpr -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
-buildType bExpr tk = case bExpr of
+buildType :: G.BaseExpr -> T.Token -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
+buildType bExpr leftTk rightTk = case bExpr of
   -- Language literals, their types can be (almost everytime) infered
   G.TrueLit -> return (T.TrileanT, bExpr)
   G.FalseLit -> return (T.TrileanT, bExpr)
@@ -1024,20 +1067,20 @@ buildType bExpr tk = case bExpr of
   G.CharLit _ -> return (T.CharT, bExpr)
   G.StringLit _ -> return (T.StringT, bExpr)
 
-  G.ArrayLit exprs -> containerCheck exprs T.ArrayT G.ArrayLit tk
-  G.SetLit exprs -> containerCheck exprs T.SetT G.SetLit tk
+  G.ArrayLit exprs -> containerCheck exprs T.ArrayT G.ArrayLit
+  G.SetLit exprs -> containerCheck exprs T.SetT G.SetLit
 
-  G.Op1 op a -> unaryOpCheck a op tk
+  G.Op1 op a -> unaryOpCheck a op leftTk
 
-  G.Op2 op a b -> binaryOpCheck a b op tk
+  G.Op2 op a b -> binaryOpCheck a b op
 
   G.IdExpr i -> buildTypeForNonCasterExprs (getType i) bExpr
-  G.IndexAccess e i -> buildTypeForNonCasterExprs (checkIndexAccess e i tk) bExpr
-  G.EvalFunc i params -> functionsCheck i params tk
-  G.MemAccess e -> buildTypeForNonCasterExprs (memAccessCheck e tk) bExpr
-  G.AsciiOf e -> buildTypeForNonCasterExprs (checkAsciiOf e tk) bExpr
-  G.Access e i -> buildTypeForNonCasterExprs (checkAccess e i tk) bExpr
-  G.SetSize e -> buildTypeForNonCasterExprs (checkSetSize e tk) bExpr
+  G.IndexAccess e i -> buildTypeForNonCasterExprs (checkIndexAccess e i) bExpr
+  G.EvalFunc i params -> functionsCheck i params leftTk rightTk
+  G.MemAccess e -> buildTypeForNonCasterExprs (memAccessCheck e leftTk) bExpr
+  G.AsciiOf e -> buildTypeForNonCasterExprs (checkAsciiOf e leftTk) bExpr
+  G.Access e i -> buildTypeForNonCasterExprs (checkAccess e i) bExpr
+  G.SetSize e -> buildTypeForNonCasterExprs (checkSetSize e leftTk rightTk) bExpr
 
 instance TypeCheckable G.Id where
   getType gId = do
@@ -1116,4 +1159,23 @@ instance TypeCheckable ST.Extra where
       | s == ST.void = return T.VoidT
       | otherwise = return $ T.AliasT s -- works because it always exists
                                         -- it shouldn't be added otherwise
+
+typeMismatchMessage :: (Show a) => a -> (a -> String) -> String
+typeMismatchMessage t f =
+  "Type error near " ++ show t ++ ": " ++ f t
+
+numericMismatchMessage :: String
+numericMismatchMessage = "numeric operands expected"
+
+integerMismatchMessage :: String
+integerMismatchMessage = "integer operands expected"
+
+booleanMismatchMessage :: String
+booleanMismatchMessage = "boolean operands expected"
+
+comparableMismatchMessage :: String
+comparableMismatchMessage = "same-type operands expected"
+
+collectionMismatchMessage :: String
+collectionMismatchMessage = "compatible collection-type operands expected"
 }
