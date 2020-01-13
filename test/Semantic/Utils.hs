@@ -112,7 +112,7 @@ testError :: String -> String -> Int -> Int -> IO ()
 testError program varName col row = do
     (_, _, errors) <- extractSymTable program
     errors `shouldNotSatisfy` null
-    let ST.SemanticError _ T.Token {T.cleanedString=varName', T.posn=pn} = head errors
+    let ST.SemanticError _ T.Token {T.cleanedString=varName'} = head errors
     varName `shouldBe` varName'
     col `shouldBe` 10
     row `shouldBe` 6

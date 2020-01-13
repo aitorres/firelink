@@ -98,7 +98,7 @@ joinExprList = intercalate ", " . map show
 instance Show BaseExpr where
   show TrueLit = "lit"
   show FalseLit = "unlit"
-  show UndiscoveredLit = "unlit"
+  show UndiscoveredLit = "undiscovered"
   show NullLit = "abyss"
   show (IntLit a) = show a
   show (FloatLit a) = show a
@@ -106,7 +106,6 @@ instance Show BaseExpr where
   show (StringLit s) = s
   show (ArrayLit exprs) = "<$" ++ joinExprList exprs ++ "$>"
   show (SetLit exprs) = "{$" ++ joinExprList exprs ++ "$}"
-  show (EvalFunc i params) = show i ++ "(" ++ joinExprList params ++ ")"
   show (Op1 o e) = show o ++ " " ++ show e
   show (Op2 o e e') = show e ++ " " ++ show o ++ " " ++ show e'
   show (Access e i) = show e ++ "~>" ++ show i
@@ -115,6 +114,8 @@ instance Show BaseExpr where
   show (IdExpr i) = show i
   show (AsciiOf e) = "ascii_of " ++ show e
   show (SetSize s) = "size " ++ show s
+  show (EvalFunc i p) = "summon " ++ show i ++ " granting " ++ joinExprList p ++ " to the knight"
+  show (Caster a _) = "(casting) " ++ show a
 
 data Expr = Expr {
   expType :: !Type,

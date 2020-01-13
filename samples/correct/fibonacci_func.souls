@@ -27,7 +27,6 @@ with
   var n of type humanity,
   var f of type humanity
 in your inventory
-  a <<= |p| \
   transpose into n \
   f <<= summon fibonacci
     granting n to the knight \
