@@ -418,7 +418,9 @@ INSTR :: { G.Instruction }
   | ifBegin IFCASES ifEnd                                               { G.InstIf (reverse $2) }
   | switchBegin EXPR colon SWITCHCASES DEFAULTCASE switchEnd            { G.InstSwitch $2 (reverse ($5 : $4)) }
   | switchBegin EXPR colon SWITCHCASES switchEnd                        { G.InstSwitch $2 (reverse $4) }
-  | forBegin ID with EXPR souls untilLevel EXPR CODEBLOCK forEnd        { G.InstFor $2 $4 $7 $8 }
+  | forBegin ID with EXPR souls untilLevel EXPR CODEBLOCK forEnd        {% do
+                                                                          checkIterVariable $2 $8
+                                                                          return $ G.InstFor $2 $4 $7 $8 }
   | forEachBegin ID withTitaniteFrom EXPR CODEBLOCK forEachEnd          { G.InstForEach $2 $4 $5 }
 
 FUNCALL :: { (T.Token, G.Id, G.Params) }
@@ -607,6 +609,22 @@ checkConstantReassignment e = case G.expAst e of
             return ()
   G.IndexAccess gId _ -> checkConstantReassignment gId
   _ -> return ()
+
+checkIterVariable :: G.Id -> G.CodeBlock -> ST.ParserMonad ()
+checkIterVariable id@(G.Id tk) (G.CodeBlock insts) = do
+  let assignments = filter isAssignment insts
+  let errors = filter modifiesIterVariable assignments
+  if length errors == 0
+  then return ()
+  else do
+    let (G.InstAsig f _) = head errors
+    let faultyTk = G.expTok f
+    RWS.tell [ST.SemanticError ("Iteration variable " ++ show id ++ " must not be reassigned") faultyTk]
+    return ()
+  where isAssignment (G.InstAsig _ _) = True
+        isAssignment _ = False
+        modifiesIterVariable (G.InstAsig l _) = (T.cleanedString (G.expTok l)) == (T.cleanedString tk)
+        modifiesIterVariable _ = False
 
 checkIdAvailability :: G.Id -> ST.ParserMonad (Maybe ST.DictionaryEntry)
 checkIdAvailability (G.Id tk@(T.Token {T.cleanedString=idName})) = do
