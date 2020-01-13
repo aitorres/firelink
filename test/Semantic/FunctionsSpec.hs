@@ -167,7 +167,7 @@ spec = do
             varName `shouldBe` "x"
             T.row pn `shouldBe` 8
             T.col pn `shouldBe` 8
-        it "allows to declare variables on the second (2<=) scope of a function whose names are on the arg list" $ do
+        it "rejects to declare variables on the second (2<=) scope of a function whose names are on the arg list" $ do
             let p = "hello ashen one\n\
 
             \invocation fun\n\
@@ -196,14 +196,8 @@ spec = do
             \ with orange saponite say @hello world@ \
             \ you died \
             \ farewell ashen one"
-            (_, (dict, _, _), errors) <- U.extractSymTable p
-            errors `shouldSatisfy` null
-            U.testEntry dict varEntry
-                { ST.scope = 3
-                , ST.name = "x"
-                , ST.category = ST.Variable
-                , ST.entryType = Just "sign"
-                } U.extractSimpleFromExtra (\(ST.Simple "sign") -> True)
+            (_, (_, _, _), errors) <- U.extractSymTable p
+            errors `shouldNotSatisfy` null
         it "allows to declare more than 1 function" $ do
             let p = "hello ashen one\n\
 

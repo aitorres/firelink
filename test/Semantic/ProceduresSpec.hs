@@ -199,14 +199,8 @@ spec = do
             \ with orange saponite say @hello world@ \
             \ you died \
             \ farewell ashen one"
-            (_, (dict, _, _), errors) <- U.extractSymTable p
-            errors `shouldSatisfy` null
-            U.testEntry dict varEntry
-                { ST.scope = 3
-                , ST.name = "x"
-                , ST.category = ST.Variable
-                , ST.entryType = Just "sign"
-                } U.extractSimpleFromExtra (\(ST.Simple "sign") -> True)
+            (_, (_, _, _), errors) <- U.extractSymTable p
+            errors `shouldNotSatisfy` null
         it "allows to declare more than 1 procedure" $ do
             let p = "hello ashen one\n\
 
