@@ -12,6 +12,7 @@ type SwitchCases = [SwitchCase]
 
 newtype Id
   = Id Token
+  deriving Eq
 
 instance Show Id where
   show (Id tk) = show tk
@@ -39,6 +40,7 @@ data BaseExpr
   | SetSize Expr
   | EvalFunc Id Params
   | Caster Expr Type
+  deriving Eq
 
 data Op1 = Negate | Not
   deriving Eq
@@ -121,7 +123,7 @@ data Expr = Expr {
   expType :: !Type,
   expAst :: !BaseExpr,
   expTok :: !Token
-}
+} deriving Eq
 
 instance Show Expr where
   show = show . expAst
