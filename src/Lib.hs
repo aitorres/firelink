@@ -137,14 +137,14 @@ printSemErrors [] _ = do
     putStrLn "Fix your semantic mistakes, ashen one."
     return ()
 printSemErrors (semError:semErrors) tokens = do
-    let (ST.SemanticError errMessage T.Token{T.posn=p}) = semError
-    let tks = filter (\T.Token{T.posn=p'} -> fst p' == fst p) tokens
-    let preContext = filter (\T.Token{T.posn=p'} -> fst p' == fst p - 1) tokens
-    let postContext = filter (\T.Token{T.posn=p'} -> fst p' == fst p + 1) tokens
+    let (ST.SemanticError errMessage T.Token{T.posn=leftPosn} T.Token{T.posn=rightPosn}) = semError
+    let tks = filter (\T.Token{T.posn=p'} -> fst p' == fst leftPosn) tokens
+    let preContext = filter (\T.Token{T.posn=p'} -> fst p' == fst leftPosn - 1) tokens
+    let postContext = filter (\T.Token{T.posn=p'} -> fst p' == fst leftPosn + 1) tokens
     let nDigits = 2 + maxDigits tks
     RWS.when (not $ null preContext) $ printProgram preContext
     printProgram tks
-    putStr $ buildRuler (nDigits + snd p)
+    putStr $ buildRuler (nDigits + snd leftPosn)
     putStrLn "^"
     putStrLn $ bold ++ red ++ "YOU DIED!!" ++ nocolor ++ " " ++ errMessage
     RWS.when (not $ null postContext) $ printProgram postContext
