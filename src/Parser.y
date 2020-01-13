@@ -289,7 +289,7 @@ FUNCPREFIX :: { Maybe (ST.Scope, G.Id) }
   : functionBegin ID METHODPARS functionType TYPE                       {% addFunction (ST.Function,
                                                                               $2, G.Callable (Just $5) $3, Nothing) }
 FUNC :: { () }
-  : FUNCPREFIX NON_OPENER_CODEBLOCK functionEnd                         {% case $1 of
+  : FUNCPREFIX CODEBLOCK functionEnd                                    {% case $1 of
                                                                             Nothing -> return ()
                                                                             Just (s, i) -> updateCodeBlockOfFun s i $2 }
 
@@ -297,7 +297,7 @@ PROCPREFIX :: { Maybe (ST.Scope, G.Id) }
   : procedureBegin ID PROCPARSDEC                                       {% addFunction (ST.Procedure,
                                                                               $2, G.Callable Nothing $3, Nothing) }
 PROC :: { () }
-  : PROCPREFIX NON_OPENER_CODEBLOCK procedureEnd                        {% case $1 of
+  : PROCPREFIX CODEBLOCK procedureEnd                                   {% case $1 of
                                                                             Nothing -> return ()
                                                                             Just (s, i) -> updateCodeBlockOfFun s i $2 }
 
