@@ -531,7 +531,7 @@ addIdToSymTable :: Maybe Int -> NameDeclaration -> ST.ParserMonad ()
 addIdToSymTable mi d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idName})), t, maybeExp) = do
   maybeIdEntry <- ST.dictLookup idName
   maybeTypeEntry <- findTypeOnEntryTable t
-  (ST.SymTable _ (currScope:_) _ _) <- RWS.get
+  ST.SymTable {ST.stScope=(currScope:_), ST.stIterVars=iterVars} <- RWS.get
   case maybeIdEntry of
     -- The name doesn't exists on the table, we just add it
     Nothing -> do
@@ -560,7 +560,9 @@ addIdToSymTable mi d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idN
       else if category == ST.Function
       then RWS.tell $ [ST.SemanticError ("Name " ++ show tk ++ " conflicts with a function") tk]
       else if category == ST.RefParam || category == ST.ValueParam
-      then RWS.tell $ [ST.SemanticError ("Name "++ show tk ++ " conflicts with a formal param") tk]
+      then RWS.tell $ [ST.SemanticError ("Name " ++ show tk ++ " conflicts with a formal param") tk]
+      else if elem (T.cleanedString tk) iterVars
+      then RWS.tell $ [ST.SemanticError ("Name " ++ show tk ++ " conflicts or shadows an iteration variable") tk]
       else if currScope /= scope
       then insertIdToEntry mi t ST.DictionaryEntry
         { ST.name = idName

@@ -693,6 +693,8 @@ max level reached
 
 Dentro del bloque de instrucciones, no se permitirá modificar directamente la variable de iteración. La cota superior es una cota no alcanzada; es decir, la iteración no se ejecutará para el valor de la cota superior.
 
+Es importante resaltar que intentar declarar una variable nueva con el mismo nombre de una variable de iteración que esté viva se considerará un error semántico; es decir: no se puede oscurecer (_shadow_) una variable de iteración bajo ninguna circunstancia.
+
 ### Iteraciones por estructuras
 
 Las iteraciones por estructuras permiten repetir una secuencia no vacía de instrucciones asignando en una variable un elemento distinto de una estructura iterable en cada iteración.
