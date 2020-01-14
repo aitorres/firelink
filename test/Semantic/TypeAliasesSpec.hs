@@ -87,7 +87,7 @@ spec = describe "Variable Declarations" $ do
         \   go back\n\
         \you died\n\
         \ farewell ashen one\n"
-        (_, (dict, _, _), errors) <- U.extractSymTable p
+        (_, ST.SymTable {ST.stDict=dict}, errors) <- U.extractSymTable p
         errors `shouldSatisfy` null
         U.testEntry dict alias
             { ST.name = "y"
@@ -105,7 +105,7 @@ spec = describe "Variable Declarations" $ do
         \   go back\n\
         \you died\n\
         \ farewell ashen one\n"
-        (_, (dict, _, _), errors) <- U.extractSymTable p
+        (_, ST.SymTable {ST.stDict=dict}, errors) <- U.extractSymTable p
         errors `shouldNotSatisfy` null
         let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
         varName `shouldBe` "x"

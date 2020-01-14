@@ -32,7 +32,7 @@ spec = do
             \ with orange saponite say @hello world@ \
             \ you died \
             \ farewell ashen one"
-            (_, (dict, _, _), _) <- U.extractSymTable p
+            (_, ST.SymTable {ST.stDict=dict}, _) <- U.extractSymTable p
             U.testEntry dict varEntry U.extractCodeblockFromExtra
                 (\(ST.CodeBlock (G.CodeBlock [G.InstReturn])) -> True)
             U.testEntry dict varEntry U.extractEmptyFunctionFromExtra
@@ -54,7 +54,7 @@ spec = do
             \ with orange saponite say @hello world@ \
             \ you died \
             \ farewell ashen one"
-            (_, (dict, _, _), _) <- U.extractSymTable p
+            (_, ST.SymTable {ST.stDict=dict}, _) <- U.extractSymTable p
             U.testEntry dict varEntry U.extractFieldsFromExtra
                 (\(ST.Fields ST.Callable 2) -> True)
             U.testEntry dict varEntry
@@ -80,7 +80,7 @@ spec = do
             \ with orange saponite say @hello world@ \
             \ you died \
             \ farewell ashen one"
-            (_, (dict, _, _), _) <- U.extractSymTable p
+            (_, ST.SymTable {ST.stDict=dict}, _) <- U.extractSymTable p
             U.testEntry dict varEntry
                 { ST.scope = 2
                 , ST.name = "x"
@@ -105,7 +105,7 @@ spec = do
             \ with orange saponite say @hello world@ \
             \ you died \
             \ farewell ashen one"
-            (_, (dict, _, _), _) <- U.extractSymTable p
+            (_, ST.SymTable {ST.stDict=dict}, _) <- U.extractSymTable p
             U.testEntry dict varEntry
                 { ST.scope = 2
                 , ST.name = "x"
@@ -136,7 +136,7 @@ spec = do
             \ with orange saponite say @hello world@ \
             \ you died \
             \ farewell ashen one"
-            (_, (_, _, _), errors) <- U.extractSymTable p
+            (_, _, errors) <- U.extractSymTable p
             errors `shouldNotSatisfy` null
             let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
             varName `shouldBe` "x"
@@ -164,7 +164,7 @@ spec = do
             \ with orange saponite say @hello world@ \
             \ you died \
             \ farewell ashen one"
-            (_, (_, _, _), errors) <- U.extractSymTable p
+            (_, _, errors) <- U.extractSymTable p
             errors `shouldNotSatisfy` null
             let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
             varName `shouldBe` "x"
@@ -199,7 +199,7 @@ spec = do
             \ with orange saponite say @hello world@ \
             \ you died \
             \ farewell ashen one"
-            (_, (_, _, _), errors) <- U.extractSymTable p
+            (_, _, errors) <- U.extractSymTable p
             errors `shouldNotSatisfy` null
         it "allows to declare more than 1 procedure" $ do
             let p = "hello ashen one\n\
@@ -225,7 +225,7 @@ spec = do
             \ with orange saponite say @hello world@ \
             \ you died \
             \ farewell ashen one"
-            (_, (dict, _, _), errors) <- U.extractSymTable p
+            (_, ST.SymTable {ST.stDict=dict}, errors) <- U.extractSymTable p
             errors `shouldSatisfy` null
             U.testEntry dict varEntry
                 { ST.scope = 1

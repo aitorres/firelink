@@ -20,7 +20,7 @@ spec = describe "Iterations declarations" $
     \ max level reached \n\
     \ you died \n\
     \ farewell ashen one"
-    (_, (_, _, _), errors) <- U.extractSymTable p
+    (_, _, errors) <- U.extractSymTable p
     errors `shouldNotSatisfy` null
     let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
     varName `shouldBe` "i"

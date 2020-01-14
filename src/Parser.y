@@ -1112,12 +1112,12 @@ instance TypeCheckable ST.Extra where
   getType (ST.CompoundRec s _ extra) = getType extra >>= \t -> return $ T.ArrayT t
 
   getType (ST.Fields ST.Callable scope) = do
-    (ST.SymTable dict _ _ _) <- RWS.get
+    ST.SymTable {ST.stDict=dict} <- RWS.get
     types <- mapM getType $ ST.sortByArgPosition $ ST.findAllInScope scope dict
     return $ T.TypeList types
 
   getType (ST.Fields b scope) = do
-    (ST.SymTable dict _ _ _) <- RWS.get
+    ST.SymTable {ST.stDict=dict} <- RWS.get
     let entries = ST.findAllInScope scope dict
     let entryNames = map ST.name entries
     types <- mapM getType entries

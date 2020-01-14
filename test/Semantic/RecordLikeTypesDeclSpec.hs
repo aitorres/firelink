@@ -75,7 +75,7 @@ spec = do
             \ you died \
 
             \ farewell ashen one"
-            (_, (dict, _, _), _) <- U.extractSymTable p
+            (_, ST.SymTable {ST.stDict=dict}, _) <- U.extractSymTable p
             U.testEntry dict varEntry
                 { ST.name = "y", ST.entryType = Just "bezel" }
                 U.extractFieldsFromExtra (\(ST.Fields ST.Record 2) -> True)
@@ -100,7 +100,7 @@ spec = do
             \ you died \
 
             \ farewell ashen one"
-            (_, (dict, _, _), errors) <- U.extractSymTable p
+            (_, ST.SymTable {ST.stDict=dict}, errors) <- U.extractSymTable p
             errors `shouldSatisfy` null
             U.testEntry dict varEntry
                 { ST.entryType = Just "bezel" }
