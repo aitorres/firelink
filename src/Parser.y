@@ -579,7 +579,7 @@ addIdToSymTable mi d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idN
       then RWS.tell $ [ST.SemanticError ("Name " ++ show tk ++ " conflicts with a function") tk]
       else if category == ST.RefParam || category == ST.ValueParam
       then RWS.tell $ [ST.SemanticError ("Name " ++ show tk ++ " conflicts with a formal param") tk]
-      else if elem (T.cleanedString tk) iterVars
+      else if (T.cleanedString tk) `elem` iterVars
       then RWS.tell $ [ST.SemanticError ("Name " ++ show tk ++ " conflicts or shadows an iteration variable") tk]
       else if currScope /= scope
       then insertIdToEntry mi t ST.DictionaryEntry
@@ -649,7 +649,7 @@ checkIterVariables :: G.Expr -> ST.ParserMonad ()
 checkIterVariables e = case G.expAst e of
   G.IdExpr (G.Id tk@(T.Token {T.cleanedString=idName})) -> do
     ST.SymTable {ST.stIterVars=iterVars} <- RWS.get
-    let matchesIterVar = elem idName iterVars
+    let matchesIterVar = idName `elem` iterVars
     if matchesIterVar
     then do
       RWS.tell [ST.SemanticError ("Iteration variable " ++ show tk ++ " must not be reassigned") tk]
