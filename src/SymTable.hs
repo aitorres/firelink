@@ -110,10 +110,10 @@ type DictionaryEntries = [DictionaryEntry]
 type Dictionary = Map.Map String DictionaryEntries
 
 data SymTable = SymTable
-    { stDict :: !Dictionary,
-      stScope :: !ScopeStack,
-      stCurrScope :: !Int,
-      stIterVars :: ![G.Id]
+    { stDict :: !Dictionary, -- ^ Dictionary of valid symbols
+      stScope :: !ScopeStack, -- ^ Stack of scopes at the current state
+      stCurrScope :: !Int, -- ^ Current scope
+      stIterVars :: ![String] -- ^ List of currently protected iteration variables
     }
 
 type ParserMonad = RWS.RWST () SemanticErrors SymTable IO
