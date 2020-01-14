@@ -400,6 +400,7 @@ INSTRL :: { G.Instructions }
 INSTR :: { G.Instruction }
   : LVALUE asig EXPR                                                    {% do
                                                                           checkConstantReassignment $1
+                                                                          checkIterVariables $1
                                                                           return $ G.InstAsig $1 $3 }
   | malloc EXPR                                                         { G.InstMalloc $2 }
   | free EXPR                                                           { G.InstFreeMem $2 }
@@ -419,39 +420,41 @@ INSTR :: { G.Instruction }
   | switchBegin EXPR colon SWITCHCASES DEFAULTCASE switchEnd            { G.InstSwitch $2 (reverse ($5 : $4)) }
   | switchBegin EXPR colon SWITCHCASES switchEnd                        { G.InstSwitch $2 (reverse $4) }
   | FORBEGIN with EXPR souls untilLevel EXPR CODEBLOCK forEnd           {% do
-                                                                          checkIterVariables $7
-                                                                          (ST.SymTable d s cs (_:ivs)) <- RWS.get
-                                                                          RWS.put (ST.SymTable d s cs ivs)
-                                                                          return $ G.InstFor $1 $3 $6 $7 }
+                                                                          let shouldPopIterVar = snd $1
+                                                                          if shouldPopIterVar
+                                                                          then do
+                                                                            (ST.SymTable d s cs (_:ivs)) <- RWS.get
+                                                                            RWS.put (ST.SymTable d s cs ivs)
+                                                                            return $ G.InstFor (fst $1) $3 $6 $7
+                                                                          else return $ G.InstFor (fst $1) $3 $6 $7 }
   | FOREACHBEGIN withTitaniteFrom EXPR CODEBLOCK forEachEnd             {% do
-                                                                          checkIterVariables $4
-                                                                          (ST.SymTable d s cs (_:ivs)) <- RWS.get
-                                                                          RWS.put (ST.SymTable d s cs ivs)
-                                                                          return $ G.InstForEach $1 $3 $4 }
+                                                                          let shouldPopIterVar = snd $1
+                                                                          if shouldPopIterVar
+                                                                          then do
+                                                                            (ST.SymTable d s cs (_:ivs)) <- RWS.get
+                                                                            RWS.put (ST.SymTable d s cs ivs)
+                                                                            return $ G.InstForEach (fst $1) $3 $4
+                                                                          else return $ G.InstForEach (fst $1) $3 $4 }
 
-FORBEGIN :: { G.Id }
+FORBEGIN :: { (G.Id, Bool) }
   : forBegin ID                                                         {% do
                                                                           mid <- checkIdAvailability $2
-                                                                          (ST.SymTable d s cs ivs) <- RWS.get
                                                                           case mid of
                                                                             Just ST.DictionaryEntry {ST.name=varName} -> do
+                                                                              (ST.SymTable d s cs ivs) <- RWS.get
                                                                               RWS.put (ST.SymTable d s cs (varName:ivs))
-                                                                            Nothing -> do
-                                                                              -- checkIdAvailability already rose an error here, nothing else to do
-                                                                              RWS.put (ST.SymTable d s cs ("_UNDECLARED_ITER_VAR":ivs))
-                                                                          return $2 }
+                                                                              return ($2, True)
+                                                                            Nothing -> return ($2, False) }
 
-FOREACHBEGIN :: { G.Id }
+FOREACHBEGIN :: { (G.Id, Bool) }
   : forEachBegin ID                                                     {% do
                                                                           mid <- checkIdAvailability $2
-                                                                          (ST.SymTable d s cs ivs) <- RWS.get
                                                                           case mid of
                                                                             Just ST.DictionaryEntry {ST.name=varName} -> do
+                                                                              (ST.SymTable d s cs ivs) <- RWS.get
                                                                               RWS.put (ST.SymTable d s cs (varName:ivs))
-                                                                            Nothing -> do
-                                                                              -- checkIdAvailability already rose an error here, nothing else to do
-                                                                              RWS.put (ST.SymTable d s cs ("_UNDECLARED_STRUCTITER_VAR":ivs))
-                                                                          return $2 }
+                                                                              return ($2, True)
+                                                                            Nothing -> return ($2, False) }
 
 FUNCALL :: { (T.Token, G.Id, G.Params) }
   : summon ID FUNCPARS                                                  { ($1, $2, $3) }
@@ -642,22 +645,17 @@ checkConstantReassignment e = case G.expAst e of
   G.IndexAccess gId _ -> checkConstantReassignment gId
   _ -> return ()
 
-checkIterVariables :: G.CodeBlock -> ST.ParserMonad ()
-checkIterVariables (G.CodeBlock insts) = do
-  let assignments = filter isAssignment insts
-  ST.SymTable {ST.stIterVars=iterVars} <- RWS.get
-  let errors = filter (\a -> modifiesIterVariable a iterVars) assignments
-  if length errors == 0
-  then return ()
-  else do
-    let (G.InstAsig f _) = head errors
-    let faultyTk = G.expTok f
-    RWS.tell [ST.SemanticError ("Iteration variable " ++ show faultyTk ++ " must not be reassigned") faultyTk]
-    return ()
-  where isAssignment (G.InstAsig _ _) = True
-        isAssignment _ = False
-        modifiesIterVariable (G.InstAsig l _) iterVars = elem (T.cleanedString (G.expTok l)) iterVars
-        modifiesIterVariable _ _ = False
+checkIterVariables :: G.Expr -> ST.ParserMonad ()
+checkIterVariables e = case G.expAst e of
+  G.IdExpr (G.Id tk@(T.Token {T.cleanedString=idName})) -> do
+    ST.SymTable {ST.stIterVars=iterVars} <- RWS.get
+    let matchesIterVar = elem idName iterVars
+    if matchesIterVar
+    then do
+      RWS.tell [ST.SemanticError ("Iteration variable " ++ show tk ++ " must not be reassigned") tk]
+      return ()
+    else return ()
+  _ -> return ()
 
 checkIdAvailability :: G.Id -> ST.ParserMonad (Maybe ST.DictionaryEntry)
 checkIdAvailability (G.Id tk@(T.Token {T.cleanedString=idName})) = do
