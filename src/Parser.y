@@ -418,10 +418,25 @@ INSTR :: { G.Instruction }
   | ifBegin IFCASES ifEnd                                               { G.InstIf (reverse $2) }
   | switchBegin EXPR colon SWITCHCASES DEFAULTCASE switchEnd            { G.InstSwitch $2 (reverse ($5 : $4)) }
   | switchBegin EXPR colon SWITCHCASES switchEnd                        { G.InstSwitch $2 (reverse $4) }
-  | forBegin ID with EXPR souls untilLevel EXPR CODEBLOCK forEnd        {% do
-                                                                          checkIterVariable $8
-                                                                          return $ G.InstFor $2 $4 $7 $8 }
+  | FORBEGIN with EXPR souls untilLevel EXPR CODEBLOCK forEnd        {% do
+                                                                          checkIterVariable $7
+                                                                          (ST.SymTable d s cs (_:ivs)) <- RWS.get
+                                                                          RWS.put (ST.SymTable d s cs ivs)
+                                                                          return $ G.InstFor $1 $3 $6 $7 }
   | forEachBegin ID withTitaniteFrom EXPR CODEBLOCK forEachEnd          { G.InstForEach $2 $4 $5 }
+
+FORBEGIN :: { G.Id }
+  : forBegin ID                                                         {% do
+                                                                          mid <- checkIdAvailability $2
+                                                                          (ST.SymTable d s cs ivs) <- RWS.get
+                                                                          case mid of
+                                                                            Just ST.DictionaryEntry {ST.name=varName} -> do
+                                                                              RWS.put (ST.SymTable d s cs (varName:ivs))
+                                                                            Nothing -> do
+                                                                              -- checkIdAvailability already rose an error here, nothing else to do
+                                                                              RWS.put (ST.SymTable d s cs ("_UNDECLARED_ITER_VAR":ivs))
+                                                                          return $2
+                                                                          }
 
 FUNCALL :: { (T.Token, G.Id, G.Params) }
   : summon ID FUNCPARS                                                  { ($1, $2, $3) }
@@ -614,7 +629,6 @@ checkIterVariable :: G.CodeBlock -> ST.ParserMonad ()
 checkIterVariable (G.CodeBlock insts) = do
   let assignments = filter isAssignment insts
   ST.SymTable {ST.stIterVars=iterVars} <- RWS.get
-  RWS.liftIO $ putStrLn $ show iterVars
   let errors = filter (\a -> modifiesIterVariable a iterVars) assignments
   if length errors == 0
   then return ()
