@@ -199,8 +199,8 @@ ALIASES :: { () }
   : aliasListBegin ALIASL ALIASLISTEND                                  {% do
                                                                             checkRecoverableError $1 $3
                                                                             addIdsToSymTable $ reverse $2
-                                                                            (dict, _, s) <- RWS.get
-                                                                            RWS.put (dict, [1, 0], s) }
+                                                                            (ST.SymTable dict _ s ivs) <- RWS.get
+                                                                            RWS.put (ST.SymTable dict [1, 0] s ivs) }
   | {- empty -}                                                         { () }
 
 
@@ -279,11 +279,11 @@ METHODL :: { () }
 
 METHOD :: { () }
   : FUNC                                                                {% do
-                                                                          (dict, _, s) <- RWS.get
-                                                                          RWS.put (dict, [1, 0], s) }
+                                                                          (ST.SymTable dict _ s ivs) <- RWS.get
+                                                                          RWS.put (ST.SymTable dict [1, 0] s ivs) }
   | PROC                                                                {% do
-                                                                          (dict, _, s) <- RWS.get
-                                                                          RWS.put (dict, [1, 0], s) }
+                                                                          (ST.SymTable dict _ s ivs) <- RWS.get
+                                                                          RWS.put (ST.SymTable dict [1, 0] s ivs) }
 
 FUNCPREFIX :: { Maybe (ST.Scope, G.Id) }
   : functionBegin ID METHODPARS functionType TYPE                       {% addFunction (ST.Function,
@@ -516,7 +516,7 @@ addIdToSymTable :: Maybe Int -> NameDeclaration -> ST.ParserMonad ()
 addIdToSymTable mi d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idName})), t, maybeExp) = do
   maybeIdEntry <- ST.dictLookup idName
   maybeTypeEntry <- findTypeOnEntryTable t
-  (_, (currScope:_), _) <- RWS.get
+  (ST.SymTable _ (currScope:_) _ _) <- RWS.get
   case maybeIdEntry of
     -- The name doesn't exists on the table, we just add it
     Nothing -> do
@@ -572,8 +572,8 @@ insertIdToEntry mi t entry = do
         Nothing -> return ()
         Just s ->  do
           let (ST.Fields _ scope) = fromJust . head $ filter isJust $ map ST.findFieldsExtra ex
-          (dict, scopes, curr) <- RWS.get
-          RWS.put (dict, scope:scopes, curr)
+          (ST.SymTable dict scopes curr ivs) <- RWS.get
+          RWS.put (ST.SymTable dict (scope:scopes) curr ivs)
           addIdsToSymTable $ map (\(a, b) -> (ST.RecordItem, a, b, Nothing)) s
           ST.exitScope
       case extractFunParamsForNewScope t of
@@ -585,9 +585,9 @@ insertIdToEntry mi t entry = do
           if not $ null $ filter ST.isEmptyFunction ex then
             return ()
           else do
-            (dict, scopes, curr) <- RWS.get
+            (ST.SymTable dict scopes curr ivs) <- RWS.get
             let (ST.Fields ST.Callable scope) = head $ filter ST.isFieldsExtra ex
-            RWS.put (dict, scope:scopes, curr)
+            RWS.put (ST.SymTable dict (scope:scopes) curr ivs)
             RWS.mapM_ (\(i, n) -> addIdToSymTable (Just i) n) $ zip [0..] $
               map (\(argType, i, t) -> (if argType == G.Val
                                   then ST.ValueParam
@@ -653,7 +653,7 @@ extractFieldsFromExtra (_:ss) = extractFieldsFromExtra ss
 
 addFunction :: NameDeclaration -> ST.ParserMonad (Maybe (ST.Scope, G.Id))
 addFunction d@(_, i@(G.Id tk@(T.Token {T.cleanedString=idName})), _, _) = do
-  (dict, stack, currScope) <- RWS.get
+  (ST.SymTable dict stack currScope _) <- RWS.get
   maybeEntry <- ST.dictLookup idName
   case maybeEntry of
     Nothing -> do
@@ -738,13 +738,13 @@ buildExtraForType t@(G.Compound _ tt@(G.Record{}) maybeExpr) = do
         Nothing -> Just [ST.Recursive constructor extra']
 
 buildExtraForType t@(G.Record tk _) = do
-  (d, s, currScope) <- RWS.get
+  (ST.SymTable d s currScope ivs) <- RWS.get
   let constr = (case T.aToken tk of
                   T.TkRecord -> ST.Record
                   T.TkUnionStruct -> ST.Union)
 
   let ret = Just [ST.Fields constr $ currScope + 1]
-  RWS.put $ (d, s, currScope + 1)
+  RWS.put $ (ST.SymTable d s (currScope + 1) ivs)
   return ret
 
 buildExtraForType t@(G.Callable t' []) = do
@@ -760,18 +760,18 @@ buildExtraForType t@(G.Callable t' []) = do
 buildExtraForType t@(G.Callable t' _) = do
   case t' of
     Nothing -> do
-      (d, s, currScope) <- RWS.get
+      (ST.SymTable d s currScope ivs) <- RWS.get
       let ret = Just [ST.Fields ST.Callable $ currScope + 1]
-      RWS.put (d, s, currScope + 1)
+      RWS.put (ST.SymTable d s (currScope + 1) ivs)
       return ret
     Just tt -> do
       mExtra <- buildExtraForType tt
       case mExtra of
         Nothing -> return $ Nothing
         Just extras -> do
-          (d, s, currScope) <- RWS.get
+          (ST.SymTable d s currScope ivs) <- RWS.get
           let ret = Just ((ST.Fields ST.Callable $ currScope + 1) : extras)
-          RWS.put (d, s, currScope + 1)
+          RWS.put (ST.SymTable d s (currScope + 1) ivs)
           return ret
 
 -- For anything else
@@ -1112,12 +1112,12 @@ instance TypeCheckable ST.Extra where
   getType (ST.CompoundRec s _ extra) = getType extra >>= \t -> return $ T.ArrayT t
 
   getType (ST.Fields ST.Callable scope) = do
-    (dict, _, _) <- RWS.get
+    (ST.SymTable dict _ _ _) <- RWS.get
     types <- mapM getType $ ST.sortByArgPosition $ ST.findAllInScope scope dict
     return $ T.TypeList types
 
   getType (ST.Fields b scope) = do
-    (dict, _, _) <- RWS.get
+    (ST.SymTable dict _ _ _) <- RWS.get
     let entries = ST.findAllInScope scope dict
     let entryNames = map ST.name entries
     types <- mapM getType entries
