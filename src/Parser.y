@@ -418,12 +418,16 @@ INSTR :: { G.Instruction }
   | ifBegin IFCASES ifEnd                                               { G.InstIf (reverse $2) }
   | switchBegin EXPR colon SWITCHCASES DEFAULTCASE switchEnd            { G.InstSwitch $2 (reverse ($5 : $4)) }
   | switchBegin EXPR colon SWITCHCASES switchEnd                        { G.InstSwitch $2 (reverse $4) }
-  | FORBEGIN with EXPR souls untilLevel EXPR CODEBLOCK forEnd        {% do
-                                                                          checkIterVariable $7
+  | FORBEGIN with EXPR souls untilLevel EXPR CODEBLOCK forEnd           {% do
+                                                                          checkIterVariables $7
                                                                           (ST.SymTable d s cs (_:ivs)) <- RWS.get
                                                                           RWS.put (ST.SymTable d s cs ivs)
                                                                           return $ G.InstFor $1 $3 $6 $7 }
-  | forEachBegin ID withTitaniteFrom EXPR CODEBLOCK forEachEnd          { G.InstForEach $2 $4 $5 }
+  | FOREACHBEGIN withTitaniteFrom EXPR CODEBLOCK forEachEnd             {% do
+                                                                          checkIterVariables $4
+                                                                          (ST.SymTable d s cs (_:ivs)) <- RWS.get
+                                                                          RWS.put (ST.SymTable d s cs ivs)
+                                                                          return $ G.InstForEach $1 $3 $4 }
 
 FORBEGIN :: { G.Id }
   : forBegin ID                                                         {% do
@@ -435,8 +439,19 @@ FORBEGIN :: { G.Id }
                                                                             Nothing -> do
                                                                               -- checkIdAvailability already rose an error here, nothing else to do
                                                                               RWS.put (ST.SymTable d s cs ("_UNDECLARED_ITER_VAR":ivs))
-                                                                          return $2
-                                                                          }
+                                                                          return $2 }
+
+FOREACHBEGIN :: { G.Id }
+  : forEachBegin ID                                                     {% do
+                                                                          mid <- checkIdAvailability $2
+                                                                          (ST.SymTable d s cs ivs) <- RWS.get
+                                                                          case mid of
+                                                                            Just ST.DictionaryEntry {ST.name=varName} -> do
+                                                                              RWS.put (ST.SymTable d s cs (varName:ivs))
+                                                                            Nothing -> do
+                                                                              -- checkIdAvailability already rose an error here, nothing else to do
+                                                                              RWS.put (ST.SymTable d s cs ("_UNDECLARED_STRUCTITER_VAR":ivs))
+                                                                          return $2 }
 
 FUNCALL :: { (T.Token, G.Id, G.Params) }
   : summon ID FUNCPARS                                                  { ($1, $2, $3) }
@@ -627,8 +642,8 @@ checkConstantReassignment e = case G.expAst e of
   G.IndexAccess gId _ -> checkConstantReassignment gId
   _ -> return ()
 
-checkIterVariable :: G.CodeBlock -> ST.ParserMonad ()
-checkIterVariable (G.CodeBlock insts) = do
+checkIterVariables :: G.CodeBlock -> ST.ParserMonad ()
+checkIterVariables (G.CodeBlock insts) = do
   let assignments = filter isAssignment insts
   ST.SymTable {ST.stIterVars=iterVars} <- RWS.get
   let errors = filter (\a -> modifiesIterVariable a iterVars) assignments

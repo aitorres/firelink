@@ -695,6 +695,8 @@ Dentro del bloque de instrucciones, no se permitirá modificar directamente la v
 
 Es importante resaltar que intentar declarar una variable nueva con el mismo nombre de una variable de iteración que esté viva se considerará un error semántico; es decir: no se puede oscurecer (_shadow_) una variable de iteración bajo ninguna circunstancia.
 
+Al terminar la iteración, la variable de iteración correspondiente tendrá el último valor utilizado dentro del ciclo.
+
 ### Iteraciones por estructuras
 
 Las iteraciones por estructuras permiten repetir una secuencia no vacía de instrucciones asignando en una variable un elemento distinto de una estructura iterable en cada iteración.
@@ -709,7 +711,7 @@ repairing <identificador de la variable de iteración> with titanite from <estru
 weaponry repaired
 ```
 
-Donde _identificador de la variable de iteración_ corresponde al identificador de una variable, no necesariamente declarada antes, y _estructura_ corresponde a la estructura iterable de la que se tomarán los elementos.
+Donde _identificador de la variable de iteración_ corresponde al identificador de una variable previamente declarada (ignorando cualquier valor previo), y _estructura_ corresponde a la estructura iterable de la que se tomarán los elementos.
 
 Por ejemplo:
 
@@ -723,6 +725,10 @@ weaponry repaired
 ```
 
 Dentro del bloque de instrucciones, no se permitirá modificar directamente la variable de iteración.
+
+Es importante resaltar que intentar declarar una variable nueva con el mismo nombre de una variable de iteración que esté viva se considerará un error semántico; es decir: no se puede oscurecer (_shadow_) una variable de iteración bajo ninguna circunstancia.
+
+Al terminar la iteración, la variable de iteración correspondiente tendrá el último valor utilizado dentro del ciclo.
 
 ### Iteraciones condicionadas
 
