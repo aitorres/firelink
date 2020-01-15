@@ -441,6 +441,7 @@ FORBEGIN :: { (G.Id, Bool) }
                                                                           mid <- checkIdAvailability $2
                                                                           case mid of
                                                                             Just ST.DictionaryEntry {ST.name=varName} -> do
+                                                                              checkIterVarType $2
                                                                               (ST.SymTable d s cs ivs) <- RWS.get
                                                                               RWS.put (ST.SymTable d s cs (varName:ivs))
                                                                               return ($2, True)
@@ -451,6 +452,7 @@ FOREACHBEGIN :: { (G.Id, Bool) }
                                                                           mid <- checkIdAvailability $2
                                                                           case mid of
                                                                             Just ST.DictionaryEntry {ST.name=varName} -> do
+                                                                              checkIterVarType $2
                                                                               (ST.SymTable d s cs ivs) <- RWS.get
                                                                               RWS.put (ST.SymTable d s cs (varName:ivs))
                                                                               return ($2, True)
@@ -662,16 +664,26 @@ checkIdAvailability (G.Id tk@(T.Token {T.cleanedString=idName})) = do
   maybeEntry <- ST.dictLookup idName
   case maybeEntry of
     Nothing -> do
-      RWS.tell [ST.SemanticError ("Name " ++ idName ++ " is not available on this scope") tk]
+      RWS.tell [ST.SemanticError ("Name " ++ (show tk) ++ " is not available on this scope") tk]
       return Nothing
-    Just e -> do
-      return $ Just e
+    Just e -> return $ Just e
+
+checkIterVarType :: G.Id -> ST.ParserMonad ()
+checkIterVarType (G.Id tk@(T.Token {T.cleanedString=idName})) = do
+  maybeEntry <- ST.dictLookup idName
+  case maybeEntry of
+    Nothing -> return ()
+    Just (ST.DictionaryEntry {ST.category=varCat}) -> do
+      if varCat == ST.Constant
+      then do
+        RWS.tell [ST.SemanticError ("Constant " ++ (show tk) ++ " can not be used as an iteration variable") tk]
+        return ()
+      else return ()
 
 checkRecoverableError :: T.Token -> Maybe G.RecoverableError -> ST.ParserMonad ()
 checkRecoverableError openTk maybeErr = do
   case maybeErr of
-    Nothing ->
-      return ()
+    Nothing -> return ()
     Just err -> do
       let errorName = show err
       RWS.tell [ST.SemanticError (errorName ++ " (recovered from to continue parsing)") openTk]

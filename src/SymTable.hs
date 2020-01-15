@@ -15,7 +15,8 @@ data SemanticError = SemanticError String T.Token
     deriving Show
 type SemanticErrors = [SemanticError]
 
-data Category = Variable
+data Category
+    = Variable
     | Constant
     | Type
     | Procedure
