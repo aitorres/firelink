@@ -133,7 +133,7 @@ spec = do
             \ with orange saponite say @hello world@ \
             \ you died \
             \ farewell ashen one"
-            (_, _, errors) <- U.extractSymTable p
+            errors <- U.extractErrors p
             errors `shouldNotSatisfy` null
             let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
             varName `shouldBe` "x"
@@ -161,7 +161,7 @@ spec = do
             \ with orange saponite say @hello world@ \
             \ you died \
             \ farewell ashen one"
-            (_, _, errors) <- U.extractSymTable p
+            errors <- U.extractErrors p
             errors `shouldNotSatisfy` null
             let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
             varName `shouldBe` "x"
@@ -196,7 +196,7 @@ spec = do
             \ with orange saponite say @hello world@ \
             \ you died \
             \ farewell ashen one"
-            (_, _, errors) <- U.extractSymTable p
+            errors <- U.extractErrors p
             errors `shouldNotSatisfy` null
         it "allows to declare more than 1 function" $ do
             let p = "hello ashen one\n\
@@ -254,7 +254,7 @@ spec = do
             \ with orange saponite say summon fun \
             \ you died \
             \ farewell ashen one"
-            (_, _, errors) <- U.extractSymTable p
+            errors <- U.extractErrors p
             errors `shouldSatisfy` null
         it "allows to call declared functions with parameters" $ do
             let p = "hello ashen one\n\
@@ -273,7 +273,7 @@ spec = do
             \ with orange saponite say summon fun\n\
             \ you died \
             \ farewell ashen one"
-            (_, _, errors) <- U.extractSymTable p
+            errors <- U.extractErrors p
             errors `shouldSatisfy` null
         it "rejects to call non-declared functions" $ do
             let p = "hello ashen one\n\
@@ -292,7 +292,7 @@ spec = do
             \   with orange saponite say summon fun2\n\
             \ you died \
             \ farewell ashen one"
-            (_, _, errors) <- U.extractSymTable p
+            errors <- U.extractErrors p
             errors `shouldNotSatisfy` null
             let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
             varName `shouldBe` "fun2"
@@ -315,7 +315,7 @@ spec = do
             \   with orange saponite say summon fun\n\
             \ you died \
             \ farewell ashen one"
-            (_, _, errors) <- U.extractSymTable p
+            errors <- U.extractErrors p
             errors `shouldSatisfy` null
         -- it "allows corecursion" $ do
         --     let p = "hello ashen one\n\
@@ -343,5 +343,5 @@ spec = do
         --     \   with orange saponite say summon fun\n\
         --     \ you died \
         --     \ farewell ashen one"
-        --     (_, _, errors) <- U.extractSymTable p
+        --     errors <- U.extractErrors p
         --     errors `shouldSatisfy` null
