@@ -110,7 +110,7 @@ spec = do
             \ you died \
 
             \ farewell ashen one"
-            (_, (dict, _, _), _) <- U.extractSymTable p
+            (_, ST.SymTable {ST.stDict=dict}, _) <- U.extractSymTable p
 
             U.testEntry dict varEntry{ST.entryType = Just "sign"} U.extractSimpleFromExtra
                 (\(ST.Simple "sign") -> True)
@@ -140,7 +140,7 @@ spec = do
             \ you died \
 
             \ farewell ashen one"
-            (_, (dict, _, _), _) <- U.extractSymTable p
+            (_, ST.SymTable {ST.stDict=dict}, _) <- U.extractSymTable p
             U.testEntry dict varEntry
                 { ST.entryType = Just "humanity" }
                 U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
@@ -171,7 +171,7 @@ spec = do
             \ you died \
 
             \ farewell ashen one"
-            (_, (dict, _, _), errors) <- U.extractSymTable p
+            (_, ST.SymTable {ST.stDict=dict}, errors) <- U.extractSymTable p
             errors `shouldNotSatisfy` null
             let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
             varName `shouldBe` "x"

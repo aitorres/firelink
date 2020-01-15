@@ -15,7 +15,8 @@ data SemanticError = SemanticError String T.Token
     deriving Show
 type SemanticErrors = [SemanticError]
 
-data Category = Variable
+data Category
+    = Variable
     | Constant
     | Type
     | Procedure
@@ -109,7 +110,12 @@ type DictionaryEntries = [DictionaryEntry]
 
 type Dictionary = Map.Map String DictionaryEntries
 
-type SymTable = (Dictionary, ScopeStack, Int)
+data SymTable = SymTable
+    { stDict :: !Dictionary, -- ^ Dictionary of valid symbols
+      stScope :: !ScopeStack, -- ^ Stack of scopes at the current state
+      stCurrScope :: !Int, -- ^ Current scope
+      stIterVars :: ![String] -- ^ List of currently protected iteration variables
+    }
 
 type ParserMonad = RWS.RWST () SemanticErrors SymTable IO
 
@@ -144,7 +150,7 @@ findBest name' entries (s:ss) = case filter (\d -> scope d == s) entries of
 
 dictLookup :: String -> ParserMonad (Maybe DictionaryEntry)
 dictLookup n = do
-    (dict, stack, _) <- RWS.get
+    (SymTable dict stack _ _) <- RWS.get
     let chain = filter (\d -> name d == n) $ findChain n dict
     let pervasive = findPervasive n chain
     let best = findBest n chain stack
@@ -156,27 +162,27 @@ dictLookup n = do
 
 addEntry :: DictionaryEntry -> ParserMonad ()
 addEntry d@DictionaryEntry{name=n} = do
-    (dict, st, cs) <- RWS.get
+    (SymTable dict st cs ivs) <- RWS.get
     let chains = findChain n dict
-    RWS.put (Map.insert n (d:chains) dict, st, cs)
+    RWS.put (SymTable (Map.insert n (d:chains) dict) st cs ivs)
 
 updateEntry :: (DictionaryEntries -> Maybe DictionaryEntries) -> String -> ParserMonad ()
 updateEntry f s = do
-    (dict, st, cs) <- RWS.get
-    RWS.put (Map.update f s dict, st, cs)
+    (SymTable dict st cs ivs) <- RWS.get
+    RWS.put (SymTable (Map.update f s dict) st cs ivs)
 
 enterScope :: ParserMonad ()
 enterScope = do
-    (dict, st, cs) <- RWS.get
+    (SymTable dict st cs ivs) <- RWS.get
     let cs' = cs + 1
-    RWS.put (dict, cs':st, cs')
+    RWS.put (SymTable dict (cs':st) cs' ivs)
 
 exitScope :: ParserMonad ()
 exitScope = do
-    (dict, st, cs) <- RWS.get
+    (SymTable dict st cs ivs) <- RWS.get
     case st of
-        [] -> RWS.put (dict, [], cs)
-        _:s -> RWS.put (dict, s, cs)
+        [] -> RWS.put (SymTable dict [] cs ivs)
+        _:s -> RWS.put (SymTable dict s cs ivs)
 
 smallHumanity :: String
 smallHumanity = "small humanity"
@@ -208,7 +214,7 @@ arrow :: String
 arrow = "arrow"
 
 initialState :: SymTable
-initialState = (Map.fromList l, [1, 0], 1)
+initialState = SymTable (Map.fromList l) [1, 0] 1 []
     where l = [(smallHumanity, [DictionaryEntry smallHumanity Type 0 Nothing []])
             , (humanity, [DictionaryEntry humanity Type 0 Nothing []])
             , (hollow, [DictionaryEntry hollow Type 0 Nothing []])

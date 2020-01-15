@@ -31,7 +31,7 @@ spec = do
     describe "Pointers declarations" $
         it "allows to declare variables with pointers data types" $ do
             let p = sampleProgram ""
-            (_, (dict, _, _), _) <- U.extractSymTable p
+            (_, ST.SymTable {ST.stDict=dict}, _) <- U.extractSymTable p
             U.testEntry dict varEntry U.extractRecursiveFromExtra
                 (\(ST.Recursive "arrow" (ST.Simple "sign")) -> True)
 

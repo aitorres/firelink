@@ -17,7 +17,7 @@ program = "\
 testEntryExistence :: String -> ST.Category -> IO ()
 testEntryExistence e cat = do
     let ([], tokens) = L.scanTokens program
-    (_, (dict, _, _), _) <- RWS.runRWST (P.parse tokens) () ST.initialState
+    (_, ST.SymTable {ST.stDict=dict}, _) <- RWS.runRWST (P.parse tokens) () ST.initialState
     let entry = head $ ST.findChain e dict
     ST.name entry `shouldBe` e
     ST.category entry `shouldBe` cat

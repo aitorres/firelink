@@ -199,8 +199,8 @@ ALIASES :: { () }
   : aliasListBegin ALIASL ALIASLISTEND                                  {% do
                                                                             checkRecoverableError $1 $3
                                                                             addIdsToSymTable $ reverse $2
-                                                                            (dict, _, s) <- RWS.get
-                                                                            RWS.put (dict, [1, 0], s) }
+                                                                            (ST.SymTable dict _ s ivs) <- RWS.get
+                                                                            RWS.put (ST.SymTable dict [1, 0] s ivs) }
   | {- empty -}                                                         { () }
 
 
@@ -279,11 +279,11 @@ METHODL :: { () }
 
 METHOD :: { () }
   : FUNC                                                                {% do
-                                                                          (dict, _, s) <- RWS.get
-                                                                          RWS.put (dict, [1, 0], s) }
+                                                                          (ST.SymTable dict _ s ivs) <- RWS.get
+                                                                          RWS.put (ST.SymTable dict [1, 0] s ivs) }
   | PROC                                                                {% do
-                                                                          (dict, _, s) <- RWS.get
-                                                                          RWS.put (dict, [1, 0], s) }
+                                                                          (ST.SymTable dict _ s ivs) <- RWS.get
+                                                                          RWS.put (ST.SymTable dict [1, 0] s ivs) }
 
 FUNCPREFIX :: { Maybe (ST.Scope, G.Id) }
   : functionBegin ID METHODPARS functionType TYPE                       {% addFunction (ST.Function,
@@ -400,6 +400,7 @@ INSTRL :: { G.Instructions }
 INSTR :: { G.Instruction }
   : LVALUE asig EXPR                                                    {% do
                                                                           checkConstantReassignment $1
+                                                                          checkIterVariables $1
                                                                           return $ G.InstAsig $1 $3 }
   | malloc EXPR                                                         { G.InstMalloc $2 }
   | free EXPR                                                           { G.InstFreeMem $2 }
@@ -418,8 +419,44 @@ INSTR :: { G.Instruction }
   | ifBegin IFCASES ifEnd                                               { G.InstIf (reverse $2) }
   | switchBegin EXPR colon SWITCHCASES DEFAULTCASE switchEnd            { G.InstSwitch $2 (reverse ($5 : $4)) }
   | switchBegin EXPR colon SWITCHCASES switchEnd                        { G.InstSwitch $2 (reverse $4) }
-  | forBegin ID with EXPR souls untilLevel EXPR CODEBLOCK forEnd        { G.InstFor $2 $4 $7 $8 }
-  | forEachBegin ID withTitaniteFrom EXPR CODEBLOCK forEachEnd          { G.InstForEach $2 $4 $5 }
+  | FORBEGIN with EXPR souls untilLevel EXPR CODEBLOCK forEnd           {% do
+                                                                          let shouldPopIterVar = snd $1
+                                                                          if shouldPopIterVar
+                                                                          then do
+                                                                            (ST.SymTable d s cs (_:ivs)) <- RWS.get
+                                                                            RWS.put (ST.SymTable d s cs ivs)
+                                                                            return $ G.InstFor (fst $1) $3 $6 $7
+                                                                          else return $ G.InstFor (fst $1) $3 $6 $7 }
+  | FOREACHBEGIN withTitaniteFrom EXPR CODEBLOCK forEachEnd             {% do
+                                                                          let shouldPopIterVar = snd $1
+                                                                          if shouldPopIterVar
+                                                                          then do
+                                                                            (ST.SymTable d s cs (_:ivs)) <- RWS.get
+                                                                            RWS.put (ST.SymTable d s cs ivs)
+                                                                            return $ G.InstForEach (fst $1) $3 $4
+                                                                          else return $ G.InstForEach (fst $1) $3 $4 }
+
+FORBEGIN :: { (G.Id, Bool) }
+  : forBegin ID                                                         {% do
+                                                                          mid <- checkIdAvailability $2
+                                                                          case mid of
+                                                                            Just ST.DictionaryEntry {ST.name=varName} -> do
+                                                                              checkIterVarType $2
+                                                                              (ST.SymTable d s cs ivs) <- RWS.get
+                                                                              RWS.put (ST.SymTable d s cs (varName:ivs))
+                                                                              return ($2, True)
+                                                                            Nothing -> return ($2, False) }
+
+FOREACHBEGIN :: { (G.Id, Bool) }
+  : forEachBegin ID                                                     {% do
+                                                                          mid <- checkIdAvailability $2
+                                                                          case mid of
+                                                                            Just ST.DictionaryEntry {ST.name=varName} -> do
+                                                                              checkIterVarType $2
+                                                                              (ST.SymTable d s cs ivs) <- RWS.get
+                                                                              RWS.put (ST.SymTable d s cs (varName:ivs))
+                                                                              return ($2, True)
+                                                                            Nothing -> return ($2, False) }
 
 FUNCALL :: { (T.Token, G.Id, G.Params) }
   : summon ID FUNCPARS                                                  { ($1, $2, $3) }
@@ -514,7 +551,7 @@ addIdToSymTable :: Maybe Int -> NameDeclaration -> ST.ParserMonad ()
 addIdToSymTable mi d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idName})), t, maybeExp) = do
   maybeIdEntry <- ST.dictLookup idName
   maybeTypeEntry <- findTypeOnEntryTable t
-  (_, (currScope:_), _) <- RWS.get
+  ST.SymTable {ST.stScope=(currScope:_), ST.stIterVars=iterVars} <- RWS.get
   case maybeIdEntry of
     -- The name doesn't exists on the table, we just add it
     Nothing -> do
@@ -543,7 +580,9 @@ addIdToSymTable mi d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idN
       else if category == ST.Function
       then RWS.tell $ [ST.SemanticError ("Name " ++ show tk ++ " conflicts with a function") tk]
       else if category == ST.RefParam || category == ST.ValueParam
-      then RWS.tell $ [ST.SemanticError ("Name "++ show tk ++ " conflicts with a formal param") tk]
+      then RWS.tell $ [ST.SemanticError ("Name " ++ show tk ++ " conflicts with a formal param") tk]
+      else if (T.cleanedString tk) `elem` iterVars
+      then RWS.tell $ [ST.SemanticError ("Name " ++ show tk ++ " conflicts or shadows an iteration variable") tk]
       else if currScope /= scope
       then insertIdToEntry mi t ST.DictionaryEntry
         { ST.name = idName
@@ -570,8 +609,8 @@ insertIdToEntry mi t entry = do
         Nothing -> return ()
         Just s ->  do
           let (ST.Fields _ scope) = fromJust . head $ filter isJust $ map ST.findFieldsExtra ex
-          (dict, scopes, curr) <- RWS.get
-          RWS.put (dict, scope:scopes, curr)
+          (ST.SymTable dict scopes curr ivs) <- RWS.get
+          RWS.put (ST.SymTable dict (scope:scopes) curr ivs)
           addIdsToSymTable $ map (\(a, b) -> (ST.RecordItem, a, b, Nothing)) s
           ST.exitScope
       case extractFunParamsForNewScope t of
@@ -583,9 +622,9 @@ insertIdToEntry mi t entry = do
           if not $ null $ filter ST.isEmptyFunction ex then
             return ()
           else do
-            (dict, scopes, curr) <- RWS.get
+            (ST.SymTable dict scopes curr ivs) <- RWS.get
             let (ST.Fields ST.Callable scope) = head $ filter ST.isFieldsExtra ex
-            RWS.put (dict, scope:scopes, curr)
+            RWS.put (ST.SymTable dict (scope:scopes) curr ivs)
             RWS.mapM_ (\(i, n) -> addIdToSymTable (Just i) n) $ zip [0..] $
               map (\(argType, i, t) -> (if argType == G.Val
                                   then ST.ValueParam
@@ -608,21 +647,43 @@ checkConstantReassignment e = case G.expAst e of
   G.IndexAccess gId _ -> checkConstantReassignment gId
   _ -> return ()
 
+checkIterVariables :: G.Expr -> ST.ParserMonad ()
+checkIterVariables e = case G.expAst e of
+  G.IdExpr (G.Id tk@(T.Token {T.cleanedString=idName})) -> do
+    ST.SymTable {ST.stIterVars=iterVars} <- RWS.get
+    let matchesIterVar = idName `elem` iterVars
+    if matchesIterVar
+    then do
+      RWS.tell [ST.SemanticError ("Iteration variable " ++ show tk ++ " must not be reassigned") tk]
+      return ()
+    else return ()
+  _ -> return ()
+
 checkIdAvailability :: G.Id -> ST.ParserMonad (Maybe ST.DictionaryEntry)
 checkIdAvailability (G.Id tk@(T.Token {T.cleanedString=idName})) = do
   maybeEntry <- ST.dictLookup idName
   case maybeEntry of
     Nothing -> do
-      RWS.tell [ST.SemanticError ("Name " ++ idName ++ " is not available on this scope") tk]
+      RWS.tell [ST.SemanticError ("Name " ++ (show tk) ++ " is not available on this scope") tk]
       return Nothing
-    Just e -> do
-      return $ Just e
+    Just e -> return $ Just e
+
+checkIterVarType :: G.Id -> ST.ParserMonad ()
+checkIterVarType (G.Id tk@(T.Token {T.cleanedString=idName})) = do
+  maybeEntry <- ST.dictLookup idName
+  case maybeEntry of
+    Nothing -> return ()
+    Just (ST.DictionaryEntry {ST.category=varCat}) -> do
+      if varCat == ST.Constant
+      then do
+        RWS.tell [ST.SemanticError ("Constant " ++ (show tk) ++ " can not be used as an iteration variable") tk]
+        return ()
+      else return ()
 
 checkRecoverableError :: T.Token -> Maybe G.RecoverableError -> ST.ParserMonad ()
 checkRecoverableError openTk maybeErr = do
   case maybeErr of
-    Nothing ->
-      return ()
+    Nothing -> return ()
     Just err -> do
       let errorName = show err
       RWS.tell [ST.SemanticError (errorName ++ " (recovered from to continue parsing)") openTk]
@@ -635,7 +696,7 @@ extractFieldsFromExtra (_:ss) = extractFieldsFromExtra ss
 
 addFunction :: NameDeclaration -> ST.ParserMonad (Maybe (ST.Scope, G.Id))
 addFunction d@(_, i@(G.Id tk@(T.Token {T.cleanedString=idName})), _, _) = do
-  (dict, stack, currScope) <- RWS.get
+  (ST.SymTable dict stack currScope _) <- RWS.get
   maybeEntry <- ST.dictLookup idName
   case maybeEntry of
     Nothing -> do
@@ -720,13 +781,13 @@ buildExtraForType t@(G.Compound _ tt@(G.Record{}) maybeExpr) = do
         Nothing -> Just [ST.Recursive constructor extra']
 
 buildExtraForType t@(G.Record tk _) = do
-  (d, s, currScope) <- RWS.get
+  (ST.SymTable d s currScope ivs) <- RWS.get
   let constr = (case T.aToken tk of
                   T.TkRecord -> ST.Record
                   T.TkUnionStruct -> ST.Union)
 
   let ret = Just [ST.Fields constr $ currScope + 1]
-  RWS.put $ (d, s, currScope + 1)
+  RWS.put $ (ST.SymTable d s (currScope + 1) ivs)
   return ret
 
 buildExtraForType t@(G.Callable t' []) = do
@@ -742,18 +803,18 @@ buildExtraForType t@(G.Callable t' []) = do
 buildExtraForType t@(G.Callable t' _) = do
   case t' of
     Nothing -> do
-      (d, s, currScope) <- RWS.get
+      (ST.SymTable d s currScope ivs) <- RWS.get
       let ret = Just [ST.Fields ST.Callable $ currScope + 1]
-      RWS.put (d, s, currScope + 1)
+      RWS.put (ST.SymTable d s (currScope + 1) ivs)
       return ret
     Just tt -> do
       mExtra <- buildExtraForType tt
       case mExtra of
         Nothing -> return $ Nothing
         Just extras -> do
-          (d, s, currScope) <- RWS.get
+          (ST.SymTable d s currScope ivs) <- RWS.get
           let ret = Just ((ST.Fields ST.Callable $ currScope + 1) : extras)
-          RWS.put (d, s, currScope + 1)
+          RWS.put (ST.SymTable d s (currScope + 1) ivs)
           return ret
 
 -- For anything else
@@ -1094,12 +1155,12 @@ instance TypeCheckable ST.Extra where
   getType (ST.CompoundRec s _ extra) = getType extra >>= \t -> return $ T.ArrayT t
 
   getType (ST.Fields ST.Callable scope) = do
-    (dict, _, _) <- RWS.get
+    ST.SymTable {ST.stDict=dict} <- RWS.get
     types <- mapM getType $ ST.sortByArgPosition $ ST.findAllInScope scope dict
     return $ T.TypeList types
 
   getType (ST.Fields b scope) = do
-    (dict, _, _) <- RWS.get
+    ST.SymTable {ST.stDict=dict} <- RWS.get
     let entries = ST.findAllInScope scope dict
     let entryNames = map ST.name entries
     types <- mapM getType entries
