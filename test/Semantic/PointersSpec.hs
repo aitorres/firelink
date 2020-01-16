@@ -1,7 +1,7 @@
 module PointersSpec where
 
 import Test.Hspec
-import qualified Utils as U
+import qualified TestUtils as U
 import qualified SymTable as ST
 
 varEntry :: ST.DictionaryEntry

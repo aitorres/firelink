@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 4b0978dab54c7b11af7edd985b7d9144ac00a0c6c3167de5505d2d0f95801db7
+-- hash: 81691fc546cf5e54fff5bd5ff5d44660d75403ce814e65dcd7be9d04041a8d5c
 
 name:           firelink
 version:        0.1.0.0
@@ -159,11 +159,12 @@ test-suite semantic-tests
       RecordLikeTypesDeclSpec
       SimpleTypesDeclSpec
       TypeAliasesSpec
-      Utils
       VariablesSpec
+      TestUtils
       Paths_firelink
   hs-source-dirs:
       test/Semantic
+      test/test-utils
   ghc-options: -Wall -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -Wpartial-fields -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
@@ -184,9 +185,12 @@ test-suite type-checking-tests
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      IfInstructionSpec
+      TestUtils
       Paths_firelink
   hs-source-dirs:
       test/TypeChecking
+      test/test-utils
   ghc-options: -Wall -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -Wpartial-fields -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array

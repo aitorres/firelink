@@ -1,4 +1,4 @@
-module Utils where
+module TestUtils where
 
 import qualified SymTable as ST
 import qualified Lexer as L

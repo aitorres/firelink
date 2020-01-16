@@ -93,7 +93,7 @@ tests:
     - hspec-discover
   semantic-tests:
     main:                Spec.hs
-    source-dirs:         test/Semantic
+    source-dirs:         [test/Semantic, test/test-utils]
     ghc-options:
     - -Wall
     - -Wincomplete-record-updates
@@ -110,7 +110,7 @@ tests:
     - hspec-discover
   type-checking-tests:
     main:                Spec.hs
-    source-dirs:         test/TypeChecking
+    source-dirs:         [test/TypeChecking, test/test-utils]
     ghc-options:
     - -Wall
     - -Wincomplete-record-updates
