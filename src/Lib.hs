@@ -53,8 +53,8 @@ joinTokens c (e:tks) = case e of
     Left (T.LexError (pn, s)) ->
         replicate (snd pn - c) ' ' ++ s ++ joinTokens (snd pn + length s) tks
 
-buildRuler :: Int -> String
-buildRuler = flip replicate '~'
+buildRuler :: Char -> Int -> String
+buildRuler = flip replicate
 
 formatLexError :: (T.LexError, [Either T.LexError T.Token]) -> String
 formatLexError (T.LexError ((r, c), _), tokens) =
@@ -68,7 +68,7 @@ formatLexError (T.LexError ((r, c), _), tokens) =
         maxSize = foldl max (-1) $ map lengthOfLine tokensByRowNumber
         firstLine = joinTokens 1 (head tokensByRowNumber) ++ "\n"
         restLines = map (joinTokens 1) $ tail tokensByRowNumber
-        errorRuler = bold ++ red ++ buildRuler (c-1) ++ "^" ++ buildRuler (maxSize - c) ++ nocolor ++ "\n"
+        errorRuler = bold ++ red ++ buildRuler '~' (c-1) ++ "^" ++ buildRuler '~' (maxSize - c) ++ nocolor ++ "\n"
         fs = firstLine ++ errorRuler ++ intercalate "\n" restLines
 
 
@@ -102,14 +102,13 @@ numberOfRows = foldl (\cu T.Token {T.posn=pn} -> cu `max` fst pn) (-1)
 maxDigits :: [T.Token] -> Int
 maxDigits = length . show . numberOfRows
 
+groupedByRowNumber :: [T.Token] -> [[T.Token]]
+groupedByRowNumber = groupBy (\T.Token {T.posn=t1} T.Token {T.posn=t2} -> fst t1 == fst t2)
+
 printProgram :: [T.Token] -> IO ()
 printProgram tks =
-    mapM_ printRowAndLine groupedByRowNumber
+    mapM_ printRowAndLine $ groupedByRowNumber tks
     where
-        groupedByRowNumber :: [[T.Token]]
-        groupedByRowNumber = groupBy (\T.Token {T.posn=t1} T.Token {T.posn=t2} -> fst t1 == fst t2) tks
-
-
         printRowAndLine :: [T.Token] -> IO ()
         printRowAndLine tks' = do
             let T.Token {T.posn=pn} = head tks'
@@ -138,13 +137,19 @@ printSemErrors [] _ = do
     return ()
 printSemErrors (semError:semErrors) tokens = do
     let (ST.SemanticError errMessage T.Token{T.posn=leftPosn} T.Token{T.posn=rightPosn}) = semError
-    let tks = filter (\T.Token{T.posn=p'} -> fst p' == fst leftPosn) tokens
-    let preContext = filter (\T.Token{T.posn=p'} -> fst p' == fst leftPosn - 1) tokens
-    let postContext = filter (\T.Token{T.posn=p'} -> fst p' == fst leftPosn + 1) tokens
+    let tks = filter
+            (\T.Token{T.posn=p'} -> T.row p' <= T.row leftPosn && T.row p' <= T.row rightPosn)
+            tokens
+    let preContext = filter
+            (\T.Token{T.posn=p'} -> T.row p' == T.row leftPosn - 1)
+            tokens
+    let postContext = filter
+            (\T.Token{T.posn=p'} -> T.row p' == T.row rightPosn + 1)
+            tokens
     let nDigits = 2 + maxDigits tks
     RWS.when (not $ null preContext) $ printProgram preContext
     printProgram tks
-    putStr $ buildRuler (nDigits + snd leftPosn)
+    putStr $ buildRuler ' ' (nDigits + snd leftPosn)
     putStrLn "^"
     putStrLn $ bold ++ red ++ "YOU DIED!!" ++ nocolor ++ " " ++ errMessage
     RWS.when (not $ null postContext) $ printProgram postContext

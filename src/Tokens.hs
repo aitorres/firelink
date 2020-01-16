@@ -158,7 +158,7 @@ instance Show AbstractToken where
     show TkEndSwitch = U.magenta ++ U.bold
     show TkFor = U.magenta ++ U.bold ++ U.italic
     show TkWith = U.magenta ++ U.bold
-    show TkSoul = U.red ++ U.italic
+    show TkSoul = U.brightCyan ++ U.italic
     show TkLevel = U.magenta ++ U.bold
     show TkEndFor = U.magenta ++ U.bold ++ U.italic
     show TkForEach = U.magenta ++ U.bold ++ U.italic
