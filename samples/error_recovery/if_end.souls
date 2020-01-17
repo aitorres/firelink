@@ -6,6 +6,16 @@ traveling somewhere
         traveling somewhere
             go back
         you died
+    \
+    trust your inventory
+    lit:
+        traveling somewhere
+            go back
+        you died
+    liar!:
+        traveling somewhere
+            go back
+        you died
 you died
 
 farewell ashen one
