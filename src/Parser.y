@@ -414,7 +414,9 @@ INSTR :: { G.Instruction }
   | returnWith EXPR                                                     { G.InstReturnWith $2 }
   | print EXPR                                                          { G.InstPrint $2 }
   | read LVALUE                                                         { G.InstRead $2 }
-  | whileBegin EXPR covenantIsActive colon CODEBLOCK whileEnd           { G.InstWhile $2 $5 }
+  | whileBegin EXPR covenantIsActive colon CODEBLOCK whileEnd           {% do
+                                                                            checkBooleanGuard $2
+                                                                            return $ G.InstWhile $2 $5 }
   | ifBegin IFCASES ELSECASE ifEnd                                      { G.InstIf (reverse ($3 : $2)) }
   | ifBegin IFCASES ifEnd                                               { G.InstIf (reverse $2) }
   | switchBegin EXPR colon SWITCHCASES DEFAULTCASE switchEnd            { G.InstSwitch $2 (reverse ($5 : $4)) }
@@ -466,7 +468,9 @@ IFCASES :: { G.IfCases }
   | IFCASE                                                              { [$1] }
 
 IFCASE :: { G.IfCase }
-  : EXPR colon CODEBLOCK                                                { G.GuardedCase $1 $3 }
+  : EXPR colon CODEBLOCK                                                {% do
+                                                                            checkBooleanGuard $1
+                                                                            return $ G.GuardedCase $1 $3 }
 
 ELSECASE :: { G.IfCase }
   : else colon CODEBLOCK                                                { G.ElseCase $3 }
@@ -1067,6 +1071,11 @@ maxSmallInt = 32767
 buildTypeForNonCasterExprs :: ST.ParserMonad T.Type -> G.BaseExpr -> ST.ParserMonad (T.Type, G.BaseExpr)
 buildTypeForNonCasterExprs tt bExpr = tt >>= \t -> return (t, bExpr)
 
+checkBooleanGuard :: G.Expr -> ST.ParserMonad ()
+checkBooleanGuard expr = do
+  t <- getType expr
+  RWS.when (t /= T.TrileanT) $
+    RWS.tell [ST.SemanticError "Guard should be of trilean data type" (G.expTok expr)]
 
 buildType :: G.BaseExpr -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
 buildType bExpr tk = case bExpr of

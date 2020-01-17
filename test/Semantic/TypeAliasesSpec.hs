@@ -1,7 +1,7 @@
 module TypeAliasesSpec where
 
 import Test.Hspec
-import qualified Utils as U
+import qualified TestUtils as U
 import qualified SymTable as ST
 import qualified Grammar as G
 import qualified Tokens as T

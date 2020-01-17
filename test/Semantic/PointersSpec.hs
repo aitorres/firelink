@@ -1,7 +1,7 @@
 module PointersSpec where
 
 import Test.Hspec
-import qualified Utils as U
+import qualified TestUtils as U
 import qualified SymTable as ST
 
 varEntry :: ST.DictionaryEntry
@@ -39,15 +39,15 @@ spec = do
         it "allows to request memory for its usage" $
             U.shouldNotError $ sampleProgram "aim a x \\"
         it "rejects to request memory of non-declared variables" $
-            U.testError (sampleProgram "aim a nonDeclaredVariable \\")
-                "nonDeclaredVariable" 10 6
+            U.shouldErrorOn (sampleProgram "aim a nonDeclaredVariable \\")
+                ("nonDeclaredVariable", 6, 10)
         it "allows to free memory for its usage" $
             U.shouldNotError $ sampleProgram "recover a x \\"
         it "rejects to free memory of non-declared variables" $
-            U.testError (sampleProgram "recover a nonDeclaredVariable \\")
-                "nonDeclaredVariable" 10 6
+            U.shouldErrorOn (sampleProgram "recover a nonDeclaredVariable \\")
+                ("nonDeclaredVariable", 6, 14)
         it "allows to access memory address for its usage" $
             U.shouldNotError $ sampleProgram "throw a x <<= |a| \\"
         it "rejects to access memory address of non-declared variables" $
-            U.testError (sampleProgram "throw a nonDeclaredVariable <<= |a| \\")
-                "nonDeclaredVariable" 10 6
+            U.shouldErrorOn (sampleProgram "throw a nonDeclaredVariable <<= |a| \\")
+                ("nonDeclaredVariable", 6, 12)
