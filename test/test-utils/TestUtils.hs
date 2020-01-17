@@ -112,7 +112,7 @@ shouldErrorOn :: String -> (String, Int, Int) -> IO ()
 shouldErrorOn program (varName, row, col) = do
     (_, _, errors) <- extractSymTable program
     errors `shouldNotSatisfy` null
-    let ST.SemanticError _ T.Token {T.cleanedString=varName', T.posn=posn} = head errors
+    let ST.SemanticError _ T.Token {T.capturedString=varName', T.posn=posn} = head errors
     varName `shouldBe` varName'
     col `shouldBe` T.col posn
     row `shouldBe` T.row posn
