@@ -414,7 +414,9 @@ INSTR :: { G.Instruction }
   | returnWith EXPR                                                     { G.InstReturnWith $2 }
   | print EXPR                                                          { G.InstPrint $2 }
   | read LVALUE                                                         { G.InstRead $2 }
-  | whileBegin EXPR covenantIsActive colon CODEBLOCK whileEnd           { G.InstWhile $2 $5 }
+  | whileBegin EXPR covenantIsActive colon CODEBLOCK whileEnd           {% do
+                                                                            checkBooleanGuard $2
+                                                                            return $ G.InstWhile $2 $5 }
   | ifBegin IFCASES ELSECASE ifEnd                                      { G.InstIf (reverse ($3 : $2)) }
   | ifBegin IFCASES ifEnd                                               { G.InstIf (reverse $2) }
   | switchBegin EXPR colon SWITCHCASES DEFAULTCASE switchEnd            { G.InstSwitch $2 (reverse ($5 : $4)) }

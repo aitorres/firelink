@@ -1,22 +1,21 @@
-module IfInstructionSpec where
+module WhileInstructionSpec where
 
 import Test.Hspec
 import qualified TestUtils as U
 
 spec :: Spec
 spec =
-    describe "`if` statements" $ do
+    describe "`while` statements" $ do
         it "should accept a program with boolean guards" $
             U.shouldNotError "\
                 \hello ashen one\n\
 
                 \traveling somewhere \n\
-                \trust your inventory\n\
-                \   lit:\n\
+                \while the lit covenant is active:\n\
                 \       traveling somewhere\n\
                 \           with orange saponite say @test@\n\
                 \       you died\n\
-                \inventory closed\n\
+                \covenant left\n\
                 \you died \
 
                 \farewell ashen one"
@@ -25,12 +24,11 @@ spec =
             "hello ashen one\n\
 
             \traveling somewhere \n\
-            \trust your inventory\n\
-            \   1 + 1:\n\
+            \while the 1 covenant is active:\n\
             \       traveling somewhere\n\
             \           with orange saponite say @test@\n\
             \       you died\n\
-            \inventory closed\n\
+            \covenant left\n\
             \you died \
 
-            \farewell ashen one" `U.shouldErrorOn` ("+", 4, 6)
+            \farewell ashen one" `U.shouldErrorOn` ("1", 3, 11)
