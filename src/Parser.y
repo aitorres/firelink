@@ -29,11 +29,9 @@ import Utils
 
 %left and or
 
-
 %left colConcat
 %left diff
 %left union intersect
-
 
 %left asciiOf
 %right not
@@ -202,7 +200,6 @@ ALIASES :: { () }
                                                                             (ST.SymTable dict _ s ivs) <- RWS.get
                                                                             RWS.put (ST.SymTable dict [1, 0] s ivs) }
   | {- empty -}                                                         { () }
-
 
 ALIASLISTEND :: { Maybe G.RecoverableError }
  : aliasListEnd                                                         { Nothing }
@@ -645,7 +642,6 @@ addIdToSymTable mi d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idN
         }
       else RWS.tell $ [ST.SemanticError ("Name " ++ idName ++ " was already declared on this scope") tk]
 
-
 insertIdToEntry :: Maybe Int -> G.GrammarType -> ST.DictionaryEntry -> ST.ParserMonad ()
 insertIdToEntry mi t entry = do
   maybeExtra <- buildExtraForType t
@@ -987,7 +983,6 @@ functionsCheck funId exprs tk = do
       then findInvalid xs (i + 1)
       else Just i
 
-
 memAccessCheck :: G.Expr -> T.Token -> ST.ParserMonad T.Type
 memAccessCheck expr tk = do
   t <- getType expr
@@ -1085,7 +1080,6 @@ binaryOpCheck leftExpr rightExpr op tk = do
         RWS.tell [ST.SemanticError (T.typeMismatchMessage tk) tk]
         return (T.TypeError, exp)
 
-
 checkSetSize :: G.Expr -> T.Token -> ST.ParserMonad T.Type
 checkSetSize expr tk = do
   t <- getType expr
@@ -1174,7 +1168,6 @@ instance TypeCheckable ST.DictionaryEntry where
     -- If it is an alias, return just the name
     | cat == ST.Type = return $ T.AliasT (ST.name entry)
 
-
     | cat `elem` [ST.Function, ST.Procedure] = do
       let isEmptyFunction = not . null $ filter ST.isEmptyFunction extras
       range <- (case cat of
@@ -1193,8 +1186,6 @@ instance TypeCheckable ST.DictionaryEntry where
         ST.Variable, ST.Constant,
         ST.RecordItem, ST.UnionItem,
         ST.RefParam, ST.ValueParam] = getType $ ST.extractTypeFromExtra extras
-
-
 
     | otherwise = error "error on getType for dict entries"
 
