@@ -417,8 +417,12 @@ INSTR :: { G.Instruction }
   | whileBegin EXPR covenantIsActive colon CODEBLOCK whileEnd           {% do
                                                                             checkBooleanGuard $2
                                                                             return $ G.InstWhile $2 $5 }
-  | ifBegin IFCASES ELSECASE ifEnd                                      { G.InstIf (reverse ($3 : $2)) }
-  | ifBegin IFCASES ifEnd                                               { G.InstIf (reverse $2) }
+  | ifBegin IFCASES ELSECASE IFEND                                      {% do
+                                                                          checkRecoverableError $1 $4
+                                                                          return $ G.InstIf (reverse ($3 : $2)) }
+  | ifBegin IFCASES IFEND                                               {% do
+                                                                          checkRecoverableError $1 $3
+                                                                          return $ G.InstIf (reverse $2) }
   | switchBegin EXPR colon SWITCHCASES DEFAULTCASE switchEnd            { G.InstSwitch $2 (reverse ($5 : $4)) }
   | switchBegin EXPR colon SWITCHCASES switchEnd                        { G.InstSwitch $2 (reverse $4) }
   | FORBEGIN with EXPR souls untilLevel EXPR CODEBLOCK forEnd           {% do
@@ -480,6 +484,10 @@ IFCASE :: { G.IfCase }
 
 ELSECASE :: { G.IfCase }
   : else colon CODEBLOCK                                                { G.ElseCase $3 }
+
+IFEND :: { Maybe G.RecoverableError }
+  : ifEnd                                                               { Nothing }
+  | error                                                               { Just G.MissingIfEnd }
 
 SWITCHCASES :: { G.SwitchCases }
   : SWITCHCASES SWITCHCASE                                              { $2 : $1 }
