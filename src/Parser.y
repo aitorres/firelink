@@ -422,21 +422,27 @@ INSTR :: { G.Instruction }
   | switchBegin EXPR colon SWITCHCASES DEFAULTCASE switchEnd            { G.InstSwitch $2 (reverse ($5 : $4)) }
   | switchBegin EXPR colon SWITCHCASES switchEnd                        { G.InstSwitch $2 (reverse $4) }
   | FORBEGIN with EXPR souls untilLevel EXPR CODEBLOCK forEnd           {% do
+                                                                          t1 <- getType $3
+                                                                          RWS.when (not $ isIntegerType t1) $
+                                                                            RWS.tell [ST.SemanticError "Step should be an integer" (G.expTok $3)]
+                                                                          t2 <- getType $6
+                                                                          RWS.when (not $ isIntegerType t2) $
+                                                                            RWS.tell [ST.SemanticError "Stop should be an integer" (G.expTok $6)]
                                                                           let shouldPopIterVar = snd $1
                                                                           if shouldPopIterVar
                                                                           then do
                                                                             (ST.SymTable d s cs (_:ivs)) <- RWS.get
                                                                             RWS.put (ST.SymTable d s cs ivs)
-                                                                            return $ G.InstFor (fst $1) $3 $6 $7
-                                                                          else return $ G.InstFor (fst $1) $3 $6 $7 }
+                                                                          else return ()
+                                                                          return $ G.InstFor (fst $1) $3 $6 $7 }
   | FOREACHBEGIN withTitaniteFrom EXPR CODEBLOCK forEachEnd             {% do
                                                                           let shouldPopIterVar = snd $1
                                                                           if shouldPopIterVar
                                                                           then do
                                                                             (ST.SymTable d s cs (_:ivs)) <- RWS.get
                                                                             RWS.put (ST.SymTable d s cs ivs)
-                                                                            return $ G.InstForEach (fst $1) $3 $4
-                                                                          else return $ G.InstForEach (fst $1) $3 $4 }
+                                                                          else return ()
+                                                                          return $ G.InstForEach (fst $1) $3 $4 }
 
 FORBEGIN :: { (G.Id, Bool) }
   : forBegin ID                                                         {% do
