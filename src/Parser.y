@@ -414,7 +414,8 @@ INSTR :: { G.Instruction }
   | returnWith EXPR                                                     { G.InstReturnWith $2 }
   | print EXPR                                                          { G.InstPrint $2 }
   | read LVALUE                                                         { G.InstRead $2 }
-  | whileBegin EXPR covenantIsActive colon CODEBLOCK WHILEEND           {% do
+  | whileBegin EXPR covenantIsActive COLON CODEBLOCK WHILEEND           {% do
+                                                                            checkRecoverableError $1 $4
                                                                             checkRecoverableError $1 $6
                                                                             checkBooleanGuard $2
                                                                             return $ G.InstWhile $2 $5 }
@@ -424,10 +425,12 @@ INSTR :: { G.Instruction }
   | ifBegin IFCASES IFEND                                               {% do
                                                                           checkRecoverableError $1 $3
                                                                           return $ G.InstIf (reverse $2) }
-  | switchBegin EXPR colon SWITCHCASES DEFAULTCASE SWITCHEND            {% do
+  | switchBegin EXPR COLON SWITCHCASES DEFAULTCASE SWITCHEND            {% do
+                                                                          checkRecoverableError $1 $3
                                                                           checkRecoverableError $1 $6
                                                                           return $ G.InstSwitch $2 (reverse ($5 : $4)) }
-  | switchBegin EXPR colon SWITCHCASES SWITCHEND                        {% do
+  | switchBegin EXPR COLON SWITCHCASES SWITCHEND                        {% do
+                                                                          checkRecoverableError $1 $3
                                                                           checkRecoverableError $1 $5
                                                                           return $ G.InstSwitch $2 (reverse $4) }
   | FORBEGIN with EXPR souls untilLevel EXPR CODEBLOCK FOREND           {% do
@@ -489,6 +492,10 @@ WHILEEND :: { Maybe G.RecoverableError }
   : whileEnd                                                            { Nothing }
   | error                                                               { Just G.MissingWhileEnd }
 
+COLON :: { Maybe G.RecoverableError }
+  : colon                                                               { Nothing }
+  | error                                                               { Just G.MissingColon }
+
 FUNCALL :: { (T.Token, G.Id, G.Params) }
   : summon ID FUNCPARS                                                  { ($1, $2, $3) }
 
@@ -502,7 +509,9 @@ IFCASE :: { G.IfCase }
                                                                             return $ G.GuardedCase $1 $3 }
 
 ELSECASE :: { G.IfCase }
-  : else colon CODEBLOCK                                                { G.ElseCase $3 }
+  : else COLON CODEBLOCK                                                {% do
+                                                                            checkRecoverableError $1 $2
+                                                                            return $ G.ElseCase $3 }
 
 IFEND :: { Maybe G.RecoverableError }
   : ifEnd                                                               { Nothing }
@@ -520,7 +529,9 @@ SWITCHEND :: { Maybe G.RecoverableError }
   | error                                                               { Just G.MissingSwitchEnd }
 
 DEFAULTCASE :: { G.SwitchCase }
-  : switchDefault colon CODEBLOCK                                       { G.DefaultCase $3 }
+  : switchDefault COLON CODEBLOCK                                       {% do
+                                                                            checkRecoverableError $1 $2
+                                                                            return $ G.DefaultCase $3 }
 
 FUNCPARS :: { G.Params }
   : granting PARSLIST TOTHEKNIGHT                                       {% do

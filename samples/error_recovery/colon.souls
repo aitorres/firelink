@@ -1,0 +1,42 @@
+hello ashen one
+
+traveling somewhere
+
+    while the lit covenant is active
+        traveling somewhere
+            go back
+        you died
+    covenant left \
+
+    trust your inventory
+        lit:
+            traveling somewhere
+                go back
+            you died
+        liar!
+            traveling somewhere
+                go back
+            you died
+    inventory closed \
+
+    enter dungeon with 1
+    1:
+        traveling somewhere
+            go back
+        you died
+    dungeon exited \
+
+    enter dungeon with 1
+    1:
+        traveling somewhere
+            go back
+        you died
+    empty dungeon
+        traveling somewhere
+            go back
+        you died
+    dungeon exited
+
+you died
+
+farewell ashen one

@@ -186,6 +186,7 @@ data RecoverableError
   | MissingForEnd
   | MissingForEachEnd
   | MissingWhileEnd
+  | MissingColon
 
 instance Show RecoverableError where
   show MissingProgramEnd = "Unclosed program block: forgot to say " ++ U.bold ++ "farewell ashen one" ++ U.nocolor
@@ -200,3 +201,4 @@ instance Show RecoverableError where
   show MissingForEnd = "Unclosed bounded iteration: check for " ++ U.bold ++ "max level reached" ++ U.nocolor
   show MissingForEachEnd = "Unclosed structured iteration: have your " ++ U.bold ++ "weaponry repaired" ++ U.nocolor
   show MissingWhileEnd = "Unclosed conditioned iteration: was the " ++ U.bold ++ "covenant left" ++ U.nocolor ++ "?"
+  show MissingColon = "Missing colon (" ++ U.bold ++ ":" ++ U.nocolor ++ ") where it was needed"
