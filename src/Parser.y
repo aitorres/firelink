@@ -423,8 +423,12 @@ INSTR :: { G.Instruction }
   | ifBegin IFCASES IFEND                                               {% do
                                                                           checkRecoverableError $1 $3
                                                                           return $ G.InstIf (reverse $2) }
-  | switchBegin EXPR colon SWITCHCASES DEFAULTCASE switchEnd            { G.InstSwitch $2 (reverse ($5 : $4)) }
-  | switchBegin EXPR colon SWITCHCASES switchEnd                        { G.InstSwitch $2 (reverse $4) }
+  | switchBegin EXPR colon SWITCHCASES DEFAULTCASE SWITCHEND            {% do
+                                                                          checkRecoverableError $1 $6
+                                                                          return $ G.InstSwitch $2 (reverse ($5 : $4)) }
+  | switchBegin EXPR colon SWITCHCASES SWITCHEND                        {% do
+                                                                          checkRecoverableError $1 $5
+                                                                          return $ G.InstSwitch $2 (reverse $4) }
   | FORBEGIN with EXPR souls untilLevel EXPR CODEBLOCK forEnd           {% do
                                                                           t1 <- getType $3
                                                                           RWS.when (not $ isIntegerType t1) $
@@ -495,6 +499,10 @@ SWITCHCASES :: { G.SwitchCases }
 
 SWITCHCASE :: { G.SwitchCase }
   : EXPR colon CODEBLOCK                                                { G.Case $1 $3 }
+
+SWITCHEND :: { Maybe G.RecoverableError }
+  : switchEnd                                                           { Nothing }
+  | error                                                               { Just G.MissingSwitchEnd }
 
 DEFAULTCASE :: { G.SwitchCase }
   : switchDefault colon CODEBLOCK                                       { G.DefaultCase $3 }

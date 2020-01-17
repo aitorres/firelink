@@ -182,6 +182,7 @@ data RecoverableError
   | MissingFunCallEnd
   | MissingProcCallEnd
   | MissingIfEnd
+  | MissingSwitchEnd
 
 instance Show RecoverableError where
   show MissingProgramEnd = "Unclosed program block: forgot to say " ++ U.bold ++ "farewell ashen one" ++ U.nocolor
@@ -192,3 +193,4 @@ instance Show RecoverableError where
   show MissingFunCallEnd = "Unclosed function call: state your grants " ++ U.bold ++ "to the knight" ++ U.nocolor
   show MissingProcCallEnd = "Unclosed procedure call: state your requests " ++ U.bold ++ "to the estus flask" ++ U.nocolor
   show MissingIfEnd = "Unclosed conditional instruction: leave your " ++ U.bold ++ "inventory closed" ++ U.nocolor
+  show MissingSwitchEnd = "Unclosed switch instruction: was the " ++ U.bold ++ "dungeon exited" ++ U.nocolor ++ "?"
