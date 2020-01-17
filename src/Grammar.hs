@@ -183,6 +183,8 @@ data RecoverableError
   | MissingProcCallEnd
   | MissingIfEnd
   | MissingSwitchEnd
+  | MissingForEnd
+  | MissingForEachEnd
 
 instance Show RecoverableError where
   show MissingProgramEnd = "Unclosed program block: forgot to say " ++ U.bold ++ "farewell ashen one" ++ U.nocolor
@@ -194,3 +196,5 @@ instance Show RecoverableError where
   show MissingProcCallEnd = "Unclosed procedure call: state your requests " ++ U.bold ++ "to the estus flask" ++ U.nocolor
   show MissingIfEnd = "Unclosed conditional instruction: leave your " ++ U.bold ++ "inventory closed" ++ U.nocolor
   show MissingSwitchEnd = "Unclosed switch instruction: was the " ++ U.bold ++ "dungeon exited" ++ U.nocolor ++ "?"
+  show MissingForEnd = "Unclosed bounded iteration: check for " ++ U.bold ++ "max level reached" ++ U.nocolor
+  show MissingForEachEnd = "Unclosed structured iteration: have your " ++ U.bold ++ "weaponry repaired" ++ U.nocolor

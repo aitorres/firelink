@@ -429,30 +429,32 @@ INSTR :: { G.Instruction }
   | switchBegin EXPR colon SWITCHCASES SWITCHEND                        {% do
                                                                           checkRecoverableError $1 $5
                                                                           return $ G.InstSwitch $2 (reverse $4) }
-  | FORBEGIN with EXPR souls untilLevel EXPR CODEBLOCK forEnd           {% do
+  | FORBEGIN with EXPR souls untilLevel EXPR CODEBLOCK FOREND           {% do
+                                                                          let (fstTk, iterVar, shouldPopIterVar) = $1
+                                                                          checkRecoverableError fstTk $8
                                                                           t1 <- getType $3
                                                                           RWS.when (not $ isIntegerType t1) $
                                                                             RWS.tell [ST.SemanticError "Step should be an integer" (G.expTok $3)]
                                                                           t2 <- getType $6
                                                                           RWS.when (not $ isIntegerType t2) $
                                                                             RWS.tell [ST.SemanticError "Stop should be an integer" (G.expTok $6)]
-                                                                          let shouldPopIterVar = snd $1
                                                                           if shouldPopIterVar
                                                                           then do
                                                                             (ST.SymTable d s cs (_:ivs)) <- RWS.get
                                                                             RWS.put (ST.SymTable d s cs ivs)
                                                                           else return ()
-                                                                          return $ G.InstFor (fst $1) $3 $6 $7 }
-  | FOREACHBEGIN withTitaniteFrom EXPR CODEBLOCK forEachEnd             {% do
-                                                                          let shouldPopIterVar = snd $1
+                                                                          return $ G.InstFor iterVar $3 $6 $7 }
+  | FOREACHBEGIN withTitaniteFrom EXPR CODEBLOCK FOREACHEND             {% do
+                                                                          let (fstTk, iterVar, shouldPopIterVar) = $1
+                                                                          checkRecoverableError fstTk $5
                                                                           if shouldPopIterVar
                                                                           then do
                                                                             (ST.SymTable d s cs (_:ivs)) <- RWS.get
                                                                             RWS.put (ST.SymTable d s cs ivs)
                                                                           else return ()
-                                                                          return $ G.InstForEach (fst $1) $3 $4 }
+                                                                          return $ G.InstForEach iterVar $3 $4 }
 
-FORBEGIN :: { (G.Id, Bool) }
+FORBEGIN :: { (T.Token, G.Id, Bool) }
   : forBegin ID                                                         {% do
                                                                           mid <- checkIdAvailability $2
                                                                           case mid of
@@ -460,10 +462,14 @@ FORBEGIN :: { (G.Id, Bool) }
                                                                               checkIterVarType $2
                                                                               (ST.SymTable d s cs ivs) <- RWS.get
                                                                               RWS.put (ST.SymTable d s cs (varName:ivs))
-                                                                              return ($2, True)
-                                                                            Nothing -> return ($2, False) }
+                                                                              return ($1, $2, True)
+                                                                            Nothing -> return ($1, $2, False) }
 
-FOREACHBEGIN :: { (G.Id, Bool) }
+FOREND :: { Maybe G.RecoverableError }
+  : forEnd                                                              { Nothing }
+  | error                                                               { Just G.MissingForEnd }
+
+FOREACHBEGIN :: { (T.Token, G.Id, Bool) }
   : forEachBegin ID                                                     {% do
                                                                           mid <- checkIdAvailability $2
                                                                           case mid of
@@ -471,8 +477,12 @@ FOREACHBEGIN :: { (G.Id, Bool) }
                                                                               checkIterVarType $2
                                                                               (ST.SymTable d s cs ivs) <- RWS.get
                                                                               RWS.put (ST.SymTable d s cs (varName:ivs))
-                                                                              return ($2, True)
-                                                                            Nothing -> return ($2, False) }
+                                                                              return ($1, $2, True)
+                                                                            Nothing -> return ($1, $2, False) }
+
+FOREACHEND :: { Maybe G.RecoverableError }
+  : forEachEnd                                                          { Nothing }
+  | error                                                               { Just G.MissingForEachEnd }
 
 FUNCALL :: { (T.Token, G.Id, G.Params) }
   : summon ID FUNCPARS                                                  { ($1, $2, $3) }
