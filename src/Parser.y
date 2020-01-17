@@ -29,11 +29,9 @@ import Utils
 
 %left and or
 
-
 %left colConcat
 %left diff
 %left union intersect
-
 
 %left asciiOf
 %right not
@@ -139,7 +137,7 @@ import Utils
   withTitaniteFrom                                                      { T.Token {T.aToken=T.TkWithTitaniteFrom} }
 
   parensOpen                                                            { T.Token {T.aToken=T.TkParensOpen} }
-  parensClosed                                                          { T.Token {T.aToken=T.TkParensClosed} }
+  parensClose                                                           { T.Token {T.aToken=T.TkParensClosed} }
 
   plus                                                                  { T.Token {T.aToken=T.TkPlus} }
   minus                                                                 { T.Token {T.aToken=T.TkMinus} }
@@ -203,7 +201,6 @@ ALIASES :: { () }
                                                                             RWS.put (ST.SymTable dict [1, 0] s ivs) }
   | {- empty -}                                                         { () }
 
-
 ALIASLISTEND :: { Maybe G.RecoverableError }
  : aliasListEnd                                                         { Nothing }
  | error                                                                { Just G.MissingAliasListEnd }
@@ -236,7 +233,9 @@ EXPR :: { G.Expr }
   | nullLit                                                             {% buildAndCheckExpr $1 G.NullLit }
   | arrOpen EXPRL arrClose                                              {% buildAndCheckExpr $1 $ G.ArrayLit $ reverse $2 }
   | setOpen EXPRL setClose                                              {% buildAndCheckExpr $1 $ G.SetLit $ reverse $2 }
-  | parensOpen EXPR parensClosed                                        { $2{G.expTok=$1} }
+  | parensOpen EXPR PARENSCLOSE                                         {% do
+                                                                            checkRecoverableError $1 $3
+                                                                            return $ $2{G.expTok=$1} }
   | minus EXPR                                                          {% buildAndCheckExpr $1 $ G.Op1 G.Negate $2 }
   | not EXPR                                                            {% buildAndCheckExpr $1 $ G.Op1 G.Not $2 }
   | asciiOf EXPR                                                        {% buildAndCheckExpr $1 $ G.AsciiOf $2 }
@@ -342,6 +341,10 @@ BRCLOSE :: { Maybe G.RecoverableError }
   : brClose                                                             { Nothing }
   | error                                                               { Just G.MissingClosingBrace }
 
+PARENSCLOSE :: { Maybe G.RecoverableError }
+  : parensClose                                                         { Nothing }
+  | error                                                               { Just G.MissingClosingParens }
+
 ENUMITS :: { [Int] }
   : ENUMITS comma ID                                                    { [] }
   | ID                                                                  { [] }
@@ -414,37 +417,51 @@ INSTR :: { G.Instruction }
   | returnWith EXPR                                                     { G.InstReturnWith $2 }
   | print EXPR                                                          { G.InstPrint $2 }
   | read LVALUE                                                         { G.InstRead $2 }
-  | whileBegin EXPR covenantIsActive colon CODEBLOCK whileEnd           {% do
+  | whileBegin EXPR covenantIsActive COLON CODEBLOCK WHILEEND           {% do
+                                                                            checkRecoverableError $1 $4
+                                                                            checkRecoverableError $1 $6
                                                                             checkBooleanGuard $2
                                                                             return $ G.InstWhile $2 $5 }
-  | ifBegin IFCASES ELSECASE ifEnd                                      { G.InstIf (reverse ($3 : $2)) }
-  | ifBegin IFCASES ifEnd                                               { G.InstIf (reverse $2) }
-  | switchBegin EXPR colon SWITCHCASES DEFAULTCASE switchEnd            { G.InstSwitch $2 (reverse ($5 : $4)) }
-  | switchBegin EXPR colon SWITCHCASES switchEnd                        { G.InstSwitch $2 (reverse $4) }
-  | FORBEGIN with EXPR souls untilLevel EXPR CODEBLOCK forEnd           {% do
+  | ifBegin IFCASES ELSECASE IFEND                                      {% do
+                                                                          checkRecoverableError $1 $4
+                                                                          return $ G.InstIf (reverse ($3 : $2)) }
+  | ifBegin IFCASES IFEND                                               {% do
+                                                                          checkRecoverableError $1 $3
+                                                                          return $ G.InstIf (reverse $2) }
+  | switchBegin EXPR COLON SWITCHCASES DEFAULTCASE SWITCHEND            {% do
+                                                                          checkRecoverableError $1 $3
+                                                                          checkRecoverableError $1 $6
+                                                                          return $ G.InstSwitch $2 (reverse ($5 : $4)) }
+  | switchBegin EXPR COLON SWITCHCASES SWITCHEND                        {% do
+                                                                          checkRecoverableError $1 $3
+                                                                          checkRecoverableError $1 $5
+                                                                          return $ G.InstSwitch $2 (reverse $4) }
+  | FORBEGIN with EXPR souls untilLevel EXPR CODEBLOCK FOREND           {% do
+                                                                          let (fstTk, iterVar, shouldPopIterVar) = $1
+                                                                          checkRecoverableError fstTk $8
                                                                           t1 <- getType $3
                                                                           RWS.when (not $ isIntegerType t1) $
                                                                             RWS.tell [ST.SemanticError "Step should be an integer" (G.expTok $3)]
                                                                           t2 <- getType $6
                                                                           RWS.when (not $ isIntegerType t2) $
                                                                             RWS.tell [ST.SemanticError "Stop should be an integer" (G.expTok $6)]
-                                                                          let shouldPopIterVar = snd $1
                                                                           if shouldPopIterVar
                                                                           then do
                                                                             (ST.SymTable d s cs (_:ivs)) <- RWS.get
                                                                             RWS.put (ST.SymTable d s cs ivs)
                                                                           else return ()
-                                                                          return $ G.InstFor (fst $1) $3 $6 $7 }
-  | FOREACHBEGIN withTitaniteFrom EXPR CODEBLOCK forEachEnd             {% do
-                                                                          let shouldPopIterVar = snd $1
+                                                                          return $ G.InstFor iterVar $3 $6 $7 }
+  | FOREACHBEGIN withTitaniteFrom EXPR CODEBLOCK FOREACHEND             {% do
+                                                                          let (fstTk, iterVar, shouldPopIterVar) = $1
+                                                                          checkRecoverableError fstTk $5
                                                                           if shouldPopIterVar
                                                                           then do
                                                                             (ST.SymTable d s cs (_:ivs)) <- RWS.get
                                                                             RWS.put (ST.SymTable d s cs ivs)
                                                                           else return ()
-                                                                          return $ G.InstForEach (fst $1) $3 $4 }
+                                                                          return $ G.InstForEach iterVar $3 $4 }
 
-FORBEGIN :: { (G.Id, Bool) }
+FORBEGIN :: { (T.Token, G.Id, Bool) }
   : forBegin ID                                                         {% do
                                                                           mid <- checkIdAvailability $2
                                                                           case mid of
@@ -452,10 +469,14 @@ FORBEGIN :: { (G.Id, Bool) }
                                                                               checkIterVarType $2
                                                                               (ST.SymTable d s cs ivs) <- RWS.get
                                                                               RWS.put (ST.SymTable d s cs (varName:ivs))
-                                                                              return ($2, True)
-                                                                            Nothing -> return ($2, False) }
+                                                                              return ($1, $2, True)
+                                                                            Nothing -> return ($1, $2, False) }
 
-FOREACHBEGIN :: { (G.Id, Bool) }
+FOREND :: { Maybe G.RecoverableError }
+  : forEnd                                                              { Nothing }
+  | error                                                               { Just G.MissingForEnd }
+
+FOREACHBEGIN :: { (T.Token, G.Id, Bool) }
   : forEachBegin ID                                                     {% do
                                                                           mid <- checkIdAvailability $2
                                                                           case mid of
@@ -463,8 +484,20 @@ FOREACHBEGIN :: { (G.Id, Bool) }
                                                                               checkIterVarType $2
                                                                               (ST.SymTable d s cs ivs) <- RWS.get
                                                                               RWS.put (ST.SymTable d s cs (varName:ivs))
-                                                                              return ($2, True)
-                                                                            Nothing -> return ($2, False) }
+                                                                              return ($1, $2, True)
+                                                                            Nothing -> return ($1, $2, False) }
+
+FOREACHEND :: { Maybe G.RecoverableError }
+  : forEachEnd                                                          { Nothing }
+  | error                                                               { Just G.MissingForEachEnd }
+
+WHILEEND :: { Maybe G.RecoverableError }
+  : whileEnd                                                            { Nothing }
+  | error                                                               { Just G.MissingWhileEnd }
+
+COLON :: { Maybe G.RecoverableError }
+  : colon                                                               { Nothing }
+  | error                                                               { Just G.MissingColon }
 
 FUNCALL :: { (T.Token, G.Id, G.Params) }
   : summon ID FUNCPARS                                                  { ($1, $2, $3) }
@@ -479,7 +512,13 @@ IFCASE :: { G.IfCase }
                                                                             return $ G.GuardedCase $1 $3 }
 
 ELSECASE :: { G.IfCase }
-  : else colon CODEBLOCK                                                { G.ElseCase $3 }
+  : else COLON CODEBLOCK                                                {% do
+                                                                            checkRecoverableError $1 $2
+                                                                            return $ G.ElseCase $3 }
+
+IFEND :: { Maybe G.RecoverableError }
+  : ifEnd                                                               { Nothing }
+  | error                                                               { Just G.MissingIfEnd }
 
 SWITCHCASES :: { G.SwitchCases }
   : SWITCHCASES SWITCHCASE                                              { $2 : $1 }
@@ -488,8 +527,14 @@ SWITCHCASES :: { G.SwitchCases }
 SWITCHCASE :: { G.SwitchCase }
   : EXPR colon CODEBLOCK                                                { G.Case $1 $3 }
 
+SWITCHEND :: { Maybe G.RecoverableError }
+  : switchEnd                                                           { Nothing }
+  | error                                                               { Just G.MissingSwitchEnd }
+
 DEFAULTCASE :: { G.SwitchCase }
-  : switchDefault colon CODEBLOCK                                       { G.DefaultCase $3 }
+  : switchDefault COLON CODEBLOCK                                       {% do
+                                                                            checkRecoverableError $1 $2
+                                                                            return $ G.DefaultCase $3 }
 
 FUNCPARS :: { G.Params }
   : granting PARSLIST TOTHEKNIGHT                                       {% do
@@ -602,7 +647,6 @@ addIdToSymTable mi d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idN
         , ST.extra = []
         }
       else RWS.tell $ [ST.SemanticError ("Name " ++ idName ++ " was already declared on this scope") tk]
-
 
 insertIdToEntry :: Maybe Int -> G.GrammarType -> ST.DictionaryEntry -> ST.ParserMonad ()
 insertIdToEntry mi t entry = do
@@ -945,7 +989,6 @@ functionsCheck funId exprs tk = do
       then findInvalid xs (i + 1)
       else Just i
 
-
 memAccessCheck :: G.Expr -> T.Token -> ST.ParserMonad T.Type
 memAccessCheck expr tk = do
   t <- getType expr
@@ -1043,7 +1086,6 @@ binaryOpCheck leftExpr rightExpr op tk = do
         RWS.tell [ST.SemanticError (T.typeMismatchMessage tk) tk]
         return (T.TypeError, exp)
 
-
 checkSetSize :: G.Expr -> T.Token -> ST.ParserMonad T.Type
 checkSetSize expr tk = do
   t <- getType expr
@@ -1132,7 +1174,6 @@ instance TypeCheckable ST.DictionaryEntry where
     -- If it is an alias, return just the name
     | cat == ST.Type = return $ T.AliasT (ST.name entry)
 
-
     | cat `elem` [ST.Function, ST.Procedure] = do
       let isEmptyFunction = not . null $ filter ST.isEmptyFunction extras
       range <- (case cat of
@@ -1151,8 +1192,6 @@ instance TypeCheckable ST.DictionaryEntry where
         ST.Variable, ST.Constant,
         ST.RecordItem, ST.UnionItem,
         ST.RefParam, ST.ValueParam] = getType $ ST.extractTypeFromExtra extras
-
-
 
     | otherwise = error "error on getType for dict entries"
 
