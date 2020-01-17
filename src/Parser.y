@@ -137,7 +137,7 @@ import Utils
   withTitaniteFrom                                                      { T.Token {T.aToken=T.TkWithTitaniteFrom} }
 
   parensOpen                                                            { T.Token {T.aToken=T.TkParensOpen} }
-  parensClosed                                                          { T.Token {T.aToken=T.TkParensClosed} }
+  parensClose                                                           { T.Token {T.aToken=T.TkParensClosed} }
 
   plus                                                                  { T.Token {T.aToken=T.TkPlus} }
   minus                                                                 { T.Token {T.aToken=T.TkMinus} }
@@ -233,7 +233,9 @@ EXPR :: { G.Expr }
   | nullLit                                                             {% buildAndCheckExpr $1 G.NullLit }
   | arrOpen EXPRL arrClose                                              {% buildAndCheckExpr $1 $ G.ArrayLit $ reverse $2 }
   | setOpen EXPRL setClose                                              {% buildAndCheckExpr $1 $ G.SetLit $ reverse $2 }
-  | parensOpen EXPR parensClosed                                        { $2{G.expTok=$1} }
+  | parensOpen EXPR PARENSCLOSE                                         {% do
+                                                                            checkRecoverableError $1 $3
+                                                                            return $ $2{G.expTok=$1} }
   | minus EXPR                                                          {% buildAndCheckExpr $1 $ G.Op1 G.Negate $2 }
   | not EXPR                                                            {% buildAndCheckExpr $1 $ G.Op1 G.Not $2 }
   | asciiOf EXPR                                                        {% buildAndCheckExpr $1 $ G.AsciiOf $2 }
@@ -338,6 +340,10 @@ TYPE :: { G.GrammarType }
 BRCLOSE :: { Maybe G.RecoverableError }
   : brClose                                                             { Nothing }
   | error                                                               { Just G.MissingClosingBrace }
+
+PARENSCLOSE :: { Maybe G.RecoverableError }
+  : parensClose                                                         { Nothing }
+  | error                                                               { Just G.MissingClosingParens }
 
 ENUMITS :: { [Int] }
   : ENUMITS comma ID                                                    { [] }
