@@ -185,6 +185,7 @@ data RecoverableError
   | MissingSwitchEnd
   | MissingForEnd
   | MissingForEachEnd
+  | MissingWhileEnd
 
 instance Show RecoverableError where
   show MissingProgramEnd = "Unclosed program block: forgot to say " ++ U.bold ++ "farewell ashen one" ++ U.nocolor
@@ -198,3 +199,4 @@ instance Show RecoverableError where
   show MissingSwitchEnd = "Unclosed switch instruction: was the " ++ U.bold ++ "dungeon exited" ++ U.nocolor ++ "?"
   show MissingForEnd = "Unclosed bounded iteration: check for " ++ U.bold ++ "max level reached" ++ U.nocolor
   show MissingForEachEnd = "Unclosed structured iteration: have your " ++ U.bold ++ "weaponry repaired" ++ U.nocolor
+  show MissingWhileEnd = "Unclosed conditioned iteration: was the " ++ U.bold ++ "covenant left" ++ U.nocolor ++ "?"

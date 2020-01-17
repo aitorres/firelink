@@ -414,7 +414,8 @@ INSTR :: { G.Instruction }
   | returnWith EXPR                                                     { G.InstReturnWith $2 }
   | print EXPR                                                          { G.InstPrint $2 }
   | read LVALUE                                                         { G.InstRead $2 }
-  | whileBegin EXPR covenantIsActive colon CODEBLOCK whileEnd           {% do
+  | whileBegin EXPR covenantIsActive colon CODEBLOCK WHILEEND           {% do
+                                                                            checkRecoverableError $1 $6
                                                                             checkBooleanGuard $2
                                                                             return $ G.InstWhile $2 $5 }
   | ifBegin IFCASES ELSECASE IFEND                                      {% do
@@ -483,6 +484,10 @@ FOREACHBEGIN :: { (T.Token, G.Id, Bool) }
 FOREACHEND :: { Maybe G.RecoverableError }
   : forEachEnd                                                          { Nothing }
   | error                                                               { Just G.MissingForEachEnd }
+
+WHILEEND :: { Maybe G.RecoverableError }
+  : whileEnd                                                            { Nothing }
+  | error                                                               { Just G.MissingWhileEnd }
 
 FUNCALL :: { (T.Token, G.Id, G.Params) }
   : summon ID FUNCPARS                                                  { ($1, $2, $3) }
