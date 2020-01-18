@@ -17,7 +17,7 @@ import Text.Printf (printf)
 import Utils
 
 prettyPrintSymTable :: ST.SymTable -> IO ()
-prettyPrintSymTable (ST.SymTable dict _ _ _) = do
+prettyPrintSymTable ST.SymTable{ST.stDict=dict} = do
     let dictList = Map.toList dict
     mapM_ printKey dictList
 
