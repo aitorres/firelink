@@ -31,3 +31,42 @@ spec =
 
         it "should reject a program with an iterator variable of different type of the container" $
             baseProgram "humanity" "armor of type sign" `U.shouldErrorOn` ("i", 7, 11)
+
+        it "should reject a program that modifies the iterable container variable" $
+            "hello ashen one\n\
+
+            \traveling somewhere \n\
+            \with\n\
+            \   var i of type sign,\n\
+            \   var is of type armor of type sign\n\
+            \in your inventory\n\
+            \repairing i with titanite from is\n\
+            \traveling somewhere\n\
+            \   is <<= is union {$i$}\n\
+            \you died\n\
+            \weaponry repaired\n\
+            \you died\n\
+
+            \farewell ashen one" `U.shouldErrorOn` ("is", 9, 4)
+        it "should reject a program that modifies the iterable container variable though its in a deeper scope" $
+            "hello ashen one\n\
+
+            \traveling somewhere \n\
+            \with\n\
+            \   var i of type sign,\n\
+            \   var is of type armor of type sign,\n\
+            \   var j of type humanity,\n\
+            \   var js of type armor of type humanity\n\
+            \in your inventory\n\
+            \repairing i with titanite from is\n\
+            \traveling somewhere\n\
+            \   repairing j with titanite from js\n\
+            \   traveling somewhere\n\
+            \      is <<= is union {$i$}\n\
+            \   you died\n\
+            \weaponry repaired\n\
+            \you died\n\
+            \weaponry repaired\n\
+            \you died\n\
+
+            \farewell ashen one" `U.shouldErrorOn` ("is", 13, 7)

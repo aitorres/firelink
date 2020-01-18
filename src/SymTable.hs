@@ -196,6 +196,18 @@ popIteratorVariable = do
         [] -> []
         _:s -> s}
 
+addIterableVariable :: String -> ParserMonad ()
+addIterableVariable var = do
+    st@SymTable {stIterableVars=iterableVars} <- RWS.get
+    RWS.put st{stIterableVars= var: iterableVars}
+
+popIterableVariable :: ParserMonad ()
+popIterableVariable = do
+    st@SymTable {stIterableVars=iterableVars} <- RWS.get
+    RWS.put st{stIterableVars=case iterableVars of
+        [] -> []
+        _:s -> s}
+
 smallHumanity :: String
 smallHumanity = "small humanity"
 humanity :: String

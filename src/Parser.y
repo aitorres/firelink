@@ -404,6 +404,7 @@ INSTR :: { G.Instruction }
   : LVALUE asig EXPR                                                    {% do
                                                                           checkConstantReassignment $1
                                                                           checkIterVariables $1
+                                                                          checkIterableVariables $1
                                                                           return $ G.InstAsig $1 $3 }
   | malloc EXPR                                                         { G.InstMalloc $2 }
   | free EXPR                                                           { G.InstFreeMem $2 }
@@ -445,12 +446,10 @@ INSTR :: { G.Instruction }
                                                                           else return ()
                                                                           return $ G.InstFor iterVar startExpr stopExpr $2 }
   | FOREACHBEGIN CODEBLOCK FOREACHEND                                   {% do
-                                                                          let (fstTk, iterVar, shouldPopIterVar, iteredExpr) = $1
+                                                                          let (fstTk, iterVar, shouldPopIterVar, shouldPopIterableVar, iteredExpr) = $1
                                                                           checkRecoverableError fstTk $3
-                                                                          if shouldPopIterVar
-                                                                          then do
-                                                                            ST.popIteratorVariable
-                                                                          else return ()
+                                                                          RWS.when shouldPopIterVar ST.popIteratorVariable
+                                                                          RWS.when shouldPopIterableVar ST.popIterableVariable
                                                                           return $ G.InstForEach iterVar iteredExpr $2 }
 
 FORBEGIN :: { (T.Token, G.Id, Bool, G.Expr, G.Expr) }
@@ -474,17 +473,22 @@ FOREND :: { Maybe G.RecoverableError }
   : forEnd                                                              { Nothing }
   | error                                                               { Just G.MissingForEnd }
 
-FOREACHBEGIN :: { (T.Token, G.Id, Bool, G.Expr) }
+FOREACHBEGIN :: { (T.Token, G.Id, Bool, Bool, G.Expr) }
   : forEachBegin ID withTitaniteFrom EXPR                               {% do
                                                                           iteratorType <- getType $2
                                                                           containerType <- getType $4
-                                                                          let ret = ($1, $2, iteratorType /= T.TypeError, $4)
+                                                                          let isContainerAVariable = (case G.expAst $4 of
+                                                                                                        G.IdExpr _ -> True
+                                                                                                        _ -> False)
+                                                                          let ret = ($1, $2, iteratorType /= T.TypeError, containerType /= T.TypeError && isContainerAVariable, $4)
                                                                           if iteratorType == T.TypeError then do
                                                                             if containerType == T.TypeError then return ()
-                                                                            else case T.getTypeFromContainer containerType of
-                                                                              Nothing -> do
-                                                                                RWS.tell [ST.SemanticError "Iterable expression is not a container" (G.expTok $4)]
-                                                                              _ -> return ()
+                                                                            else
+                                                                              case T.getTypeFromContainer containerType of
+                                                                                Nothing -> do
+                                                                                  RWS.tell [ST.SemanticError "Iterable expression is not a container" (G.expTok $4)]
+                                                                                _ -> do
+                                                                                  return ()
                                                                           else do
                                                                             checkIterVarType $2
                                                                             ST.addIteratorVariable $ G.extractIdName $2
@@ -497,6 +501,10 @@ FOREACHBEGIN :: { (T.Token, G.Id, Bool, G.Expr) }
                                                                                   let (G.Id tk) = $2
                                                                                   RWS.when (T.TypeError /= t && iteratorType /= t) $
                                                                                     RWS.tell [ST.SemanticError "Iterator variable is not of the type of contained elements" tk]
+                                                                          if containerType /= T.TypeError && isContainerAVariable then do
+                                                                            let (G.IdExpr (G.Id tk)) = G.expAst $4
+                                                                            ST.addIterableVariable (T.cleanedString tk)
+                                                                          else return ()
                                                                           return ret
                                                                              }
 
@@ -725,6 +733,19 @@ checkIterVariables e = case G.expAst e of
       return ()
     else return ()
   _ -> return ()
+
+checkIterableVariables :: G.Expr -> ST.ParserMonad ()
+checkIterableVariables e = case G.expAst e of
+  G.IdExpr (G.Id tk@(T.Token {T.cleanedString=idName})) -> do
+    ST.SymTable {ST.stIterableVars=iterableVars} <- RWS.get
+    let matchesIterVar = idName `elem` iterableVars
+    if matchesIterVar
+    then do
+      RWS.tell [ST.SemanticError ("Iterable container " ++ show tk ++ " must not be reassigned") tk]
+      return ()
+    else return ()
+  _ -> return ()
+
 
 checkIdAvailability :: G.Id -> ST.ParserMonad (Maybe ST.DictionaryEntry)
 checkIdAvailability (G.Id tk@(T.Token {T.cleanedString=idName})) = do
