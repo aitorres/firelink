@@ -174,8 +174,8 @@ updateEntry f s = do
 
 enterScope :: ParserMonad ()
 enterScope = do
-    st@SymTable {stCurrScope=cs} <- RWS.get
-    RWS.put st{stCurrScope=cs + 1}
+    st@SymTable {stCurrScope=cs, stScopeStack=scopeStack} <- RWS.get
+    RWS.put st{stCurrScope=cs + 1, stScopeStack=cs + 1 : scopeStack}
 
 exitScope :: ParserMonad ()
 exitScope = do

@@ -369,8 +369,8 @@ CODEBLOCK :: { G.CodeBlock }
 
 INSTBEGIN :: { T.Token }
 INSTBEGIN : instructionsBegin                                           {% do
-                                                                             ST.enterScope
-                                                                             return $1 }
+                                                                            ST.enterScope
+                                                                            return $1 }
 
 INSTEND :: { Maybe G.RecoverableError }
   : instructionsEnd                                                     {% do
