@@ -476,13 +476,29 @@ FOREND :: { Maybe G.RecoverableError }
 
 FOREACHBEGIN :: { (T.Token, G.Id, Bool, G.Expr) }
   : forEachBegin ID withTitaniteFrom EXPR                               {% do
-                                                                          mid <- checkIdAvailability $2
-                                                                          case mid of
-                                                                            Just ST.DictionaryEntry {ST.name=varName} -> do
-                                                                              checkIterVarType $2
-                                                                              ST.addIteratorVariable varName
-                                                                              return ($1, $2, True, $4)
-                                                                            Nothing -> return ($1, $2, False, $4) }
+                                                                          iteratorType <- getType $2
+                                                                          containerType <- getType $4
+                                                                          let ret = ($1, $2, iteratorType /= T.TypeError, $4)
+                                                                          if iteratorType == T.TypeError then do
+                                                                            if containerType == T.TypeError then return ()
+                                                                            else case T.getTypeFromContainer containerType of
+                                                                              Nothing -> do
+                                                                                RWS.tell [ST.SemanticError "Iterable expression is not a container" (G.expTok $4)]
+                                                                              _ -> return ()
+                                                                          else do
+                                                                            checkIterVarType $2
+                                                                            ST.addIteratorVariable $ G.extractIdName $2
+                                                                            if containerType == T.TypeError then return ()
+                                                                            else
+                                                                              case T.getTypeFromContainer containerType of
+                                                                                Nothing -> do
+                                                                                  RWS.tell [ST.SemanticError "Iterable expression is not a container" (G.expTok $4)]
+                                                                                Just t -> do
+                                                                                  let (G.Id tk) = $2
+                                                                                  RWS.when (T.TypeError /= t && iteratorType /= t) $
+                                                                                    RWS.tell [ST.SemanticError "Iterator variable is not of the type of contained elements" tk]
+                                                                          return ret
+                                                                             }
 
 FOREACHEND :: { Maybe G.RecoverableError }
   : forEachEnd                                                          { Nothing }

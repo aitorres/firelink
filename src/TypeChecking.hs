@@ -63,6 +63,11 @@ instance Eq PropType where
 instance Ord PropType where
   PropType (s, _) <= PropType (s', _) = s <= s'
 
+getTypeFromContainer :: Type -> Maybe Type
+getTypeFromContainer (SetT t) = Just t
+getTypeFromContainer (ArrayT t) = Just t
+getTypeFromContainer _ = Nothing
+
 booleanSingleton :: [Type]
 booleanSingleton = [TrileanT]
 
