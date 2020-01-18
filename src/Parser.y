@@ -197,8 +197,8 @@ ALIASES :: { () }
   : aliasListBegin ALIASL ALIASLISTEND                                  {% do
                                                                             checkRecoverableError $1 $3
                                                                             addIdsToSymTable $ reverse $2
-                                                                            (ST.SymTable dict _ s ivs) <- RWS.get
-                                                                            RWS.put (ST.SymTable dict [1, 0] s ivs) }
+                                                                            st <- RWS.get
+                                                                            RWS.put st{ST.stScopeStack=[1, 0]} }
   | {- empty -}                                                         { () }
 
 ALIASLISTEND :: { Maybe G.RecoverableError }
@@ -278,11 +278,11 @@ METHODL :: { () }
 
 METHOD :: { () }
   : FUNC                                                                {% do
-                                                                          (ST.SymTable dict _ s ivs) <- RWS.get
-                                                                          RWS.put (ST.SymTable dict [1, 0] s ivs) }
+                                                                          st <- RWS.get
+                                                                          RWS.put st{ST.stScopeStack=[1, 0]} }
   | PROC                                                                {% do
-                                                                          (ST.SymTable dict _ s ivs) <- RWS.get
-                                                                          RWS.put (ST.SymTable dict [1, 0] s ivs) }
+                                                                          st <- RWS.get
+                                                                          RWS.put st{ST.stScopeStack=[1, 0]} }
 
 FUNCPREFIX :: { Maybe (ST.Scope, G.Id) }
   : functionBegin ID METHODPARS functionType TYPE                       {% addFunction (ST.Function,
@@ -447,8 +447,7 @@ INSTR :: { G.Instruction }
                                                                             RWS.tell [ST.SemanticError "Stop should be an integer" (G.expTok $6)]
                                                                           if shouldPopIterVar
                                                                           then do
-                                                                            (ST.SymTable d s cs (_:ivs)) <- RWS.get
-                                                                            RWS.put (ST.SymTable d s cs ivs)
+                                                                            ST.popIteratorVariable
                                                                           else return ()
                                                                           return $ G.InstFor iterVar $3 $6 $7 }
   | FOREACHBEGIN withTitaniteFrom EXPR CODEBLOCK FOREACHEND             {% do
@@ -456,8 +455,7 @@ INSTR :: { G.Instruction }
                                                                           checkRecoverableError fstTk $5
                                                                           if shouldPopIterVar
                                                                           then do
-                                                                            (ST.SymTable d s cs (_:ivs)) <- RWS.get
-                                                                            RWS.put (ST.SymTable d s cs ivs)
+                                                                            ST.popIteratorVariable
                                                                           else return ()
                                                                           return $ G.InstForEach iterVar $3 $4 }
 
@@ -467,8 +465,7 @@ FORBEGIN :: { (T.Token, G.Id, Bool) }
                                                                           case mid of
                                                                             Just ST.DictionaryEntry {ST.name=varName} -> do
                                                                               checkIterVarType $2
-                                                                              (ST.SymTable d s cs ivs) <- RWS.get
-                                                                              RWS.put (ST.SymTable d s cs (varName:ivs))
+                                                                              ST.addIteratorVariable varName
                                                                               return ($1, $2, True)
                                                                             Nothing -> return ($1, $2, False) }
 
@@ -482,8 +479,7 @@ FOREACHBEGIN :: { (T.Token, G.Id, Bool) }
                                                                           case mid of
                                                                             Just ST.DictionaryEntry {ST.name=varName} -> do
                                                                               checkIterVarType $2
-                                                                              (ST.SymTable d s cs ivs) <- RWS.get
-                                                                              RWS.put (ST.SymTable d s cs (varName:ivs))
+                                                                              ST.addIteratorVariable varName
                                                                               return ($1, $2, True)
                                                                             Nothing -> return ($1, $2, False) }
 
@@ -606,7 +602,7 @@ addIdToSymTable :: Maybe Int -> NameDeclaration -> ST.ParserMonad ()
 addIdToSymTable mi d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idName})), t, maybeExp) = do
   maybeIdEntry <- ST.dictLookup idName
   maybeTypeEntry <- findTypeOnEntryTable t
-  ST.SymTable {ST.stScope=(currScope:_), ST.stIterVars=iterVars} <- RWS.get
+  ST.SymTable {ST.stScopeStack=(currScope:_), ST.stIterationVars=iterVars} <- RWS.get
   case maybeIdEntry of
     -- The name doesn't exists on the table, we just add it
     Nothing -> do
@@ -663,8 +659,8 @@ insertIdToEntry mi t entry = do
         Nothing -> return ()
         Just s ->  do
           let (ST.Fields _ scope) = fromJust . head $ filter isJust $ map ST.findFieldsExtra ex
-          (ST.SymTable dict scopes curr ivs) <- RWS.get
-          RWS.put (ST.SymTable dict (scope:scopes) curr ivs)
+          st@ST.SymTable {ST.stScopeStack=scopes} <- RWS.get
+          RWS.put st{ST.stScopeStack=(scope:scopes)}
           addIdsToSymTable $ map (\(a, b) -> (ST.RecordItem, a, b, Nothing)) s
           ST.exitScope
       case extractFunParamsForNewScope t of
@@ -676,9 +672,9 @@ insertIdToEntry mi t entry = do
           if not $ null $ filter ST.isEmptyFunction ex then
             return ()
           else do
-            (ST.SymTable dict scopes curr ivs) <- RWS.get
+            st@ST.SymTable {ST.stScopeStack=scopes} <- RWS.get
             let (ST.Fields ST.Callable scope) = head $ filter ST.isFieldsExtra ex
-            RWS.put (ST.SymTable dict (scope:scopes) curr ivs)
+            RWS.put st{ST.stScopeStack=(scope:scopes)}
             RWS.mapM_ (\(i, n) -> addIdToSymTable (Just i) n) $ zip [0..] $
               map (\(argType, i, t) -> (if argType == G.Val
                                   then ST.ValueParam
@@ -704,7 +700,7 @@ checkConstantReassignment e = case G.expAst e of
 checkIterVariables :: G.Expr -> ST.ParserMonad ()
 checkIterVariables e = case G.expAst e of
   G.IdExpr (G.Id tk@(T.Token {T.cleanedString=idName})) -> do
-    ST.SymTable {ST.stIterVars=iterVars} <- RWS.get
+    ST.SymTable {ST.stIterationVars=iterVars} <- RWS.get
     let matchesIterVar = idName `elem` iterVars
     if matchesIterVar
     then do
@@ -750,7 +746,7 @@ extractFieldsFromExtra (_:ss) = extractFieldsFromExtra ss
 
 addFunction :: NameDeclaration -> ST.ParserMonad (Maybe (ST.Scope, G.Id))
 addFunction d@(_, i@(G.Id tk@(T.Token {T.cleanedString=idName})), _, _) = do
-  (ST.SymTable dict stack currScope _) <- RWS.get
+  ST.SymTable {ST.stCurrScope=currScope} <- RWS.get
   maybeEntry <- ST.dictLookup idName
   case maybeEntry of
     Nothing -> do
@@ -835,13 +831,13 @@ buildExtraForType t@(G.Compound _ tt@(G.Record{}) maybeExpr) = do
         Nothing -> Just [ST.Recursive constructor extra']
 
 buildExtraForType t@(G.Record tk _) = do
-  (ST.SymTable d s currScope ivs) <- RWS.get
+  st@ST.SymTable {ST.stCurrScope=currScope} <- RWS.get
   let constr = (case T.aToken tk of
                   T.TkRecord -> ST.Record
                   T.TkUnionStruct -> ST.Union)
 
   let ret = Just [ST.Fields constr $ currScope + 1]
-  RWS.put $ (ST.SymTable d s (currScope + 1) ivs)
+  RWS.put st{ST.stCurrScope=(currScope + 1)}
   return ret
 
 buildExtraForType t@(G.Callable t' []) = do
@@ -857,18 +853,18 @@ buildExtraForType t@(G.Callable t' []) = do
 buildExtraForType t@(G.Callable t' _) = do
   case t' of
     Nothing -> do
-      (ST.SymTable d s currScope ivs) <- RWS.get
+      st@ST.SymTable{ST.stCurrScope=currScope} <- RWS.get
       let ret = Just [ST.Fields ST.Callable $ currScope + 1]
-      RWS.put (ST.SymTable d s (currScope + 1) ivs)
+      RWS.put st{ST.stCurrScope=currScope + 1}
       return ret
     Just tt -> do
       mExtra <- buildExtraForType tt
       case mExtra of
         Nothing -> return $ Nothing
         Just extras -> do
-          (ST.SymTable d s currScope ivs) <- RWS.get
+          st@ST.SymTable {ST.stCurrScope=currScope} <- RWS.get
           let ret = Just ((ST.Fields ST.Callable $ currScope + 1) : extras)
-          RWS.put (ST.SymTable d s (currScope + 1) ivs)
+          RWS.put st{ST.stCurrScope=(currScope + 1)}
           return ret
 
 -- For anything else

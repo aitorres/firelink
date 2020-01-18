@@ -112,9 +112,10 @@ type Dictionary = Map.Map String DictionaryEntries
 
 data SymTable = SymTable
     { stDict :: !Dictionary, -- ^ Dictionary of valid symbols
-      stScope :: !ScopeStack, -- ^ Stack of scopes at the current state
+      stScopeStack :: !ScopeStack, -- ^ Stack of scopes at the current state
       stCurrScope :: !Int, -- ^ Current scope
-      stIterVars :: ![String] -- ^ List of currently protected iteration variables
+      stIterationVars :: ![String], -- ^ List of currently protected iteration variables
+      stIterableVars :: ![String] -- ^ List of currently protected iterable variable
     }
 
 type ParserMonad = RWS.RWST () SemanticErrors SymTable IO
@@ -150,7 +151,7 @@ findBest name' entries (s:ss) = case filter (\d -> scope d == s) entries of
 
 dictLookup :: String -> ParserMonad (Maybe DictionaryEntry)
 dictLookup n = do
-    (SymTable dict stack _ _) <- RWS.get
+    SymTable {stDict=dict, stScopeStack=stack} <- RWS.get
     let chain = filter (\d -> name d == n) $ findChain n dict
     let pervasive = findPervasive n chain
     let best = findBest n chain stack
@@ -162,27 +163,38 @@ dictLookup n = do
 
 addEntry :: DictionaryEntry -> ParserMonad ()
 addEntry d@DictionaryEntry{name=n} = do
-    (SymTable dict st cs ivs) <- RWS.get
+    st@SymTable {stDict=dict} <- RWS.get
     let chains = findChain n dict
-    RWS.put (SymTable (Map.insert n (d:chains) dict) st cs ivs)
+    RWS.put st{stDict=Map.insert n (d:chains) dict}
 
 updateEntry :: (DictionaryEntries -> Maybe DictionaryEntries) -> String -> ParserMonad ()
 updateEntry f s = do
-    (SymTable dict st cs ivs) <- RWS.get
-    RWS.put (SymTable (Map.update f s dict) st cs ivs)
+    st@SymTable {stDict=dict} <- RWS.get
+    RWS.put st{stDict=Map.update f s dict}
 
 enterScope :: ParserMonad ()
 enterScope = do
-    (SymTable dict st cs ivs) <- RWS.get
-    let cs' = cs + 1
-    RWS.put (SymTable dict (cs':st) cs' ivs)
+    st@SymTable {stCurrScope=cs} <- RWS.get
+    RWS.put st{stCurrScope=cs + 1}
 
 exitScope :: ParserMonad ()
 exitScope = do
-    (SymTable dict st cs ivs) <- RWS.get
-    case st of
-        [] -> RWS.put (SymTable dict [] cs ivs)
-        _:s -> RWS.put (SymTable dict s cs ivs)
+    st@SymTable {stScopeStack=scopeStack} <- RWS.get
+    case scopeStack of
+        [] -> RWS.put st{stScopeStack=[]}
+        _:s -> RWS.put st{stScopeStack=s}
+
+addIteratorVariable :: String -> ParserMonad ()
+addIteratorVariable var = do
+    st@SymTable {stIterationVars=iterationVars} <- RWS.get
+    RWS.put st{stIterationVars=var : iterationVars}
+
+popIteratorVariable :: ParserMonad ()
+popIteratorVariable = do
+    st@SymTable {stIterationVars=iterationVars} <- RWS.get
+    RWS.put st{stIterationVars=case iterationVars of
+        [] -> []
+        _:s -> s}
 
 smallHumanity :: String
 smallHumanity = "small humanity"
@@ -214,7 +226,7 @@ arrow :: String
 arrow = "arrow"
 
 initialState :: SymTable
-initialState = SymTable (Map.fromList l) [1, 0] 1 []
+initialState = SymTable (Map.fromList l) [1, 0] 1 [] []
     where l = [(smallHumanity, [DictionaryEntry smallHumanity Type 0 Nothing []])
             , (humanity, [DictionaryEntry humanity Type 0 Nothing []])
             , (hollow, [DictionaryEntry hollow Type 0 Nothing []])
