@@ -436,52 +436,53 @@ INSTR :: { G.Instruction }
                                                                           checkRecoverableError $1 $3
                                                                           checkRecoverableError $1 $5
                                                                           return $ G.InstSwitch $2 (reverse $4) }
-  | FORBEGIN with EXPR souls untilLevel EXPR CODEBLOCK FOREND           {% do
-                                                                          let (fstTk, iterVar, shouldPopIterVar) = $1
-                                                                          checkRecoverableError fstTk $8
-                                                                          t1 <- getType $3
-                                                                          RWS.when (not $ isIntegerType t1) $
-                                                                            RWS.tell [ST.SemanticError "Step should be an integer" (G.expTok $3)]
-                                                                          t2 <- getType $6
-                                                                          RWS.when (not $ isIntegerType t2) $
-                                                                            RWS.tell [ST.SemanticError "Stop should be an integer" (G.expTok $6)]
+  | FORBEGIN CODEBLOCK FOREND                                           {% do
+                                                                          let (fstTk, iterVar, shouldPopIterVar, startExpr, stopExpr) = $1
+                                                                          checkRecoverableError fstTk $3
                                                                           if shouldPopIterVar
                                                                           then do
                                                                             ST.popIteratorVariable
                                                                           else return ()
-                                                                          return $ G.InstFor iterVar $3 $6 $7 }
-  | FOREACHBEGIN withTitaniteFrom EXPR CODEBLOCK FOREACHEND             {% do
-                                                                          let (fstTk, iterVar, shouldPopIterVar) = $1
-                                                                          checkRecoverableError fstTk $5
+                                                                          return $ G.InstFor iterVar startExpr stopExpr $2 }
+  | FOREACHBEGIN CODEBLOCK FOREACHEND                                   {% do
+                                                                          let (fstTk, iterVar, shouldPopIterVar, iteredExpr) = $1
+                                                                          checkRecoverableError fstTk $3
                                                                           if shouldPopIterVar
                                                                           then do
                                                                             ST.popIteratorVariable
                                                                           else return ()
-                                                                          return $ G.InstForEach iterVar $3 $4 }
+                                                                          return $ G.InstForEach iterVar iteredExpr $2 }
 
-FORBEGIN :: { (T.Token, G.Id, Bool) }
-  : forBegin ID                                                         {% do
+FORBEGIN :: { (T.Token, G.Id, Bool, G.Expr, G.Expr) }
+  : forBegin ID with EXPR souls untilLevel EXPR                         {% do
+                                                                          t1 <- getType $4
+                                                                          RWS.when (not $ isIntegerType t1) $
+                                                                            RWS.tell [ST.SemanticError "Step should be an integer" (G.expTok $4)]
+                                                                          t2 <- getType $7
+                                                                          RWS.when (not $ isIntegerType t2) $
+                                                                            RWS.tell [ST.SemanticError "Stop should be an integer" (G.expTok $7)]
+
                                                                           mid <- checkIdAvailability $2
                                                                           case mid of
                                                                             Just ST.DictionaryEntry {ST.name=varName} -> do
                                                                               checkIterVarType $2
                                                                               ST.addIteratorVariable varName
-                                                                              return ($1, $2, True)
-                                                                            Nothing -> return ($1, $2, False) }
+                                                                              return ($1, $2, True, $4, $7)
+                                                                            Nothing -> return ($1, $2, False, $4, $7) }
 
 FOREND :: { Maybe G.RecoverableError }
   : forEnd                                                              { Nothing }
   | error                                                               { Just G.MissingForEnd }
 
-FOREACHBEGIN :: { (T.Token, G.Id, Bool) }
-  : forEachBegin ID                                                     {% do
+FOREACHBEGIN :: { (T.Token, G.Id, Bool, G.Expr) }
+  : forEachBegin ID withTitaniteFrom EXPR                               {% do
                                                                           mid <- checkIdAvailability $2
                                                                           case mid of
                                                                             Just ST.DictionaryEntry {ST.name=varName} -> do
                                                                               checkIterVarType $2
                                                                               ST.addIteratorVariable varName
-                                                                              return ($1, $2, True)
-                                                                            Nothing -> return ($1, $2, False) }
+                                                                              return ($1, $2, True, $4)
+                                                                            Nothing -> return ($1, $2, False, $4) }
 
 FOREACHEND :: { Maybe G.RecoverableError }
   : forEachEnd                                                          { Nothing }
