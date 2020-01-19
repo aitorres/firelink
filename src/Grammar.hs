@@ -1,6 +1,6 @@
 module Grammar where
 
-import Tokens (Token)
+import Tokens (Token(..))
 import TypeChecking (Type(..))
 import Data.List (intercalate)
 import qualified Utils as U
@@ -13,6 +13,9 @@ type SwitchCases = [SwitchCase]
 newtype Id
   = Id Token
   deriving Eq
+
+extractIdName :: Id -> String
+extractIdName (Id Token {cleanedString=s}) = s
 
 instance Show Id where
   show (Id tk) = show tk
