@@ -171,3 +171,15 @@ spec = describe "Lexer" $ do
     let ([], toks) = scanTokens x
     let atok = getAbstractToken $ head toks
     atok `shouldBe` TkBraceClose
+
+  it "accepts `(` as a valid token" $ do
+    let x = "("
+    let ([], toks) = scanTokens x
+    let atok = getAbstractToken $ head toks
+    atok `shouldBe` TkParensOpen
+
+  it "accepts `)` as a valid token" $ do
+    let x = ")"
+    let ([], toks) = scanTokens x
+    let atok = getAbstractToken $ head toks
+    atok `shouldBe` TkParensClose
