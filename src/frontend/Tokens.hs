@@ -30,10 +30,8 @@ data AbstractToken = TkId | TkConst | TkVar | TkOfType | TkAsig
     | TkArray | TkArrayOpen | TkArrayClose | TkSize
     -- Sets
     | TkSet | TkSetOpen | TkSetClose | TkUnion | TkIntersect | TkDiff
-    -- Enums
-    | TkEnum | TkBraceOpen | TkBraceClosed | TkComma | TkAccessor
     -- Records (C-like structs)
-    | TkRecord
+    | TkRecord | TkBraceOpen | TkBraceClosed | TkComma | TkAccessor
     -- Unions
     | TkUnionStruct
     -- Null, pointer stuff
@@ -202,7 +200,6 @@ instance Show AbstractToken where
     show TkUnion = ""
     show TkIntersect = ""
     show TkDiff = ""
-    show TkEnum = ""
     show TkUnionStruct = ""
     show TkNull = ""
     show TkPointer = ""

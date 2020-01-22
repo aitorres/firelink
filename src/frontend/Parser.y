@@ -65,7 +65,6 @@ import Errors
   string                                                                { T.Token {T.aToken=T.TkString} }
   array                                                                 { T.Token {T.aToken=T.TkArray} }
   set                                                                   { T.Token {T.aToken=T.TkSet} }
-  enum                                                                  { T.Token {T.aToken=T.TkEnum} }
   unionStruct                                                           { T.Token {T.aToken=T.TkUnionStruct} }
   record                                                                { T.Token {T.aToken=T.TkRecord} }
   pointer                                                               { T.Token {T.aToken=T.TkPointer} }
@@ -345,10 +344,6 @@ BRCLOSE :: { Maybe G.RecoverableError }
 PARENSCLOSE :: { Maybe G.RecoverableError }
   : parensClose                                                         { Nothing }
   | error                                                               { Just G.MissingClosingParens }
-
-ENUMITS :: { [Int] }
-  : ENUMITS comma ID                                                    { [] }
-  | ID                                                                  { [] }
 
 STRUCTITS :: { [RecordItem] }
   : STRUCTITS comma STRUCTIT                                            { $3:$1 }
