@@ -6,7 +6,6 @@ import qualified Utils as UU
 import qualified TestUtils as U
 import qualified SymTable as ST
 import qualified Grammar as G
-import qualified Tokens as T
 import qualified Data.Map as Map
 
 program :: String -> String
