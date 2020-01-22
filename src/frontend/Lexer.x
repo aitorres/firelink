@@ -151,9 +151,9 @@ tokens :-
     \>\-\<                                { makeToken TkConcat }
     \<                                    { makeToken TkLteLit }
     \{                                    { makeToken TkBraceOpen }
-    \}                                    { makeToken TkBraceClosed }
+    \}                                    { makeToken TkBraceClose }
     \(                                    { makeToken TkParensOpen }
-    \)                                    { makeToken TkParensClosed }
+    \)                                    { makeToken TkParensClose }
 
     const                                 { makeToken TkConst }
     var                                   { makeToken TkVar }

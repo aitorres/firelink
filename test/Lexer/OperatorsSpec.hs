@@ -170,4 +170,4 @@ spec = describe "Lexer" $ do
     let x = "}"
     let ([], toks) = scanTokens x
     let atok = getAbstractToken $ head toks
-    atok `shouldBe` TkBraceClosed
+    atok `shouldBe` TkBraceClose

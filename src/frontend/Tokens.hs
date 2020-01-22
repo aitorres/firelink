@@ -31,7 +31,7 @@ data AbstractToken = TkId | TkConst | TkVar | TkOfType | TkAsig
     -- Sets
     | TkSet | TkSetOpen | TkSetClose | TkUnion | TkIntersect | TkDiff
     -- Enums
-    | TkEnum | TkBraceOpen | TkBraceClosed | TkComma | TkAccessor
+    | TkEnum | TkBraceOpen | TkBraceClose | TkComma | TkAccessor
     -- Records (C-like structs)
     | TkRecord
     -- Unions
@@ -100,7 +100,7 @@ data AbstractToken = TkId | TkConst | TkVar | TkOfType | TkAsig
     | TkPlus | TkMinus | TkMult | TkDiv | TkMod | TkLt | TkGt | TkLte
     | TkGte | TkEq | TkNeq | TkAnd | TkOr | TkConcat
     -- Parens
-    | TkParensOpen | TkParensClosed
+    | TkParensOpen | TkParensClose
     -- Unary operators
     | TkNot
     deriving (Eq)
@@ -187,10 +187,10 @@ instance Show AbstractToken where
     show TkCharLit = U.yellow
     show TkStringLit = U.yellow
     show TkParensOpen = ""
-    show TkParensClosed = ""
+    show TkParensClose = ""
     show TkColon = ""
     show TkBraceOpen = ""
-    show TkBraceClosed = ""
+    show TkBraceClose = ""
     show TkComma = ""
     show TkAccessor = ""
     show TkArrayOpen = ""

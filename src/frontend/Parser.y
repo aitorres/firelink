@@ -88,7 +88,7 @@ import Errors
 
   comma                                                                 { T.Token {T.aToken=T.TkComma} }
   brOpen                                                                { T.Token {T.aToken=T.TkBraceOpen} }
-  brClose                                                               { T.Token {T.aToken=T.TkBraceClosed} }
+  brClose                                                               { T.Token {T.aToken=T.TkBraceClose} }
 
   with                                                                  { T.Token {T.aToken=T.TkWith} }
   declarend                                                             { T.Token {T.aToken=T.TkDeclarationEnd} }
@@ -138,7 +138,7 @@ import Errors
   withTitaniteFrom                                                      { T.Token {T.aToken=T.TkWithTitaniteFrom} }
 
   parensOpen                                                            { T.Token {T.aToken=T.TkParensOpen} }
-  parensClose                                                           { T.Token {T.aToken=T.TkParensClosed} }
+  parensClose                                                           { T.Token {T.aToken=T.TkParensClose} }
 
   plus                                                                  { T.Token {T.aToken=T.TkPlus} }
   minus                                                                 { T.Token {T.aToken=T.TkMinus} }
