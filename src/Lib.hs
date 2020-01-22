@@ -16,6 +16,7 @@ import Data.List (intercalate, groupBy)
 import Text.Printf (printf)
 import Utils
 import FrontEndCompiler
+import BackEndCompiler (backend)
 import Errors
 
 prettyPrintSymTable :: ST.SymTable -> IO ()
@@ -179,6 +180,7 @@ compile program = do
         Right (ast, symTable, tokens) -> do
             prettyPrintSymTable symTable
             printProgram tokens
+            code <- backend ast
             exitSuccess
 
 firelink :: IO ()
