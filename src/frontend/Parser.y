@@ -538,7 +538,8 @@ IFCASES :: { G.IfCases }
   | IFCASE                                                              { [$1] }
 
 IFCASE :: { G.IfCase }
-  : EXPR colon CODEBLOCK                                                {% do
+  : EXPR COLON CODEBLOCK                                                {% do
+                                                                            checkRecoverableError (G.expTok $1) $2
                                                                             checkBooleanGuard $1
                                                                             return $ G.GuardedCase $1 $3 }
 
