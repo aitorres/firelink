@@ -729,9 +729,8 @@ checkConstantReassignment e = case G.expAst e of
 
 checkPointerVariable :: G.Expr -> ST.ParserMonad ()
 checkPointerVariable G.Expr {G.expType=(T.PointerT _)} = return ()
-checkPointerVariable G.Expr {G.expTok=tk} = do
+checkPointerVariable G.Expr {G.expTok=tk} =
   RWS.tell [Error ("Expresion " ++ show tk ++ " must be a valid pointer") (T.position tk)]
-  return ()
 
 checkIterVariables :: G.Expr -> ST.ParserMonad ()
 checkIterVariables e = case G.expAst e of
