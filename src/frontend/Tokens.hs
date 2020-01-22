@@ -31,7 +31,7 @@ data AbstractToken = TkId | TkConst | TkVar | TkOfType | TkAsig
     -- Sets
     | TkSet | TkSetOpen | TkSetClose | TkUnion | TkIntersect | TkDiff
     -- Records (C-like structs)
-    | TkRecord | TkBraceOpen | TkBraceClosed | TkComma | TkAccessor
+    | TkRecord | TkBraceOpen | TkBraceClose | TkComma | TkAccessor
     -- Unions
     | TkUnionStruct
     -- Null, pointer stuff
