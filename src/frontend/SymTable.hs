@@ -4,6 +4,7 @@ import qualified Control.Monad.RWS as RWS
 import qualified Data.Map.Strict as Map
 import qualified Tokens as T
 import qualified Grammar as G
+import qualified TypeChecking as TC
 import Errors
 
 import Data.Sort (sortBy)
@@ -111,7 +112,8 @@ data SymTable = SymTable
       stScopeStack :: !ScopeStack, -- ^ Stack of scopes at the current state
       stCurrScope :: !Int, -- ^ Current scope
       stIterationVars :: ![String], -- ^ List of currently protected iteration variables
-      stIterableVars :: ![String] -- ^ List of currently protected iterable variable
+      stIterableVars :: ![String], -- ^ List of currently protected iterable variables
+      stSwitchTypes :: ![TC.Type] -- ^ List of currently active switch variable types
     }
 
 type ParserMonad = RWS.RWST () [Error] SymTable IO
@@ -204,6 +206,18 @@ popIterableVariable = do
         [] -> []
         _:s -> s}
 
+addSwitchType :: TC.Type -> ParserMonad ()
+addSwitchType tp = do
+    st@SymTable {stSwitchTypes=types} <- RWS.get
+    RWS.put st{stSwitchTypes= tp:types}
+
+popSwitchType :: ParserMonad ()
+popSwitchType = do
+    st@SymTable {stSwitchTypes=types} <- RWS.get
+    RWS.put st{stSwitchTypes=case types of
+        [] -> []
+        _:s -> s}
+
 smallHumanity :: String
 smallHumanity = "small humanity"
 humanity :: String
@@ -234,7 +248,7 @@ arrow :: String
 arrow = "arrow"
 
 initialState :: SymTable
-initialState = SymTable (Map.fromList l) [1, 0] 1 [] []
+initialState = SymTable (Map.fromList l) [1, 0] 1 [] [] []
     where l = [(smallHumanity, [DictionaryEntry smallHumanity Type 0 Nothing []])
             , (humanity, [DictionaryEntry humanity Type 0 Nothing []])
             , (hollow, [DictionaryEntry hollow Type 0 Nothing []])
