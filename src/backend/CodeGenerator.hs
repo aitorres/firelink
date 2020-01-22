@@ -2,7 +2,7 @@ module CodeGenerator where
 
 import Control.Monad.RWS (RWST(..), get, put)
 import TACType
-import SymTable (DictionaryEntry(..))
+import SymTable (DictionaryEntry(..), Dictionary(..))
 
 instance SymEntryCompatible DictionaryEntry where
     getSymID = name
@@ -16,7 +16,7 @@ type TAC = ThreeAddressCode DictionaryEntry ConstantValue
 
 data ConstantValue = ConstantInt Int | ConstantString String
 
-type CodeGenMonad = RWST () [TAC] CodeGenState IO
+type CodeGenMonad = RWST Dictionary [TAC] CodeGenState IO
 
 newtemp :: CodeGenMonad String
 newtemp = do
@@ -25,5 +25,4 @@ newtemp = do
     return $ "t" ++ show label
 
 class GenerateCode a where
-    genCode :: a -> CodeGenMonad ()
-
+    genCode :: a -> CodeGenMonad (Maybe (Operand DictionaryEntry ConstantValue))

@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: cdc8cdbfda537b0b72bc430c49b9624ef59c36cd37846b2b7a6ba120cb4b2a72
+-- hash: 732fa07e2458eed8afa2d6bc78f8e7c24ab17279e8d8f2200556ea8c00f7dedf
 
 name:           firelink
 version:        0.1.0.0
@@ -40,6 +40,7 @@ library
       BackEndCompiler
       CodeGenerator
       ExprCodeGenerator
+      InstructionCodeGenerator
       ProgramCodeGenerator
   other-modules:
       Paths_firelink

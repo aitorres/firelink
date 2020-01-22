@@ -1,7 +1,11 @@
 module ProgramCodeGenerator where
 
 import CodeGenerator
-import Grammar (Program(..))
+import InstructionCodeGenerator
+import Grammar (Program(..), CodeBlock(..))
+
+instance GenerateCode CodeBlock where
+    genCode (CodeBlock instrs) = mapM_ genCode instrs >> return Nothing
 
 instance GenerateCode Program where
-    genCode _ = error "not implemented yet"
+    genCode (Program codeblock) = genCode codeblock >> return Nothing
