@@ -556,7 +556,8 @@ SWITCHCASES :: { G.SwitchCases }
   | SWITCHCASE                                                          { [$1] }
 
 SWITCHCASE :: { G.SwitchCase }
-  : EXPR colon CODEBLOCK                                                {% do
+  : EXPR COLON CODEBLOCK                                                {% do
+                                                                            checkRecoverableError (G.expTok $1) $2
                                                                             checkSwitchCaseType $1
                                                                             return $ G.Case $1 $3 }
 
