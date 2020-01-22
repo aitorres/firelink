@@ -30,10 +30,8 @@ data AbstractToken = TkId | TkConst | TkVar | TkOfType | TkAsig
     | TkArray | TkArrayOpen | TkArrayClose | TkSize
     -- Sets
     | TkSet | TkSetOpen | TkSetClose | TkUnion | TkIntersect | TkDiff
-    -- Enums
-    | TkEnum | TkBraceOpen | TkBraceClose | TkComma | TkAccessor
     -- Records (C-like structs)
-    | TkRecord
+    | TkRecord | TkBraceOpen | TkBraceClose | TkComma | TkAccessor
     -- Unions
     | TkUnionStruct
     -- Null, pointer stuff
@@ -186,31 +184,7 @@ instance Show AbstractToken where
     show TkFloatLit = U.blue ++ U.bold
     show TkCharLit = U.yellow
     show TkStringLit = U.yellow
-    show TkParensOpen = ""
-    show TkParensClose = ""
-    show TkColon = ""
-    show TkBraceOpen = ""
-    show TkBraceClose = ""
-    show TkComma = ""
-    show TkAccessor = ""
-    show TkArrayOpen = ""
-    show TkArrayClose = ""
-    show TkAsciiOf = ""
-    show TkSize = ""
-    show TkSetOpen = ""
-    show TkSetClose = ""
-    show TkUnion = ""
-    show TkIntersect = ""
-    show TkDiff = ""
-    show TkEnum = ""
-    show TkUnionStruct = ""
-    show TkNull = ""
-    show TkPointer = ""
-    show TkRequestMemory = ""
-    show TkAccessMemory = ""
-    show TkFreeMemory = ""
-    show TkWithTitaniteFrom = ""
-    show _ = "epale chamito falto yo"
+    show _ = ""
 
 -- |Full token with all the description and position info
 data Token = Token

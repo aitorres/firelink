@@ -3,7 +3,6 @@ module VariablesSpec where
 import Test.Hspec
 import qualified TestUtils as U
 import qualified SymTable as ST
-import qualified Tokens as T
 
 program :: String -> String
 program e =

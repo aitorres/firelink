@@ -2,8 +2,6 @@ module IterationsSpec where
 
 import Test.Hspec
 import qualified TestUtils as U
-import qualified SymTable as ST
-import qualified Tokens as T
 
 spec :: Spec
 spec = describe "Iterations declarations" $ do

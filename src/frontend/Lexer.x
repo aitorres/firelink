@@ -103,7 +103,6 @@ tokens :-
     diff                                  { makeToken TkDiff }
     size                                  { makeToken TkSize }
 
-    titanite                              { makeToken TkEnum }
     \~\>                                  { makeToken TkAccessor }
 
     bezel                                 { makeToken TkRecord }
