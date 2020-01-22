@@ -787,7 +787,7 @@ checkSwitchCaseType expr = do
   ST.SymTable {ST.stSwitchTypes=swTypes} <- RWS.get
   if swTypes == [] then return ()
   else do
-    let swType = last swTypes
+    let swType = head swTypes
     case swType of
       T.TypeError -> return ()
       tp -> do
