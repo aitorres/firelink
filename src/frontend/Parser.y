@@ -402,8 +402,12 @@ INSTR :: { G.Instruction }
                                                                           checkIterVariables $1
                                                                           checkIterableVariables $1
                                                                           return $ G.InstAsig $1 $3 }
-  | malloc EXPR                                                         { G.InstMalloc $2 }
-  | free EXPR                                                           { G.InstFreeMem $2 }
+  | malloc EXPR                                                         {% do
+                                                                          checkPointerVariable $2
+                                                                          return $ G.InstMalloc $2 }
+  | free EXPR                                                           {% do
+                                                                          checkPointerVariable $2
+                                                                          return $G.InstFreeMem $2 }
   | cast ID PROCPARS                                                    {% do
                                                                           checkIdAvailability $2
                                                                           return $ G.InstCallProc $2 $3 }
@@ -717,6 +721,11 @@ checkConstantReassignment e = case G.expAst e of
             return ()
   G.IndexAccess gId _ -> checkConstantReassignment gId
   _ -> return ()
+
+checkPointerVariable :: G.Expr -> ST.ParserMonad ()
+checkPointerVariable G.Expr {G.expType=(T.PointerT _)} = return ()
+checkPointerVariable G.Expr {G.expTok=tk} =
+  RWS.tell [Error ("Expresion " ++ show tk ++ " must be a valid pointer") (T.position tk)]
 
 checkIterVariables :: G.Expr -> ST.ParserMonad ()
 checkIterVariables e = case G.expAst e of
