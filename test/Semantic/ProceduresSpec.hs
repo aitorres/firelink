@@ -4,7 +4,6 @@ import Test.Hspec
 import qualified TestUtils as U
 import qualified SymTable as ST
 import qualified Grammar as G
-import qualified Tokens as T
 
 varEntry :: ST.DictionaryEntry
 varEntry = ST.DictionaryEntry
@@ -118,8 +117,8 @@ spec = do
                 , ST.category = ST.ValueParam
                 , ST.entryType = Just "humanity"
                 } U.extractArgPositionFromExtra (\(ST.ArgPosition 1) -> True)
-        it "rejects to declare procedures with repeated arguments" $ do
-            let p = "hello ashen one\n\
+        it "rejects to declare procedures with repeated arguments" $
+            "hello ashen one\n\
 
             \spell fun\n\
             \requesting\n\
@@ -135,15 +134,9 @@ spec = do
             \ traveling somewhere \
             \ with orange saponite say @hello world@ \
             \ you died \
-            \ farewell ashen one"
-            errors <- U.extractErrors p
-            errors `shouldNotSatisfy` null
-            let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
-            varName `shouldBe` "x"
-            T.row pn `shouldBe` 5
-            T.col pn `shouldBe` 8
-        it "rejects to declare variables on the first scope of a procedure whose names are on the arg list" $ do
-            let p = "hello ashen one\n\
+            \ farewell ashen one" `U.shouldErrorOn` ("x", 5, 8)
+        it "rejects to declare variables on the first scope of a procedure whose names are on the arg list" $
+            "hello ashen one\n\
 
             \spell fun\n\
             \requesting\n\
@@ -163,44 +156,7 @@ spec = do
             \ traveling somewhere \
             \ with orange saponite say @hello world@ \
             \ you died \
-            \ farewell ashen one"
-            errors <- U.extractErrors p
-            errors `shouldNotSatisfy` null
-            let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
-            varName `shouldBe` "x"
-            T.row pn `shouldBe` 8
-            T.col pn `shouldBe` 8
-        it "allows to declare variables on the second (2<=) scope of a procedure whose names are on the arg list" $ do
-            let p = "hello ashen one\n\
-
-            \spell fun\n\
-            \requesting\n\
-            \   ref x of type humanity\n\
-            \to the estus flask\n\
-
-            \traveling somewhere\n\
-
-            \   while the lit covenant is active:\n\
-
-            \   traveling somewhere\n\
-            \   with\n\
-            \       var x of type sign\n\
-            \   in your inventory\n\
-            \       go back\n\
-            \   you died\n\
-
-            \   covenant left\n\
-            \you died\n\
-
-            \ashen estus flask consumed\n\
-
-
-            \ traveling somewhere \
-            \ with orange saponite say @hello world@ \
-            \ you died \
-            \ farewell ashen one"
-            errors <- U.extractErrors p
-            errors `shouldNotSatisfy` null
+            \ farewell ashen one" `U.shouldErrorOn` ("x", 8, 8)
         it "allows to declare more than 1 procedure" $ do
             let p = "hello ashen one\n\
 
@@ -236,8 +192,8 @@ spec = do
                 , ST.name = "fun2"
                 } U.extractEmptyFunctionFromExtra (const True)
     describe "Functions calls" $ do
-        it "allows to call declared procedures with no parameters" $ do
-            let p = "hello ashen one\n\
+        it "allows to call declared procedures with no parameters" $
+            U.shouldNotError "hello ashen one\n\
 
             \spell fun\n\
 
@@ -252,10 +208,8 @@ spec = do
             \   cast fun \
             \ you died \
             \ farewell ashen one"
-            errors <- U.extractErrors p
-            errors `shouldSatisfy` null
-        it "allows to call declared procedures with parameters" $ do
-            let p = "hello ashen one\n\
+        it "allows to call declared procedures with parameters" $
+            U.shouldNotError "hello ashen one\n\
 
             \spell fun\n\
             \requesting\n\
@@ -272,10 +226,8 @@ spec = do
             \   cast fun offering 1 to the estus flask \n\
             \ you died \
             \ farewell ashen one"
-            errors <- U.extractErrors p
-            errors `shouldSatisfy` null
-        it "rejects to call non-declared procedures" $ do
-            let p = "hello ashen one\n\
+        it "rejects to call non-declared procedures" $
+            "hello ashen one\n\
 
             \spell fun\n\
 
@@ -289,15 +241,9 @@ spec = do
             \ traveling somewhere\n\
             \   cast fun2\n\
             \ you died \
-            \ farewell ashen one"
-            errors <- U.extractErrors p
-            errors `shouldNotSatisfy` null
-            let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
-            varName `shouldBe` "fun2"
-            T.row pn `shouldBe` 8
-            T.col pn `shouldBe` 9
-        it "allows recursion" $ do
-            let p = "hello ashen one\n\
+            \ farewell ashen one" `U.shouldErrorOn` ("fun2", 8, 9)
+        it "allows recursion" $
+            U.shouldNotError "hello ashen one\n\
 
             \spell fun\n\
 
@@ -313,8 +259,6 @@ spec = do
             \   cast fun\n\
             \ you died \
             \ farewell ashen one"
-            errors <- U.extractErrors p
-            errors `shouldSatisfy` null
         -- it "allows corecursion" $ do
         --     let p = "hello ashen one\n\
 

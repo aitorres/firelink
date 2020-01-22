@@ -46,4 +46,4 @@ data Position = Position
     { row :: !Int -- ^ Row position of error
     , column :: !Int -- ^ Column position of error
     }
-    deriving Eq
+    deriving (Eq, Show)

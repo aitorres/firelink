@@ -4,7 +4,6 @@ import Test.Hspec
 import qualified TestUtils as U
 import qualified SymTable as ST
 import qualified Grammar as G
-import qualified Tokens as T
 
 varEntry :: ST.DictionaryEntry
 varEntry = ST.DictionaryEntry
@@ -115,8 +114,8 @@ spec = do
                 , ST.name = "y"
                 , ST.category = ST.ValueParam
                 } U.extractArgPositionFromExtra (\(ST.ArgPosition 1) -> True)
-        it "rejects to declare functions with repeated arguments" $ do
-            let p = "hello ashen one\n\
+        it "rejects to declare functions with repeated arguments" $
+            "hello ashen one\n\
 
             \invocation fun\n\
             \requesting\n\
@@ -132,15 +131,9 @@ spec = do
             \ traveling somewhere \
             \ with orange saponite say @hello world@ \
             \ you died \
-            \ farewell ashen one"
-            errors <- U.extractErrors p
-            errors `shouldNotSatisfy` null
-            let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
-            varName `shouldBe` "x"
-            T.row pn `shouldBe` 5
-            T.col pn `shouldBe` 8
-        it "rejects to declare variables on the first scope of a function whose names are on the arg list" $ do
-            let p = "hello ashen one\n\
+            \ farewell ashen one" `U.shouldErrorOn` ("x", 5, 8)
+        it "rejects to declare variables on the first scope of a function whose names are on the arg list" $
+            "hello ashen one\n\
 
             \invocation fun\n\
             \requesting\n\
@@ -160,15 +153,9 @@ spec = do
             \ traveling somewhere \
             \ with orange saponite say @hello world@ \
             \ you died \
-            \ farewell ashen one"
-            errors <- U.extractErrors p
-            errors `shouldNotSatisfy` null
-            let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
-            varName `shouldBe` "x"
-            T.row pn `shouldBe` 8
-            T.col pn `shouldBe` 8
-        it "rejects to declare variables on the second (2<=) scope of a function whose names are on the arg list" $ do
-            let p = "hello ashen one\n\
+            \ farewell ashen one" `U.shouldErrorOn` ("x", 8, 8)
+        it "rejects to declare variables on the second (2<=) scope of a function whose names are on the arg list" $
+            "hello ashen one\n\
 
             \invocation fun\n\
             \requesting\n\
@@ -195,9 +182,7 @@ spec = do
             \ traveling somewhere \
             \ with orange saponite say @hello world@ \
             \ you died \
-            \ farewell ashen one"
-            errors <- U.extractErrors p
-            errors `shouldNotSatisfy` null
+            \ farewell ashen one" `U.shouldErrorOn` ("x", 10, 12)
         it "allows to declare more than 1 function" $ do
             let p = "hello ashen one\n\
 
@@ -237,8 +222,8 @@ spec = do
                 , ST.entryType = Just "sign"
                 } U.extractEmptyFunctionFromExtra (const True)
     describe "Functions calls" $ do
-        it "allows to call declared functions with no parameters" $ do
-            let p = "hello ashen one\n\
+        it "allows to call declared functions with no parameters" $
+            U.shouldNotError "hello ashen one\n\
 
             \invocation fun\n\
             \with skill of type humanity\n\
@@ -254,10 +239,8 @@ spec = do
             \ with orange saponite say summon fun \
             \ you died \
             \ farewell ashen one"
-            errors <- U.extractErrors p
-            errors `shouldSatisfy` null
-        it "allows to call declared functions with parameters" $ do
-            let p = "hello ashen one\n\
+        it "allows to call declared functions with parameters" $
+            U.shouldNotError "hello ashen one\n\
 
             \invocation fun\n\
             \with skill of type humanity\n\
@@ -273,10 +256,8 @@ spec = do
             \ with orange saponite say summon fun\n\
             \ you died \
             \ farewell ashen one"
-            errors <- U.extractErrors p
-            errors `shouldSatisfy` null
-        it "rejects to call non-declared functions" $ do
-            let p = "hello ashen one\n\
+        it "rejects to call non-declared functions" $
+            "hello ashen one\n\
 
             \invocation fun\n\
             \with skill of type humanity\n\
@@ -291,15 +272,9 @@ spec = do
             \ traveling somewhere\n\
             \   with orange saponite say summon fun2\n\
             \ you died \
-            \ farewell ashen one"
-            errors <- U.extractErrors p
-            errors `shouldNotSatisfy` null
-            let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
-            varName `shouldBe` "fun2"
-            T.row pn `shouldBe` 9
-            T.col pn `shouldBe` 36
-        it "allows recursion" $ do
-            let p = "hello ashen one\n\
+            \ farewell ashen one" `U.shouldErrorOn` ("fun2", 9, 36)
+        it "allows recursion" $
+            U.shouldNotError "hello ashen one\n\
 
             \invocation fun\n\
             \with skill of type humanity\n\
@@ -315,8 +290,6 @@ spec = do
             \   with orange saponite say summon fun\n\
             \ you died \
             \ farewell ashen one"
-            errors <- U.extractErrors p
-            errors `shouldSatisfy` null
         -- it "allows corecursion" $ do
         --     let p = "hello ashen one\n\
 

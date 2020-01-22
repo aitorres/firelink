@@ -1,6 +1,8 @@
 module TypeAliasesSpec where
 
 import Test.Hspec
+import Errors
+import qualified Utils as UU
 import qualified TestUtils as U
 import qualified SymTable as ST
 import qualified Grammar as G
@@ -107,8 +109,7 @@ spec = describe "Variable Declarations" $ do
         \ farewell ashen one\n"
         (_, ST.SymTable {ST.stDict=dict}, errors) <- U.extractSymTable p
         errors `shouldNotSatisfy` null
-        let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
-        varName `shouldBe` "x"
-        T.row pn `shouldBe` 4
-        T.col pn `shouldBe` 18
+        let Error _ pn = head errors
+        UU.row pn `shouldBe` 4
+        UU.column pn `shouldBe` 18
         Map.findWithDefault [] "y" dict `shouldSatisfy` null
