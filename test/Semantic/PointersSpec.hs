@@ -18,7 +18,8 @@ sampleProgram instr = "hello ashen one\n\
 
 \traveling somewhere\n\
 \with\n\
-\   var x of type arrow to sign\n\
+\   var x of type arrow to sign,\n\
+\   var y of type humanity\n\
 \in your inventory\n\
 \   " ++ instr ++ "\n\
 \   with orange saponite say @hello world@\n\
@@ -40,14 +41,18 @@ spec = do
             U.shouldNotError $ sampleProgram "aim a x \\"
         it "rejects to request memory of non-declared variables" $
             U.shouldErrorOn (sampleProgram "aim a nonDeclaredVariable \\")
-                ("nonDeclaredVariable", 6, 10)
+                ("nonDeclaredVariable", 7, 10)
+        it "rejects to request memory of a non-pointer variable" $
+            U.shouldErrorOn (sampleProgram "aim a y \\") ("y", 7, 10)
         it "allows to free memory for its usage" $
             U.shouldNotError $ sampleProgram "recover a x \\"
         it "rejects to free memory of non-declared variables" $
             U.shouldErrorOn (sampleProgram "recover a nonDeclaredVariable \\")
-                ("nonDeclaredVariable", 6, 14)
+                ("nonDeclaredVariable", 7, 14)
+        it "rejects to free memory of a non-pointer variable" $
+            U.shouldErrorOn (sampleProgram "recover a y \\") ("y", 7, 14)
         it "allows to access memory address for its usage" $
             U.shouldNotError $ sampleProgram "throw a x <<= |a| \\"
         it "rejects to access memory address of non-declared variables" $
             U.shouldErrorOn (sampleProgram "throw a nonDeclaredVariable <<= |a| \\")
-                ("nonDeclaredVariable", 6, 12)
+                ("nonDeclaredVariable", 7, 12)
