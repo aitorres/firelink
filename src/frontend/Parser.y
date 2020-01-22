@@ -790,13 +790,13 @@ checkSwitchCaseType expr = do
     let swType = last swTypes
     case swType of
       T.TypeError -> return ()
-      tp ->
-        if G.expType expr /= swType
-        then do
+      tp -> do
+        let exprType = G.expType expr
+        if exprType `T.canBeConvertedTo` tp then return ()
+        else do
           let tk = G.expTok expr
-          RWS.tell [Error ("Expresion type " ++ show tp ++ " conflicts with switch type (expected: " ++ show swType ++ ")") (T.position tk)]
+          RWS.tell [Error ("Expresion type " ++ show exprType ++ " conflicts with switch type (expected: " ++ show tp ++ ")") (T.position tk)]
           return ()
-        else return ()
 
 checkRecoverableError :: T.Token -> Maybe G.RecoverableError -> ST.ParserMonad ()
 checkRecoverableError openTk maybeErr = do
