@@ -98,7 +98,7 @@ data AbstractToken = TkId | TkConst | TkVar | TkOfType | TkAsig
     | TkPlus | TkMinus | TkMult | TkDiv | TkMod | TkLt | TkGt | TkLte
     | TkGte | TkEq | TkNeq | TkAnd | TkOr | TkConcat
     -- Parens
-    | TkParensOpen | TkParensClosed
+    | TkParensOpen | TkParensClose
     -- Unary operators
     | TkNot
     deriving (Eq)
