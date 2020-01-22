@@ -184,30 +184,7 @@ instance Show AbstractToken where
     show TkFloatLit = U.blue ++ U.bold
     show TkCharLit = U.yellow
     show TkStringLit = U.yellow
-    show TkParensOpen = ""
-    show TkParensClosed = ""
-    show TkColon = ""
-    show TkBraceOpen = ""
-    show TkBraceClosed = ""
-    show TkComma = ""
-    show TkAccessor = ""
-    show TkArrayOpen = ""
-    show TkArrayClose = ""
-    show TkAsciiOf = ""
-    show TkSize = ""
-    show TkSetOpen = ""
-    show TkSetClose = ""
-    show TkUnion = ""
-    show TkIntersect = ""
-    show TkDiff = ""
-    show TkUnionStruct = ""
-    show TkNull = ""
-    show TkPointer = ""
-    show TkRequestMemory = ""
-    show TkAccessMemory = ""
-    show TkFreeMemory = ""
-    show TkWithTitaniteFrom = ""
-    show _ = "epale chamito falto yo"
+    show _ = ""
 
 -- |Full token with all the description and position info
 data Token = Token
