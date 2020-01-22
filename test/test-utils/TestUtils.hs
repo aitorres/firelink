@@ -2,15 +2,16 @@ module TestUtils where
 
 import qualified SymTable as ST
 import qualified Lexer as L
-import qualified Tokens as T
+import Utils
 import Test.Hspec
 import Parser
+import Errors
 import qualified Grammar as G
 import qualified Control.Monad.RWS as RWS
 
 extractSymTable
     :: String
-    -> IO (G.Program, ST.SymTable, ST.SemanticErrors)
+    -> IO (G.Program, ST.SymTable, [Error])
 extractSymTable program = do
     let ([], tokens) = L.scanTokens program
     RWS.runRWST (parse tokens) () ST.initialState
@@ -20,7 +21,7 @@ extractDictionary program = do
     (_, d, _) <- extractSymTable program
     return d
 
-extractErrors :: String -> IO ST.SemanticErrors
+extractErrors :: String -> IO [Error]
 extractErrors program = do
     (_, _, e) <- extractSymTable program
     return e
@@ -105,14 +106,13 @@ testVoid prog expectedEntry extractor predicate = RWS.void $ test prog expectedE
 
 shouldNotError :: String -> IO ()
 shouldNotError p = do
-    (_, _, errors) <- extractSymTable p
+    errors <- extractErrors p
     errors `shouldSatisfy` null
 
 shouldErrorOn :: String -> (String, Int, Int) -> IO ()
-shouldErrorOn program (varName, row, col) = do
-    (_, _, errors) <- extractSymTable program
+shouldErrorOn program (varName, row', col) = do
+    errors <- extractErrors program
     errors `shouldNotSatisfy` null
-    let ST.SemanticError _ T.Token {T.capturedString=varName', T.posn=posn} = head errors
-    varName `shouldBe` varName'
-    col `shouldBe` T.col posn
-    row `shouldBe` T.row posn
+    let Error _ posn = head errors
+    col `shouldBe` column posn
+    row' `shouldBe` row posn

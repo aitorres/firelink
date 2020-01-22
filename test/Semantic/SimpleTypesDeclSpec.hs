@@ -1,10 +1,11 @@
 module SimpleTypesDeclSpec where
 
 import Test.Hspec
+import Errors
 import qualified TestUtils as U
+import qualified Utils as UU
 import qualified SymTable as ST
 import qualified Grammar as G
-import qualified Tokens as T
 
 program :: String -> String
 program e = "hello ashen one\
@@ -173,10 +174,9 @@ spec = do
             \ farewell ashen one"
             (_, ST.SymTable {ST.stDict=dict}, errors) <- U.extractSymTable p
             errors `shouldNotSatisfy` null
-            let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
-            varName `shouldBe` "x"
-            T.row pn `shouldBe` 5
-            T.col pn `shouldBe` 9
+            let Error _ pn = head errors
+            UU.row pn `shouldBe` 5
+            UU.column pn `shouldBe` 9
             U.testEntry dict varEntry
                 { ST.entryType = Just "humanity" }
                 U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
@@ -184,8 +184,8 @@ spec = do
                 { ST.entryType = Just "sign", ST.scope = 2 }
                 U.extractSimpleFromExtra (\(ST.Simple "sign") -> True)
     describe "Checks that variable is declared before it is already used" $ do
-        it "Allows to use already declared variables" $ do
-            let p = "hello ashen one \
+        it "Allows to use already declared variables" $
+            U.shouldNotError "hello ashen one \
 
             \ traveling somewhere \
 
@@ -196,10 +196,8 @@ spec = do
             \ you died \
 
             \ farewell ashen one"
-            errors <- U.extractErrors p
-            errors `shouldSatisfy` null
-        it "Allows to use already declared variables that were declared in another scope in the same scope chain" $ do
-            let p = "hello ashen one\n\
+        it "Allows to use already declared variables that were declared in another scope in the same scope chain" $
+            U.shouldNotError "hello ashen one\n\
 
             \ traveling somewhere\n\
 
@@ -215,10 +213,8 @@ spec = do
             \ you died\n\
 
             \ farewell ashen one\n"
-            errors <- U.extractErrors p
-            errors `shouldSatisfy` null
-        it "Allows to use already declared variables on assignments" $ do
-            let p = "hello ashen one \
+        it "Allows to use already declared variables on assignments" $
+            U.shouldNotError "hello ashen one \
 
             \ traveling somewhere \
 
@@ -229,10 +225,8 @@ spec = do
             \ you died \
 
             \ farewell ashen one"
-            errors <- U.extractErrors p
-            errors `shouldSatisfy` null
-        it "Rejects to use not declared variables on assignments" $ do
-            let p = "hello ashen one\n\
+        it "Rejects to use not declared variables on assignments" $
+            "hello ashen one\n\
 
             \traveling somewhere\n\
 
@@ -242,15 +236,9 @@ spec = do
             \   y <<= 1\n\
             \you died\n\
 
-            \farewell ashen one"
-            errors <- U.extractErrors p
-            errors `shouldNotSatisfy` null
-            let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
-            varName `shouldBe` "y"
-            T.row pn `shouldBe` 6
-            T.col pn `shouldBe` 4
-        it "Allows to use already declared variables on IO input" $ do
-            let p = "hello ashen one \
+            \farewell ashen one" `U.shouldErrorOn` ("y", 6, 4)
+        it "Allows to use already declared variables on IO input" $
+            U.shouldNotError "hello ashen one \
 
             \ traveling somewhere \
 
@@ -261,10 +249,8 @@ spec = do
             \ you died \
 
             \ farewell ashen one"
-            errors <- U.extractErrors p
-            errors `shouldSatisfy` null
-        it "Rejects to use not declared variables on IO input" $ do
-            let p = "hello ashen one\n\
+        it "Rejects to use not declared variables on IO input" $
+            "hello ashen one\n\
 
             \traveling somewhere\n\
 
@@ -274,15 +260,9 @@ spec = do
             \   transpose into y\n\
             \you died\n\
 
-            \farewell ashen one"
-            errors <- U.extractErrors p
-            errors `shouldNotSatisfy` null
-            let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
-            varName `shouldBe` "y"
-            T.row pn `shouldBe` 6
-            T.col pn `shouldBe` 19
-        it "Allows to use already declared variables on switch statements" $ do
-            let p = "hello ashen one \
+            \farewell ashen one" `U.shouldErrorOn` ("y", 6, 19)
+        it "Allows to use already declared variables on switch statements" $
+            U.shouldNotError "hello ashen one \
 
             \ traveling somewhere \
 
@@ -298,10 +278,8 @@ spec = do
             \ you died \
 
             \ farewell ashen one"
-            errors <- U.extractErrors p
-            errors `shouldSatisfy` null
-        it "Rejects to use not declared variables on switch statements" $ do
-            let p = "hello ashen one\n\
+        it "Rejects to use not declared variables on switch statements" $
+            "hello ashen one\n\
 
             \traveling somewhere\n\
 
@@ -316,17 +294,9 @@ spec = do
             \   dungeon exited \
             \you died\n\
 
-            \farewell ashen one"
-            errors <- U.extractErrors p
-            errors `shouldNotSatisfy` null
-            let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
-            varName `shouldBe` "y"
-            T.row pn `shouldBe` 6
-            T.col pn `shouldBe` 23
-
-
-        it "Rejects to use not declared variables in any scope" $ do
-            let p = "hello ashen one\n\
+            \farewell ashen one" `U.shouldErrorOn` ("y", 6, 23)
+        it "Rejects to use not declared variables in any scope" $
+            "hello ashen one\n\
 
             \ traveling somewhere\n\
 
@@ -336,10 +306,4 @@ spec = do
             \   with orange saponite say y\n\
             \ you died \
 
-            \ farewell ashen one"
-            errors <- U.extractErrors p
-            errors `shouldNotSatisfy` null
-            let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
-            varName `shouldBe` "y"
-            T.row pn `shouldBe` 6
-            T.col pn `shouldBe` 29
+            \ farewell ashen one" `U.shouldErrorOn` ("y", 6, 29)

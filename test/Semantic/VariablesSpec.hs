@@ -28,34 +28,8 @@ testVoid prog = U.testVoid (program prog)
 
 spec :: Spec
 spec = describe "Constants" $ do
-  it "rejects constant reassignments" $ do
-    let p = program "b <<= 1"
-    errors <- U.extractErrors p
-    errors `shouldNotSatisfy` null
-    let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
-    varName `shouldBe` "b"
-    T.row pn `shouldBe` 9
-    T.col pn `shouldBe` 5
-
-  it "allows to use constants on expressions" $ do
-    let p = program "with orange saponite say b"
-    errors <- U.extractErrors p
-    errors `shouldSatisfy` null
-  it "rejects constant array reassignments" $ do
-    let p = program "c<$0$> <<= 1"
-    errors <- U.extractErrors p
-    errors `shouldNotSatisfy` null
-    let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
-    varName `shouldBe` "c"
-    T.row pn `shouldBe` 9
-    T.col pn `shouldBe` 5
-
-  it "allows variable reassignments" $ do
-    let p = program "a <<= 3"
-    errors <- U.extractErrors p
-    errors `shouldSatisfy` null
-
-  it "allows variable arrays reassignments" $ do
-    let p = program "d<$0$> <<= 3"
-    errors <- U.extractErrors p
-    errors `shouldSatisfy` null
+  it "rejects constant reassignments" $ program "b <<= 1" `U.shouldErrorOn` ("b", 9, 5)
+  it "allows to use constants on expressions" $ U.shouldNotError $ program "with orange saponite say b"
+  it "rejects constant array reassignments" $ program "c<$0$> <<= 1" `U.shouldErrorOn` ("c", 9, 5)
+  it "allows variable reassignments" $ U.shouldNotError $ program "a <<= 3"
+  it "allows variable arrays reassignments" $ U.shouldNotError $ program "d<$0$> <<= 3"

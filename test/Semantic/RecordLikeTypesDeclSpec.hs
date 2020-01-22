@@ -162,8 +162,8 @@ spec = do
             \you died\n\
 
             \farewell ashen one"
-        it "rejects to access ST.records properties that doesn't exist" $ do
-            let p = "hello ashen one\n\
+        it "rejects to access ST.records properties that doesn't exist" $
+            "hello ashen one\n\
 
             \traveling somewhere\n\
 
@@ -177,13 +177,7 @@ spec = do
 
             \you died\n\
 
-            \farewell ashen one"
-            errors <- U.extractErrors p
-            errors `shouldNotSatisfy` null
-            let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
-            varName `shouldBe` "~>"
-            T.col pn `shouldBe` 31
-            T.row pn `shouldBe` 8
+            \farewell ashen one" `U.shouldErrorOn` ("~>", 8, 31)
         it "allows to access ST.record properties of arrays of records" $
             U.shouldNotError "hello ashen one\n\
 
@@ -202,8 +196,8 @@ spec = do
             \you died\n\
 
             \farewell ashen one"
-        it "rejects to access ST.record properties of arrays of any type that is not record" $ do
-            let p = "hello ashen one\n\
+        it "rejects to access ST.record properties of arrays of any type that is not record" $
+            "hello ashen one\n\
 
             \traveling somewhere\n\
 
@@ -215,13 +209,7 @@ spec = do
 
             \you died\n\
 
-            \farewell ashen one"
-            errors <- U.extractErrors p
-            errors `shouldNotSatisfy` null
-            let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
-            varName `shouldBe` "~>"
-            T.col pn `shouldBe` 36
-            T.row pn `shouldBe` 6
+            \farewell ashen one" `U.shouldErrorOn` ("~>", 6, 36)
         it "accepts valid x<$0$> ~> y ~> z<$0$> ~> a" $
             U.shouldNotError "hello ashen one\n\
 
@@ -242,8 +230,8 @@ spec = do
             \you died\n\
 
             \farewell ashen one"
-        it "rejects invalid x<$0$> ~> y ~> z<$0$> ~> b" $ do
-            let p = "hello ashen one\n\
+        it "rejects invalid x<$0$> ~> y ~> z<$0$> ~> b" $
+            "hello ashen one\n\
 
             \traveling somewhere\n\
 
@@ -261,10 +249,4 @@ spec = do
 
             \you died\n\
 
-            \farewell ashen one"
-            errors <- U.extractErrors p
-            errors `shouldNotSatisfy` null
-            let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
-            varName `shouldBe` "~>"
-            T.col pn `shouldBe` 51
-            T.row pn `shouldBe` 12
+            \farewell ashen one" `U.shouldErrorOn` ("~>", 12, 51)

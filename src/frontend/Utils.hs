@@ -41,3 +41,9 @@ green = "\x1b[32m"
 
 yellow :: String
 yellow = "\x1b[33m"
+
+data Position = Position
+    { row :: !Int -- ^ Row position of error
+    , column :: !Int -- ^ Column position of error
+    }
+    deriving (Eq, Show)

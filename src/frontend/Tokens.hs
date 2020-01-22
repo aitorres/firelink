@@ -6,7 +6,7 @@ Maintainer  : 14-10924@usb.ve, 14-11082@usb.ve
 Stability   : experimental
 -}
 module Tokens (
-    Token(..), AbstractToken(..), LexError(..), LexErrors, col, row) where
+    Token(..), AbstractToken(..)) where
 import qualified Utils as U
 
 -- |All the posible tokens of the language
@@ -212,31 +212,14 @@ instance Show AbstractToken where
     show TkWithTitaniteFrom = ""
     show _ = "epale chamito falto yo"
 
-type TkPosition = (Int, Int)
-
--- | Retrieve column number
-col :: TkPosition -> Int
-col (_, c) = c
-
--- | Retrieve row number
-row :: TkPosition -> Int
-row (r, _) = r
-
-
 -- |Full token with all the description and position info
 data Token = Token
     { aToken :: !AbstractToken -- Token perse
     , capturedString :: !String -- The captured string
     , cleanedString :: !String -- The cleaned string, post-processed
-    , posn :: TkPosition -- (Row, Col) info of the captured token
+    , position :: U.Position -- Position info of the captured token
     }
     deriving (Eq)
 
 instance Show Token where
     show t = (show . aToken $ t) ++ capturedString t ++ U.nocolor
-
--- | When there is a lexer error (i.e. an unrecognized token)
-newtype LexError = LexError (TkPosition, String)
-    deriving Show
-
-type LexErrors = [LexError]

@@ -4,16 +4,12 @@ import qualified Control.Monad.RWS as RWS
 import qualified Data.Map.Strict as Map
 import qualified Tokens as T
 import qualified Grammar as G
+import Errors
 
 import Data.Sort (sortBy)
 
 type Scope = Int
 type ScopeStack = [Scope]
-
-
-data SemanticError = SemanticError String T.Token
-    deriving Show
-type SemanticErrors = [SemanticError]
 
 data Category
     = Variable
@@ -118,7 +114,7 @@ data SymTable = SymTable
       stIterableVars :: ![String] -- ^ List of currently protected iterable variable
     }
 
-type ParserMonad = RWS.RWST () SemanticErrors SymTable IO
+type ParserMonad = RWS.RWST () [Error] SymTable IO
 
 findAllInScope :: Scope -> Dictionary -> DictionaryEntries
 findAllInScope s dict = filter (\entry -> scope entry == s) $ concatMap snd $ Map.toList dict

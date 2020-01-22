@@ -1,6 +1,6 @@
 module Main (main) where
 
-import Lib (compile)
+import Lib (firelink)
 
 main :: IO ()
-main = compile
+main = firelink

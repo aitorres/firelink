@@ -7,8 +7,8 @@ import qualified Tokens as T
 
 spec :: Spec
 spec = describe "Iterations declarations" $ do
-  it "rejects iteration variable reassignment" $ do
-    let p = "hello ashen one\n\
+  it "rejects iteration variable reassignment" $
+    "hello ashen one\n\
 
     \ traveling somewhere \n\
     \ with var i of type humanity <<= 1 in your inventory \n\
@@ -19,16 +19,9 @@ spec = describe "Iterations declarations" $ do
     \ you died \n\
     \ max level reached \n\
     \ you died \n\
-    \ farewell ashen one"
-    errors <- U.extractErrors p
-    errors `shouldNotSatisfy` null
-    let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
-    varName `shouldBe` "i"
-    T.row pn `shouldBe` 6
-    T.col pn `shouldBe` 2
-
-  it "rejects constant usage as an iteration variable" $ do
-    let p = "hello ashen one\n\
+    \ farewell ashen one" `U.shouldErrorOn` ("i", 6, 2)
+  it "rejects constant usage as an iteration variable" $
+    "hello ashen one\n\
 
     \ traveling somewhere \n\
     \ with const i of type humanity <<= 1 in your inventory \n\
@@ -38,10 +31,4 @@ spec = describe "Iterations declarations" $ do
     \ you died \n\
     \ max level reached \n\
     \ you died \n\
-    \ farewell ashen one"
-    errors <- U.extractErrors p
-    errors `shouldNotSatisfy` null
-    let ST.SemanticError _ T.Token {T.cleanedString=varName, T.posn=pn} = head errors
-    varName `shouldBe` "i"
-    T.row pn `shouldBe` 4
-    T.col pn `shouldBe` 12
+    \ farewell ashen one" `U.shouldErrorOn` ("i", 4, 12)

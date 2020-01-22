@@ -4,6 +4,8 @@ module Lexer (
     ) where
 import Data.List.Extra (replace)
 import Tokens
+import Errors
+import Utils
 }
 %wrapper "monadUserState"
 
@@ -169,13 +171,13 @@ makeToken tk' ((AlexPn _ r c), _, _, str) len = do
         aToken=tk',
         cleanedString=str',
         capturedString=str',
-        posn=(r, c)
+        position=Position {row=r, column=c}
     }
     alexMonadScan
 
 throwLexError :: AlexAction AlexUserState
 throwLexError ((AlexPn _ r c), _, _, str) len = do
-    addErrorToState $ LexError ((r, c), take len str)
+    addErrorToState $ Error (take len str) (Position {row=r, column=c})
     alexMonadScan
 
 
@@ -183,8 +185,7 @@ throwLexError ((AlexPn _ r c), _, _, str) len = do
 alexEOF :: Alex AlexUserState
 alexEOF = getUserState
 
-data AlexUserState = LexerResult LexErrors [Token]
-    deriving (Show)
+data AlexUserState = LexerResult [Error] [Token]
 
 alexInitUserState :: AlexUserState
 alexInitUserState = LexerResult [] []
@@ -200,7 +201,7 @@ addTokenToState tk' = Alex $ \s@AlexState{alex_ust=ust}
                 LexerResult errors (tk':tokens))
     }, ())
 
-addErrorToState :: LexError -> Alex ()
+addErrorToState :: Error -> Alex ()
 addErrorToState lexError = Alex $ \s@AlexState{alex_ust=ust}
     -> Right (s{
         alex_ust = (
@@ -208,7 +209,7 @@ addErrorToState lexError = Alex $ \s@AlexState{alex_ust=ust}
                 LexerResult (lexError:errors) tokens)
     }, ())
 
-scanTokens :: String -> (LexErrors, [Token])
+scanTokens :: String -> ([Error], [Token])
 scanTokens str = case runAlex str alexMonadScan of
     Left e -> do
         error $ "Alex error " ++ show e

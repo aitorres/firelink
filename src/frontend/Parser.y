@@ -9,6 +9,7 @@ import qualified Grammar as G
 import qualified Control.Monad.RWS as RWS
 import qualified TypeChecking as T
 import Utils
+import Errors
 }
 
 %name                                                                     parse
@@ -456,10 +457,10 @@ FORBEGIN :: { (T.Token, G.Id, Bool, G.Expr, G.Expr) }
   : forBegin ID with EXPR souls untilLevel EXPR                         {% do
                                                                           t1 <- getType $4
                                                                           RWS.when (not $ isIntegerType t1) $
-                                                                            RWS.tell [ST.SemanticError "Step should be an integer" (G.expTok $4)]
+                                                                            RWS.tell [Error "Step should be an integer" (T.position $ G.expTok $4)]
                                                                           t2 <- getType $7
                                                                           RWS.when (not $ isIntegerType t2) $
-                                                                            RWS.tell [ST.SemanticError "Stop should be an integer" (G.expTok $7)]
+                                                                            RWS.tell [Error "Stop should be an integer" (T.position $ G.expTok $7)]
 
                                                                           mid <- checkIdAvailability $2
                                                                           case mid of
@@ -486,7 +487,7 @@ FOREACHBEGIN :: { (T.Token, G.Id, Bool, Bool, G.Expr) }
                                                                             else
                                                                               case T.getTypeFromContainer containerType of
                                                                                 Nothing -> do
-                                                                                  RWS.tell [ST.SemanticError "Iterable expression is not a container" (G.expTok $4)]
+                                                                                  RWS.tell [Error "Iterable expression is not a container" (T.position $ G.expTok $4)]
                                                                                 _ -> do
                                                                                   return ()
                                                                           else do
@@ -496,11 +497,11 @@ FOREACHBEGIN :: { (T.Token, G.Id, Bool, Bool, G.Expr) }
                                                                             else
                                                                               case T.getTypeFromContainer containerType of
                                                                                 Nothing -> do
-                                                                                  RWS.tell [ST.SemanticError "Iterable expression is not a container" (G.expTok $4)]
+                                                                                  RWS.tell [Error "Iterable expression is not a container" (T.position $ G.expTok $4)]
                                                                                 Just t -> do
                                                                                   let (G.Id tk) = $2
                                                                                   RWS.when (T.TypeError /= t && iteratorType /= t) $
-                                                                                    RWS.tell [ST.SemanticError "Iterator variable is not of the type of contained elements" tk]
+                                                                                    RWS.tell [Error "Iterator variable is not of the type of contained elements" (T.position tk)]
                                                                           if containerType /= T.TypeError && isContainerAVariable then do
                                                                             let (G.IdExpr (G.Id tk)) = G.expAst $4
                                                                             ST.addIterableVariable (T.cleanedString tk)
@@ -609,13 +610,13 @@ extractFunParamsForNewScope _ = Nothing
 
 parseErrors :: [T.Token] -> ST.ParserMonad a
 parseErrors errors =
-  let tk@T.Token {T.aToken=abst, T.posn=pn} = errors !! 0
+  let tk@T.Token {T.aToken=abst, T.position=pn} = errors !! 0
       name = show tk
-      line = show $ fst pn
-      column = show $ snd pn
+      line = show $ row pn
+      column' = show $ column pn
       header = bold ++ red ++ "YOU DIED!!" ++ nocolor ++ " Parser error: "
       endmsg = "\n\nFix your syntax errors, ashen one."
-      position = "line " ++ bold ++ red ++ line ++ nocolor ++ ", column " ++ bold ++ red ++ column ++ nocolor ++ "."
+      position = "line " ++ bold ++ red ++ line ++ nocolor ++ ", column " ++ bold ++ red ++ column' ++ nocolor ++ "."
       msg = header ++ "Unexpected token " ++ bold ++ red ++ name ++ nocolor ++ " at " ++ position ++ endmsg
   in  fail msg
 
@@ -650,15 +651,15 @@ addIdToSymTable mi d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idN
       let scope = ST.scope entry
       let category = ST.category entry
       if category == ST.Type && c /= ST.RecordItem
-      then RWS.tell $ [ST.SemanticError ("Name " ++ show tk ++ " conflicts with an type alias") tk]
+      then RWS.tell $ [Error ("Name " ++ show tk ++ " conflicts with an type alias") (T.position tk)]
       else if category == ST.Procedure
-      then RWS.tell $ [ST.SemanticError ("Name " ++ show tk ++ " conflicts with a procedure") tk]
+      then RWS.tell $ [Error ("Name " ++ show tk ++ " conflicts with a procedure") (T.position tk)]
       else if category == ST.Function
-      then RWS.tell $ [ST.SemanticError ("Name " ++ show tk ++ " conflicts with a function") tk]
+      then RWS.tell $ [Error ("Name " ++ show tk ++ " conflicts with a function") (T.position tk)]
       else if category == ST.RefParam || category == ST.ValueParam
-      then RWS.tell $ [ST.SemanticError ("Name " ++ show tk ++ " conflicts with a formal param") tk]
+      then RWS.tell $ [Error ("Name " ++ show tk ++ " conflicts with a formal param") (T.position tk)]
       else if (T.cleanedString tk) `elem` iterVars
-      then RWS.tell $ [ST.SemanticError ("Name " ++ show tk ++ " conflicts or shadows an iteration variable") tk]
+      then RWS.tell $ [Error ("Name " ++ show tk ++ " conflicts or shadows an iteration variable") (T.position tk)]
       else if currScope /= scope
       then insertIdToEntry mi t ST.DictionaryEntry
         { ST.name = idName
@@ -667,7 +668,7 @@ addIdToSymTable mi d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idN
         , ST.entryType = ST.name <$> maybeTypeEntry
         , ST.extra = []
         }
-      else RWS.tell $ [ST.SemanticError ("Name " ++ idName ++ " was already declared on this scope") tk]
+      else RWS.tell $ [Error ("Name " ++ idName ++ " was already declared on this scope") (T.position tk)]
 
 insertIdToEntry :: Maybe Int -> G.GrammarType -> ST.DictionaryEntry -> ST.ParserMonad ()
 insertIdToEntry mi t entry = do
@@ -715,7 +716,7 @@ checkConstantReassignment e = case G.expAst e of
       Just e ->
         case (ST.category e) of
           ST.Constant -> do
-            RWS.tell [ST.SemanticError ("Name " ++ idName ++ " is a constant and must not be reassigned") tk]
+            RWS.tell [Error ("Name " ++ idName ++ " is a constant and must not be reassigned") (T.position tk)]
             return ()
           _ ->
             return ()
@@ -729,7 +730,7 @@ checkIterVariables e = case G.expAst e of
     let matchesIterVar = idName `elem` iterVars
     if matchesIterVar
     then do
-      RWS.tell [ST.SemanticError ("Iteration variable " ++ show tk ++ " must not be reassigned") tk]
+      RWS.tell [Error ("Iteration variable " ++ show tk ++ " must not be reassigned") (T.position tk)]
       return ()
     else return ()
   _ -> return ()
@@ -741,7 +742,7 @@ checkIterableVariables e = case G.expAst e of
     let matchesIterVar = idName `elem` iterableVars
     if matchesIterVar
     then do
-      RWS.tell [ST.SemanticError ("Iterable container " ++ show tk ++ " must not be reassigned") tk]
+      RWS.tell [Error ("Iterable container " ++ show tk ++ " must not be reassigned") (T.position tk)]
       return ()
     else return ()
   _ -> return ()
@@ -752,7 +753,7 @@ checkIdAvailability (G.Id tk@(T.Token {T.cleanedString=idName})) = do
   maybeEntry <- ST.dictLookup idName
   case maybeEntry of
     Nothing -> do
-      RWS.tell [ST.SemanticError ("Name " ++ (show tk) ++ " is not available on this scope") tk]
+      RWS.tell [Error ("Name " ++ (show tk) ++ " is not available on this scope") (T.position tk)]
       return Nothing
     Just e -> return $ Just e
 
@@ -764,7 +765,7 @@ checkIterVarType (G.Id tk@(T.Token {T.cleanedString=idName})) = do
     Just (ST.DictionaryEntry {ST.category=varCat}) -> do
       if varCat == ST.Constant
       then do
-        RWS.tell [ST.SemanticError ("Constant " ++ (show tk) ++ " can not be used as an iteration variable") tk]
+        RWS.tell [Error ("Constant " ++ (show tk) ++ " can not be used as an iteration variable") (T.position tk)]
         return ()
       else return ()
 
@@ -774,7 +775,7 @@ checkRecoverableError openTk maybeErr = do
     Nothing -> return ()
     Just err -> do
       let errorName = show err
-      RWS.tell [ST.SemanticError (errorName ++ " (recovered from to continue parsing)") openTk]
+      RWS.tell [Error (errorName ++ " (recovered from to continue parsing)") (T.position openTk)]
       return ()
 
 extractFieldsFromExtra :: [ST.Extra] -> ST.Extra
@@ -791,7 +792,7 @@ addFunction d@(_, i@(G.Id tk@(T.Token {T.cleanedString=idName})), _, _) = do
       addIdToSymTable Nothing d
       return $ Just (currScope, i)
     Just entry -> do
-      RWS.tell [ST.SemanticError ("Function " ++ idName ++ " was already declared") tk]
+      RWS.tell [Error ("Function " ++ idName ++ " was already declared") (T.position tk)]
       return Nothing
 
 updateCodeBlockOfFun :: ST.Scope -> G.Id -> G.CodeBlock -> ST.ParserMonad ()
@@ -808,7 +809,7 @@ findTypeOnEntryTable (G.Simple tk mSize) = do
   maybeEntry <- ST.dictLookup $ ST.tokensToEntryName tk
   case maybeEntry of
     Nothing -> do
-      RWS.tell [ST.SemanticError ("Type " ++ (show tk) ++ " not found") tk]
+      RWS.tell [Error ("Type " ++ (show tk) ++ " not found") (T.position tk)]
       return maybeEntry
     _ -> return maybeEntry
 
@@ -936,10 +937,6 @@ containerCheck [] c c' _ = return (c T.Any, c' [])
 containerCheck exprs typeCons exprCons tk = do
   let types = exprsToTypes exprs
   let t = findTypeForContainerLiteral types
-  -- if t == T.TypeError
-  -- then RWS.tell [ST.SemanticError (T.typeMismatchMessage tk)tk]
-  -- else return ()
-
   case t of
     -- case when there is already a type error on the list
     (Nothing, T.TypeError) -> return (T.TypeError, exprCons exprs)
@@ -947,7 +944,7 @@ containerCheck exprs typeCons exprCons tk = do
     -- a particular expression couldn't be casted to the accumulated type
     (Just x, T.TypeError) -> do
       let tk = G.expTok $ exprs !! x -- not so efficient, but works
-      RWS.tell [ST.SemanticError ("Type of item #" ++ show x ++ " of list mismatch") tk]
+      RWS.tell [Error ("Type of item #" ++ show x ++ " of list mismatch") (T.position tk)]
       return (T.TypeError, exprCons exprs)
 
     -- when a real type is found, we can safely ignore the first part of the tuple
@@ -976,7 +973,7 @@ checkIndexAccess array index tk = do
       else return T.TypeError
     T.TypeError -> return T.TypeError
     _ -> do
-      RWS.tell [ST.SemanticError "Left side is not a chest" tk]
+      RWS.tell [Error "Left side is not a chest" (T.position tk)]
       return T.TypeError
 
 functionsCheck :: G.Id -> [G.Expr] -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
@@ -989,10 +986,10 @@ functionsCheck funId exprs tk = do
       let exprsTypesL = length exprsTypes
       let domainL = length domain
       if exprsTypesL < domainL then do
-        RWS.tell [ST.SemanticError ("Function " ++ show funId ++ " received less arguments than it expected") tk]
+        RWS.tell [Error ("Function " ++ show funId ++ " received less arguments than it expected") (T.position tk)]
         return (T.TypeError, originalExpr)
       else if exprsTypesL > domainL then do
-        RWS.tell [ST.SemanticError ("Function " ++ show funId ++ " received more arguments than it expected") tk]
+        RWS.tell [Error ("Function " ++ show funId ++ " received more arguments than it expected") (T.position tk)]
         return (T.TypeError, originalExpr)
       else do
         if T.TypeError `elem` exprsTypes then
@@ -1005,12 +1002,12 @@ functionsCheck funId exprs tk = do
 
           -- oh oh, an argument could not be implicitly casted to its correspondent argument
           Just x -> do
-            RWS.tell [ST.SemanticError ("Argument #" ++ show x ++ " type mismatch with parameter #" ++ show x ++ " type") tk]
+            RWS.tell [Error ("Argument #" ++ show x ++ " type mismatch with parameter #" ++ show x ++ " type") (T.position tk)]
             return (T.TypeError, originalExpr)
 
     T.TypeError -> return (T.TypeError, originalExpr) -- we don't need to log - getType already does that
     _ -> do
-      RWS.tell [ST.SemanticError "You're trying to call a non-callable expression" tk]
+      RWS.tell [Error "You're trying to call a non-callable expression" (T.position tk)]
       return (T.TypeError, originalExpr)
   where
     -- left side is the type of the argument, right side is the parameter type
@@ -1030,7 +1027,7 @@ memAccessCheck expr tk = do
     T.PointerT t' -> return t'
     T.TypeError -> return T.TypeError
     _ -> do
-      RWS.tell [ST.SemanticError "Trying to access memory of non-arrow variable" tk]
+      RWS.tell [Error "Trying to access memory of non-arrow variable" (T.position tk)]
       return T.TypeError
 
 checkAsciiOf :: G.Expr -> T.Token -> ST.ParserMonad T.Type
@@ -1041,7 +1038,7 @@ checkAsciiOf e tk = do
     T.StringT -> return $ T.ArrayT T.BigIntT
     T.TypeError -> return T.TypeError
     _ -> do
-      RWS.tell [ST.SemanticError ("ascii_of requires argument to be a miracle or a sign") tk]
+      RWS.tell [Error ("ascii_of requires argument to be a miracle or a sign") (T.position tk)]
       return T.TypeError
 
 
@@ -1053,7 +1050,7 @@ checkAccess e (G.Id T.Token{T.cleanedString=i}) tk = do
     T.UnionT properties -> checkProperty properties
     T.TypeError -> return T.TypeError
     _ -> do
-      RWS.tell [ST.SemanticError "Left side of access is not a record nor union" tk]
+      RWS.tell [Error "Left side of access is not a record nor union" (T.position tk)]
       return T.TypeError
   where
     checkProperty :: [T.PropType] -> ST.ParserMonad T.Type
@@ -1061,7 +1058,7 @@ checkAccess e (G.Id T.Token{T.cleanedString=i}) tk = do
       case filter ((==i) . fst) $ map (\(T.PropType e) -> e) props of
         ((_,a):_) -> return a
         _ -> do
-          RWS.tell [ST.SemanticError ("Property " ++ i ++ " doesn't exist") tk]
+          RWS.tell [Error ("Property " ++ i ++ " doesn't exist") (T.position tk)]
           return T.TypeError
 
 unaryOpCheck :: G.Expr -> G.Op1 -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
@@ -1074,7 +1071,7 @@ unaryOpCheck expr op tk = do
     let finalType = if op == G.Negate then t else T.TrileanT in
     return (finalType, finalExpr)
   else do
-    RWS.tell [ST.SemanticError (T.typeMismatchMessage tk) tk]
+    RWS.tell [Error (T.typeMismatchMessage tk) (T.position tk)]
     return (T.TypeError, finalExpr)
   where
     expectedForOperand
@@ -1094,7 +1091,7 @@ binaryOpCheck leftExpr rightExpr op tk = do
     let [castedRightExpr] = addCastToExprs [(rightExpr, leftType)] in
     checkIfInExpected leftExpr castedRightExpr
   else do
-    RWS.tell [ST.SemanticError "Left and right side of operand can't be operated together" tk]
+    RWS.tell [Error "Left and right side of operand can't be operated together" (T.position tk)]
     return (T.TypeError, G.Op2 op leftExpr rightExpr)
 
   where
@@ -1117,7 +1114,7 @@ binaryOpCheck leftExpr rightExpr op tk = do
         let finalType = if op `elem` G.comparableOp2 then T.TrileanT else t in
         return (finalType, exp)
       else do
-        RWS.tell [ST.SemanticError (T.typeMismatchMessage tk) tk]
+        RWS.tell [Error (T.typeMismatchMessage tk) (T.position tk)]
         return (T.TypeError, exp)
 
 checkSetSize :: G.Expr -> T.Token -> ST.ParserMonad T.Type
@@ -1127,7 +1124,7 @@ checkSetSize expr tk = do
     T.SetT _ -> return T.BigIntT
     T.TypeError -> return T.TypeError
     _ -> do
-      RWS.tell [ST.SemanticError "`size` expects a set" tk]
+      RWS.tell [Error "`size` expects a set" (T.position tk)]
       return T.TypeError
 
 checkTypeOfAssignmentOnInit :: ST.DictionaryEntry -> G.Expr -> ST.ParserMonad ()
@@ -1136,7 +1133,7 @@ checkTypeOfAssignmentOnInit entry expr = do
   exprType <- getType expr
   if exprType `T.canBeConvertedTo` entryType
   then return ()
-  else RWS.tell [ST.SemanticError "Invalid asignment" (G.expTok expr)]
+  else RWS.tell [Error "Invalid asignment" (T.position $ G.expTok expr)]
 
 minBigInt :: Int
 minBigInt = - 2147483648
@@ -1157,7 +1154,7 @@ checkBooleanGuard :: G.Expr -> ST.ParserMonad ()
 checkBooleanGuard expr = do
   t <- getType expr
   RWS.when (t /= T.TrileanT) $
-    RWS.tell [ST.SemanticError "Guard should be of trilean data type" (G.expTok expr)]
+    RWS.tell [Error "Guard should be of trilean data type" (T.position $ G.expTok expr)]
 
 buildType :: G.BaseExpr -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
 buildType bExpr tk = case bExpr of

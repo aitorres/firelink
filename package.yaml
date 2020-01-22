@@ -31,7 +31,7 @@ dependencies:
 - sort
 
 library:
-  source-dirs: src
+  source-dirs: [src, src/frontend, src/tac]
   build-tools:
     - alex
     - happy
