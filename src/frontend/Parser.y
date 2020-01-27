@@ -34,6 +34,7 @@ import Errors
 %left diff
 %left union intersect
 
+%left isActive
 %left asciiOf
 %right not
 %left accessor
@@ -154,6 +155,7 @@ import Errors
   and                                                                   { T.Token {T.aToken=T.TkAnd} }
   or                                                                    { T.Token {T.aToken=T.TkOr} }
   asciiOf                                                               { T.Token {T.aToken=T.TkAsciiOf} }
+  isActive                                                              { T.Token {T.aToken=T.TkIsActive} }
   colConcat                                                             { T.Token {T.aToken=T.TkConcat} }
   union                                                                 { T.Token {T.aToken=T.TkUnion} }
   intersect                                                             { T.Token {T.aToken=T.TkIntersect} }
@@ -239,6 +241,7 @@ EXPR :: { G.Expr }
   | minus EXPR                                                          {% buildAndCheckExpr $1 $ G.Op1 G.Negate $2 }
   | not EXPR                                                            {% buildAndCheckExpr $1 $ G.Op1 G.Not $2 }
   | asciiOf EXPR                                                        {% buildAndCheckExpr $1 $ G.AsciiOf $2 }
+  | isActive EXPR                                                       {% buildAndCheckExpr $1 $ G.IsActive $2 }
   | size EXPR                                                           {% buildAndCheckExpr $1 $ G.SetSize $2 }
   | EXPR plus EXPR                                                      {% buildAndCheckExpr $2 $ G.Op2 G.Add $1 $3 }
   | EXPR minus EXPR                                                     {% buildAndCheckExpr $2 $ G.Op2 G.Substract $1 $3 }
@@ -1046,6 +1049,22 @@ checkAsciiOf e tk = do
       RWS.tell [Error ("ascii_of requires argument to be a miracle or a sign") (T.position tk)]
       return T.TypeError
 
+checkIsActive :: G.Expr -> T.Token -> ST.ParserMonad T.Type
+checkIsActive e tk = do
+  t <- getType e
+  case t of
+    T.TypeError -> return T.TypeError
+    _ ->
+      if isUnionAttr then return T.TrileanT
+      else do
+        RWS.tell [Error ("is_active requires argument to be a union attribute") (T.position tk)]
+        return T.TypeError
+  where
+    isUnionAttr = case e of
+      (G.Expr {G.expAst=(G.Access r _)}) -> isUnion r
+      _ -> False
+    isUnion (G.Expr {G.expType=(T.UnionT _)}) = True
+    isUnion _ = False
 
 checkAccess :: G.Expr -> G.Id -> T.Token -> ST.ParserMonad T.Type
 checkAccess e (G.Id T.Token{T.cleanedString=i}) tk = do
@@ -1193,6 +1212,7 @@ buildType bExpr tk = case bExpr of
   G.IndexAccess e i -> buildTypeForNonCasterExprs (checkIndexAccess e i tk) bExpr
   G.EvalFunc i params -> functionsCheck i params tk
   G.MemAccess e -> buildTypeForNonCasterExprs (memAccessCheck e tk) bExpr
+  G.IsActive e -> buildTypeForNonCasterExprs (checkIsActive e tk) bExpr
   G.AsciiOf e -> buildTypeForNonCasterExprs (checkAsciiOf e tk) bExpr
   G.Access e i -> buildTypeForNonCasterExprs (checkAccess e i tk) bExpr
   G.SetSize e -> buildTypeForNonCasterExprs (checkSetSize e tk) bExpr

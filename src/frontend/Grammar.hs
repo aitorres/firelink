@@ -40,6 +40,7 @@ data BaseExpr
   | MemAccess Expr
   | IdExpr Id
   | AsciiOf Expr
+  | IsActive Expr
   | SetSize Expr
   | EvalFunc Id Params
   | Caster Expr Type
@@ -118,6 +119,7 @@ instance Show BaseExpr where
   show (MemAccess e) = "throw a " ++ show e
   show (IdExpr i) = show i
   show (AsciiOf e) = "ascii_of " ++ show e
+  show (IsActive e) = "is_active " ++ show e
   show (SetSize s) = "size " ++ show s
   show (EvalFunc i p) = "summon " ++ show i ++ " granting " ++ joinExprList p ++ " to the knight"
   show (Caster a _) = "(casting) " ++ show a

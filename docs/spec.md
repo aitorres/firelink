@@ -189,7 +189,7 @@ El valor por defecto de un caracter es el caracter nulo (`|\0|`).
 
 ##### Funciones de los caracteres
 
-Se debe implementar la siguiente función en el preludio de **FireLink**.
+Se debe implementar la siguiente función especial en el preludio de **FireLink**.
 
 - `ascii_of`: Retorna el código ascii de la variable (como `humanity`).
 
@@ -213,7 +213,7 @@ Se cuenta con el siguiente operador:
 
 ##### Funciones de las cadenas de caracteres
 
-Se debe implementar la siguiente función en el preludio de **FireLink**.
+Se debe implementar la siguiente función especial en el preludio de **FireLink**.
 
 - `ascii_of`: Retorna un arreglo de `humanity`s, representando los códigos asciis de cada caracter en el input.
 
@@ -293,9 +293,49 @@ link {
 }
 ```
 
-Donde `n` es la cantidad de tipos *distintos entre sí* de la unión, cada una con un nombre *único* para el mismo registro, independientemente de los tipos.
+Donde `n` es la cantidad de tipos de la unión, cada una con un nombre *único* para el mismo registro, independientemente de los tipos.
 
-El valor por defecto de una unión corresponde al valor por defecto de alguno de sus tipos.
+##### Funciones de las uniones
+
+Se debe implementar la siguiente función especial en el preludio de **FireLink**.
+
+- `is_active`: Recibe un atributo de una unión (`link`) y retorna un `bonfire` de la siguiente manera:
+  - `lit` si el atributo es el atributo activo de la unión
+  - `unlit` si el atributo NO es el atributo activo de la unión
+  - `undiscovered` si ningún valor ha sido asignado aún a algún atributo de la unión
+
+Un ejemplo de su uso sería el siguiente (con algunas libertades en la sintaxis):
+
+```firelink
+
+-- Asumimos que tenemos la siguiente declaración, aún sin inicializar
+var x of type link {
+  a of type humanity,
+  b of type humanity,
+  c of type bonfire
+}
+
+-- Antes de asignar algún valor
+is_active x~>a -- undiscovered
+is_active x~>b -- undiscovered
+is_active x~>c -- undiscovered
+
+-- Asignamos
+x~>a <<= 3
+
+-- Verificamos el atributo activo
+is_active x~>a -- lit
+is_active x~>b -- unlit
+is_active x~>c -- unlit
+
+-- Reasignamos
+x~>c <<= lit
+
+-- Verificamos el atributo activo
+is_active x~>a -- unlit
+is_active x~>b -- unlit
+is_active x~>c -- lit
+```
 
 ### Especiales
 

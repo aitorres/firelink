@@ -18,3 +18,9 @@ spec = describe "Lexer" $ do
     let ([], toks) = scanTokens x
     let atok = getAbstractToken $ head toks
     atok `shouldBe` TkUnionStruct
+
+  it "accepts `is_active` as a valid token" $ do
+    let x = "is_active"
+    let ([], toks) = scanTokens x
+    let atok = getAbstractToken $ head toks
+    atok `shouldBe` TkIsActive
