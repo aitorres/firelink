@@ -1054,14 +1054,16 @@ checkIsActive e tk = do
   case t of
     T.TypeError -> return T.TypeError
     _ ->
-      if isUnionAttr e then return T.TrileanT
+      if isUnionAttr then return T.TrileanT
       else do
         RWS.tell [Error ("is_active requires argument to be a union attribute") (T.position tk)]
         return T.TypeError
-  where isUnionAttr (G.Expr {G.expAst=(G.Access r _)}) = isUnion r
-        isUnionAttr _ = False
-        isUnion (G.Expr {G.expType=(T.UnionT _)}) = True
-        isUnion _ = False
+  where
+    isUnionAttr = case e of
+      (G.Expr {G.expAst=(G.Access r _)}) -> isUnion r
+      _ -> False
+    isUnion (G.Expr {G.expType=(T.UnionT _)}) = True
+    isUnion _ = False
 
 checkAccess :: G.Expr -> G.Id -> T.Token -> ST.ParserMonad T.Type
 checkAccess e (G.Id T.Token{T.cleanedString=i}) tk = do
