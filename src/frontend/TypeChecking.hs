@@ -24,7 +24,31 @@ data Type
   | AliasT String
   | Any -- Currently only used in empty set, empty array and null pointers
   | TypeError
-  deriving Show
+
+instance Show Type where
+  show BigIntT = "big humanity"
+  show SmallIntT = "small humanity"
+  show TrileanT = "bonfire"
+  show FloatT = "hollow"
+  show CharT = "sign"
+  show StringT = "miracle"
+  show VoidT = "abyss"
+  show (ArrayT t) = "chest of type " ++ show t
+  show (SetT t) = "armor of type " ++ show t
+  show (RecordT ps) = "link with elements " ++ formattedElements
+    where elements = concatMap (\(PropType (a, t)) -> a ++ " of type " ++ show t ++ ", ") ps
+          usefulChars = length elements - 2
+          formattedElements = take usefulChars elements
+  show (UnionT ps) = "link with elements " ++ formattedElements
+    where elements = concatMap (\(PropType (a, t)) -> a ++ " of type " ++ show t ++ ", ") ps
+          usefulChars = length elements - 2
+          formattedElements = take usefulChars elements
+  show (PointerT t) = "arrow to " ++ show t
+  show (FunctionT as r) = "spell requiring " ++ concatMap (\t -> show t ++ ", ") as ++ " and returning " ++ show r
+  show (TypeList ts) = "typelist " ++ concatMap (\t -> show t ++ ", ") ts
+  show (AliasT t) = "knight to " ++ t
+  show Any = "any"
+  show TypeError = "error type (if you see this, open an issue on github)"
 
 instance Eq Type where
   BigIntT == BigIntT = True

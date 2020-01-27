@@ -110,7 +110,7 @@ shouldNotError p = do
     errors `shouldSatisfy` null
 
 shouldErrorOn :: String -> (String, Int, Int) -> IO ()
-shouldErrorOn program (varName, row', col) = do
+shouldErrorOn program (_, row', col) = do
     errors <- extractErrors program
     errors `shouldNotSatisfy` null
     let Error _ posn = head errors

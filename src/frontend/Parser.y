@@ -401,6 +401,7 @@ INSTR :: { G.Instruction }
                                                                           checkConstantReassignment $1
                                                                           checkIterVariables $1
                                                                           checkIterableVariables $1
+                                                                          checkTypeOfAssignment $1 $3 $2
                                                                           return $ G.InstAsig $1 $3 }
   | malloc EXPR                                                         {% do
                                                                           checkPointerVariable $2
@@ -643,7 +644,7 @@ addIdToSymTable mi d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idN
         (Nothing, _) -> return ()
         (_, Nothing) -> return ()
         (Just en, Just exp) -> do
-          checkTypeOfAssignmentOnInit en exp
+          checkTypeOfAssignment en exp (G.expTok exp)
 
     -- The name does exists on the table, we just add it depending on the scope
     Just entry -> do
@@ -1131,13 +1132,15 @@ checkSetSize expr tk = do
       RWS.tell [Error "`size` expects a set" (T.position tk)]
       return T.TypeError
 
-checkTypeOfAssignmentOnInit :: ST.DictionaryEntry -> G.Expr -> ST.ParserMonad ()
-checkTypeOfAssignmentOnInit entry expr = do
-  entryType <- getType entry
-  exprType <- getType expr
-  if exprType `T.canBeConvertedTo` entryType
+checkTypeOfAssignment :: (TypeCheckable a, TypeCheckable b) => a -> b -> T.Token -> ST.ParserMonad ()
+checkTypeOfAssignment lval rval tk = do
+  lvalType <- getType lval
+  rvalType <- getType rval
+  if rvalType `T.canBeConvertedTo` lvalType
   then return ()
-  else RWS.tell [Error "Invalid asignment" (T.position $ G.expTok expr)]
+  else do
+    let errorDetails = "(couldn't covert " ++ (show rvalType) ++ " to " ++ (show lvalType) ++ ")"
+    RWS.tell [Error ("Type mismatch on assignment " ++ errorDetails) (T.position tk)]
 
 minBigInt :: Int
 minBigInt = - 2147483648
