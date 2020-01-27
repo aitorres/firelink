@@ -1,0 +1,21 @@
+hello ashen one
+
+    traveling somewhere
+    with
+        var a of type humanity,
+        var b of type hollow,
+        var c of type bonfire
+    in your inventory
+        a <<= 1 \
+        a <<= lit \
+        a <<= 4.5 \
+        b <<= 1 \
+        b <<= lit \
+        b <<= 4.5 \
+        c <<= 1 \
+        c <<= lit \
+        c <<= 4.5
+
+    you died
+
+farewell ashen one
