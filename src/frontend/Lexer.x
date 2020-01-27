@@ -54,6 +54,7 @@ tokens :-
     inventory\ closed                     { makeToken TkEndIf }
 
     ascii_of                              { makeToken TkAsciiOf }
+    is_active                             { makeToken TkIsActive }
 
     -- switch statements
     enter\ dungeon\ with                  { makeToken TkSwitch }
