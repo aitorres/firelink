@@ -293,9 +293,49 @@ link {
 }
 ```
 
-Donde `n` es la cantidad de tipos *distintos entre sí* de la unión, cada una con un nombre *único* para el mismo registro, independientemente de los tipos.
+Donde `n` es la cantidad de tipos de la unión, cada una con un nombre *único* para el mismo registro, independientemente de los tipos.
 
-El valor por defecto de una unión corresponde al valor por defecto de alguno de sus tipos.
+##### Funciones de las uniones
+
+Se debe implementar la siguiente función en el preludio de **FireLink**.
+
+- `is_active`: Recibe un atributo de una unión (`link`) y retorna un `bonfire` de la siguiente manera:
+  - `lit` si el atributo es el atributo activo de la unión
+  - `unlit` si el atributo NO es el atributo activo de la unión
+  - `undiscovered` si ningún valor ha sido asignado aún a algún atributo de la unión
+
+Un ejemplo de su uso sería el siguiente (con algunas libertades en la sintaxis):
+
+```firelink
+
+-- Asumimos que tenemos la siguiente declaración, aún sin inicializar
+var x of type link {
+  a of type humanity,
+  b of type humanity,
+  c of type bonfire
+}
+
+-- Antes de asignar algún valor
+summon is_active granting x~>a to the knight -- undiscovered
+summon is_active granting x~>b to the knight -- undiscovered
+summon is_active granting x~>c to the knight -- undiscovered
+
+-- Asignamos
+x~>a <<= 3
+
+-- Verificamos el atributo activo
+summon is_active granting x~>a to the knight -- lit
+summon is_active granting x~>b to the knight -- unlit
+summon is_active granting x~>c to the knight -- unlit
+
+-- Reasignamos
+x~>c <<= lit
+
+-- Verificamos el atributo activo
+summon is_active granting x~>a to the knight -- unlit
+summon is_active granting x~>b to the knight -- unlit
+summon is_active granting x~>c to the knight -- lit
+```
 
 ### Especiales
 
