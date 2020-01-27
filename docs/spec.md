@@ -189,7 +189,7 @@ El valor por defecto de un caracter es el caracter nulo (`|\0|`).
 
 ##### Funciones de los caracteres
 
-Se debe implementar la siguiente función en el preludio de **FireLink**.
+Se debe implementar la siguiente función especial en el preludio de **FireLink**.
 
 - `ascii_of`: Retorna el código ascii de la variable (como `humanity`).
 
@@ -213,7 +213,7 @@ Se cuenta con el siguiente operador:
 
 ##### Funciones de las cadenas de caracteres
 
-Se debe implementar la siguiente función en el preludio de **FireLink**.
+Se debe implementar la siguiente función especial en el preludio de **FireLink**.
 
 - `ascii_of`: Retorna un arreglo de `humanity`s, representando los códigos asciis de cada caracter en el input.
 
@@ -297,7 +297,7 @@ Donde `n` es la cantidad de tipos de la unión, cada una con un nombre *único* 
 
 ##### Funciones de las uniones
 
-Se debe implementar la siguiente función en el preludio de **FireLink**.
+Se debe implementar la siguiente función especial en el preludio de **FireLink**.
 
 - `is_active`: Recibe un atributo de una unión (`link`) y retorna un `bonfire` de la siguiente manera:
   - `lit` si el atributo es el atributo activo de la unión
@@ -316,25 +316,25 @@ var x of type link {
 }
 
 -- Antes de asignar algún valor
-summon is_active granting x~>a to the knight -- undiscovered
-summon is_active granting x~>b to the knight -- undiscovered
-summon is_active granting x~>c to the knight -- undiscovered
+is_active x~>a -- undiscovered
+is_active x~>b -- undiscovered
+is_active x~>c -- undiscovered
 
 -- Asignamos
 x~>a <<= 3
 
 -- Verificamos el atributo activo
-summon is_active granting x~>a to the knight -- lit
-summon is_active granting x~>b to the knight -- unlit
-summon is_active granting x~>c to the knight -- unlit
+is_active x~>a -- lit
+is_active x~>b -- unlit
+is_active x~>c -- unlit
 
 -- Reasignamos
 x~>c <<= lit
 
 -- Verificamos el atributo activo
-summon is_active granting x~>a to the knight -- unlit
-summon is_active granting x~>b to the knight -- unlit
-summon is_active granting x~>c to the knight -- lit
+is_active x~>a -- unlit
+is_active x~>b -- unlit
+is_active x~>c -- lit
 ```
 
 ### Especiales
