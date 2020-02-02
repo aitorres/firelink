@@ -17,7 +17,7 @@ import Text.Printf (printf)
 import Utils
 import FrontEndCompiler
 import BackEndCompiler (backend)
-import CodeGenerator (TAC(..), ConstantValue(..))
+import CodeGenerator (TAC(..))
 import Errors
 import qualified TACType as TAC
 
@@ -174,37 +174,7 @@ handleCompileError compileError tokens =
         SemanticError -> printSemErrors (ceErrors compileError) tokens
 
 printTacCode :: [TAC] -> IO ()
-printTacCode = mapM_ printTac
-    where
-        showOperand :: TAC.Operand ST.DictionaryEntry ConstantValue -> String
-        showOperand (TAC.Constant (ConstantString s)) = s
-        showOperand (TAC.Constant (ConstantInt i)) = show i
-
-        showOperation :: TAC.Operation -> String
-        showOperation op
-            | op == TAC.Suma = "+"
-            | op == TAC.Resta = "-"
-            | op == TAC.Multiplicacion = "*"
-            | op == TAC.Division = "/"
-        printTac :: TAC -> IO ()
-        printTac TAC.ThreeAddressCode
-            { TAC.tacOperand = operand
-            , TAC.tacLvalue = maybeLValue
-            , TAC.tacRvalue1 = maybeRValue1
-            , TAC.tacRvalue2 = maybeRValue2
-            } = putStrLn $
-                case (operand, maybeLValue, maybeRValue1, maybeRValue2) of
-                    -- x := y
-                    (_, Just lvalue, Just rValue1, Nothing) ->
-                        showOperand lvalue ++ " := " ++ showOperand rValue1
-                    
-                    -- x := y op z
-                    (op, Just lvalue, Just rvalue1, Just rvalue2) ->
-                        showOperand lvalue ++ " := " ++
-                        showOperand rvalue1 ++ " " ++ showOperation op ++ " " ++
-                        showOperand rvalue2
-
-
+printTacCode = mapM_ print
 
 compile :: String -> IO ()
 compile program = do

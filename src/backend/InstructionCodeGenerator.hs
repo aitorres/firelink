@@ -5,5 +5,5 @@ import ExprCodeGenerator
 import Grammar (Instruction(..))
 
 instance GenerateCode Instruction where
-    genCode (InstPrint expr) = genCode expr >> return Nothing
+    genCode (InstPrint expr) = genCode expr
 
