@@ -21,7 +21,7 @@ newtemp :: CodeGenMonad String
 newtemp = do
     state@CodeGenState {cgsNextLabel = label} <- get
     put $ state{cgsNextLabel = label + 1}
-    return $ "t" ++ show label
+    return $ "_t" ++ show label
 
 class GenerateCode a where
     genCode :: a -> CodeGenMonad ()
