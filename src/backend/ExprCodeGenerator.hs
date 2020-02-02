@@ -42,7 +42,7 @@ genCodeForExpr t (IntLit n) = do
     newId <- newtemp
     let lvalue = TAC.Constant (newId, t)
     tell [TAC.ThreeAddressCode
-            { TAC.tacOperand = TAC.Add -- TODO: ask if this should be nothing, using Add is not ok
+            { TAC.tacOperand = TAC.Assign
             , TAC.tacLvalue = Just lvalue
             , TAC.tacRvalue1 = Just $ TAC.Constant (show n, t)
             , TAC.tacRvalue2 = Nothing
