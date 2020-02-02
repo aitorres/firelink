@@ -16,7 +16,10 @@ import Data.List (intercalate, groupBy)
 import Text.Printf (printf)
 import Utils
 import FrontEndCompiler
+import BackEndCompiler (backend)
+import CodeGenerator (TAC(..))
 import Errors
+import qualified TACType as TAC
 
 prettyPrintSymTable :: ST.SymTable -> IO ()
 prettyPrintSymTable ST.SymTable{ST.stDict=dict} = do
@@ -170,6 +173,8 @@ handleCompileError compileError tokens =
         LexError -> handleLexError (ceErrors compileError) tokens
         SemanticError -> printSemErrors (ceErrors compileError) tokens
 
+printTacCode :: [TAC] -> IO ()
+printTacCode = mapM_ print
 
 compile :: String -> IO ()
 compile program = do
@@ -179,6 +184,8 @@ compile program = do
         Right (ast, symTable, tokens) -> do
             prettyPrintSymTable symTable
             printProgram tokens
+            code <- backend ast (ST.stDict symTable)
+            printTacCode code
             exitSuccess
 
 firelink :: IO ()
