@@ -16,8 +16,8 @@ data Type
   | VoidT
   | ArrayT Type
   | SetT Type
-  | RecordT [PropType]
-  | UnionT [PropType]
+  | RecordT Int [PropType]
+  | UnionT Int [PropType]
   | PointerT Type
   | FunctionT [Type] Type
   | TypeList [Type]
@@ -35,11 +35,11 @@ instance Show Type where
   show VoidT = "abyss"
   show (ArrayT t) = "chest of type " ++ show t
   show (SetT t) = "armor of type " ++ show t
-  show (RecordT ps) = "link with elements " ++ formattedElements
+  show (RecordT _ ps) = "link with elements " ++ formattedElements
     where elements = concatMap (\(PropType (a, t)) -> a ++ " of type " ++ show t ++ ", ") ps
           usefulChars = length elements - 2
           formattedElements = take usefulChars elements
-  show (UnionT ps) = "link with elements " ++ formattedElements
+  show (UnionT _ ps) = "link with elements " ++ formattedElements
     where elements = concatMap (\(PropType (a, t)) -> a ++ " of type " ++ show t ++ ", ") ps
           usefulChars = length elements - 2
           formattedElements = take usefulChars elements
@@ -59,8 +59,8 @@ instance Eq Type where
   StringT == StringT = True
   ArrayT t == ArrayT t' = t == t'
   SetT t == SetT t' = t == t'
-  UnionT pt == UnionT pt' = sort pt == sort pt'
-  RecordT pt == RecordT pt' = sort pt == sort pt'
+  UnionT s pt == UnionT s' pt' = sort pt == sort pt' && s == s'
+  RecordT s pt == RecordT s' pt' = sort pt == sort pt' && s == s'
   PointerT t == PointerT t' = t == t'
   FunctionT ts t == FunctionT ts' t' = ts == ts' && t == t'
   TypeList t == TypeList t' = t == t'

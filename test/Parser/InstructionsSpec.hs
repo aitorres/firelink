@@ -39,10 +39,10 @@ spec = describe "Instructions" $ do
 
         \ farewell ashen one" (\(Program (CodeBlock [
             InstPrint Expr{expAst=(StringLit "hello world")},
-            InstRead Expr{expAst=(IdExpr (Id Token {cleanedString="patata"}))}])) -> True)
+            InstRead Expr{expAst=(IdExpr (Id Token {cleanedString="patata"} _))}])) -> True)
 
     it "accepts assigning as an instruction" $
         runTestForValidProgram (buildProgram "a <<= 1")
         (\(Program (CodeBlock [
-            InstAsig Expr{expAst=(IdExpr (Id Token {cleanedString="a"}))} Expr{expAst=(IntLit 1)}
+            InstAsig Expr{expAst=(IdExpr (Id Token {cleanedString="a"} _))} Expr{expAst=(IntLit 1)}
         ])) -> True)
