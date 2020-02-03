@@ -31,6 +31,6 @@ spec = describe "Loops over structures" $ do
         \ you died \
         \ weaponry repaired") (\(Program (
             CodeBlock [
-                InstForEach (Id Token {cleanedString="a"}) Expr{expAst=IdExpr (Id Token {cleanedString="b"})}
+                InstForEach (Id Token {cleanedString="a"} _) Expr{expAst=IdExpr (Id Token {cleanedString="b"} _)}
                     (CodeBlock [InstPrint Expr{expAst=StringLit ""}])
                 ])) -> True)

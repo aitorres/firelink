@@ -49,7 +49,7 @@ genCodeForExpr t (IntLit n) = do
             }]
     return lvalue
 
-genCodeForExpr t (IdExpr (Id Token {cleanedString=s})) = return $ TAC.Constant (s, t)
+genCodeForExpr t (IdExpr (Id Token {cleanedString=s} _)) = return $ TAC.Constant (s, t)
 
 -- TODO: Do type casting correctly
 genCodeForExpr t (Caster expr _) = genCode' expr

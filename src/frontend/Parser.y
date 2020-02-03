@@ -216,7 +216,7 @@ ALIAS :: { NameDeclaration }
 
 LVALUE :: { G.Expr }
   : ID                                                                  {% do
-                                                                            let (G.Id tk) = $1
+                                                                            let (G.Id tk _) = $1
                                                                             buildAndCheckExpr tk $ G.IdExpr $1 }
   | EXPR accessor ID                                                    {% do
                                                                             let expr = G.Access $1 $3
@@ -323,7 +323,7 @@ PARTYPE :: { G.ArgType }
   | parRef                                                              { G.Ref }
 
 TYPE :: { G.GrammarType }
-  : ID                                                                  { let G.Id t = $1 in G.Simple t Nothing }
+  : ID                                                                  { let G.Id t _ = $1 in G.Simple t Nothing }
   | bigInt                                                              { G.Simple $1 Nothing }
   | smallInt                                                            { G.Simple $1 Nothing }
   | float                                                               { G.Simple $1 Nothing }
@@ -356,7 +356,7 @@ STRUCTIT :: { RecordItem }
   : ID ofType TYPE                                                      { ($1, $3) }
 
 ID :: { G.Id }
-  : id                                                                  { G.Id $1 }
+  : id                                                                  { G.Id $1 (-1) }
 
 CODEBLOCK :: { G.CodeBlock }
   : INSTBEGIN DECLARS INSTRL INSTEND                                    {% do
@@ -502,11 +502,11 @@ FOREACHBEGIN :: { (T.Token, G.Id, Bool, Bool, G.Expr) }
                                                                                 Nothing -> do
                                                                                   RWS.tell [Error "Iterable expression is not a container" (T.position $ G.expTok $4)]
                                                                                 Just t -> do
-                                                                                  let (G.Id tk) = $2
+                                                                                  let (G.Id tk _) = $2
                                                                                   RWS.when (T.TypeError /= t && iteratorType /= t) $
                                                                                     RWS.tell [Error "Iterator variable is not of the type of contained elements" (T.position tk)]
                                                                           if containerType /= T.TypeError && isContainerAVariable then do
-                                                                            let (G.IdExpr (G.Id tk)) = G.expAst $4
+                                                                            let (G.IdExpr (G.Id tk _)) = G.expAst $4
                                                                             ST.addIterableVariable (T.cleanedString tk)
                                                                           else return ()
                                                                           return ret
@@ -628,7 +628,7 @@ addIdsToSymTable ids = do
   RWS.mapM_ (addIdToSymTable Nothing) ids
 
 addIdToSymTable :: Maybe Int -> NameDeclaration -> ST.ParserMonad ()
-addIdToSymTable mi d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idName})), t, maybeExp) = do
+addIdToSymTable mi d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idName}) _), t, maybeExp) = do
   maybeIdEntry <- ST.dictLookup idName
   maybeTypeEntry <- findTypeOnEntryTable t
   ST.SymTable {ST.stScopeStack=(currScope:_), ST.stIterationVars=iterVars} <- RWS.get
@@ -711,7 +711,7 @@ insertIdToEntry mi t entry = do
 
 checkConstantReassignment :: G.Expr -> ST.ParserMonad ()
 checkConstantReassignment e = case G.expAst e of
-  G.IdExpr (G.Id tk@(T.Token {T.cleanedString=idName})) -> do
+  G.IdExpr (G.Id tk@(T.Token {T.cleanedString=idName}) _) -> do
     maybeEntry <- ST.dictLookup idName
     case maybeEntry of
       Nothing -> do
@@ -733,7 +733,7 @@ checkPointerVariable G.Expr {G.expTok=tk} =
 
 checkIterVariables :: G.Expr -> ST.ParserMonad ()
 checkIterVariables e = case G.expAst e of
-  G.IdExpr (G.Id tk@(T.Token {T.cleanedString=idName})) -> do
+  G.IdExpr (G.Id tk@(T.Token {T.cleanedString=idName}) _) -> do
     ST.SymTable {ST.stIterationVars=iterVars} <- RWS.get
     let matchesIterVar = idName `elem` iterVars
     if matchesIterVar
@@ -745,7 +745,7 @@ checkIterVariables e = case G.expAst e of
 
 checkIterableVariables :: G.Expr -> ST.ParserMonad ()
 checkIterableVariables e = case G.expAst e of
-  G.IdExpr (G.Id tk@(T.Token {T.cleanedString=idName})) -> do
+  G.IdExpr (G.Id tk@(T.Token {T.cleanedString=idName}) _) -> do
     ST.SymTable {ST.stIterableVars=iterableVars} <- RWS.get
     let matchesIterVar = idName `elem` iterableVars
     if matchesIterVar
@@ -757,7 +757,7 @@ checkIterableVariables e = case G.expAst e of
 
 
 checkIdAvailability :: G.Id -> ST.ParserMonad (Maybe ST.DictionaryEntry)
-checkIdAvailability (G.Id tk@(T.Token {T.cleanedString=idName})) = do
+checkIdAvailability (G.Id tk@(T.Token {T.cleanedString=idName}) _) = do
   maybeEntry <- ST.dictLookup idName
   case maybeEntry of
     Nothing -> do
@@ -766,7 +766,7 @@ checkIdAvailability (G.Id tk@(T.Token {T.cleanedString=idName})) = do
     Just e -> return $ Just e
 
 checkIterVarType :: G.Id -> ST.ParserMonad ()
-checkIterVarType (G.Id tk@(T.Token {T.cleanedString=idName})) = do
+checkIterVarType (G.Id tk@(T.Token {T.cleanedString=idName}) _) = do
   maybeEntry <- ST.dictLookup idName
   case maybeEntry of
     Nothing -> return ()
@@ -792,7 +792,7 @@ extractFieldsFromExtra (s@ST.Fields{} : _) = s
 extractFieldsFromExtra (_:ss) = extractFieldsFromExtra ss
 
 addFunction :: NameDeclaration -> ST.ParserMonad (Maybe (ST.Scope, G.Id))
-addFunction d@(_, i@(G.Id tk@(T.Token {T.cleanedString=idName})), _, _) = do
+addFunction d@(_, i@(G.Id tk@(T.Token {T.cleanedString=idName}) _), _, _) = do
   ST.SymTable {ST.stCurrScope=currScope} <- RWS.get
   maybeEntry <- ST.dictLookup idName
   case maybeEntry of
@@ -804,7 +804,7 @@ addFunction d@(_, i@(G.Id tk@(T.Token {T.cleanedString=idName})), _, _) = do
       return Nothing
 
 updateCodeBlockOfFun :: ST.Scope -> G.Id -> G.CodeBlock -> ST.ParserMonad ()
-updateCodeBlockOfFun currScope (G.Id tk@(T.Token {T.cleanedString=idName})) code = do
+updateCodeBlockOfFun currScope (G.Id tk@(T.Token {T.cleanedString=idName}) _) code = do
   let f x = (if and [ST.scope x == currScope, ST.name x == idName, ST.category x `elem` [ST.Function, ST.Procedure]]
             then let e = ST.extra x in x{ST.extra = (ST.CodeBlock code) : e}
             else x)
@@ -1063,27 +1063,32 @@ checkIsActive e tk = do
     isUnionAttr = case e of
       (G.Expr {G.expAst=(G.Access r _)}) -> isUnion r
       _ -> False
-    isUnion (G.Expr {G.expType=(T.UnionT _)}) = True
+    isUnion (G.Expr {G.expType=(T.UnionT _ _)}) = True
     isUnion _ = False
 
-checkAccess :: G.Expr -> G.Id -> T.Token -> ST.ParserMonad T.Type
-checkAccess e (G.Id T.Token{T.cleanedString=i}) tk = do
+checkAccess :: G.Expr -> G.Id -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
+checkAccess e (G.Id tk'@T.Token{T.cleanedString=i} _) tk = do
   t <- getType e
   case t of
-    T.RecordT properties -> checkProperty properties
-    T.UnionT properties -> checkProperty properties
-    T.TypeError -> return T.TypeError
+    T.RecordT scope properties -> checkProperty properties scope
+    T.UnionT scope properties -> checkProperty properties scope
+    T.TypeError -> return defaultReturn
     _ -> do
       RWS.tell [Error "Left side of access is not a record nor union" (T.position tk)]
-      return T.TypeError
+      return defaultReturn
   where
-    checkProperty :: [T.PropType] -> ST.ParserMonad T.Type
-    checkProperty props =
+    baseExpr :: G.Id -> G.BaseExpr
+    baseExpr = G.Access e
+    defaultReturn :: (T.Type, G.BaseExpr)
+    defaultReturn = (T.TypeError, baseExpr $ G.Id tk' (-1))
+    checkProperty :: [T.PropType] -> Int -> ST.ParserMonad (T.Type, G.BaseExpr)
+    checkProperty props scope =
       case filter ((==i) . fst) $ map (\(T.PropType e) -> e) props of
-        ((_,a):_) -> return a
+        ((_,a):_) -> do
+          return (a, baseExpr $ G.Id tk' scope)
         _ -> do
           RWS.tell [Error ("Property " ++ i ++ " doesn't exist") (T.position tk)]
-          return T.TypeError
+          return defaultReturn
 
 unaryOpCheck :: G.Expr -> G.Op1 -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
 unaryOpCheck expr op tk = do
@@ -1208,14 +1213,23 @@ buildType bExpr tk = case bExpr of
 
   G.Op2 op a b -> binaryOpCheck a b op tk
 
-  G.IdExpr i -> buildTypeForNonCasterExprs (getType i) bExpr
+  G.IdExpr i -> checkIdType i
   G.IndexAccess e i -> buildTypeForNonCasterExprs (checkIndexAccess e i tk) bExpr
   G.EvalFunc i params -> functionsCheck i params tk
   G.MemAccess e -> buildTypeForNonCasterExprs (memAccessCheck e tk) bExpr
   G.IsActive e -> buildTypeForNonCasterExprs (checkIsActive e tk) bExpr
   G.AsciiOf e -> buildTypeForNonCasterExprs (checkAsciiOf e tk) bExpr
-  G.Access e i -> buildTypeForNonCasterExprs (checkAccess e i tk) bExpr
+  G.Access e i -> checkAccess e i tk
   G.SetSize e -> buildTypeForNonCasterExprs (checkSetSize e tk) bExpr
+
+checkIdType :: G.Id -> ST.ParserMonad (T.Type, G.BaseExpr)
+checkIdType gId@(G.Id tk _) = do
+  idEntry <- checkIdAvailability gId
+  case idEntry of
+    Nothing -> return (T.TypeError, G.IdExpr gId)
+    Just entry -> do
+      t <- getType gId
+      return (t, G.IdExpr $ G.Id tk $ ST.scope entry)
 
 instance TypeCheckable G.Id where
   getType gId = do
@@ -1277,8 +1291,9 @@ instance TypeCheckable ST.Extra where
     let entryNames = map ST.name entries
     types <- mapM getType entries
     case b of
-      ST.Record -> return $ T.RecordT $ map T.PropType $ zip entryNames types
-      _ -> return $ T.UnionT $ map T.PropType $ zip entryNames types
+      ST.Record -> return $ T.RecordT scope $ map T.PropType $ zip entryNames types
+      ST.Union -> return $ T.UnionT scope $ map T.PropType $ zip entryNames types
+      _ -> error "wrong data type for Fields extra"
 
   getType ST.EmptyFunction = return $ T.TypeList []
 

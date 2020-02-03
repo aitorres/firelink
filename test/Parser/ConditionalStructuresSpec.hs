@@ -109,7 +109,7 @@ spec = do
             \ 1: \
             \   traveling somewhere \
             \       with orange saponite say @hello@ \
-            \   you died") (\(Program (CodeBlock [InstSwitch Expr{expAst=(IdExpr (Id Token {cleanedString="a"}))} [
+            \   you died") (\(Program (CodeBlock [InstSwitch Expr{expAst=(IdExpr (Id Token {cleanedString="a"} _))} [
                     Case Expr{expAst=(IntLit 1)} (CodeBlock [InstPrint Expr{expAst=(StringLit "hello")}])
                 ]])) -> True)
 
@@ -136,7 +136,7 @@ spec = do
             \ 2: \
             \   traveling somewhere \
             \       with orange saponite say @bye@ \
-            \   you died") (\(Program (CodeBlock [InstSwitch Expr{expAst=(IdExpr (Id Token {cleanedString="a"}))} [
+            \   you died") (\(Program (CodeBlock [InstSwitch Expr{expAst=(IdExpr (Id Token {cleanedString="a"} _))} [
                     Case Expr{expAst=(IntLit 1)} (CodeBlock [InstPrint Expr{expAst=(StringLit "hello")}]),
                     Case Expr{expAst=(IntLit 2)} (CodeBlock [InstPrint Expr{expAst=(StringLit "bye")}])
                 ]])) -> True)
@@ -154,7 +154,7 @@ spec = do
             \ empty dungeon: \
             \   traveling somewhere \
             \       with orange saponite say @empty@ \
-            \   you died") (\(Program (CodeBlock [InstSwitch Expr{expAst=IdExpr (Id Token {cleanedString="a"})} [
+            \   you died") (\(Program (CodeBlock [InstSwitch Expr{expAst=IdExpr (Id Token {cleanedString="a"} _)} [
                     Case Expr{expAst=(IntLit 1)} (CodeBlock [InstPrint Expr{expAst=StringLit "hello"}]),
                     Case Expr{expAst=(IntLit 2)} (CodeBlock [InstPrint Expr{expAst=StringLit "bye"}]),
                     DefaultCase (CodeBlock [InstPrint Expr{expAst=(StringLit "empty")}])

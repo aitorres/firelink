@@ -10,15 +10,15 @@ type Params = [Expr]
 type IfCases = [IfCase]
 type SwitchCases = [SwitchCase]
 
-newtype Id
-  = Id Token
+data Id
+  = Id Token Int
   deriving Eq
 
 extractIdName :: Id -> String
-extractIdName (Id Token {cleanedString=s}) = s
+extractIdName (Id Token {cleanedString=s} _) = s
 
 instance Show Id where
-  show (Id tk) = show tk
+  show (Id tk s) = show tk ++ ":" ++ show s
 
 data BaseExpr
   -- Literals
