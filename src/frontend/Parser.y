@@ -766,12 +766,9 @@ checkIterableVariables e = case G.expAst e of
     ST.SymTable {ST.stIterableVars=iterableVars} <- RWS.get
     let matchesIterVar = idName `elem` iterableVars
     if matchesIterVar
-    then do
-      RWS.tell [Error ("Iterable container " ++ show tk ++ " must not be reassigned") (T.position tk)]
-      return ()
+    then RWS.tell [Error ("Iterable container " ++ show tk ++ " must not be reassigned") (T.position tk)]
     else return ()
   _ -> return ()
-
 
 checkIdAvailability :: G.Id -> ST.ParserMonad (Maybe ST.DictionaryEntry)
 checkIdAvailability (G.Id tk@(T.Token {T.cleanedString=idName}) _) = do
@@ -1259,7 +1256,7 @@ instance TypeCheckable G.Expr where
   getType = return . G.expType
 
 instance TypeCheckable ST.DictionaryEntry where
-  getType entry@ST.DictionaryEntry{ST.entryType=Just entryType, ST.category = cat, ST.extra = extras}
+  getType entry@ST.DictionaryEntry{ST.entryType=Just _, ST.category = cat, ST.extra = extras}
     -- If it is an alias, return just the name
     | cat == ST.Type = return $ T.AliasT (ST.name entry)
 
