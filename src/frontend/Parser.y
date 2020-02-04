@@ -291,17 +291,21 @@ FUNCPREFIX :: { Maybe (ST.Scope, G.Id) }
   : functionBegin ID METHODPARS functionType TYPE                       {% addFunction (ST.Function,
                                                                               $2, G.Callable (Just $5) $3, Nothing) }
 FUNC :: { () }
-  : FUNCPREFIX CODEBLOCK functionEnd                                    {% case $1 of
-                                                                            Nothing -> return ()
-                                                                            Just (s, i) -> updateCodeBlockOfFun s i $2 }
+  : FUNCPREFIX CODEBLOCK functionEnd                                    {% do
+                                                                            ST.popVisitedMethod
+                                                                            case $1 of
+                                                                              Nothing -> return ()
+                                                                              Just (s, i) -> updateCodeBlockOfFun s i $2 }
 
 PROCPREFIX :: { Maybe (ST.Scope, G.Id) }
   : procedureBegin ID PROCPARSDEC                                       {% addFunction (ST.Procedure,
                                                                               $2, G.Callable Nothing $3, Nothing) }
 PROC :: { () }
-  : PROCPREFIX CODEBLOCK procedureEnd                                   {% case $1 of
-                                                                            Nothing -> return ()
-                                                                            Just (s, i) -> updateCodeBlockOfFun s i $2 }
+  : PROCPREFIX CODEBLOCK procedureEnd                                   {% do
+                                                                            ST.popVisitedMethod
+                                                                            case $1 of
+                                                                              Nothing -> return ()
+                                                                              Just (s, i) -> updateCodeBlockOfFun s i $2 }
 
 PROCPARSDEC :: { [ArgDeclaration] }
   : METHODPARS toTheEstusFlask                                          { $1 }
@@ -423,7 +427,9 @@ INSTR :: { G.Instruction }
                                                                           buildAndCheckExpr tk $ G.EvalFunc i params
                                                                           return $ G.InstCallFunc i params }
   | return                                                              { G.InstReturn }
-  | returnWith EXPR                                                     { G.InstReturnWith $2 }
+  | returnWith EXPR                                                     {% do
+                                                                          checkReturnType $2 $1
+                                                                          return $ G.InstReturnWith $2 }
   | print EXPR                                                          { G.InstPrint $2 }
   | read LVALUE                                                         { G.InstRead $2 }
   | whileBegin EXPR covenantIsActive COLON CODEBLOCK WHILEEND           {% do
@@ -748,15 +754,34 @@ checkPointerVariable G.Expr {G.expType=(T.PointerT _)} = return ()
 checkPointerVariable G.Expr {G.expTok=tk} =
   RWS.tell [Error ("Expresion " ++ show tk ++ " must be a valid pointer") (T.position tk)]
 
+checkReturnType :: G.Expr -> T.Token -> ST.ParserMonad ()
+checkReturnType e tk = do
+  let eType = G.expType e
+  return ()
+  ST.SymTable {ST.stVisitedMethods=vMethods} <- RWS.get
+  let currMethodName = head vMethods
+  currMethod <- ST.dictLookup currMethodName
+  case currMethod of
+    Nothing -> returnNotFunction
+    Just method -> do
+      let ST.DictionaryEntry {ST.category=cat, ST.entryType=mType} = method
+      case cat of
+        ST.Function -> case mType of
+          Nothing -> return ()
+          Just fType -> do
+            if show eType /= fType
+            then RWS.tell [Error ("Return expression type " ++ show eType ++ " does not match function return type " ++ fType) (T.position tk)]
+            else return ()
+        _ -> returnNotFunction
+  where returnNotFunction = RWS.tell [Error ("Returning with an expression outside of a function not allowed") (T.position tk)]
+
 checkIterVariables :: G.Expr -> ST.ParserMonad ()
 checkIterVariables e = case G.expAst e of
   G.IdExpr (G.Id tk@(T.Token {T.cleanedString=idName}) _) -> do
     ST.SymTable {ST.stIterationVars=iterVars} <- RWS.get
     let matchesIterVar = idName `elem` iterVars
     if matchesIterVar
-    then do
-      RWS.tell [Error ("Iteration variable " ++ show tk ++ " must not be reassigned") (T.position tk)]
-      return ()
+    then RWS.tell [Error ("Iteration variable " ++ show tk ++ " must not be reassigned") (T.position tk)]
     else return ()
   _ -> return ()
 
@@ -808,6 +833,7 @@ extractFieldsFromExtra (_:ss) = extractFieldsFromExtra ss
 addFunction :: NameDeclaration -> ST.ParserMonad (Maybe (ST.Scope, G.Id))
 addFunction d@(_, i@(G.Id tk@(T.Token {T.cleanedString=idName}) _), _, _) = do
   ST.SymTable {ST.stCurrScope=currScope} <- RWS.get
+  ST.addVisitedMethod idName
   maybeEntry <- ST.dictLookup idName
   case maybeEntry of
     Nothing -> do
