@@ -6,21 +6,23 @@ import Tokens (Token(..))
 import TypeChecking (Type(..))
 import Control.Monad.RWS
 import Control.Monad (void)
-import SymTable (DictionaryEntry(..))
+import SymTable (DictionaryEntry(..), findChain, Dictionary)
 import qualified TACType as TAC
 
 instance GenerateCode Expr where
     genCode = void . genCode'
 
-genCode' :: Expr -> CodeGenMonad (TAC.Operand DictionaryEntry Type)
+type ExprCodeResult = (TAC.Operand TACSymEntry Type)
+
+genCode' :: Expr -> CodeGenMonad ExprCodeResult
 genCode' Expr {expAst=ast, expType=t} = genCodeForExpr t ast
 
-genCodeForExpr :: Type -> BaseExpr -> CodeGenMonad (TAC.Operand DictionaryEntry Type)
+genCodeForExpr :: Type -> BaseExpr -> CodeGenMonad ExprCodeResult
 genCodeForExpr t (Op2 op lexpr rexpr) = do
     lId <- genCode' lexpr
     rId <- genCode' rexpr
     newId <- newtemp
-    let lvalue = TAC.Constant (newId, t)
+    let lvalue = TAC.Variable newId
     tell [TAC.ThreeAddressCode
             { TAC.tacOperand = operation
             , TAC.tacLvalue = Just lvalue
@@ -40,7 +42,7 @@ genCodeForExpr t (Op2 op lexpr rexpr) = do
 
 genCodeForExpr t (IntLit n) = do
     newId <- newtemp
-    let lvalue = TAC.Constant (newId, t)
+    let lvalue = TAC.Variable newId
     tell [TAC.ThreeAddressCode
             { TAC.tacOperand = TAC.Assign
             , TAC.tacLvalue = Just lvalue
@@ -49,7 +51,12 @@ genCodeForExpr t (IntLit n) = do
             }]
     return lvalue
 
-genCodeForExpr t (IdExpr (Id Token {cleanedString=s} _)) = return $ TAC.Constant (s, t)
+genCodeForExpr t (IdExpr (Id Token {cleanedString=idName} idScope)) = do
+    symEntry <- findSymEntry <$> ask
+    return $ TAC.Variable $ TACVariable symEntry
+    where
+        findSymEntry :: Dictionary -> DictionaryEntry
+        findSymEntry = head . filter (\s -> scope s == idScope) . findChain idName
 
 -- TODO: Do type casting correctly
 genCodeForExpr t (Caster expr _) = genCode' expr

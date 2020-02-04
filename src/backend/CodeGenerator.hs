@@ -5,23 +5,29 @@ import TACType
 import TypeChecking
 import SymTable (DictionaryEntry(..), Dictionary(..))
 
-instance SymEntryCompatible DictionaryEntry where
-    getSymID = name
-
 newtype CodeGenState = CodeGenState { cgsNextLabel :: Int }
 
 initialState :: CodeGenState
 initialState = CodeGenState {cgsNextLabel = 0}
 
-type TAC = ThreeAddressCode DictionaryEntry Type
+data TACSymEntry = TACTemporal String | TACVariable DictionaryEntry
+
+instance SymEntryCompatible TACSymEntry where
+    getSymID (TACTemporal s) = s
+    getSymID (TACVariable entry) = name entry
+
+instance Show TACSymEntry where
+    show = getSymID
+
+type TAC = ThreeAddressCode TACSymEntry Type
 
 type CodeGenMonad = RWST Dictionary [TAC] CodeGenState IO
 
-newtemp :: CodeGenMonad String
+newtemp :: CodeGenMonad TACSymEntry
 newtemp = do
     state@CodeGenState {cgsNextLabel = label} <- get
     put $ state{cgsNextLabel = label + 1}
-    return $ "_t" ++ show label
+    return $ TACTemporal $ "_t" ++ show label
 
 class GenerateCode a where
     genCode :: a -> CodeGenMonad ()
