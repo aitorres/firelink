@@ -352,10 +352,10 @@ spec = do
                 (\(G.Program (
                     G.CodeBlock
                         [ G.InstAsig
-                            G.Expr{G.expAst=(G.IdExpr (G.Id T.Token {T.cleanedString="x"} _))}
+                            G.Expr{G.expAst=(G.IdExpr (G.Id T.Token {T.cleanedString="x"} 1))}
                             G.Expr{G.expAst=(G.IntLit 1)}
                         , G.InstAsig
-                            G.Expr{G.expAst=(G.IdExpr (G.Id T.Token {T.cleanedString="y"} _))}
+                            G.Expr{G.expAst=(G.IdExpr (G.Id T.Token {T.cleanedString="y"} 1))}
                             G.Expr{G.expAst=(G.IntLit 22)}
                         , G.InstPrint G.Expr{G.expAst=(G.StringLit "oh yes")}
                         ])) -> True)

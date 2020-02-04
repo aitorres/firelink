@@ -356,7 +356,9 @@ STRUCTIT :: { RecordItem }
   : ID ofType TYPE                                                      { ($1, $3) }
 
 ID :: { G.Id }
-  : id                                                                  { G.Id $1 (-1) }
+  : id                                                                  {% do
+                                                                            ST.SymTable {ST.stScopeStack = (currScope : _)} <- RWS.get
+                                                                            return $ G.Id $1 currScope }
 
 CODEBLOCK :: { G.CodeBlock }
   : INSTBEGIN DECLARS INSTRL INSTEND                                    {% do
