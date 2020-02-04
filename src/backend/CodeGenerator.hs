@@ -5,10 +5,13 @@ import TACType
 import TypeChecking
 import SymTable (DictionaryEntry(..), Dictionary(..))
 
-newtype CodeGenState = CodeGenState { cgsNextLabel :: Int }
+data CodeGenState = CodeGenState
+    { cgsNextLabel :: !Int
+    , cgsNextTemp :: !Int
+    }
 
 initialState :: CodeGenState
-initialState = CodeGenState {cgsNextLabel = 0}
+initialState = CodeGenState {cgsNextTemp = 0, cgsNextLabel = 0}
 
 data TACSymEntry = TACTemporal String | TACVariable DictionaryEntry
 
@@ -25,8 +28,8 @@ type CodeGenMonad = RWST Dictionary [TAC] CodeGenState IO
 
 newtemp :: CodeGenMonad TACSymEntry
 newtemp = do
-    state@CodeGenState {cgsNextLabel = label} <- get
-    put $ state{cgsNextLabel = label + 1}
+    state@CodeGenState {cgsNextTemp = label} <- get
+    put $ state{cgsNextTemp = label + 1}
     return $ TACTemporal $ "_t" ++ show label
 
 class GenerateCode a where
