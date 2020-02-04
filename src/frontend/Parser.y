@@ -769,6 +769,9 @@ checkReturnType e tk = do
         ST.Function -> case mType of
           Nothing -> return ()
           Just fType -> do
+            -- ! TODO: Retrieve type properly, not a string (for aliases)
+            -- ! TODO: Cast types
+            -- ! TODO: Add new tests, run and update existing
             if show eType /= fType
             then RWS.tell [Error ("Return expression type " ++ show eType ++ " does not match function return type " ++ fType) (T.position tk)]
             else return ()
