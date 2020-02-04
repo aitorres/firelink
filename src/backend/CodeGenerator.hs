@@ -28,9 +28,15 @@ type CodeGenMonad = RWST Dictionary [TAC] CodeGenState IO
 
 newtemp :: CodeGenMonad TACSymEntry
 newtemp = do
-    state@CodeGenState {cgsNextTemp = label} <- get
-    put $ state{cgsNextTemp = label + 1}
-    return $ TACTemporal $ "_t" ++ show label
+    state@CodeGenState {cgsNextTemp = temp} <- get
+    put $ state{cgsNextTemp = temp + 1}
+    return $ TACTemporal $ "_t" ++ show temp
+
+newLabel :: CodeGenMonad (Operand a b)
+newLabel = do
+    state@CodeGenState {cgsNextLabel = label} <- get
+    put $ state{cgsNextLabel = label + 1}
+    return $ Label label
 
 class GenerateCode a where
     genCode :: a -> CodeGenMonad ()
