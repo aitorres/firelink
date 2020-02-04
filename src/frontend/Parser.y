@@ -426,7 +426,7 @@ INSTR :: { G.Instruction }
   | FUNCALL                                                             {% let (tk, i, params) = $1 in do
                                                                           buildAndCheckExpr tk $ G.EvalFunc i params
                                                                           return $ G.InstCallFunc i params }
-  | return                                                              { G.InstReturn }
+  | return                                                              {% checkReturnScope $1 }
   | returnWith EXPR                                                     {% do
                                                                           checkReturnType $2 $1
                                                                           return $ G.InstReturnWith $2 }
@@ -754,29 +754,43 @@ checkPointerVariable G.Expr {G.expType=(T.PointerT _)} = return ()
 checkPointerVariable G.Expr {G.expTok=tk} =
   RWS.tell [Error ("Expresion " ++ show tk ++ " must be a valid pointer") (T.position tk)]
 
+checkReturnScope :: T.Token -> ST.ParserMonad (G.Instruction)
+checkReturnScope tk = do
+  ST.SymTable {ST.stVisitedMethods=vMethods} <- RWS.get
+  if vMethods == []
+  then return (G.InstReturn)
+  else do
+    currMethod <- ST.dictLookup $ head vMethods
+    case currMethod of
+      Just (ST.DictionaryEntry {ST.category=cat}) -> do
+        RWS.tell [Error ("Returning without an expression is not allowed inside functions") (T.position tk)]
+        return (G.InstReturn)
+      _ -> return (G.InstReturn)
+
 checkReturnType :: G.Expr -> T.Token -> ST.ParserMonad ()
 checkReturnType e tk = do
   let eType = G.expType e
-  return ()
   ST.SymTable {ST.stVisitedMethods=vMethods} <- RWS.get
-  let currMethodName = head vMethods
-  currMethod <- ST.dictLookup currMethodName
-  case currMethod of
-    Nothing -> returnNotFunction
-    Just method -> do
-      let ST.DictionaryEntry {ST.category=cat, ST.entryType=mType} = method
-      case cat of
-        ST.Function -> case mType of
-          Nothing -> return ()
-          Just fType -> do
-            -- ! TODO: Retrieve type properly, not a string (for aliases)
-            -- ! TODO: Cast types
-            -- ! TODO: Add new tests, run and update existing
-            if show eType /= fType
-            then RWS.tell [Error ("Return expression type " ++ show eType ++ " does not match function return type " ++ fType) (T.position tk)]
-            else return ()
-        _ -> returnNotFunction
-  where returnNotFunction = RWS.tell [Error ("Returning with an expression outside of a function not allowed") (T.position tk)]
+  if vMethods == []
+  then returnNotFunction
+  else do
+    currMethod <- ST.dictLookup $ head vMethods
+    case currMethod of
+      Nothing -> returnNotFunction
+      Just method -> do
+        let ST.DictionaryEntry {ST.category=cat, ST.entryType=mType} = method
+        case cat of
+          ST.Function -> case mType of
+            Nothing -> return ()
+            Just fType -> do
+              -- ! TODO: Retrieve type properly, not a string (for aliases)
+              -- ! TODO: Cast types
+              -- ! TODO: Add new tests, run and update existing
+              if show eType /= fType
+              then RWS.tell [Error ("Return expression type " ++ show eType ++ " does not match function return type " ++ fType) (T.position tk)]
+              else return ()
+          _ -> returnNotFunction
+    where returnNotFunction = RWS.tell [Error ("Returning with an expression outside of a function not allowed") (T.position tk)]
 
 checkIterVariables :: G.Expr -> ST.ParserMonad ()
 checkIterVariables e = case G.expAst e of
