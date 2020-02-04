@@ -13,7 +13,7 @@
 
 ## Identificadores
 
-En **Fire Link**, un identificador válido es toda palabra que comienza con una letra minúscula, está formada posteriormente por letras, números y guiones bajos (`_`) y no es una palabra reservada por el lenguaje.
+En **Fire Link**, un identificador válido es toda palabra que comienza con una letra minúscula, está formada posteriormente por letras, números y guiones bajos (`_`) y no es una palabra reservada por el lenguaje, o un alias (`knight`) previamente declarado.
 
 Formalmente, es toda palabra de la forma `[a-z][A-Za-z0-9_]*` que no sea a su vez una palabra reservada por el lenguaje.
 
@@ -383,6 +383,8 @@ requiring help of
   <alias de tipo n>
 help received
 ```
+
+Es importante resaltar que, una vez que se declara un alias de tipo con un identificador dado, no puede utilizarse como un identificador de constantes, variables, funciones o procedimientos más adelante.
 
 #### Paréntesis
 
