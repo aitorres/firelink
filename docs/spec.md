@@ -560,7 +560,6 @@ with skill of type humanity
 after this return to your world
 ```
 
-
 #### Llamada a Funciones
 
 Dentro de un bloque de instrucciones, se puede realizar una llamada a una función de la siguiente manera:
