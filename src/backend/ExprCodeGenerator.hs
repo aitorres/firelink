@@ -6,7 +6,7 @@ import Tokens (Token(..))
 import TypeChecking (Type(..))
 import Control.Monad.RWS
 import Control.Monad (void)
-import SymTable (DictionaryEntry(..))
+import SymTable (DictionaryEntry(..), findChain, Dictionary)
 import qualified TACType as TAC
 
 instance GenerateCode Expr where
@@ -51,7 +51,12 @@ genCodeForExpr t (IntLit n) = do
             }]
     return lvalue
 
-genCodeForExpr t (IdExpr (Id Token {cleanedString=s} _)) = return $ TAC.Constant (s, t)
+genCodeForExpr t (IdExpr (Id Token {cleanedString=idName} idScope)) = do
+    symEntry <- findSymEntry <$> ask
+    return $ TAC.Variable $ TACVariable symEntry
+    where
+        findSymEntry :: Dictionary -> DictionaryEntry
+        findSymEntry = head . filter (\s -> scope s == idScope) . findChain idName
 
 -- TODO: Do type casting correctly
 genCodeForExpr t (Caster expr _) = genCode' expr
