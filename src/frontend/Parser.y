@@ -186,7 +186,7 @@ PROGRAMEND :: { Maybe G.RecoverableError }
 NON_OPENER_CODEBLOCK :: { G.CodeBlock }
   : instructionsBegin DECLARS INSTRL NON_OPENER_INSTEND                 {% do
                                                                              checkRecoverableError $1 $4
-                                                                             return $ G.CodeBlock $ reverse $3 }
+                                                                             return $ G.CodeBlock $ $2 ++ reverse $3 }
   | instructionsBegin INSTRL NON_OPENER_INSTEND                         {% do
                                                                              checkRecoverableError $1 $3
                                                                              return $ G.CodeBlock $ reverse $2 }
@@ -361,7 +361,7 @@ ID :: { G.Id }
 CODEBLOCK :: { G.CodeBlock }
   : INSTBEGIN DECLARS INSTRL INSTEND                                    {% do
                                                                              checkRecoverableError $1 $4
-                                                                             return $ G.CodeBlock $ reverse $3 }
+                                                                             return $ G.CodeBlock $ $2 ++ reverse $3 }
   | INSTBEGIN INSTRL INSTEND                                            {% do
                                                                              checkRecoverableError $1 $3
                                                                              return $ G.CodeBlock $ reverse $2 }
@@ -377,10 +377,12 @@ INSTEND :: { Maybe G.RecoverableError }
                                                                              return Nothing }
   | error                                                               { Just G.MissingInstructionListEnd }
 
-DECLARS :: { () }
+DECLARS :: { [G.Instruction] }
   : with DECLARSL DECLAREND                                             {% do
-                                                                             checkRecoverableError $1 $3
-                                                                             addIdsToSymTable (reverse $2) }
+                                                                            let instrlist = getAssigsFromDeclarations (reverse $2)
+                                                                            checkRecoverableError $1 $3
+                                                                            addIdsToSymTable (reverse $2)
+                                                                            return instrlist }
 
 DECLAREND :: { Maybe G.RecoverableError }
   : declarend                                                           { Nothing }
@@ -591,6 +593,19 @@ type NameDeclaration = (ST.Category, G.Id, G.GrammarType, Maybe G.Expr)
 type ArgDeclaration = (G.ArgType, G.Id, G.GrammarType)
 type AliasDeclaration = (G.Id, G.GrammarType)
 type RecordItem = AliasDeclaration
+
+getAssigsFromDeclarations :: [NameDeclaration] -> [G.Instruction]
+getAssigsFromDeclarations = map buildAsigInstr . filter hasInitialization
+  where
+    hasInitialization :: NameDeclaration -> Bool
+    hasInitialization (_, _, _, exp) = isJust exp
+    buildAsigInstr :: NameDeclaration -> G.Instruction
+    buildAsigInstr (_, gId@(G.Id tk _), _, Just exp) =
+      let expr = G.Expr
+                  { G.expAst = G.IdExpr gId
+                  , G.expType = G.expType exp
+                  , G.expTok = tk
+                  } in G.InstAsig expr exp
 
 buildAndCheckExpr :: T.Token -> G.BaseExpr -> ST.ParserMonad G.Expr
 buildAndCheckExpr tk bExpr = do

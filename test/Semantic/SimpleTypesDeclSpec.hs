@@ -6,6 +6,7 @@ import qualified TestUtils as U
 import qualified Utils as UU
 import qualified SymTable as ST
 import qualified Grammar as G
+import qualified Tokens as T
 
 program :: String -> String
 program e = "hello ashen one\
@@ -307,3 +308,54 @@ spec = do
             \ you died \
 
             \ farewell ashen one" `U.shouldErrorOn` ("y", 6, 29)
+
+    describe "Correctly handles initialization (declaration + assignments)" $ do
+        it "Prepends assignment instruction on initialization" $ do
+            let p = "hello ashen one\n\
+
+            \ traveling somewhere\n\
+
+            \ with\n\
+            \   var x of type small humanity <<= 1\n\
+            \ in your inventory\n\
+            \   with orange saponite say @oh yes@\n\
+            \ you died\n\
+
+            \ farewell ashen one"
+            (programAst, _, errors) <- U.extractSymTable p
+            errors `shouldSatisfy` null
+            programAst `shouldSatisfy`
+                (\(G.Program (
+                    G.CodeBlock
+                        [ G.InstAsig
+                            G.Expr{G.expAst=(G.IdExpr (G.Id T.Token {T.cleanedString="x"} _))}
+                            G.Expr{G.expAst=(G.IntLit 1)}
+                        , G.InstPrint G.Expr{G.expAst=(G.StringLit "oh yes")}
+                        ])) -> True)
+
+        it "Prependes assignment in correct order" $ do
+            let p = "hello ashen one\n\
+
+            \ traveling somewhere\n\
+
+            \ with\n\
+            \   var x of type small humanity <<= 1,\n\
+            \   var y of type small humanity <<= 22\n\
+            \ in your inventory\n\
+            \   with orange saponite say @oh yes@\n\
+            \ you died\n\
+
+            \ farewell ashen one"
+            (programAst, _, errors) <- U.extractSymTable p
+            errors `shouldSatisfy` null
+            programAst `shouldSatisfy`
+                (\(G.Program (
+                    G.CodeBlock
+                        [ G.InstAsig
+                            G.Expr{G.expAst=(G.IdExpr (G.Id T.Token {T.cleanedString="x"} _))}
+                            G.Expr{G.expAst=(G.IntLit 1)}
+                        , G.InstAsig
+                            G.Expr{G.expAst=(G.IdExpr (G.Id T.Token {T.cleanedString="y"} _))}
+                            G.Expr{G.expAst=(G.IntLit 22)}
+                        , G.InstPrint G.Expr{G.expAst=(G.StringLit "oh yes")}
+                        ])) -> True)
