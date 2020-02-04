@@ -110,8 +110,8 @@ anySingleton = [Any]
 anySetSingleton :: [Type]
 anySetSingleton = [SetT Any]
 
-anyArraySingleton :: [Type]
-anyArraySingleton = [ArrayT Any]
+arrayLikeSingleton :: [Type]
+arrayLikeSingleton = [ArrayT Any, StringT]
 
 canBeConvertedTo :: Type -> Type -> Bool
 SmallIntT `canBeConvertedTo` BigIntT = True

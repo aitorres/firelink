@@ -1130,7 +1130,7 @@ binaryOpCheck leftExpr rightExpr op tk = do
       | op `elem` G.comparableOp2 = T.anySingleton -- we can compare any type if they are the same
       | op `elem` G.booleanOp2 = T.booleanSingleton
       | op `elem` G.setOp2 = T.anySetSingleton
-      | op `elem` G.arrayOp2 = T.anyArraySingleton
+      | op `elem` G.arrayOp2 = T.arrayLikeSingleton
       | otherwise = error (show op ++ " doesn't have a value in expectedForOperands function")
     checkIfInExpected :: G.Expr -> G.Expr -> ST.ParserMonad (T.Type, G.BaseExpr)
     checkIfInExpected l r = do
