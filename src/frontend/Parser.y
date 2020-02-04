@@ -1279,7 +1279,13 @@ instance TypeCheckable ST.DictionaryEntry where
         ST.RecordItem, ST.UnionItem,
         ST.RefParam, ST.ValueParam] = getType $ ST.extractTypeFromExtra extras
 
-    | otherwise = error "error on getType for dict entries"
+    | otherwise = error "error on getType for expected dict entries"
+
+  -- called on a procedure that tries to return an expression (which is prohibited)
+  getType ST.DictionaryEntry{ST.entryType=Nothing, ST.category=ST.Procedure} =
+    return T.TypeError
+
+  getType _ = error "error on getType for unexpected dict entries"
 
 instance TypeCheckable ST.Extra where
   getType (ST.Recursive s extra) = do
@@ -1320,4 +1326,5 @@ instance TypeCheckable ST.Extra where
       | s == ST.void = return T.VoidT
       | otherwise = return $ T.AliasT s -- works because it always exists
                                         -- it shouldn't be added otherwise
+  getType _ = error "error on getType for SymTable extra"
 }
