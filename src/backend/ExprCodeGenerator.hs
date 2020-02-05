@@ -34,16 +34,7 @@ genCodeForExpr _ (Op2 op lexpr rexpr) = do
         operation :: TAC.Operation
         operation = mapOp2ToTacOperation op
 
-genCodeForExpr t (IntLit n) = do
-    newId <- newtemp
-    let lvalue = TAC.Variable newId
-    tell [TAC.ThreeAddressCode
-            { TAC.tacOperand = TAC.Assign
-            , TAC.tacLvalue = Just lvalue
-            , TAC.tacRvalue1 = Just $ TAC.Constant (show n, t)
-            , TAC.tacRvalue2 = Nothing
-            }]
-    return lvalue
+genCodeForExpr t (IntLit n) = return $ TAC.Constant (show n, t)
 
 genCodeForExpr _ (IdExpr (Id Token {cleanedString=idName} idScope)) = do
     symEntry <- findSymEntry <$> ask
