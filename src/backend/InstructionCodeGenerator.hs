@@ -53,12 +53,35 @@ genCodeForInstruction (InstAsig lvalue@Expr {expAst = IdExpr id} rvalue) next =
 
 
 
--- Conditional selection statement
+{-
+Conditional selection statement
+The code-generation depends on the position of a guard in the list
+
+If it is the last one, then its next instruction is right there,
+so there is no need to make a `goto falseLabel` because there is no falseLabel
+
+Otherwise, the next instruction of a guard block is the next instruction right
+after the if whole block
+-}
 genCodeForInstruction (InstIf ifcases) next = do
     let initInstructions = init ifcases
     let lastInstruction = last ifcases
     mapM_ (genCodeForIfCase next False) initInstructions
     genCodeForIfCase next True lastInstruction
+
+{-
+Indeterminate looping statement
+Code-generation is similar as on the slides
+-}
+genCodeForInstruction (InstWhile guard codeblock) next = do
+    begin <- newLabel
+    trueLabel <- newLabel
+    let falseLabel = next
+    genLabel begin
+    genCodeForBooleanExpr guard trueLabel falseLabel
+    genLabel trueLabel
+    genCode codeblock
+    genGoTo begin
 
 genCodeForIfCase :: OperandType -> Bool -> IfCase -> CodeGenMonad ()
 genCodeForIfCase next isLast (GuardedCase expr codeblock) = do
