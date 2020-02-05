@@ -4,6 +4,7 @@ import CodeGenerator
 import ExprCodeGenerator (genCode', genCodeForBooleanExpr)
 import Grammar (Instruction(..), Expr(..), BaseExpr(..), Id(..), IfCase(..), CodeBlock(..), Program(..))
 import TACType
+import TypeChecking (Type(..))
 import Control.Monad.RWS (tell, unless)
 
 
@@ -25,15 +26,32 @@ genCodeForInstruction :: Instruction -> OperandType -> CodeGenMonad ()
 genCodeForInstruction (InstPrint expr) _ = genCode expr
 
 -- Assignments, currently only supported for id assignments
-genCodeForInstruction (InstAsig lvalue@Expr {expAst = IdExpr id} rvalue) _ = do
-    operand <- genCode' lvalue
-    rValueAddress <- genCode' rvalue
-    tell [ThreeAddressCode
-            { tacOperand = Assign
-            , tacLvalue = Just operand
-            , tacRvalue1 = Just rValueAddress
-            , tacRvalue2 = Nothing
-            }]
+genCodeForInstruction (InstAsig lvalue@Expr {expAst = IdExpr id} rvalue) next =
+    if expType rvalue /= TrileanT then do
+        operand <- genCode' lvalue
+        rValueAddress <- genCode' rvalue
+        genIdAssignment operand rValueAddress
+    else do
+        trueLabel <- newLabel
+        falseLabel <- newLabel
+        genCodeForBooleanExpr rvalue trueLabel falseLabel
+        operand <- genCode' lvalue
+        genLabel trueLabel
+        genIdAssignment operand $ Constant ("true", TrileanT)
+        genGoTo next
+        genLabel falseLabel
+        genIdAssignment operand $ Constant ("false", TrileanT)
+    where
+        genIdAssignment :: OperandType -> OperandType -> CodeGenMonad ()
+        genIdAssignment lValue rValue =
+            tell [ThreeAddressCode
+                { tacOperand = Assign
+                , tacLvalue = Just lValue
+                , tacRvalue1 = Just rValue
+                , tacRvalue2 = Nothing
+                }]
+
+
 
 -- Conditional selection statement
 genCodeForInstruction (InstIf ifcases) next = do
