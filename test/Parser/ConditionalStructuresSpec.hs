@@ -68,7 +68,9 @@ spec = do
                 GuardedCase
                     Expr{expAst=TrueLit}
                     (CodeBlock [InstPrint Expr{expAst=(StringLit "hello world")}]),
-                ElseCase (CodeBlock [InstPrint Expr{expAst=(StringLit "goodbye")}])
+                GuardedCase
+                    Expr{expAst=TrueLit}
+                    (CodeBlock [InstPrint Expr{expAst=(StringLit "goodbye")}])
                 ]])) -> True)
         it "rejects a selection block with more than 1 else statment" $
             runTestForInvalidProgram $ buildProgram "\

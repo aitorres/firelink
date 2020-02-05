@@ -543,7 +543,14 @@ IFCASE :: { G.IfCase }
 ELSECASE :: { G.IfCase }
   : else COLON CODEBLOCK                                                {% do
                                                                             checkRecoverableError $1 $2
-                                                                            return $ G.ElseCase $3 }
+                                                                            return $ G.GuardedCase (G.Expr
+                                                                                                    { G.expAst = G.TrueLit
+                                                                                                    , G.expType = T.TrileanT
+                                                                                                    , G.expTok = (T.Token
+                                                                                                                    { T.aToken = T.TkLit
+                                                                                                                    , T.capturedString = "lit"
+                                                                                                                    , T.cleanedString = "lit"})
+                                                                                                    }) $3 }
 
 IFEND :: { Maybe G.RecoverableError }
   : ifEnd                                                               { Nothing }
