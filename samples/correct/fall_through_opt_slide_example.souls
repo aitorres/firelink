@@ -1,0 +1,15 @@
+hello ashen one
+
+traveling somewhere
+with
+    var x of type humanity <<= 1,
+    var y of type humanity <<= 1
+in your inventory
+    trust your inventory
+    (x lt 100) or (x gt 200) and (x neq y):
+        traveling somewhere
+            x <<= 0
+        you died
+    inventory closed
+you died
+farewell ashen one
