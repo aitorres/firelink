@@ -10,7 +10,7 @@ import TACType
 backend :: Program -> Dictionary -> IO [TAC]
 backend program dictionary = do
     (_, _, code) <- runRWST (genCode program) dictionary initialState
-    return $ removeUnusedLabels code
+    return code
 
 removeUnusedLabels :: [TAC] -> [TAC]
 -- removeUnusedLabels t = t
