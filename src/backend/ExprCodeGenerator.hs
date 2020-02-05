@@ -91,13 +91,29 @@ genCodeForBooleanExpr expr trueLabel falseLabel = case expAst expr of
     Op2 op lhs rhs | op `elem` comparableOp2 -> do
         leftExprId <- genCode' lhs
         rightExprId <- genCode' rhs
-        tell [TAC.ThreeAddressCode
-                { TAC.tacOperand = mapOp2ToTacOperation op
-                , TAC.tacLvalue = Just leftExprId
-                , TAC.tacRvalue1 = Just rightExprId
-                , TAC.tacRvalue2 = Just trueLabel
-                }]
-        genGoTo falseLabel
+        let isTrueNotFall = not $ isFall trueLabel
+        let isFalseNotFall = not $ isFall falseLabel
+        if isTrueNotFall && isFalseNotFall then do
+            tell [TAC.ThreeAddressCode
+                    { TAC.tacOperand = mapOp2ToTacOperation op
+                    , TAC.tacLvalue = Just leftExprId
+                    , TAC.tacRvalue1 = Just rightExprId
+                    , TAC.tacRvalue2 = Just trueLabel
+                    }]
+            genGoTo falseLabel
+        else if isTrueNotFall then
+            tell [TAC.ThreeAddressCode
+                    { TAC.tacOperand = mapOp2ToTacOperation op
+                    , TAC.tacLvalue = Just leftExprId
+                    , TAC.tacRvalue1 = Just rightExprId
+                    , TAC.tacRvalue2 = Just trueLabel
+                    }]
+        else when isFalseNotFall (tell [TAC.ThreeAddressCode
+                    { TAC.tacOperand = complement $ mapOp2ToTacOperation op
+                    , TAC.tacLvalue = Just leftExprId
+                    , TAC.tacRvalue1 = Just rightExprId
+                    , TAC.tacRvalue2 = Just falseLabel
+                    }])
 
     -- Conjunction and disjunction
     Op2 op lhs rhs | op `elem` booleanOp2 -> do
@@ -122,3 +138,11 @@ mapOp2ToTacOperation op = case op of
     Multiply -> TAC.Mult
     Divide -> TAC.Div
     Mod -> TAC.Mod
+
+complement :: TAC.Operation -> TAC.Operation
+complement TAC.Lt = TAC.Gte
+complement TAC.Lte = TAC.Gt
+complement TAC.Gt = TAC.Lte
+complement TAC.Gte = TAC.Lt
+complement TAC.Eq = TAC.Neq
+complement TAC.Neq = TAC.Eq
