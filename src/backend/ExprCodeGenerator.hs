@@ -1,7 +1,9 @@
 module ExprCodeGenerator where
 
 import CodeGenerator
-import Grammar (BaseExpr(..), Expr(..), Op2(..), Id(..))
+import Grammar ( BaseExpr(..)
+               , Expr(..), Op2(..), Id(..)
+               , Op1(..), comparableOp2)
 import Tokens (Token(..))
 import TypeChecking (Type(..))
 import Control.Monad.RWS
@@ -30,13 +32,7 @@ genCodeForExpr t (Op2 op lexpr rexpr) = do
     return lvalue
     where
         operation :: TAC.Operation
-        operation
-            | op == Add = TAC.Add
-            | op == Substract = TAC.Sub
-            | op == Multiply = TAC.Mult
-            | op == Divide = TAC.Div
-            | otherwise = error $ "Operation for " ++ show op ++ " has not implemented for TAC yet"
-
+        operation = mapOp2ToTacOperation op
 
 genCodeForExpr t (IntLit n) = do
     newId <- newtemp
@@ -65,3 +61,27 @@ genCodeForBooleanExpr :: Expr -> OperandType -> OperandType -> CodeGenMonad ()
 genCodeForBooleanExpr expr trueLabel falseLabel = case expAst expr of
     TrueLit -> genGoTo trueLabel
     FalseLit -> genGoTo falseLabel
+    Op1 Not expr -> genCodeForBooleanExpr expr falseLabel trueLabel
+    Op2 op lhs rhs | op `elem` comparableOp2 -> do
+        leftExprId <- genCode' lhs
+        rightExprId <- genCode' rhs
+        tell [TAC.ThreeAddressCode
+                { TAC.tacOperand = mapOp2ToTacOperation op
+                , TAC.tacLvalue = Just leftExprId
+                , TAC.tacRvalue1 = Just rightExprId
+                , TAC.tacRvalue2 = Just trueLabel
+                }]
+        genGoTo falseLabel
+
+mapOp2ToTacOperation :: Op2 -> TAC.Operation
+mapOp2ToTacOperation op = case op of
+    Lt -> TAC.Lt
+    Gt -> TAC.Gt
+    Lte -> TAC.Lte
+    Gte -> TAC.Gte
+    Eq -> TAC.Eq
+    Neq -> TAC.Neq
+    Add -> TAC.Add
+    Substract -> TAC.Sub
+    Multiply -> TAC.Mult
+    Divide -> TAC.Div

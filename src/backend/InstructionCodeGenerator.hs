@@ -5,7 +5,6 @@ import ExprCodeGenerator (genCode', genCodeForBooleanExpr)
 import Grammar (Instruction(..), Expr(..), BaseExpr(..), Id(..), IfCase(..), CodeBlock(..), Program(..))
 import TACType
 import Control.Monad.RWS (tell, unless)
-import Control.Monad.RWS (lift)
 
 
 instance GenerateCode CodeBlock where
@@ -40,7 +39,6 @@ genCodeForInstruction (InstAsig lvalue@Expr {expAst = IdExpr id} rvalue) _ = do
 genCodeForInstruction (InstIf ifcases) next = do
     let initInstructions = init ifcases
     let lastInstruction = last ifcases
-    lift $ print (initInstructions, lastInstruction)
     mapM_ (genCodeForIfCase next False) initInstructions
     genCodeForIfCase next True lastInstruction
 
@@ -48,7 +46,6 @@ genCodeForIfCase :: OperandType -> Bool -> IfCase -> CodeGenMonad ()
 genCodeForIfCase next isLast (GuardedCase expr codeblock) = do
     trueLabel <- newLabel
     falseLabel <- if isLast then return next else newLabel
-    lift $ print (trueLabel, falseLabel)
     genCodeForBooleanExpr expr trueLabel falseLabel
     genLabel trueLabel
     genCode codeblock
