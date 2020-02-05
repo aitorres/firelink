@@ -1,6 +1,6 @@
 module CodeGenerator where
 
-import Control.Monad.RWS (RWST(..), get, put)
+import Control.Monad.RWS (RWST(..), get, put, tell)
 import TACType
 import TypeChecking
 import SymTable (DictionaryEntry(..), Dictionary(..))
@@ -23,6 +23,7 @@ instance Show TACSymEntry where
     show = getSymID
 
 type TAC = ThreeAddressCode TACSymEntry Type
+type OperandType = Operand TACSymEntry Type
 
 type CodeGenMonad = RWST Dictionary [TAC] CodeGenState IO
 
@@ -37,6 +38,23 @@ newLabel = do
     state@CodeGenState {cgsNextLabel = label} <- get
     put $ state{cgsNextLabel = label + 1}
     return $ Label label
+
+genGoTo :: OperandType -> CodeGenMonad ()
+genGoTo label = tell [ThreeAddressCode
+            { tacOperand = GoTo
+            , tacLvalue = Nothing
+            , tacRvalue1 = Nothing
+            , tacRvalue2 = Just label
+            }]
+
+genLabel :: OperandType -> CodeGenMonad ()
+genLabel label = tell [ThreeAddressCode
+                            { tacOperand = NewLabel
+                            , tacLvalue = Nothing
+                            , tacRvalue1 = Just label
+                            , tacRvalue2 = Nothing
+                            }]
+
 
 class GenerateCode a where
     genCode :: a -> CodeGenMonad ()

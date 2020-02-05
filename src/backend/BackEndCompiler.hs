@@ -3,7 +3,7 @@ module BackEndCompiler where
 import Grammar (Program(..))
 import SymTable (Dictionary(..))
 import CodeGenerator (initialState, TAC(..), genCode)
-import ProgramCodeGenerator ()
+import InstructionCodeGenerator ()
 import Control.Monad.RWS (runRWST)
 
 backend :: Program -> Dictionary -> IO [TAC]

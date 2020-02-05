@@ -12,12 +12,10 @@ import qualified TACType as TAC
 instance GenerateCode Expr where
     genCode = void . genCode'
 
-type ExprCodeResult = (TAC.Operand TACSymEntry Type)
-
-genCode' :: Expr -> CodeGenMonad ExprCodeResult
+genCode' :: Expr -> CodeGenMonad OperandType
 genCode' Expr {expAst=ast, expType=t} = genCodeForExpr t ast
 
-genCodeForExpr :: Type -> BaseExpr -> CodeGenMonad ExprCodeResult
+genCodeForExpr :: Type -> BaseExpr -> CodeGenMonad OperandType
 genCodeForExpr t (Op2 op lexpr rexpr) = do
     lId <- genCode' lexpr
     rId <- genCode' rexpr
@@ -61,3 +59,9 @@ genCodeForExpr t (IdExpr (Id Token {cleanedString=idName} idScope)) = do
 -- TODO: Do type casting correctly
 genCodeForExpr t (Caster expr _) = genCode' expr
 genCodeForExpr _ e = error $ "This expression hasn't been implemented " ++ show e
+
+genCodeForBooleanExpr :: Expr -> OperandType -> OperandType -> CodeGenMonad ()
+
+genCodeForBooleanExpr expr trueLabel falseLabel = case expAst expr of
+    TrueLit -> genGoTo trueLabel
+    FalseLit -> genGoTo falseLabel
