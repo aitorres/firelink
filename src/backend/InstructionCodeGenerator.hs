@@ -85,10 +85,10 @@ genCodeForInstruction (InstWhile guard codeblock) next = do
 
 genCodeForIfCase :: OperandType -> Bool -> IfCase -> CodeGenMonad ()
 genCodeForIfCase next isLast (GuardedCase expr codeblock) = do
-    trueLabel <- newLabel
+    trueLabel <- if isLast then return fall else newLabel
     falseLabel <- if isLast then return next else newLabel
     genCodeForBooleanExpr expr trueLabel falseLabel
-    genLabel trueLabel
+    unless isLast $ genLabel trueLabel
     genCode codeblock
-    genGoTo next
+    unless isLast $ genGoTo next
     unless isLast $ genLabel falseLabel
