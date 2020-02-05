@@ -188,8 +188,8 @@ compile program = do
     case compilerResult of
         Left e -> uncurry handleCompileError e >> exitFailure
         Right (ast, symTable, tokens) -> do
-            prettyPrintSymTable symTable
-            printProgram tokens
+            -- prettyPrintSymTable symTable
+            -- printProgram tokens
             code <- backend ast (ST.stDict symTable)
             printTacCode code
             exitSuccess

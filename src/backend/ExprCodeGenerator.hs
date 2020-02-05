@@ -3,7 +3,7 @@ module ExprCodeGenerator where
 import CodeGenerator
 import Grammar ( BaseExpr(..)
                , Expr(..), Op2(..), Id(..)
-               , Op1(..), comparableOp2)
+               , Op1(..), comparableOp2, booleanOp2)
 import Tokens (Token(..))
 import TypeChecking (Type(..))
 import Control.Monad.RWS
@@ -59,9 +59,14 @@ genCodeForExpr _ e = error $ "This expression hasn't been implemented " ++ show 
 genCodeForBooleanExpr :: Expr -> OperandType -> OperandType -> CodeGenMonad ()
 
 genCodeForBooleanExpr expr trueLabel falseLabel = case expAst expr of
+    -- Boolean literals
     TrueLit -> genGoTo trueLabel
     FalseLit -> genGoTo falseLabel
+
+    -- Boolean negation
     Op1 Not expr -> genCodeForBooleanExpr expr falseLabel trueLabel
+
+    -- Boolean comparation
     Op2 op lhs rhs | op `elem` comparableOp2 -> do
         leftExprId <- genCode' lhs
         rightExprId <- genCode' rhs
@@ -72,6 +77,19 @@ genCodeForBooleanExpr expr trueLabel falseLabel = case expAst expr of
                 , TAC.tacRvalue2 = Just trueLabel
                 }]
         genGoTo falseLabel
+
+    -- Conjunction and disjunction
+    Op2 op lhs rhs | op `elem` booleanOp2 -> do
+        lhsTrueLabel <- if op == Or then return trueLabel else newLabel
+        lhsFalseLabel <- if op == Or then newLabel else return falseLabel
+        let rhsTrueLabel = trueLabel
+        let rhsFalseLabel = falseLabel
+        lift $ print (trueLabel, falseLabel)
+        lift $ print ((lhsTrueLabel, lhsFalseLabel), (rhsTrueLabel, rhsFalseLabel))
+        lift $ print (lhs, rhs)
+        genCodeForBooleanExpr lhs lhsTrueLabel lhsFalseLabel
+        genLabel $ if op == Or then lhsFalseLabel else lhsTrueLabel
+        genCodeForBooleanExpr rhs rhsTrueLabel rhsFalseLabel
 
 mapOp2ToTacOperation :: Op2 -> TAC.Operation
 mapOp2ToTacOperation op = case op of
