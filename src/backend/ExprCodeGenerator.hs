@@ -78,6 +78,15 @@ genCodeForBooleanExpr expr trueLabel falseLabel = case expAst expr of
     -- Boolean negation
     Op1 Not expr -> genCodeForBooleanExpr expr falseLabel trueLabel
 
+    IdExpr _ -> do
+        symEntry <- genCode' expr
+        tell [TAC.ThreeAddressCode
+                { TAC.tacOperand = TAC.Eq
+                , TAC.tacLvalue = Just symEntry
+                , TAC.tacRvalue1 = Just $ TAC.Constant ("true", TrileanT)
+                , TAC.tacRvalue2 = Just trueLabel
+                }]
+        genGoTo falseLabel
     -- Boolean comparation
     Op2 op lhs rhs | op `elem` comparableOp2 -> do
         leftExprId <- genCode' lhs
