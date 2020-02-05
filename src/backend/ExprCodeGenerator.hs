@@ -117,13 +117,29 @@ genCodeForBooleanExpr expr trueLabel falseLabel = case expAst expr of
 
     -- Conjunction and disjunction
     Op2 op lhs rhs | op `elem` booleanOp2 -> do
-        lhsTrueLabel <- if op == Or then return trueLabel else newLabel
-        lhsFalseLabel <- if op == Or then newLabel else return falseLabel
+        lhsTrueLabel <-
+            -- for `or` we need to generate a new `true` label if the current one is `fall`
+            if op == Or then
+                (if isFall trueLabel then newLabel else return trueLabel)
+            -- for `and` we just need to `fall`
+            else
+                return fall
+        lhsFalseLabel <-
+            if op == Or then
+                return fall
+            else
+                (if isFall falseLabel then newLabel else return falseLabel)
         let rhsTrueLabel = trueLabel
         let rhsFalseLabel = falseLabel
-        genCodeForBooleanExpr lhs lhsTrueLabel lhsFalseLabel
-        genLabel $ if op == Or then lhsFalseLabel else lhsTrueLabel
-        genCodeForBooleanExpr rhs rhsTrueLabel rhsFalseLabel
+
+        if op == Or then do
+            genCodeForBooleanExpr lhs lhsTrueLabel lhsFalseLabel
+            genCodeForBooleanExpr rhs rhsTrueLabel rhsFalseLabel
+            when (isFall trueLabel) (genLabel lhsTrueLabel)
+        else do
+            genCodeForBooleanExpr lhs lhsTrueLabel lhsFalseLabel
+            genCodeForBooleanExpr rhs rhsTrueLabel rhsFalseLabel
+            when (isFall falseLabel) (genLabel lhsFalseLabel)
 
 mapOp2ToTacOperation :: Op2 -> TAC.Operation
 mapOp2ToTacOperation op = case op of
