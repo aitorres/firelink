@@ -174,7 +174,13 @@ handleCompileError compileError tokens =
         SemanticError -> printSemErrors (ceErrors compileError) tokens
 
 printTacCode :: [TAC] -> IO ()
-printTacCode = mapM_ print
+printTacCode = mapM_ prettyPrint
+    where
+        prettyPrint :: TAC -> IO ()
+        prettyPrint tac = putStrLn $ (if isLabel tac then "" else "\t") ++ show tac
+        isLabel :: TAC -> Bool
+        isLabel (TAC.ThreeAddressCode TAC.NewLabel _ _ _) = True
+        isLabel _ = False
 
 compile :: String -> IO ()
 compile program = do
@@ -182,8 +188,8 @@ compile program = do
     case compilerResult of
         Left e -> uncurry handleCompileError e >> exitFailure
         Right (ast, symTable, tokens) -> do
-            prettyPrintSymTable symTable
-            printProgram tokens
+            -- prettyPrintSymTable symTable
+            -- printProgram tokens
             code <- backend ast (ST.stDict symTable)
             printTacCode code
             exitSuccess

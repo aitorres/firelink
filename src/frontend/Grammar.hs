@@ -156,7 +156,6 @@ data Instruction
 
 data IfCase
   = GuardedCase Expr CodeBlock
-  | ElseCase CodeBlock
   deriving Show
 
 data SwitchCase
