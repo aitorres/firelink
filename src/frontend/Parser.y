@@ -786,11 +786,13 @@ checkReturnType e tk = do
         case cat of
           ST.Function -> do
             let T.FunctionT _ fType = mType
-            RWS.liftIO $ print $ show eType ++ " " ++ show fType
-            -- ! TODO: Cast types
-            -- ! TODO: Add new tests, run and update existing
+            -- Equality check
             if eType /= fType
-            then RWS.tell [Error ("Return expression type " ++ show eType ++ " does not match function return type " ++ show fType) (T.position tk)]
+            then
+              -- Try to cast and see if it works
+              if eType `T.canBeConvertedTo` fType
+              then return ()
+              else RWS.tell [Error ("Return expression type " ++ show eType ++ " incompatible with function return type " ++ show fType) (T.position tk)]
             else return ()
           _ -> returnNotFunction
     where returnNotFunction = RWS.tell [Error ("Returning with an expression outside of a function not allowed") (T.position tk)]
