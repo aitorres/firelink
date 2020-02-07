@@ -781,17 +781,17 @@ checkReturnType e tk = do
     case currMethod of
       Nothing -> returnNotFunction
       Just method -> do
-        let ST.DictionaryEntry {ST.category=cat, ST.entryType=mType} = method
+        let ST.DictionaryEntry {ST.category=cat} = method
+        mType <- getType method
         case cat of
-          ST.Function -> case mType of
-            Nothing -> return ()
-            Just fType -> do
-              -- ! TODO: Retrieve type properly, not a string (for aliases)
-              -- ! TODO: Cast types
-              -- ! TODO: Add new tests, run and update existing
-              if show eType /= fType
-              then RWS.tell [Error ("Return expression type " ++ show eType ++ " does not match function return type " ++ fType) (T.position tk)]
-              else return ()
+          ST.Function -> do
+            let T.FunctionT _ fType = mType
+            RWS.liftIO $ print $ show eType ++ " " ++ show fType
+            -- ! TODO: Cast types
+            -- ! TODO: Add new tests, run and update existing
+            if eType /= fType
+            then RWS.tell [Error ("Return expression type " ++ show eType ++ " does not match function return type " ++ show fType) (T.position tk)]
+            else return ()
           _ -> returnNotFunction
     where returnNotFunction = RWS.tell [Error ("Returning with an expression outside of a function not allowed") (T.position tk)]
 
