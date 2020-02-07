@@ -1,0 +1,15 @@
+hello ashen one
+
+traveling somewhere
+with
+    var b of type bonfire,
+    var c of type bonfire,
+    var d of type bonfire <<= lit
+in your inventory
+    b <<= lit \
+    c <<= unlit \
+    d <<= c \
+    b <<= d
+you died
+
+farewell ashen one

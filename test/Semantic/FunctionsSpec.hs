@@ -34,7 +34,7 @@ spec = do
             \ farewell ashen one"
             (_, ST.SymTable {ST.stDict=dict}, _) <- U.extractSymTable p
             U.testEntry dict varEntry U.extractCodeblockFromExtra
-                (\(ST.CodeBlock (G.CodeBlock [G.InstReturnWith G.Expr{G.expAst=G.IntLit 1}])) -> True)
+                (\(ST.CodeBlock (G.CodeBlock [G.InstReturnWith _])) -> True)
             U.testEntry dict varEntry U.extractEmptyFunctionFromExtra
                 (\ST.EmptyFunction -> True)
         it "allows to declare functions with one val argument" $ do
@@ -199,7 +199,7 @@ spec = do
             \with skill of type sign\n\
 
             \traveling somewhere\n\
-            \   go back with 1\n\
+            \   go back with |a|\n\
             \you died\n\
 
             \after this return to your world\n\

@@ -1,0 +1,16 @@
+hello ashen one
+
+traveling somewhere
+with
+    var n of type humanity <<= 0
+in your inventory
+    n <<= n + 1 \
+    while the n - 1 lte -17 covenant is active:
+        traveling somewhere
+            n <<= 2*n - 1
+        you died
+    covenant left \
+    n <<= 5 * 4 + n / 2
+you died
+
+farewell ashen one

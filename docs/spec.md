@@ -517,6 +517,8 @@ Dentro de la función, se puede utilizar la siguiente sintaxis para retornar una
 go back with <expresion>
 ```
 
+No es posible utilizar esta instrucción con una expresión fuera de una función.
+
 El _alcance_ de la lista de instrucciones inmediatas a la declaración de la función es el mismo que el de la declaración de sus argumentos, por lo tanto no se puede ocultar un argumento mediante la declaración de otra variable. Es decir, el siguiente fragmento de código es inválido:
 
 ```firelink
@@ -559,7 +561,6 @@ with skill of type humanity
 
 after this return to your world
 ```
-
 
 #### Llamada a Funciones
 
@@ -609,6 +610,8 @@ Dentro del procedimiento, se puede utilizar la siguiente sintaxis para retornar 
 ```firelink
 go back
 ```
+
+No es posible utilizar la instrucción `go back` dentro de una función; sin embargo, se puede utilizar en el cuerpo principal del programa para detener la ejecución inmediatamente.
 
 El manejo del scope de los procedimientos es análogo al de las funciones (previamente descrito)
 
