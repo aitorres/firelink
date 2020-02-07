@@ -64,8 +64,8 @@ genCodeForBooleanExpr :: Expr -> OperandType -> OperandType -> CodeGenMonad ()
 
 genCodeForBooleanExpr expr trueLabel falseLabel = case expAst expr of
     -- Boolean literals
-    TrueLit -> genGoTo trueLabel
-    FalseLit -> genGoTo falseLabel
+    TrueLit -> unless (isFall trueLabel) $ genGoTo trueLabel
+    FalseLit -> unless (isFall falseLabel) $ genGoTo falseLabel
 
     -- Boolean negation
     Op1 Not expr -> genCodeForBooleanExpr expr falseLabel trueLabel
@@ -123,7 +123,8 @@ genCodeForBooleanExpr expr trueLabel falseLabel = case expAst expr of
                 (if isFall falseLabel then newLabel else return falseLabel)
         let rhsTrueLabel = trueLabel
         let rhsFalseLabel = falseLabel
-
+        lift $ print expr
+        lift $ print ((lhsTrueLabel, lhsFalseLabel), (rhsTrueLabel, rhsFalseLabel))
         if op == Or then do
             genCodeForBooleanExpr lhs lhsTrueLabel lhsFalseLabel
             genCodeForBooleanExpr rhs rhsTrueLabel rhsFalseLabel
