@@ -559,8 +559,8 @@ SWITCHCASES :: { G.SwitchCases }
 SWITCHCASE :: { G.SwitchCase }
   : EXPR COLON CODEBLOCK                                                {% do
                                                                             checkRecoverableError (G.expTok $1) $2
-                                                                            checkSwitchCaseType $1
-                                                                            return $ G.Case $1 $3 }
+                                                                            expr <- checkSwitchCaseType $1
+                                                                            return $ G.Case expr $3 }
 
 SWITCHEND :: { Maybe G.RecoverableError }
   : switchEnd                                                           { Nothing }
@@ -782,21 +782,23 @@ checkIterVarType (G.Id tk@(T.Token {T.cleanedString=idName})) = do
         return ()
       else return ()
 
-checkSwitchCaseType :: G.Expr -> ST.ParserMonad ()
+checkSwitchCaseType :: G.Expr -> ST.ParserMonad (G.Expr)
 checkSwitchCaseType expr = do
   ST.SymTable {ST.stSwitchTypes=swTypes} <- RWS.get
-  if swTypes == [] then return ()
+  if swTypes == [] then return (expr)
   else do
     let swType = head swTypes
     case swType of
-      T.TypeError -> return ()
+      T.TypeError -> return (expr)
       tp -> do
         let exprType = G.expType expr
-        if exprType `T.canBeConvertedTo` tp then return ()
+        if exprType `T.canBeConvertedTo` tp
+        then let [castedExpr] = addCastToExprs [(expr, tp)] in
+          return (castedExpr)
         else do
           let tk = G.expTok expr
           RWS.tell [Error ("Expresion type " ++ show exprType ++ " conflicts with switch type (expected: " ++ show tp ++ ")") (T.position tk)]
-          return ()
+          return (expr)
 
 checkRecoverableError :: T.Token -> Maybe G.RecoverableError -> ST.ParserMonad ()
 checkRecoverableError openTk maybeErr = do
