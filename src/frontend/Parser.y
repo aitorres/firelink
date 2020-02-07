@@ -1289,7 +1289,20 @@ instance TypeCheckable ST.DictionaryEntry where
         ST.RecordItem, ST.UnionItem,
         ST.RefParam, ST.ValueParam] = getType $ ST.extractTypeFromExtra extras
 
-    | otherwise = error "error on getType for dict entries"
+    | otherwise = error "error on getType for expected dict entries"
+
+  getType entry@ST.DictionaryEntry{ST.entryType=Nothing, ST.category=ST.Procedure, ST.extra=extras} = do
+    let isEmptyProc = not . null $ filter ST.isEmptyFunction extras
+    domain <- (if isEmptyProc
+      then return []
+      else do
+        let fields = head $ filter ST.isFieldsExtra extras
+        (T.TypeList list) <- getType fields
+        return list
+        )
+    return $ T.ProcedureT domain
+
+  getType e = error $ "error on getType for unexpected dict entry " ++ show e
 
 instance TypeCheckable ST.Extra where
   getType (ST.Recursive s extra) = do
