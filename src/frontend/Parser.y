@@ -291,17 +291,21 @@ FUNCPREFIX :: { Maybe (ST.Scope, G.Id) }
   : functionBegin ID METHODPARS functionType TYPE                       {% addFunction (ST.Function,
                                                                               $2, G.Callable (Just $5) $3, Nothing) }
 FUNC :: { () }
-  : FUNCPREFIX CODEBLOCK functionEnd                                    {% case $1 of
-                                                                            Nothing -> return ()
-                                                                            Just (s, i) -> updateCodeBlockOfFun s i $2 }
+  : FUNCPREFIX CODEBLOCK functionEnd                                    {% do
+                                                                            ST.popVisitedMethod
+                                                                            case $1 of
+                                                                              Nothing -> return ()
+                                                                              Just (s, i) -> updateCodeBlockOfFun s i $2 }
 
 PROCPREFIX :: { Maybe (ST.Scope, G.Id) }
   : procedureBegin ID PROCPARSDEC                                       {% addFunction (ST.Procedure,
                                                                               $2, G.Callable Nothing $3, Nothing) }
 PROC :: { () }
-  : PROCPREFIX CODEBLOCK procedureEnd                                   {% case $1 of
-                                                                            Nothing -> return ()
-                                                                            Just (s, i) -> updateCodeBlockOfFun s i $2 }
+  : PROCPREFIX CODEBLOCK procedureEnd                                   {% do
+                                                                            ST.popVisitedMethod
+                                                                            case $1 of
+                                                                              Nothing -> return ()
+                                                                              Just (s, i) -> updateCodeBlockOfFun s i $2 }
 
 PROCPARSDEC :: { [ArgDeclaration] }
   : METHODPARS toTheEstusFlask                                          { $1 }
@@ -422,8 +426,10 @@ INSTR :: { G.Instruction }
   | FUNCALL                                                             {% let (tk, i, params) = $1 in do
                                                                           buildAndCheckExpr tk $ G.EvalFunc i params
                                                                           return $ G.InstCallFunc i params }
-  | return                                                              { G.InstReturn }
-  | returnWith EXPR                                                     { G.InstReturnWith $2 }
+  | return                                                              {% checkReturnScope $1 }
+  | returnWith EXPR                                                     {% do
+                                                                          retExpr <- checkReturnType $2 $1
+                                                                          return $ G.InstReturnWith retExpr }
   | print EXPR                                                          { G.InstPrint $2 }
   | read LVALUE                                                         { G.InstRead $2 }
   | whileBegin EXPR covenantIsActive COLON CODEBLOCK WHILEEND           {% do
@@ -755,15 +761,60 @@ checkPointerVariable G.Expr {G.expType=(T.PointerT _)} = return ()
 checkPointerVariable G.Expr {G.expTok=tk} =
   RWS.tell [Error ("Expresion " ++ show tk ++ " must be a valid pointer") (T.position tk)]
 
+checkReturnScope :: T.Token -> ST.ParserMonad (G.Instruction)
+checkReturnScope tk = do
+  ST.SymTable {ST.stVisitedMethod=vMethod} <- RWS.get
+  case vMethod of
+    Nothing -> return (G.InstReturn)
+    Just methodName -> do
+      currMethod <- ST.dictLookup $ methodName
+      case currMethod of
+        Just (ST.DictionaryEntry {ST.category=cat}) -> do
+          case cat of
+            ST.Function -> do
+              RWS.tell [Error ("Returning without an expression is not allowed inside functions") (T.position tk)]
+              return (G.InstReturn)
+            _ -> return (G.InstReturn)
+        _ -> return (G.InstReturn)
+
+checkReturnType :: G.Expr -> T.Token -> ST.ParserMonad (G.Expr)
+checkReturnType e tk = do
+  let eType = G.expType e
+  ST.SymTable {ST.stVisitedMethod=vMethod} <- RWS.get
+  case vMethod of
+    Nothing -> do
+      RWS.tell [Error ("Returning with an expression outside of a function not allowed") (T.position tk)]
+      return e
+    Just methodName -> do
+      currMethod <- ST.dictLookup $ methodName
+      case currMethod of
+        Nothing -> do
+          RWS.tell [Error ("Returning with an expression outside of a function not allowed") (T.position tk)]
+          return e
+        Just method -> do
+          let ST.DictionaryEntry {ST.category=cat} = method
+          mType <- getType method
+          case cat of
+            ST.Function -> do
+              let T.FunctionT _ fType = mType
+              -- If they're equal, or compatible through casting, this raises no error
+              if eType `T.canBeConvertedTo` fType
+              then let [castedExpr] = addCastToExprs [(e, fType)] in
+                return (castedExpr)
+              else do
+                RWS.tell [Error ("Return expression type " ++ show eType ++ " incompatible with function return type " ++ show fType) (T.position tk)]
+                return e
+            _ -> do
+              RWS.tell [Error ("Returning with an expression outside of a function not allowed") (T.position tk)]
+              return e
+
 checkIterVariables :: G.Expr -> ST.ParserMonad ()
 checkIterVariables e = case G.expAst e of
   G.IdExpr (G.Id tk@(T.Token {T.cleanedString=idName}) _) -> do
     ST.SymTable {ST.stIterationVars=iterVars} <- RWS.get
     let matchesIterVar = idName `elem` iterVars
     if matchesIterVar
-    then do
-      RWS.tell [Error ("Iteration variable " ++ show tk ++ " must not be reassigned") (T.position tk)]
-      return ()
+    then RWS.tell [Error ("Iteration variable " ++ show tk ++ " must not be reassigned") (T.position tk)]
     else return ()
   _ -> return ()
 
@@ -773,12 +824,9 @@ checkIterableVariables e = case G.expAst e of
     ST.SymTable {ST.stIterableVars=iterableVars} <- RWS.get
     let matchesIterVar = idName `elem` iterableVars
     if matchesIterVar
-    then do
-      RWS.tell [Error ("Iterable container " ++ show tk ++ " must not be reassigned") (T.position tk)]
-      return ()
+    then RWS.tell [Error ("Iterable container " ++ show tk ++ " must not be reassigned") (T.position tk)]
     else return ()
   _ -> return ()
-
 
 checkIdAvailability :: G.Id -> ST.ParserMonad (Maybe ST.DictionaryEntry)
 checkIdAvailability (G.Id tk@(T.Token {T.cleanedString=idName}) _) = do
@@ -818,6 +866,7 @@ extractFieldsFromExtra (_:ss) = extractFieldsFromExtra ss
 addFunction :: NameDeclaration -> ST.ParserMonad (Maybe (ST.Scope, G.Id))
 addFunction d@(_, i@(G.Id tk@(T.Token {T.cleanedString=idName}) _), _, _) = do
   ST.SymTable {ST.stCurrScope=currScope} <- RWS.get
+  ST.addVisitedMethod idName
   maybeEntry <- ST.dictLookup idName
   case maybeEntry of
     Nothing -> do
@@ -1272,7 +1321,7 @@ instance TypeCheckable G.Expr where
   getType = return . G.expType
 
 instance TypeCheckable ST.DictionaryEntry where
-  getType entry@ST.DictionaryEntry{ST.entryType=Just entryType, ST.category = cat, ST.extra = extras}
+  getType entry@ST.DictionaryEntry{ST.entryType=Just _, ST.category = cat, ST.extra = extras}
     -- If it is an alias, return just the name
     | cat == ST.Type = return $ T.AliasT (ST.name entry)
 
@@ -1295,7 +1344,13 @@ instance TypeCheckable ST.DictionaryEntry where
         ST.RecordItem, ST.UnionItem,
         ST.RefParam, ST.ValueParam] = getType $ ST.extractTypeFromExtra extras
 
-    | otherwise = error "error on getType for dict entries"
+    | otherwise = error "error on getType for expected dict entries"
+
+  -- called on a procedure that tries to return an expression (which is prohibited)
+  getType ST.DictionaryEntry{ST.entryType=Nothing, ST.category=ST.Procedure} =
+    return T.TypeError
+
+  getType _ = error "error on getType for unexpected dict entries"
 
 instance TypeCheckable ST.Extra where
   getType (ST.Recursive s extra) = do
@@ -1336,4 +1391,5 @@ instance TypeCheckable ST.Extra where
       | s == ST.void = return T.VoidT
       | otherwise = return $ T.AliasT s -- works because it always exists
                                         -- it shouldn't be added otherwise
+  getType _ = error "error on getType for SymTable extra"
 }
