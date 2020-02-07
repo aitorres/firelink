@@ -6,7 +6,6 @@ import qualified Utils as UU
 import qualified TestUtils as U
 import qualified SymTable as ST
 import qualified Grammar as G
-import qualified Tokens as T
 import qualified Data.Map as Map
 
 program :: String -> String
@@ -37,7 +36,7 @@ alias = ST.DictionaryEntry
     }
 
 spec :: Spec
-spec = describe "Variable Declarations" $ do
+spec = describe "Aliases Declarations" $ do
     it "allows to define aliases to just primitive types" $
         testVoid "knight x humanity" alias{ST.entryType = Just "humanity"}
             U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)

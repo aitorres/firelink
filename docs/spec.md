@@ -13,7 +13,7 @@
 
 ## Identificadores
 
-En **Fire Link**, un identificador válido es toda palabra que comienza con una letra minúscula, está formada posteriormente por letras, números y guiones bajos (`_`) y no es una palabra reservada por el lenguaje.
+En **Fire Link**, un identificador válido es toda palabra que comienza con una letra minúscula, está formada posteriormente por letras, números y guiones bajos (`_`) y no es una palabra reservada por el lenguaje, o un alias (`knight`) previamente declarado.
 
 Formalmente, es toda palabra de la forma `[a-z][A-Za-z0-9_]*` que no sea a su vez una palabra reservada por el lenguaje.
 
@@ -189,7 +189,7 @@ El valor por defecto de un caracter es el caracter nulo (`|\0|`).
 
 ##### Funciones de los caracteres
 
-Se debe implementar la siguiente función en el preludio de **FireLink**.
+Se debe implementar la siguiente función especial en el preludio de **FireLink**.
 
 - `ascii_of`: Retorna el código ascii de la variable (como `humanity`).
 
@@ -213,7 +213,7 @@ Se cuenta con el siguiente operador:
 
 ##### Funciones de las cadenas de caracteres
 
-Se debe implementar la siguiente función en el preludio de **FireLink**.
+Se debe implementar la siguiente función especial en el preludio de **FireLink**.
 
 - `ascii_of`: Retorna un arreglo de `humanity`s, representando los códigos asciis de cada caracter en el input.
 
@@ -253,26 +253,7 @@ si `type1 != type2` inclusive si hay alguna coerción de tipos entre `type1` y `
 
 ### Estructurados
 
-Los tipos de datos estructurados dan cierta noción de estructura al lenguaje.
-
-#### Enumeración
-
-Representa un agrupamiento de distintas _posibilidades_ de acuerdo a su nombre. Internamente, cada posibilidad corresponde a un valor entero ordinal autoincrementado, y cada posibilidad evalúa a su valor. Su declarador de tipo es `titanite`.
-
-La sintaxis de declaración de una enumeración es la siguiente (con indentación agregada para mayor legibilidad):
-
-```firelink
-titanite {
-  <nombre 1>,
-  <nombre 2>,
-  ...
-  <nombre n>
-}
-```
-
-Donde `n` es la cantidad de _posibilidades_ distintas de la enumeración declarada, cada una con un nombre *único* para la misma enumeración.
-
-El acceso a una posibilidad de nombre `pos` de una enumeración `a` se realiza mediante la sintaxis `a~>pos`.
+Los tipos de datos estructurados dan cierta noción de estructura al lenguaje y son los siguientes.
 
 #### Registro
 
@@ -312,9 +293,49 @@ link {
 }
 ```
 
-Donde `n` es la cantidad de tipos *distintos entre sí* de la unión, cada una con un nombre *único* para el mismo registro, independientemente de los tipos.
+Donde `n` es la cantidad de tipos de la unión, cada una con un nombre *único* para el mismo registro, independientemente de los tipos.
 
-El valor por defecto de una unión corresponde al valor por defecto de alguno de sus tipos.
+##### Funciones de las uniones
+
+Se debe implementar la siguiente función especial en el preludio de **FireLink**.
+
+- `is_active`: Recibe un atributo de una unión (`link`) y retorna un `bonfire` de la siguiente manera:
+  - `lit` si el atributo es el atributo activo de la unión
+  - `unlit` si el atributo NO es el atributo activo de la unión
+  - `undiscovered` si ningún valor ha sido asignado aún a algún atributo de la unión
+
+Un ejemplo de su uso sería el siguiente (con algunas libertades en la sintaxis):
+
+```firelink
+
+-- Asumimos que tenemos la siguiente declaración, aún sin inicializar
+var x of type link {
+  a of type humanity,
+  b of type humanity,
+  c of type bonfire
+}
+
+-- Antes de asignar algún valor
+is_active x~>a -- undiscovered
+is_active x~>b -- undiscovered
+is_active x~>c -- undiscovered
+
+-- Asignamos
+x~>a <<= 3
+
+-- Verificamos el atributo activo
+is_active x~>a -- lit
+is_active x~>b -- unlit
+is_active x~>c -- unlit
+
+-- Reasignamos
+x~>c <<= lit
+
+-- Verificamos el atributo activo
+is_active x~>a -- unlit
+is_active x~>b -- unlit
+is_active x~>c -- lit
+```
 
 ### Especiales
 
@@ -362,6 +383,8 @@ requiring help of
   <alias de tipo n>
 help received
 ```
+
+Es importante resaltar que, una vez que se declara un alias de tipo con un identificador dado, no puede utilizarse como un identificador de constantes, variables, funciones o procedimientos más adelante.
 
 #### Paréntesis
 

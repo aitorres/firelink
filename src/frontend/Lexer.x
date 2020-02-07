@@ -54,6 +54,7 @@ tokens :-
     inventory\ closed                     { makeToken TkEndIf }
 
     ascii_of                              { makeToken TkAsciiOf }
+    is_active                             { makeToken TkIsActive }
 
     -- switch statements
     enter\ dungeon\ with                  { makeToken TkSwitch }
@@ -103,7 +104,6 @@ tokens :-
     diff                                  { makeToken TkDiff }
     size                                  { makeToken TkSize }
 
-    titanite                              { makeToken TkEnum }
     \~\>                                  { makeToken TkAccessor }
 
     bezel                                 { makeToken TkRecord }
@@ -151,9 +151,9 @@ tokens :-
     \>\-\<                                { makeToken TkConcat }
     \<                                    { makeToken TkLteLit }
     \{                                    { makeToken TkBraceOpen }
-    \}                                    { makeToken TkBraceClosed }
+    \}                                    { makeToken TkBraceClose }
     \(                                    { makeToken TkParensOpen }
-    \)                                    { makeToken TkParensClosed }
+    \)                                    { makeToken TkParensClose }
 
     const                                 { makeToken TkConst }
     var                                   { makeToken TkVar }

@@ -500,8 +500,8 @@ spec = describe "Expressions" $ do
             CodeBlock
                 [InstReturnWith Expr{expAst=(
                     Access
-                        Expr{expAst=(IdExpr (Id Token {cleanedString="a"}))}
-                        (Id Token {cleanedString="b"})
+                        Expr{expAst=(IdExpr (Id Token {cleanedString="a"} _))}
+                        (Id Token {cleanedString="b"} _)
                     )}
                 ])) -> True)
     it "accepts `a ~> b ~> c` as an expression" $
@@ -510,40 +510,40 @@ spec = describe "Expressions" $ do
                 [InstReturnWith Expr{expAst=(
                     Access
                         Expr{expAst=(Access
-                            Expr{expAst=(IdExpr (Id Token {cleanedString="a"}))}
-                            (Id Token {cleanedString="b"}))}
-                        (Id Token {cleanedString="c"}))}])) -> True)
+                            Expr{expAst=(IdExpr (Id Token {cleanedString="a"} _))}
+                            (Id Token {cleanedString="b"} _))}
+                        (Id Token {cleanedString="c"} _))}])) -> True)
     it "accepts `a + b ~> c` as an expression" $
         runTestForExpr "a + b ~> c" (\(Program (
             CodeBlock
                 [InstReturnWith Expr{expAst=(
                     Op2 Add
-                        Expr{expAst=(IdExpr (Id Token {cleanedString="a"}))}
+                        Expr{expAst=(IdExpr (Id Token {cleanedString="a"} _))}
                         Expr{expAst=(Access
-                            Expr{expAst=(IdExpr (Id Token {cleanedString="b"}))}
-                            (Id Token {cleanedString="c"}))})}])) -> True)
+                            Expr{expAst=(IdExpr (Id Token {cleanedString="b"} _))}
+                            (Id Token {cleanedString="c"} _))})}])) -> True)
 
     it "accepts `(a)` as an expression" $
         runTestForExpr "(a)" (\(Program (
             CodeBlock
-                [InstReturnWith Expr{expAst=(IdExpr (Id Token {cleanedString="a"}))}])) -> True)
+                [InstReturnWith Expr{expAst=(IdExpr (Id Token {cleanedString="a"} _))}])) -> True)
 
     it "accepts `a<$i$>` as an expression" $
         runTestForExpr "a<$i$>" (\(Program (
             CodeBlock
                 [InstReturnWith Expr{expAst=(
                     IndexAccess
-                        Expr{expAst=(IdExpr (Id Token {cleanedString="a"}))}
-                        Expr{expAst=(IdExpr (Id Token {cleanedString="i"}))})}])) -> True)
+                        Expr{expAst=(IdExpr (Id Token {cleanedString="a"} _))}
+                        Expr{expAst=(IdExpr (Id Token {cleanedString="i"} _))})}])) -> True)
     it "accepts `a+b<$i$>` as an expression" $
         runTestForExpr "a+b<$i$>" (\(Program (
             CodeBlock
                 [InstReturnWith
                     Expr{expAst=Op2 Add
-                        Expr{expAst=(IdExpr (Id Token {cleanedString="a"}))}
+                        Expr{expAst=(IdExpr (Id Token {cleanedString="a"} _))}
                         Expr{expAst=(IndexAccess
-                            Expr{expAst=(IdExpr (Id Token {cleanedString="b"}))}
-                            Expr{expAst=(IdExpr (Id Token {cleanedString="i"}))})
+                            Expr{expAst=(IdExpr (Id Token {cleanedString="b"} _))}
+                            Expr{expAst=(IdExpr (Id Token {cleanedString="i"} _))})
                         }
                     }])) -> True)
     it "rejects `a<$$>` as an expression" $
@@ -558,7 +558,7 @@ spec = describe "Expressions" $ do
             CodeBlock
                 [InstReturnWith Expr {
                     expAst=MemAccess Expr {
-                        expAst=IdExpr (Id Token {cleanedString="a"})
+                        expAst=IdExpr (Id Token {cleanedString="a"} _)
                     }}])) -> True)
     it "rejects `aim a a` as an expression" $
         runTestForInvalidProgram "aim a a"
@@ -568,4 +568,4 @@ spec = describe "Expressions" $ do
     it "accepts `summon f` a an expression" $
         runTestForExpr "summon f" (\(Program (
             CodeBlock
-                [InstReturnWith Expr{expAst=EvalFunc (Id Token {cleanedString="f"}) []}])) -> True)
+                [InstReturnWith Expr{expAst=EvalFunc (Id Token {cleanedString="f"} _) []}])) -> True)

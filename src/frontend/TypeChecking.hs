@@ -16,15 +16,39 @@ data Type
   | VoidT
   | ArrayT Type
   | SetT Type
-  | RecordT [PropType]
-  | UnionT [PropType]
+  | RecordT Int [PropType]
+  | UnionT Int [PropType]
   | PointerT Type
   | FunctionT [Type] Type
   | TypeList [Type]
   | AliasT String
   | Any -- Currently only used in empty set, empty array and null pointers
   | TypeError
-  deriving Show
+
+instance Show Type where
+  show BigIntT = "big humanity"
+  show SmallIntT = "small humanity"
+  show TrileanT = "bonfire"
+  show FloatT = "hollow"
+  show CharT = "sign"
+  show StringT = "miracle"
+  show VoidT = "abyss"
+  show (ArrayT t) = "chest of type " ++ show t
+  show (SetT t) = "armor of type " ++ show t
+  show (RecordT _ ps) = "link with elements " ++ formattedElements
+    where elements = concatMap (\(PropType (a, t)) -> a ++ " of type " ++ show t ++ ", ") ps
+          usefulChars = length elements - 2
+          formattedElements = take usefulChars elements
+  show (UnionT _ ps) = "link with elements " ++ formattedElements
+    where elements = concatMap (\(PropType (a, t)) -> a ++ " of type " ++ show t ++ ", ") ps
+          usefulChars = length elements - 2
+          formattedElements = take usefulChars elements
+  show (PointerT t) = "arrow to " ++ show t
+  show (FunctionT as r) = "spell requiring " ++ concatMap (\t -> show t ++ ", ") as ++ " and returning " ++ show r
+  show (TypeList ts) = "typelist " ++ concatMap (\t -> show t ++ ", ") ts
+  show (AliasT t) = "knight to " ++ t
+  show Any = "any"
+  show TypeError = "error type (if you see this, open an issue on github)"
 
 instance Eq Type where
   BigIntT == BigIntT = True
@@ -35,8 +59,8 @@ instance Eq Type where
   StringT == StringT = True
   ArrayT t == ArrayT t' = t == t'
   SetT t == SetT t' = t == t'
-  UnionT pt == UnionT pt' = sort pt == sort pt'
-  RecordT pt == RecordT pt' = sort pt == sort pt'
+  UnionT s pt == UnionT s' pt' = sort pt == sort pt' && s == s'
+  RecordT s pt == RecordT s' pt' = sort pt == sort pt' && s == s'
   PointerT t == PointerT t' = t == t'
   FunctionT ts t == FunctionT ts' t' = ts == ts' && t == t'
   TypeList t == TypeList t' = t == t'
@@ -86,8 +110,8 @@ anySingleton = [Any]
 anySetSingleton :: [Type]
 anySetSingleton = [SetT Any]
 
-anyArraySingleton :: [Type]
-anyArraySingleton = [ArrayT Any]
+arrayLikeSingleton :: [Type]
+arrayLikeSingleton = [ArrayT Any, StringT]
 
 canBeConvertedTo :: Type -> Type -> Bool
 SmallIntT `canBeConvertedTo` BigIntT = True

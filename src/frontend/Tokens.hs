@@ -30,12 +30,10 @@ data AbstractToken = TkId | TkConst | TkVar | TkOfType | TkAsig
     | TkArray | TkArrayOpen | TkArrayClose | TkSize
     -- Sets
     | TkSet | TkSetOpen | TkSetClose | TkUnion | TkIntersect | TkDiff
-    -- Enums
-    | TkEnum | TkBraceOpen | TkBraceClosed | TkComma | TkAccessor
     -- Records (C-like structs)
-    | TkRecord
+    | TkRecord | TkBraceOpen | TkBraceClose | TkComma | TkAccessor
     -- Unions
-    | TkUnionStruct
+    | TkUnionStruct | TkIsActive
     -- Null, pointer stuff
     | TkNull | TkPointer | TkRequestMemory | TkAccessMemory | TkFreeMemory
     -- Type Aliases
@@ -100,7 +98,7 @@ data AbstractToken = TkId | TkConst | TkVar | TkOfType | TkAsig
     | TkPlus | TkMinus | TkMult | TkDiv | TkMod | TkLt | TkGt | TkLte
     | TkGte | TkEq | TkNeq | TkAnd | TkOr | TkConcat
     -- Parens
-    | TkParensOpen | TkParensClosed
+    | TkParensOpen | TkParensClose
     -- Unary operators
     | TkNot
     deriving (Eq)
@@ -186,31 +184,7 @@ instance Show AbstractToken where
     show TkFloatLit = U.blue ++ U.bold
     show TkCharLit = U.yellow
     show TkStringLit = U.yellow
-    show TkParensOpen = ""
-    show TkParensClosed = ""
-    show TkColon = ""
-    show TkBraceOpen = ""
-    show TkBraceClosed = ""
-    show TkComma = ""
-    show TkAccessor = ""
-    show TkArrayOpen = ""
-    show TkArrayClose = ""
-    show TkAsciiOf = ""
-    show TkSize = ""
-    show TkSetOpen = ""
-    show TkSetClose = ""
-    show TkUnion = ""
-    show TkIntersect = ""
-    show TkDiff = ""
-    show TkEnum = ""
-    show TkUnionStruct = ""
-    show TkNull = ""
-    show TkPointer = ""
-    show TkRequestMemory = ""
-    show TkAccessMemory = ""
-    show TkFreeMemory = ""
-    show TkWithTitaniteFrom = ""
-    show _ = "epale chamito falto yo"
+    show _ = ""
 
 -- |Full token with all the description and position info
 data Token = Token

@@ -34,6 +34,7 @@ import Errors
 %left diff
 %left union intersect
 
+%left isActive
 %left asciiOf
 %right not
 %left accessor
@@ -65,7 +66,6 @@ import Errors
   string                                                                { T.Token {T.aToken=T.TkString} }
   array                                                                 { T.Token {T.aToken=T.TkArray} }
   set                                                                   { T.Token {T.aToken=T.TkSet} }
-  enum                                                                  { T.Token {T.aToken=T.TkEnum} }
   unionStruct                                                           { T.Token {T.aToken=T.TkUnionStruct} }
   record                                                                { T.Token {T.aToken=T.TkRecord} }
   pointer                                                               { T.Token {T.aToken=T.TkPointer} }
@@ -88,7 +88,7 @@ import Errors
 
   comma                                                                 { T.Token {T.aToken=T.TkComma} }
   brOpen                                                                { T.Token {T.aToken=T.TkBraceOpen} }
-  brClose                                                               { T.Token {T.aToken=T.TkBraceClosed} }
+  brClose                                                               { T.Token {T.aToken=T.TkBraceClose} }
 
   with                                                                  { T.Token {T.aToken=T.TkWith} }
   declarend                                                             { T.Token {T.aToken=T.TkDeclarationEnd} }
@@ -138,7 +138,7 @@ import Errors
   withTitaniteFrom                                                      { T.Token {T.aToken=T.TkWithTitaniteFrom} }
 
   parensOpen                                                            { T.Token {T.aToken=T.TkParensOpen} }
-  parensClose                                                           { T.Token {T.aToken=T.TkParensClosed} }
+  parensClose                                                           { T.Token {T.aToken=T.TkParensClose} }
 
   plus                                                                  { T.Token {T.aToken=T.TkPlus} }
   minus                                                                 { T.Token {T.aToken=T.TkMinus} }
@@ -155,6 +155,7 @@ import Errors
   and                                                                   { T.Token {T.aToken=T.TkAnd} }
   or                                                                    { T.Token {T.aToken=T.TkOr} }
   asciiOf                                                               { T.Token {T.aToken=T.TkAsciiOf} }
+  isActive                                                              { T.Token {T.aToken=T.TkIsActive} }
   colConcat                                                             { T.Token {T.aToken=T.TkConcat} }
   union                                                                 { T.Token {T.aToken=T.TkUnion} }
   intersect                                                             { T.Token {T.aToken=T.TkIntersect} }
@@ -185,7 +186,7 @@ PROGRAMEND :: { Maybe G.RecoverableError }
 NON_OPENER_CODEBLOCK :: { G.CodeBlock }
   : instructionsBegin DECLARS INSTRL NON_OPENER_INSTEND                 {% do
                                                                              checkRecoverableError $1 $4
-                                                                             return $ G.CodeBlock $ reverse $3 }
+                                                                             return $ G.CodeBlock $ $2 ++ reverse $3 }
   | instructionsBegin INSTRL NON_OPENER_INSTEND                         {% do
                                                                              checkRecoverableError $1 $3
                                                                              return $ G.CodeBlock $ reverse $2 }
@@ -215,7 +216,7 @@ ALIAS :: { NameDeclaration }
 
 LVALUE :: { G.Expr }
   : ID                                                                  {% do
-                                                                            let (G.Id tk) = $1
+                                                                            let (G.Id tk _) = $1
                                                                             buildAndCheckExpr tk $ G.IdExpr $1 }
   | EXPR accessor ID                                                    {% do
                                                                             let expr = G.Access $1 $3
@@ -240,6 +241,7 @@ EXPR :: { G.Expr }
   | minus EXPR                                                          {% buildAndCheckExpr $1 $ G.Op1 G.Negate $2 }
   | not EXPR                                                            {% buildAndCheckExpr $1 $ G.Op1 G.Not $2 }
   | asciiOf EXPR                                                        {% buildAndCheckExpr $1 $ G.AsciiOf $2 }
+  | isActive EXPR                                                       {% buildAndCheckExpr $1 $ G.IsActive $2 }
   | size EXPR                                                           {% buildAndCheckExpr $1 $ G.SetSize $2 }
   | EXPR plus EXPR                                                      {% buildAndCheckExpr $2 $ G.Op2 G.Add $1 $3 }
   | EXPR minus EXPR                                                     {% buildAndCheckExpr $2 $ G.Op2 G.Substract $1 $3 }
@@ -321,7 +323,7 @@ PARTYPE :: { G.ArgType }
   | parRef                                                              { G.Ref }
 
 TYPE :: { G.GrammarType }
-  : ID                                                                  { let G.Id t = $1 in G.Simple t Nothing }
+  : ID                                                                  { let G.Id t _ = $1 in G.Simple t Nothing }
   | bigInt                                                              { G.Simple $1 Nothing }
   | smallInt                                                            { G.Simple $1 Nothing }
   | float                                                               { G.Simple $1 Nothing }
@@ -346,10 +348,6 @@ PARENSCLOSE :: { Maybe G.RecoverableError }
   : parensClose                                                         { Nothing }
   | error                                                               { Just G.MissingClosingParens }
 
-ENUMITS :: { [Int] }
-  : ENUMITS comma ID                                                    { [] }
-  | ID                                                                  { [] }
-
 STRUCTITS :: { [RecordItem] }
   : STRUCTITS comma STRUCTIT                                            { $3:$1 }
   | STRUCTIT                                                            { [$1] }
@@ -358,12 +356,14 @@ STRUCTIT :: { RecordItem }
   : ID ofType TYPE                                                      { ($1, $3) }
 
 ID :: { G.Id }
-  : id                                                                  { G.Id $1 }
+  : id                                                                  {% do
+                                                                            ST.SymTable {ST.stScopeStack = (currScope : _)} <- RWS.get
+                                                                            return $ G.Id $1 currScope }
 
 CODEBLOCK :: { G.CodeBlock }
   : INSTBEGIN DECLARS INSTRL INSTEND                                    {% do
                                                                              checkRecoverableError $1 $4
-                                                                             return $ G.CodeBlock $ reverse $3 }
+                                                                             return $ G.CodeBlock $ $2 ++ reverse $3 }
   | INSTBEGIN INSTRL INSTEND                                            {% do
                                                                              checkRecoverableError $1 $3
                                                                              return $ G.CodeBlock $ reverse $2 }
@@ -379,10 +379,12 @@ INSTEND :: { Maybe G.RecoverableError }
                                                                              return Nothing }
   | error                                                               { Just G.MissingInstructionListEnd }
 
-DECLARS :: { () }
+DECLARS :: { [G.Instruction] }
   : with DECLARSL DECLAREND                                             {% do
-                                                                             checkRecoverableError $1 $3
-                                                                             addIdsToSymTable (reverse $2) }
+                                                                            let instrlist = getAssigsFromDeclarations (reverse $2)
+                                                                            checkRecoverableError $1 $3
+                                                                            addIdsToSymTable (reverse $2)
+                                                                            return instrlist }
 
 DECLAREND :: { Maybe G.RecoverableError }
   : declarend                                                           { Nothing }
@@ -406,9 +408,14 @@ INSTR :: { G.Instruction }
                                                                           checkConstantReassignment $1
                                                                           checkIterVariables $1
                                                                           checkIterableVariables $1
+                                                                          checkTypeOfAssignment $1 $3 $2
                                                                           return $ G.InstAsig $1 $3 }
-  | malloc EXPR                                                         { G.InstMalloc $2 }
-  | free EXPR                                                           { G.InstFreeMem $2 }
+  | malloc EXPR                                                         {% do
+                                                                          checkPointerVariable $2
+                                                                          return $ G.InstMalloc $2 }
+  | free EXPR                                                           {% do
+                                                                          checkPointerVariable $2
+                                                                          return $G.InstFreeMem $2 }
   | cast ID PROCPARS                                                    {% do
                                                                           checkIdAvailability $2
                                                                           return $ G.InstCallProc $2 $3 }
@@ -508,11 +515,11 @@ FOREACHBEGIN :: { (T.Token, G.Id, Bool, Bool, G.Expr) }
                                                                                 Nothing -> do
                                                                                   RWS.tell [Error "Iterable expression is not a container" (T.position $ G.expTok $4)]
                                                                                 Just t -> do
-                                                                                  let (G.Id tk) = $2
+                                                                                  let (G.Id tk _) = $2
                                                                                   RWS.when (T.TypeError /= t && iteratorType /= t) $
                                                                                     RWS.tell [Error "Iterator variable is not of the type of contained elements" (T.position tk)]
                                                                           if containerType /= T.TypeError && isContainerAVariable then do
-                                                                            let (G.IdExpr (G.Id tk)) = G.expAst $4
+                                                                            let (G.IdExpr (G.Id tk _)) = G.expAst $4
                                                                             ST.addIterableVariable (T.cleanedString tk)
                                                                           else return ()
                                                                           return ret
@@ -546,7 +553,14 @@ IFCASE :: { G.IfCase }
 ELSECASE :: { G.IfCase }
   : else COLON CODEBLOCK                                                {% do
                                                                             checkRecoverableError $1 $2
-                                                                            return $ G.ElseCase $3 }
+                                                                            return $ G.GuardedCase (G.Expr
+                                                                                                    { G.expAst = G.TrueLit
+                                                                                                    , G.expType = T.TrileanT
+                                                                                                    , G.expTok = (T.Token
+                                                                                                                    { T.aToken = T.TkLit
+                                                                                                                    , T.capturedString = "lit"
+                                                                                                                    , T.cleanedString = "lit"})
+                                                                                                    }) $3 }
 
 IFEND :: { Maybe G.RecoverableError }
   : ifEnd                                                               { Nothing }
@@ -602,6 +616,19 @@ type ArgDeclaration = (G.ArgType, G.Id, G.GrammarType)
 type AliasDeclaration = (G.Id, G.GrammarType)
 type RecordItem = AliasDeclaration
 
+getAssigsFromDeclarations :: [NameDeclaration] -> [G.Instruction]
+getAssigsFromDeclarations = map buildAsigInstr . filter hasInitialization
+  where
+    hasInitialization :: NameDeclaration -> Bool
+    hasInitialization (_, _, _, exp) = isJust exp
+    buildAsigInstr :: NameDeclaration -> G.Instruction
+    buildAsigInstr (_, gId@(G.Id tk _), _, Just exp) =
+      let expr = G.Expr
+                  { G.expAst = G.IdExpr gId
+                  , G.expType = G.expType exp
+                  , G.expTok = tk
+                  } in G.InstAsig expr exp
+
 buildAndCheckExpr :: T.Token -> G.BaseExpr -> ST.ParserMonad G.Expr
 buildAndCheckExpr tk bExpr = do
   (t, expr) <- buildType bExpr tk
@@ -638,7 +665,7 @@ addIdsToSymTable ids = do
   RWS.mapM_ (addIdToSymTable Nothing) ids
 
 addIdToSymTable :: Maybe Int -> NameDeclaration -> ST.ParserMonad ()
-addIdToSymTable mi d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idName})), t, maybeExp) = do
+addIdToSymTable mi d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idName}) _), t, maybeExp) = do
   maybeIdEntry <- ST.dictLookup idName
   maybeTypeEntry <- findTypeOnEntryTable t
   ST.SymTable {ST.stScopeStack=(currScope:_), ST.stIterationVars=iterVars} <- RWS.get
@@ -657,7 +684,7 @@ addIdToSymTable mi d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idN
         (Nothing, _) -> return ()
         (_, Nothing) -> return ()
         (Just en, Just exp) -> do
-          checkTypeOfAssignmentOnInit en exp
+          checkTypeOfAssignment en exp (G.expTok exp)
 
     -- The name does exists on the table, we just add it depending on the scope
     Just entry -> do
@@ -721,7 +748,7 @@ insertIdToEntry mi t entry = do
 
 checkConstantReassignment :: G.Expr -> ST.ParserMonad ()
 checkConstantReassignment e = case G.expAst e of
-  G.IdExpr (G.Id tk@(T.Token {T.cleanedString=idName})) -> do
+  G.IdExpr (G.Id tk@(T.Token {T.cleanedString=idName}) _) -> do
     maybeEntry <- ST.dictLookup idName
     case maybeEntry of
       Nothing -> do
@@ -736,9 +763,14 @@ checkConstantReassignment e = case G.expAst e of
   G.IndexAccess gId _ -> checkConstantReassignment gId
   _ -> return ()
 
+checkPointerVariable :: G.Expr -> ST.ParserMonad ()
+checkPointerVariable G.Expr {G.expType=(T.PointerT _)} = return ()
+checkPointerVariable G.Expr {G.expTok=tk} =
+  RWS.tell [Error ("Expresion " ++ show tk ++ " must be a valid pointer") (T.position tk)]
+
 checkIterVariables :: G.Expr -> ST.ParserMonad ()
 checkIterVariables e = case G.expAst e of
-  G.IdExpr (G.Id tk@(T.Token {T.cleanedString=idName})) -> do
+  G.IdExpr (G.Id tk@(T.Token {T.cleanedString=idName}) _) -> do
     ST.SymTable {ST.stIterationVars=iterVars} <- RWS.get
     let matchesIterVar = idName `elem` iterVars
     if matchesIterVar
@@ -750,7 +782,7 @@ checkIterVariables e = case G.expAst e of
 
 checkIterableVariables :: G.Expr -> ST.ParserMonad ()
 checkIterableVariables e = case G.expAst e of
-  G.IdExpr (G.Id tk@(T.Token {T.cleanedString=idName})) -> do
+  G.IdExpr (G.Id tk@(T.Token {T.cleanedString=idName}) _) -> do
     ST.SymTable {ST.stIterableVars=iterableVars} <- RWS.get
     let matchesIterVar = idName `elem` iterableVars
     if matchesIterVar
@@ -762,7 +794,7 @@ checkIterableVariables e = case G.expAst e of
 
 
 checkIdAvailability :: G.Id -> ST.ParserMonad (Maybe ST.DictionaryEntry)
-checkIdAvailability (G.Id tk@(T.Token {T.cleanedString=idName})) = do
+checkIdAvailability (G.Id tk@(T.Token {T.cleanedString=idName}) _) = do
   maybeEntry <- ST.dictLookup idName
   case maybeEntry of
     Nothing -> do
@@ -771,7 +803,7 @@ checkIdAvailability (G.Id tk@(T.Token {T.cleanedString=idName})) = do
     Just e -> return $ Just e
 
 checkIterVarType :: G.Id -> ST.ParserMonad ()
-checkIterVarType (G.Id tk@(T.Token {T.cleanedString=idName})) = do
+checkIterVarType (G.Id tk@(T.Token {T.cleanedString=idName}) _) = do
   maybeEntry <- ST.dictLookup idName
   case maybeEntry of
     Nothing -> return ()
@@ -815,7 +847,7 @@ extractFieldsFromExtra (s@ST.Fields{} : _) = s
 extractFieldsFromExtra (_:ss) = extractFieldsFromExtra ss
 
 addFunction :: NameDeclaration -> ST.ParserMonad (Maybe (ST.Scope, G.Id))
-addFunction d@(_, i@(G.Id tk@(T.Token {T.cleanedString=idName})), _, _) = do
+addFunction d@(_, i@(G.Id tk@(T.Token {T.cleanedString=idName}) _), _, _) = do
   ST.SymTable {ST.stCurrScope=currScope} <- RWS.get
   maybeEntry <- ST.dictLookup idName
   case maybeEntry of
@@ -827,7 +859,7 @@ addFunction d@(_, i@(G.Id tk@(T.Token {T.cleanedString=idName})), _, _) = do
       return Nothing
 
 updateCodeBlockOfFun :: ST.Scope -> G.Id -> G.CodeBlock -> ST.ParserMonad ()
-updateCodeBlockOfFun currScope (G.Id tk@(T.Token {T.cleanedString=idName})) code = do
+updateCodeBlockOfFun currScope (G.Id tk@(T.Token {T.cleanedString=idName}) _) code = do
   let f x = (if and [ST.scope x == currScope, ST.name x == idName, ST.category x `elem` [ST.Function, ST.Procedure]]
             then let e = ST.extra x in x{ST.extra = (ST.CodeBlock code) : e}
             else x)
@@ -1072,25 +1104,46 @@ checkAsciiOf e tk = do
       RWS.tell [Error ("ascii_of requires argument to be a miracle or a sign") (T.position tk)]
       return T.TypeError
 
-
-checkAccess :: G.Expr -> G.Id -> T.Token -> ST.ParserMonad T.Type
-checkAccess e (G.Id T.Token{T.cleanedString=i}) tk = do
+checkIsActive :: G.Expr -> T.Token -> ST.ParserMonad T.Type
+checkIsActive e tk = do
   t <- getType e
   case t of
-    T.RecordT properties -> checkProperty properties
-    T.UnionT properties -> checkProperty properties
     T.TypeError -> return T.TypeError
+    _ ->
+      if isUnionAttr then return T.TrileanT
+      else do
+        RWS.tell [Error ("is_active requires argument to be a union attribute") (T.position tk)]
+        return T.TypeError
+  where
+    isUnionAttr = case e of
+      (G.Expr {G.expAst=(G.Access r _)}) -> isUnion r
+      _ -> False
+    isUnion (G.Expr {G.expType=(T.UnionT _ _)}) = True
+    isUnion _ = False
+
+checkAccess :: G.Expr -> G.Id -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
+checkAccess e (G.Id tk'@T.Token{T.cleanedString=i} _) tk = do
+  t <- getType e
+  case t of
+    T.RecordT scope properties -> checkProperty properties scope
+    T.UnionT scope properties -> checkProperty properties scope
+    T.TypeError -> return defaultReturn
     _ -> do
       RWS.tell [Error "Left side of access is not a record nor union" (T.position tk)]
-      return T.TypeError
+      return defaultReturn
   where
-    checkProperty :: [T.PropType] -> ST.ParserMonad T.Type
-    checkProperty props =
+    baseExpr :: G.Id -> G.BaseExpr
+    baseExpr = G.Access e
+    defaultReturn :: (T.Type, G.BaseExpr)
+    defaultReturn = (T.TypeError, baseExpr $ G.Id tk' (-1))
+    checkProperty :: [T.PropType] -> Int -> ST.ParserMonad (T.Type, G.BaseExpr)
+    checkProperty props scope =
       case filter ((==i) . fst) $ map (\(T.PropType e) -> e) props of
-        ((_,a):_) -> return a
+        ((_,a):_) -> do
+          return (a, baseExpr $ G.Id tk' scope)
         _ -> do
           RWS.tell [Error ("Property " ++ i ++ " doesn't exist") (T.position tk)]
-          return T.TypeError
+          return defaultReturn
 
 unaryOpCheck :: G.Expr -> G.Op1 -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
 unaryOpCheck expr op tk = do
@@ -1132,7 +1185,7 @@ binaryOpCheck leftExpr rightExpr op tk = do
       | op `elem` G.comparableOp2 = T.anySingleton -- we can compare any type if they are the same
       | op `elem` G.booleanOp2 = T.booleanSingleton
       | op `elem` G.setOp2 = T.anySetSingleton
-      | op `elem` G.arrayOp2 = T.anyArraySingleton
+      | op `elem` G.arrayOp2 = T.arrayLikeSingleton
       | otherwise = error (show op ++ " doesn't have a value in expectedForOperands function")
     checkIfInExpected :: G.Expr -> G.Expr -> ST.ParserMonad (T.Type, G.BaseExpr)
     checkIfInExpected l r = do
@@ -1158,13 +1211,15 @@ checkSetSize expr tk = do
       RWS.tell [Error "`size` expects a set" (T.position tk)]
       return T.TypeError
 
-checkTypeOfAssignmentOnInit :: ST.DictionaryEntry -> G.Expr -> ST.ParserMonad ()
-checkTypeOfAssignmentOnInit entry expr = do
-  entryType <- getType entry
-  exprType <- getType expr
-  if exprType `T.canBeConvertedTo` entryType
+checkTypeOfAssignment :: (TypeCheckable a, TypeCheckable b) => a -> b -> T.Token -> ST.ParserMonad ()
+checkTypeOfAssignment lval rval tk = do
+  lvalType <- getType lval
+  rvalType <- getType rval
+  if rvalType `T.canBeConvertedTo` lvalType
   then return ()
-  else RWS.tell [Error "Invalid asignment" (T.position $ G.expTok expr)]
+  else do
+    let errorDetails = "(couldn't covert " ++ (show rvalType) ++ " to " ++ (show lvalType) ++ ")"
+    RWS.tell [Error ("Type mismatch on assignment " ++ errorDetails) (T.position tk)]
 
 minBigInt :: Int
 minBigInt = - 2147483648
@@ -1213,13 +1268,23 @@ buildType bExpr tk = case bExpr of
 
   G.Op2 op a b -> binaryOpCheck a b op tk
 
-  G.IdExpr i -> buildTypeForNonCasterExprs (getType i) bExpr
+  G.IdExpr i -> checkIdType i
   G.IndexAccess e i -> buildTypeForNonCasterExprs (checkIndexAccess e i tk) bExpr
   G.EvalFunc i params -> functionsCheck i params tk
   G.MemAccess e -> buildTypeForNonCasterExprs (memAccessCheck e tk) bExpr
+  G.IsActive e -> buildTypeForNonCasterExprs (checkIsActive e tk) bExpr
   G.AsciiOf e -> buildTypeForNonCasterExprs (checkAsciiOf e tk) bExpr
-  G.Access e i -> buildTypeForNonCasterExprs (checkAccess e i tk) bExpr
+  G.Access e i -> checkAccess e i tk
   G.SetSize e -> buildTypeForNonCasterExprs (checkSetSize e tk) bExpr
+
+checkIdType :: G.Id -> ST.ParserMonad (T.Type, G.BaseExpr)
+checkIdType gId@(G.Id tk _) = do
+  idEntry <- checkIdAvailability gId
+  case idEntry of
+    Nothing -> return (T.TypeError, G.IdExpr gId)
+    Just entry -> do
+      t <- getType gId
+      return (t, G.IdExpr $ G.Id tk $ ST.scope entry)
 
 instance TypeCheckable G.Id where
   getType gId = do
@@ -1281,8 +1346,9 @@ instance TypeCheckable ST.Extra where
     let entryNames = map ST.name entries
     types <- mapM getType entries
     case b of
-      ST.Record -> return $ T.RecordT $ map T.PropType $ zip entryNames types
-      _ -> return $ T.UnionT $ map T.PropType $ zip entryNames types
+      ST.Record -> return $ T.RecordT scope $ map T.PropType $ zip entryNames types
+      ST.Union -> return $ T.UnionT scope $ map T.PropType $ zip entryNames types
+      _ -> error "wrong data type for Fields extra"
 
   getType ST.EmptyFunction = return $ T.TypeList []
 
