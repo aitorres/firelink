@@ -199,7 +199,7 @@ spec = do
             \with skill of type sign\n\
 
             \traveling somewhere\n\
-            \   go back with 1\n\
+            \   go back with |a|\n\
             \you died\n\
 
             \after this return to your world\n\
