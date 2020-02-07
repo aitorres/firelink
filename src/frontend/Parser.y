@@ -763,8 +763,11 @@ checkReturnScope tk = do
     currMethod <- ST.dictLookup $ head vMethods
     case currMethod of
       Just (ST.DictionaryEntry {ST.category=cat}) -> do
-        RWS.tell [Error ("Returning without an expression is not allowed inside functions") (T.position tk)]
-        return (G.InstReturn)
+        case cat of
+          ST.Function -> do
+            RWS.tell [Error ("Returning without an expression is not allowed inside functions") (T.position tk)]
+            return (G.InstReturn)
+          _ -> return (G.InstReturn)
       _ -> return (G.InstReturn)
 
 checkReturnType :: G.Expr -> T.Token -> ST.ParserMonad ()
