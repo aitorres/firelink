@@ -1,0 +1,20 @@
+hello ashen one
+
+traveling somewhere
+with
+    var n of type bonfire,
+    var m of type bonfire
+in your inventory
+    n <<= 1 eq 1 \
+    n <<= 1 neq 9 \
+    m <<= 1.5 eq 1.5 \
+    m <<= 1.5 neq 3.5 \
+    n <<= 1.5 gte 2.5 \
+    m <<= 1.5 gt 5.3 \
+    n <<= 1.5 lte 5.2 \
+    m <<= 1.5 lt 94 \
+    n <<= 1 eq 1.5 \
+    m <<= 1 eq 1.0
+you died
+
+farewell ashen one
