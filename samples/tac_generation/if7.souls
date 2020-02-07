@@ -1,0 +1,28 @@
+hello ashen one
+
+traveling somewhere
+with
+    var a of type humanity <<= 1,
+    var b of type humanity <<= 3,
+    var c of type humanity <<= 2,
+    var t of type humanity
+in your inventory
+    trust your inventory
+    a gte b:
+        traveling somewhere
+            t <<= a \
+            b <<= a \
+            a <<= t
+        you died
+    inventory closed \
+    trust your inventory
+    b gte c:
+        traveling somewhere
+            t <<= b \
+            c <<= b \
+            b <<= t
+        you died
+    inventory closed
+you died
+
+farewell ashen one
