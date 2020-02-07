@@ -22,13 +22,13 @@ import Errors
 
 %left ARRCLOSE
 
-%left eq neq
+%left and or
 %nonassoc lt lte gt gte
+%left eq neq
 %left plus minus
 %left mult div mod
 %left NEG
 
-%left and or
 
 %left colConcat
 %left diff
@@ -1211,8 +1211,11 @@ buildTypeForNonCasterExprs tt bExpr = tt >>= \t -> return (t, bExpr)
 checkBooleanGuard :: G.Expr -> ST.ParserMonad ()
 checkBooleanGuard expr = do
   t <- getType expr
-  RWS.when (t /= T.TrileanT) $
-    RWS.tell [Error "Guard should be of trilean data type" (T.position $ G.expTok expr)]
+  RWS.when (t /= T.TrileanT) $ do
+    -- Avoid propagating the error if it has been raised somewhere else already
+    if t == T.TypeError
+    then return ()
+    else RWS.tell [Error "Guard should be of trilean data type" (T.position $ G.expTok expr)]
 
 buildType :: G.BaseExpr -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
 buildType bExpr tk = case bExpr of

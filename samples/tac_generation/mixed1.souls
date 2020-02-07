@@ -1,0 +1,64 @@
+hello ashen one
+
+traveling somewhere
+with
+    var a of type humanity <<= 0,
+    var b of type humanity,
+    var c of type hollow,
+    var d of type bonfire <<= lit,
+    var e of type bonfire
+in your inventory
+    e <<= not d \
+    d <<= d and e \
+    c <<= 5 \
+    e <<= a eq c \
+    b <<= 4 * 5 / 2 + a - c * 2 % 61 \
+    d <<= a gte 9 \
+    e <<= not (d and (a eq 4) or (b gte 18 and c eq 8 - 2389)) \
+    trust your inventory
+        a gte b:
+            traveling somewhere
+                b <<= 4
+            you died
+        b neq c:
+            traveling somewhere
+                e <<= unlit \
+                trust your inventory
+                    d:
+                        traveling somewhere
+                            a <<= a / 57 + 1 - (12 - (79 / 23 * 200000 + (1 - 4))) \
+                            while the a neq 4 covenant is active:
+                                traveling somewhere
+                                    a <<= a - 200 * b
+                                you died
+                            covenant left
+                        you died
+                    liar!:
+                        traveling somewhere
+                            a <<= 200*c + a
+                        you died
+                inventory closed \
+                d <<= not e
+            you died
+        liar!:
+            traveling somewhere
+                while the c lte 4.8 covenant is active:
+                    traveling somewhere
+                        b <<= a \
+                        a <<= b - 17 \
+                        c <<= a + b / 29189
+                    you died
+                covenant left
+            you died
+    inventory closed \
+    a <<= a + 1 \
+    while the c - 1 lte -17 covenant is active:
+        traveling somewhere
+            b <<= 2*c - 1 \
+            e <<= a eq 4 and d
+        you died
+    covenant left \
+    c <<= 5 * 4 + a / 2
+you died
+
+farewell ashen one

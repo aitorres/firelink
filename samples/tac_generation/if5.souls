@@ -1,0 +1,23 @@
+hello ashen one
+
+traveling somewhere
+with
+    var n of type humanity,
+    var b of type humanity
+in your inventory
+    trust your inventory
+        (n eq b) and (b + 1 lt n - 3):
+            traveling somewhere
+                n <<= 1 \
+                b <<= n \
+                n <<= n + 2 * 3 / b + 1
+            you died
+        liar!:
+            traveling somewhere
+                n <<= n + 1 \
+                b <<= b - 1
+            you died
+    inventory closed
+you died
+
+farewell ashen one

@@ -1,0 +1,15 @@
+hello ashen one
+
+traveling somewhere
+with
+    var n of type humanity
+in your inventory
+    trust your inventory
+        1 eq 3:
+            traveling somewhere
+                n <<= 1
+            you died
+    inventory closed
+you died
+
+farewell ashen one
