@@ -112,7 +112,7 @@ data SymTable = SymTable
       stCurrScope :: !Int, -- ^ Current scope
       stIterationVars :: ![String], -- ^ List of currently protected iteration variables
       stIterableVars :: ![String], -- ^ List of currently protected iterable variable
-      stVisitedMethods :: ![String] -- ^ List of currently visited method
+      stVisitedMethod :: !(Maybe String) -- ^ List of currently visited method
     }
 
 type ParserMonad = RWS.RWST () [Error] SymTable IO
@@ -195,15 +195,13 @@ popIteratorVariable = do
 
 addVisitedMethod :: String -> ParserMonad ()
 addVisitedMethod method = do
-    st@SymTable {stVisitedMethods=vMethods} <- RWS.get
-    RWS.put st{stVisitedMethods = method : vMethods}
+    st <- RWS.get
+    RWS.put st{stVisitedMethod = Just method}
 
 popVisitedMethod :: ParserMonad ()
 popVisitedMethod  = do
-    st@SymTable {stVisitedMethods=vMethods} <- RWS.get
-    RWS.put st{stVisitedMethods = case vMethods of
-        [] -> []
-        _:vm -> vm}
+    st <- RWS.get
+    RWS.put st{stVisitedMethod = Nothing}
 
 addIterableVariable :: String -> ParserMonad ()
 addIterableVariable var = do
@@ -247,7 +245,7 @@ arrow :: String
 arrow = "arrow"
 
 initialState :: SymTable
-initialState = SymTable (Map.fromList l) [1, 0] 1 [] [] []
+initialState = SymTable (Map.fromList l) [1, 0] 1 [] [] Nothing
     where l = [(smallHumanity, [DictionaryEntry smallHumanity Type 0 Nothing []])
             , (humanity, [DictionaryEntry humanity Type 0 Nothing []])
             , (hollow, [DictionaryEntry hollow Type 0 Nothing []])

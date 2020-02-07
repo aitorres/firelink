@@ -763,50 +763,50 @@ checkPointerVariable G.Expr {G.expTok=tk} =
 
 checkReturnScope :: T.Token -> ST.ParserMonad (G.Instruction)
 checkReturnScope tk = do
-  ST.SymTable {ST.stVisitedMethods=vMethods} <- RWS.get
-  if vMethods == []
-  then return (G.InstReturn)
-  else do
-    currMethod <- ST.dictLookup $ head vMethods
-    case currMethod of
-      Just (ST.DictionaryEntry {ST.category=cat}) -> do
-        case cat of
-          ST.Function -> do
-            RWS.tell [Error ("Returning without an expression is not allowed inside functions") (T.position tk)]
-            return (G.InstReturn)
-          _ -> return (G.InstReturn)
-      _ -> return (G.InstReturn)
+  ST.SymTable {ST.stVisitedMethod=vMethod} <- RWS.get
+  case vMethod of
+    Nothing -> return (G.InstReturn)
+    Just methodName -> do
+      currMethod <- ST.dictLookup $ methodName
+      case currMethod of
+        Just (ST.DictionaryEntry {ST.category=cat}) -> do
+          case cat of
+            ST.Function -> do
+              RWS.tell [Error ("Returning without an expression is not allowed inside functions") (T.position tk)]
+              return (G.InstReturn)
+            _ -> return (G.InstReturn)
+        _ -> return (G.InstReturn)
 
 checkReturnType :: G.Expr -> T.Token -> ST.ParserMonad (G.Expr)
 checkReturnType e tk = do
   let eType = G.expType e
-  ST.SymTable {ST.stVisitedMethods=vMethods} <- RWS.get
-  if vMethods == []
-  then do
-    RWS.tell [Error ("Returning with an expression outside of a function not allowed") (T.position tk)]
-    return e
-  else do
-    currMethod <- ST.dictLookup $ head vMethods
-    case currMethod of
-      Nothing -> do
-        RWS.tell [Error ("Returning with an expression outside of a function not allowed") (T.position tk)]
-        return e
-      Just method -> do
-        let ST.DictionaryEntry {ST.category=cat} = method
-        mType <- getType method
-        case cat of
-          ST.Function -> do
-            let T.FunctionT _ fType = mType
-            -- If they're equal, or compatible through casting, this raises no error
-            if eType `T.canBeConvertedTo` fType
-            then let [castedExpr] = addCastToExprs [(e, fType)] in
-              return (castedExpr)
-            else do
-              RWS.tell [Error ("Return expression type " ++ show eType ++ " incompatible with function return type " ++ show fType) (T.position tk)]
+  ST.SymTable {ST.stVisitedMethod=vMethod} <- RWS.get
+  case vMethod of
+    Nothing -> do
+      RWS.tell [Error ("Returning with an expression outside of a function not allowed") (T.position tk)]
+      return e
+    Just methodName -> do
+      currMethod <- ST.dictLookup $ methodName
+      case currMethod of
+        Nothing -> do
+          RWS.tell [Error ("Returning with an expression outside of a function not allowed") (T.position tk)]
+          return e
+        Just method -> do
+          let ST.DictionaryEntry {ST.category=cat} = method
+          mType <- getType method
+          case cat of
+            ST.Function -> do
+              let T.FunctionT _ fType = mType
+              -- If they're equal, or compatible through casting, this raises no error
+              if eType `T.canBeConvertedTo` fType
+              then let [castedExpr] = addCastToExprs [(e, fType)] in
+                return (castedExpr)
+              else do
+                RWS.tell [Error ("Return expression type " ++ show eType ++ " incompatible with function return type " ++ show fType) (T.position tk)]
+                return e
+            _ -> do
+              RWS.tell [Error ("Returning with an expression outside of a function not allowed") (T.position tk)]
               return e
-          _ -> do
-            RWS.tell [Error ("Returning with an expression outside of a function not allowed") (T.position tk)]
-            return e
 
 checkIterVariables :: G.Expr -> ST.ParserMonad ()
 checkIterVariables e = case G.expAst e of
