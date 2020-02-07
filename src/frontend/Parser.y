@@ -1187,7 +1187,7 @@ checkTypeOfAssignment lval rval tk = do
   if rvalType `T.canBeConvertedTo` lvalType
   then return ()
   else do
-    let errorDetails = "(couldn't covert " ++ (show rvalType) ++ " to " ++ (show lvalType) ++ ")"
+    let errorDetails = "(couldn't convert " ++ (show rvalType) ++ " to " ++ (show lvalType) ++ ")"
     -- don't propagate type errors further
     if T.TypeError `elem` [lvalType, rvalType]
     then return ()
