@@ -22,13 +22,13 @@ import Errors
 
 %left ARRCLOSE
 
-%left eq neq
+%left and or
 %nonassoc lt lte gt gte
+%left eq neq
 %left plus minus
 %left mult div mod
 %left NEG
 
-%left and or
 
 %left colConcat
 %left diff
