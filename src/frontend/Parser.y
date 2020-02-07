@@ -428,8 +428,8 @@ INSTR :: { G.Instruction }
                                                                           return $ G.InstCallFunc i params }
   | return                                                              {% checkReturnScope $1 }
   | returnWith EXPR                                                     {% do
-                                                                          checkReturnType $2 $1
-                                                                          return $ G.InstReturnWith $2 }
+                                                                          retExpr <- checkReturnType $2 $1
+                                                                          return $ G.InstReturnWith retExpr }
   | print EXPR                                                          { G.InstPrint $2 }
   | read LVALUE                                                         { G.InstRead $2 }
   | whileBegin EXPR covenantIsActive COLON CODEBLOCK WHILEEND           {% do
@@ -777,16 +777,20 @@ checkReturnScope tk = do
           _ -> return (G.InstReturn)
       _ -> return (G.InstReturn)
 
-checkReturnType :: G.Expr -> T.Token -> ST.ParserMonad ()
+checkReturnType :: G.Expr -> T.Token -> ST.ParserMonad (G.Expr)
 checkReturnType e tk = do
   let eType = G.expType e
   ST.SymTable {ST.stVisitedMethods=vMethods} <- RWS.get
   if vMethods == []
-  then returnNotFunction
+  then do
+    RWS.tell [Error ("Returning with an expression outside of a function not allowed") (T.position tk)]
+    return e
   else do
     currMethod <- ST.dictLookup $ head vMethods
     case currMethod of
-      Nothing -> returnNotFunction
+      Nothing -> do
+        RWS.tell [Error ("Returning with an expression outside of a function not allowed") (T.position tk)]
+        return e
       Just method -> do
         let ST.DictionaryEntry {ST.category=cat} = method
         mType <- getType method
@@ -795,10 +799,14 @@ checkReturnType e tk = do
             let T.FunctionT _ fType = mType
             -- If they're equal, or compatible through casting, this raises no error
             if eType `T.canBeConvertedTo` fType
-            then return ()
-            else RWS.tell [Error ("Return expression type " ++ show eType ++ " incompatible with function return type " ++ show fType) (T.position tk)]
-          _ -> returnNotFunction
-    where returnNotFunction = RWS.tell [Error ("Returning with an expression outside of a function not allowed") (T.position tk)]
+            then let [castedExpr] = addCastToExprs [(e, fType)] in
+              return (castedExpr)
+            else do
+              RWS.tell [Error ("Return expression type " ++ show eType ++ " incompatible with function return type " ++ show fType) (T.position tk)]
+              return e
+          _ -> do
+            RWS.tell [Error ("Returning with an expression outside of a function not allowed") (T.position tk)]
+            return e
 
 checkIterVariables :: G.Expr -> ST.ParserMonad ()
 checkIterVariables e = case G.expAst e of
