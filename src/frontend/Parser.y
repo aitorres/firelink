@@ -1188,7 +1188,10 @@ checkTypeOfAssignment lval rval tk = do
   then return ()
   else do
     let errorDetails = "(couldn't covert " ++ (show rvalType) ++ " to " ++ (show lvalType) ++ ")"
-    RWS.tell [Error ("Type mismatch on assignment " ++ errorDetails) (T.position tk)]
+    -- don't propagate type errors further
+    if T.TypeError `elem` [lvalType, rvalType]
+    then return ()
+    else RWS.tell [Error ("Type mismatch on assignment " ++ errorDetails) (T.position tk)]
 
 minBigInt :: Int
 minBigInt = - 2147483648
