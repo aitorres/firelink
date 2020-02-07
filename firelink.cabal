@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.31.2.
+-- This file has been generated from package.yaml by hpack version 0.33.0.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 732fa07e2458eed8afa2d6bc78f8e7c24ab17279e8d8f2200556ea8c00f7dedf
+-- hash: f1a5bfb24f8a83845f8d35fd279f93cdf8272a05cd9bb770d7914b7a622e23b3
 
 name:           firelink
 version:        0.1.0.0
@@ -197,8 +197,10 @@ test-suite type-checking-tests
   other-modules:
       AssignmentInstructionSpec
       ForEachInstructionSpec
+      FunctionsSpec
       IfInstructionSpec
       LoopInstructionsSpec
+      ProceduresSpec
       WhileInstructionSpec
       TestUtils
       Paths_firelink
