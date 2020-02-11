@@ -471,10 +471,10 @@ FORBEGIN :: { (T.Token, G.Id, Bool, G.Expr, G.Expr) }
   : forBegin ID with EXPR souls untilLevel EXPR                         {% do
                                                                           t1 <- getType $4
                                                                           RWS.when (not $ isIntegerType t1) $
-                                                                            RWS.tell [Error "Step should be an integer" (T.position $ G.expTok $4)]
+                                                                            logSemError "Step should be an integer" $ G.expTok $4
                                                                           t2 <- getType $7
                                                                           RWS.when (not $ isIntegerType t2) $
-                                                                            RWS.tell [Error "Stop should be an integer" (T.position $ G.expTok $7)]
+                                                                            logSemError "Stop should be an integer" $ G.expTok $7
 
                                                                           mid <- checkIdAvailability $2
                                                                           case mid of
@@ -501,7 +501,7 @@ FOREACHBEGIN :: { (T.Token, G.Id, Bool, Bool, G.Expr) }
                                                                             else
                                                                               case T.getTypeFromContainer containerType of
                                                                                 Nothing -> do
-                                                                                  RWS.tell [Error "Iterable expression is not a container" (T.position $ G.expTok $4)]
+                                                                                  logSemError "Iterable expression is not a container" $ G.expTok $4
                                                                                 _ -> do
                                                                                   return ()
                                                                           else do
@@ -511,11 +511,11 @@ FOREACHBEGIN :: { (T.Token, G.Id, Bool, Bool, G.Expr) }
                                                                             else
                                                                               case T.getTypeFromContainer containerType of
                                                                                 Nothing -> do
-                                                                                  RWS.tell [Error "Iterable expression is not a container" (T.position $ G.expTok $4)]
+                                                                                  logSemError "Iterable expression is not a container" $ G.expTok $4
                                                                                 Just t -> do
                                                                                   let (G.Id tk _) = $2
                                                                                   RWS.when (T.TypeError /= t && iteratorType /= t) $
-                                                                                    RWS.tell [Error "Iterator variable is not of the type of contained elements" (T.position tk)]
+                                                                                    logSemError "Iterator variable is not of the type of contained elements" tk
                                                                           if containerType /= T.TypeError && isContainerAVariable then do
                                                                             let (G.IdExpr (G.Id tk _)) = G.expAst $4
                                                                             ST.addIterableVariable (T.cleanedString tk)
@@ -685,15 +685,15 @@ addIdToSymTable mi d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idN
       let scope = ST.scope entry
       let category = ST.category entry
       if category == ST.Type && c /= ST.RecordItem
-      then RWS.tell $ [Error ("Name " ++ show tk ++ " conflicts with an type alias") (T.position tk)]
+      then logSemError ("Name " ++ show tk ++ " conflicts with an type alias") tk
       else if category == ST.Procedure
-      then RWS.tell $ [Error ("Name " ++ show tk ++ " conflicts with a procedure") (T.position tk)]
+      then logSemError ("Name " ++ show tk ++ " conflicts with a procedure") tk
       else if category == ST.Function
-      then RWS.tell $ [Error ("Name " ++ show tk ++ " conflicts with a function") (T.position tk)]
+      then logSemError ("Name " ++ show tk ++ " conflicts with a function") tk
       else if category == ST.RefParam || category == ST.ValueParam
-      then RWS.tell $ [Error ("Name " ++ show tk ++ " conflicts with a formal param") (T.position tk)]
+      then logSemError ("Name " ++ show tk ++ " conflicts with a formal param") tk
       else if (T.cleanedString tk) `elem` iterVars
-      then RWS.tell $ [Error ("Name " ++ show tk ++ " conflicts or shadows an iteration variable") (T.position tk)]
+      then logSemError ("Name " ++ show tk ++ " conflicts or shadows an iteration variable") tk
       else if currScope /= scope
       then insertIdToEntry mi t ST.DictionaryEntry
         { ST.name = idName
@@ -702,7 +702,7 @@ addIdToSymTable mi d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idN
         , ST.entryType = ST.name <$> maybeTypeEntry
         , ST.extra = []
         }
-      else RWS.tell $ [Error ("Name " ++ idName ++ " was already declared on this scope") (T.position tk)]
+      else logSemError ("Name " ++ idName ++ " was already declared on this scope") tk
 
 insertIdToEntry :: Maybe Int -> G.GrammarType -> ST.DictionaryEntry -> ST.ParserMonad ()
 insertIdToEntry mi t entry = do
@@ -750,7 +750,7 @@ checkConstantReassignment e = case G.expAst e of
       Just e ->
         case (ST.category e) of
           ST.Constant -> do
-            RWS.tell [Error ("Name " ++ idName ++ " is a constant and must not be reassigned") (T.position tk)]
+            logSemError ("Name " ++ idName ++ " is a constant and must not be reassigned") tk
             return ()
           _ ->
             return ()
@@ -760,7 +760,7 @@ checkConstantReassignment e = case G.expAst e of
 checkPointerVariable :: G.Expr -> ST.ParserMonad ()
 checkPointerVariable G.Expr {G.expType=(T.PointerT _)} = return ()
 checkPointerVariable G.Expr {G.expTok=tk} =
-  RWS.tell [Error ("Expresion " ++ show tk ++ " must be a valid pointer") (T.position tk)]
+  logSemError ("Expresion " ++ show tk ++ " must be a valid pointer") tk
 
 checkReturnScope :: T.Token -> ST.ParserMonad (G.Instruction)
 checkReturnScope tk = do
@@ -773,7 +773,7 @@ checkReturnScope tk = do
         Just (ST.DictionaryEntry {ST.category=cat}) -> do
           case cat of
             ST.Function -> do
-              RWS.tell [Error ("Returning without an expression is not allowed inside functions") (T.position tk)]
+              logSemError ("Returning without an expression is not allowed inside functions") tk
               return (G.InstReturn)
             _ -> return (G.InstReturn)
         _ -> return (G.InstReturn)
@@ -784,13 +784,13 @@ checkReturnType e tk = do
   ST.SymTable {ST.stVisitedMethod=vMethod} <- RWS.get
   case vMethod of
     Nothing -> do
-      RWS.tell [Error ("Returning with an expression outside of a function not allowed") (T.position tk)]
+      logSemError ("Returning with an expression outside of a function not allowed") tk
       return e
     Just methodName -> do
       currMethod <- ST.dictLookup $ methodName
       case currMethod of
         Nothing -> do
-          RWS.tell [Error ("Returning with an expression outside of a function not allowed") (T.position tk)]
+          logSemError ("Returning with an expression outside of a function not allowed") tk
           return e
         Just method -> do
           let ST.DictionaryEntry {ST.category=cat} = method
@@ -803,10 +803,10 @@ checkReturnType e tk = do
               then let [castedExpr] = addCastToExprs [(e, fType)] in
                 return (castedExpr)
               else do
-                RWS.tell [Error ("Return expression type " ++ show eType ++ " incompatible with function return type " ++ show fType) (T.position tk)]
+                logSemError ("Return expression type " ++ show eType ++ " incompatible with function return type " ++ show fType) tk
                 return e
             _ -> do
-              RWS.tell [Error ("Returning with an expression outside of a function not allowed") (T.position tk)]
+              logSemError ("Returning with an expression outside of a function not allowed") tk
               return e
 
 checkIterVariables :: G.Expr -> ST.ParserMonad ()
@@ -815,7 +815,7 @@ checkIterVariables e = case G.expAst e of
     ST.SymTable {ST.stIterationVars=iterVars} <- RWS.get
     let matchesIterVar = idName `elem` iterVars
     if matchesIterVar
-    then RWS.tell [Error ("Iteration variable " ++ show tk ++ " must not be reassigned") (T.position tk)]
+    then logSemError ("Iteration variable " ++ show tk ++ " must not be reassigned") tk
     else return ()
   _ -> return ()
 
@@ -825,7 +825,7 @@ checkIterableVariables e = case G.expAst e of
     ST.SymTable {ST.stIterableVars=iterableVars} <- RWS.get
     let matchesIterVar = idName `elem` iterableVars
     if matchesIterVar
-    then RWS.tell [Error ("Iterable container " ++ show tk ++ " must not be reassigned") (T.position tk)]
+    then logSemError ("Iterable container " ++ show tk ++ " must not be reassigned") tk
     else return ()
   _ -> return ()
 
@@ -834,7 +834,7 @@ checkIdAvailability (G.Id tk@(T.Token {T.cleanedString=idName}) _) = do
   maybeEntry <- ST.dictLookup idName
   case maybeEntry of
     Nothing -> do
-      RWS.tell [Error ("Name " ++ (show tk) ++ " is not available on this scope") (T.position tk)]
+      logSemError ("Name " ++ show tk ++ " is not available on this scope") tk
       return Nothing
     Just e -> return $ Just e
 
@@ -846,8 +846,7 @@ checkIterVarType (G.Id tk@(T.Token {T.cleanedString=idName}) _) = do
     Just (ST.DictionaryEntry {ST.category=varCat}) -> do
       if varCat == ST.Constant
       then do
-        RWS.tell [Error ("Constant " ++ (show tk) ++ " can not be used as an iteration variable") (T.position tk)]
-        return ()
+        logSemError ("Constant " ++ show tk ++ " can not be used as an iteration variable") tk
       else return ()
 
 checkRecoverableError :: T.Token -> Maybe G.RecoverableError -> ST.ParserMonad ()
@@ -856,8 +855,7 @@ checkRecoverableError openTk maybeErr = do
     Nothing -> return ()
     Just err -> do
       let errorName = show err
-      RWS.tell [Error (errorName ++ " (recovered from to continue parsing)") (T.position openTk)]
-      return ()
+      logSemError (errorName ++ " (recovered from to continue parsing)") openTk
 
 extractFieldsFromExtra :: [ST.Extra] -> ST.Extra
 extractFieldsFromExtra [] = error "The `extra` array doesn't have any `Fields` item"
@@ -874,7 +872,7 @@ addFunction d@(_, i@(G.Id tk@(T.Token {T.cleanedString=idName}) _), _, _) = do
       addIdToSymTable Nothing d
       return $ Just (currScope, i)
     Just entry -> do
-      RWS.tell [Error ("Function " ++ idName ++ " was already declared") (T.position tk)]
+      logSemError ("Function " ++ idName ++ " was already declared") tk
       return Nothing
 
 updateCodeBlockOfFun :: ST.Scope -> G.Id -> G.CodeBlock -> ST.ParserMonad ()
@@ -891,7 +889,7 @@ findTypeOnEntryTable (G.Simple tk mSize) = do
   maybeEntry <- ST.dictLookup $ ST.tokensToEntryName tk
   case maybeEntry of
     Nothing -> do
-      RWS.tell [Error ("Type " ++ (show tk) ++ " not found") (T.position tk)]
+      logSemError ("Type " ++ show tk ++ " not found") tk
       return maybeEntry
     _ -> return maybeEntry
 
@@ -1026,7 +1024,7 @@ containerCheck exprs typeCons exprCons tk = do
     -- a particular expression couldn't be casted to the accumulated type
     (Just x, T.TypeError) -> do
       let tk = G.expTok $ exprs !! x -- not so efficient, but works
-      RWS.tell [Error ("Type of item #" ++ show x ++ " of list mismatch") (T.position tk)]
+      logSemError ("Type of item #" ++ show x ++ " of list mismatch") tk
       return (T.TypeError, exprCons exprs)
 
     -- when a real type is found, we can safely ignore the first part of the tuple
@@ -1055,7 +1053,7 @@ checkIndexAccess array index tk = do
       else return T.TypeError
     T.TypeError -> return T.TypeError
     _ -> do
-      RWS.tell [Error "Left side is not a chest" (T.position tk)]
+      logSemError "Left side is not a chest" tk
       return T.TypeError
 
 domainCallCheck :: G.Id -> [T.Type] -> [G.Expr] -> T.Token -> ST.ParserMonad (Maybe [G.Expr])
@@ -1064,10 +1062,10 @@ domainCallCheck methodId domain exprs tk = do
   let exprsTypesL = length exprsTypes
   let domainL = length domain
   if exprsTypesL < domainL then do
-    RWS.tell [Error ("Method " ++ show methodId ++ " called with less arguments than expected") (T.position tk)]
+    logSemError ("Method " ++ show methodId ++ " called with less arguments than expected") tk
     return Nothing
   else if exprsTypesL > domainL then do
-    RWS.tell [Error ("Method " ++ show methodId ++ " called with more arguments than expected") (T.position tk)]
+    logSemError ("Method " ++ show methodId ++ " called with more arguments than expected") tk
     return Nothing
   else do
     if T.TypeError `elem` exprsTypes then
@@ -1084,7 +1082,7 @@ domainCallCheck methodId domain exprs tk = do
         paramType <- getType $ exprs !! x
         let errMsgTypes = "Type mismatch: param. #" ++ show x ++ " received " ++ show paramType ++ " and expected " ++ show formalType
         let errMsg =  errMsgTypes ++ " while calling  " ++ show methodId
-        RWS.tell [Error (errMsg) (T.position tk)]
+        logSemError errMsg tk
         return Nothing
   where
     -- left side is the type of the argument, right side is the parameter type
@@ -1113,7 +1111,7 @@ methodsCheck methodId exprs tk = do
         Just params -> return (range, params)
     T.TypeError -> return (T.TypeError, exprs)
     _ -> do
-      RWS.tell [Error "You're trying to call a non-callable expression" (T.position tk)]
+      logSemError "You're trying to call a non-callable expression" tk
       return (T.TypeError, exprs)
 
 functionsCheck :: G.Id -> [G.Expr] -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
@@ -1128,7 +1126,7 @@ memAccessCheck expr tk = do
     T.PointerT t' -> return t'
     T.TypeError -> return T.TypeError
     _ -> do
-      RWS.tell [Error "Trying to access memory of non-arrow variable" (T.position tk)]
+      logSemError "Trying to access memory of non-arrow variable" tk
       return T.TypeError
 
 checkAsciiOf :: G.Expr -> T.Token -> ST.ParserMonad T.Type
@@ -1139,7 +1137,7 @@ checkAsciiOf e tk = do
     T.StringT -> return $ T.ArrayT T.BigIntT
     T.TypeError -> return T.TypeError
     _ -> do
-      RWS.tell [Error ("ascii_of requires argument to be a miracle or a sign") (T.position tk)]
+      logSemError ("ascii_of requires argument to be a miracle or a sign") tk
       return T.TypeError
 
 checkIsActive :: G.Expr -> T.Token -> ST.ParserMonad T.Type
@@ -1150,7 +1148,7 @@ checkIsActive e tk = do
     _ ->
       if isUnionAttr then return T.TrileanT
       else do
-        RWS.tell [Error ("is_active requires argument to be a union attribute") (T.position tk)]
+        logSemError ("is_active requires argument to be a union attribute") tk
         return T.TypeError
   where
     isUnionAttr = case e of
@@ -1167,7 +1165,7 @@ checkAccess e (G.Id tk'@T.Token{T.cleanedString=i} _) tk = do
     T.UnionT scope properties -> checkProperty properties scope
     T.TypeError -> return defaultReturn
     _ -> do
-      RWS.tell [Error "Left side of access is not a record nor union" (T.position tk)]
+      logSemError "Left side of access is not a record nor union" tk
       return defaultReturn
   where
     baseExpr :: G.Id -> G.BaseExpr
@@ -1180,7 +1178,7 @@ checkAccess e (G.Id tk'@T.Token{T.cleanedString=i} _) tk = do
         ((_,a):_) -> do
           return (a, baseExpr $ G.Id tk' scope)
         _ -> do
-          RWS.tell [Error ("Property " ++ i ++ " doesn't exist") (T.position tk)]
+          logSemError ("Property " ++ i ++ " doesn't exist") tk
           return defaultReturn
 
 unaryOpCheck :: G.Expr -> G.Op1 -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
@@ -1193,7 +1191,7 @@ unaryOpCheck expr op tk = do
     let finalType = if op == G.Negate then t else T.TrileanT in
     return (finalType, finalExpr)
   else do
-    RWS.tell [Error (T.typeMismatchMessage tk) (T.position tk)]
+    logSemError (T.typeMismatchMessage tk) tk
     return (T.TypeError, finalExpr)
   where
     expectedForOperand
@@ -1213,7 +1211,7 @@ binaryOpCheck leftExpr rightExpr op tk = do
     let [castedRightExpr] = addCastToExprs [(rightExpr, leftType)] in
     checkIfInExpected leftExpr castedRightExpr
   else do
-    RWS.tell [Error "Left and right side of operand can't be operated together" (T.position tk)]
+    logSemError "Left and right side of operand can't be operated together" tk
     return (T.TypeError, G.Op2 op leftExpr rightExpr)
 
   where
@@ -1236,7 +1234,7 @@ binaryOpCheck leftExpr rightExpr op tk = do
         let finalType = if op `elem` G.comparableOp2 then T.TrileanT else t in
         return (finalType, exp)
       else do
-        RWS.tell [Error (T.typeMismatchMessage tk) (T.position tk)]
+        logSemError (T.typeMismatchMessage tk) tk
         return (T.TypeError, exp)
 
 checkSetSize :: G.Expr -> T.Token -> ST.ParserMonad T.Type
@@ -1246,7 +1244,7 @@ checkSetSize expr tk = do
     T.SetT _ -> return T.BigIntT
     T.TypeError -> return T.TypeError
     _ -> do
-      RWS.tell [Error "`size` expects a set" (T.position tk)]
+      logSemError "`size` expects a set" tk
       return T.TypeError
 
 checkTypeOfAssignment :: (TypeCheckable a, TypeCheckable b) => a -> b -> T.Token -> ST.ParserMonad ()
@@ -1260,7 +1258,7 @@ checkTypeOfAssignment lval rval tk = do
     -- don't propagate type errors further
     if T.TypeError `elem` [lvalType, rvalType]
     then return ()
-    else RWS.tell [Error ("Type mismatch on assignment " ++ errorDetails) (T.position tk)]
+    else logSemError ("Type mismatch on assignment " ++ errorDetails) tk
 
 minBigInt :: Int
 minBigInt = - 2147483648
@@ -1284,7 +1282,7 @@ checkBooleanGuard expr = do
     -- Avoid propagating the error if it has been raised somewhere else already
     if t == T.TypeError
     then return ()
-    else RWS.tell [Error "Guard should be of trilean data type" (T.position $ G.expTok expr)]
+    else logSemError "Guard should be of trilean data type" $ G.expTok expr
 
 buildType :: G.BaseExpr -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
 buildType bExpr tk = case bExpr of
@@ -1419,4 +1417,7 @@ instance TypeCheckable ST.Extra where
       | otherwise = return $ T.AliasT s -- works because it always exists
                                         -- it shouldn't be added otherwise
   getType _ = error "error on getType for SymTable extra"
+
+logSemError :: String -> T.Token -> ST.ParserMonad ()
+logSemError msg tk = RWS.tell [Error msg (T.position tk)]
 }
