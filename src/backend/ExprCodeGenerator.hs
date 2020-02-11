@@ -35,6 +35,7 @@ genCodeForExpr _ (Op2 op lexpr rexpr) = do
         operation = mapOp2ToTacOperation op
 
 genCodeForExpr t (IntLit n) = return $ TAC.Constant (show n, t)
+genCodeForExpr t (FloatLit n) = return $ TAC.Constant (show n, t)
 
 genCodeForExpr _ (IdExpr (Id Token {cleanedString=idName} idScope)) = do
     symEntry <- findSymEntry <$> ask

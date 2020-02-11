@@ -1,0 +1,21 @@
+hello ashen one
+
+spell a
+    traveling somewhere
+        go back with 1
+    you died
+ashen estus flask consumed
+
+invocation b
+with skill of type humanity
+    traveling somewhere
+        go back with 1.5
+    you died
+after this return to your world
+
+traveling somewhere
+    cast a \
+    summon b
+you died
+
+farewell ashen one
