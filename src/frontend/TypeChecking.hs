@@ -20,6 +20,7 @@ data Type
   | UnionT Int [PropType]
   | PointerT Type
   | FunctionT [Type] Type
+  | ProcedureT [Type]
   | TypeList [Type]
   | AliasT String
   | Any -- Currently only used in empty set, empty array and null pointers
@@ -44,7 +45,8 @@ instance Show Type where
           usefulChars = length elements - 2
           formattedElements = take usefulChars elements
   show (PointerT t) = "arrow to " ++ show t
-  show (FunctionT as r) = "spell requiring " ++ concatMap (\t -> show t ++ ", ") as ++ " and returning " ++ show r
+  show (FunctionT as r) = "invocation requiring " ++ concatMap (\t -> show t ++ ", ") as ++ " and returning " ++ show r
+  show (ProcedureT as) = "spell requesting " ++ concatMap (\t -> show t ++ ", ") as
   show (TypeList ts) = "typelist " ++ concatMap (\t -> show t ++ ", ") ts
   show (AliasT t) = "knight to " ++ t
   show Any = "any"
@@ -63,6 +65,7 @@ instance Eq Type where
   RecordT s pt == RecordT s' pt' = sort pt == sort pt' && s == s'
   PointerT t == PointerT t' = t == t'
   FunctionT ts t == FunctionT ts' t' = ts == ts' && t == t'
+  ProcedureT ts == ProcedureT ts' = ts == ts'
   TypeList t == TypeList t' = t == t'
   AliasT s == AliasT s' = s == s'
   TypeError == TypeError = True

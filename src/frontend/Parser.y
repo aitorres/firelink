@@ -422,7 +422,8 @@ INSTR :: { G.Instruction }
                                                                           return $G.InstFreeMem $2 }
   | cast ID PROCPARS                                                    {% do
                                                                           checkIdAvailability $2
-                                                                          return $ G.InstCallProc $2 $3 }
+                                                                          (_, params) <- methodsCheck $2 $3 $1
+                                                                          return $ G.InstCallProc $2 params }
   | FUNCALL                                                             {% let (tk, i, params) = $1 in do
                                                                           buildAndCheckExpr tk $ G.EvalFunc i params
                                                                           return $ G.InstCallFunc i params }
@@ -1057,39 +1058,34 @@ checkIndexAccess array index tk = do
       RWS.tell [Error "Left side is not a chest" (T.position tk)]
       return T.TypeError
 
-functionsCheck :: G.Id -> [G.Expr] -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
-functionsCheck funId exprs tk = do
-  funType <- getType funId
-  let originalExpr = G.EvalFunc funId exprs
-  case funType of
-    T.FunctionT domain range -> do
-      let exprsTypes = exprsToTypes exprs
-      let exprsTypesL = length exprsTypes
-      let domainL = length domain
-      if exprsTypesL < domainL then do
-        RWS.tell [Error ("Function " ++ show funId ++ " received less arguments than it expected") (T.position tk)]
-        return (T.TypeError, originalExpr)
-      else if exprsTypesL > domainL then do
-        RWS.tell [Error ("Function " ++ show funId ++ " received more arguments than it expected") (T.position tk)]
-        return (T.TypeError, originalExpr)
-      else do
-        if T.TypeError `elem` exprsTypes then
-          return (T.TypeError, originalExpr)
-        else case findInvalidArgument $ zip exprsTypes domain of
-          -- all looking good, now cast each argument to it's correspondent parameter type
-          Nothing -> do
-            let castedExprs = addCastToExprs $ zip exprs domain
-            return (range, G.EvalFunc funId castedExprs)
+domainCallCheck :: G.Id -> [T.Type] -> [G.Expr] -> T.Token -> ST.ParserMonad (Maybe [G.Expr])
+domainCallCheck methodId domain exprs tk = do
+  let exprsTypes = exprsToTypes exprs
+  let exprsTypesL = length exprsTypes
+  let domainL = length domain
+  if exprsTypesL < domainL then do
+    RWS.tell [Error ("Method " ++ show methodId ++ " called with less arguments than expected") (T.position tk)]
+    return Nothing
+  else if exprsTypesL > domainL then do
+    RWS.tell [Error ("Method " ++ show methodId ++ " called with more arguments than expected") (T.position tk)]
+    return Nothing
+  else do
+    if T.TypeError `elem` exprsTypes then
+      return Nothing
+    else case findInvalidArgument $ zip exprsTypes domain of
+      -- all looking good, now cast each argument to it's correspondent parameter type
+      Nothing -> do
+        let castedExprs = addCastToExprs $ zip exprs domain
+        return $ Just castedExprs
 
-          -- oh oh, an argument could not be implicitly casted to its correspondent argument
-          Just x -> do
-            RWS.tell [Error ("Argument #" ++ show x ++ " type mismatch with parameter #" ++ show x ++ " type") (T.position tk)]
-            return (T.TypeError, originalExpr)
-
-    T.TypeError -> return (T.TypeError, originalExpr) -- we don't need to log - getType already does that
-    _ -> do
-      RWS.tell [Error "You're trying to call a non-callable expression" (T.position tk)]
-      return (T.TypeError, originalExpr)
+      -- oh no, an argument could not be implicitly casted to its correspondent argument
+      Just x -> do
+        let formalType = domain !! x
+        paramType <- getType $ exprs !! x
+        let errMsgTypes = "Type mismatch: param. #" ++ show x ++ " received " ++ show paramType ++ " and expected " ++ show formalType
+        let errMsg =  errMsgTypes ++ " while calling  " ++ show methodId
+        RWS.tell [Error (errMsg) (T.position tk)]
+        return Nothing
   where
     -- left side is the type of the argument, right side is the parameter type
     findInvalidArgument :: [(T.Type, T.Type)] -> Maybe Int
@@ -1100,6 +1096,30 @@ functionsCheck funId exprs tk = do
     findInvalid ((argT, paramT) : xs) i = if argT `T.canBeConvertedTo` paramT
       then findInvalid xs (i + 1)
       else Just i
+
+methodsCheck :: G.Id -> [G.Expr] -> T.Token -> ST.ParserMonad (T.Type, [G.Expr])
+methodsCheck methodId exprs tk = do
+  procType <- getType methodId
+  case procType of
+    T.ProcedureT domain -> do
+      mParams <- domainCallCheck methodId domain exprs tk
+      case mParams of
+        Nothing -> return (T.VoidT, exprs)
+        Just params -> return (T.VoidT, params)
+    T.FunctionT domain range -> do
+      mParams <- domainCallCheck methodId domain exprs tk
+      case mParams of
+        Nothing -> return (T.TypeError, exprs)
+        Just params -> return (range, params)
+    T.TypeError -> return (T.TypeError, exprs)
+    _ -> do
+      RWS.tell [Error "You're trying to call a non-callable expression" (T.position tk)]
+      return (T.TypeError, exprs)
+
+functionsCheck :: G.Id -> [G.Expr] -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
+functionsCheck i params tk = do
+  (t, ps) <- methodsCheck i params tk
+  return (t, G.EvalFunc i ps)
 
 memAccessCheck :: G.Expr -> T.Token -> ST.ParserMonad T.Type
 memAccessCheck expr tk = do
@@ -1346,9 +1366,16 @@ instance TypeCheckable ST.DictionaryEntry where
 
     | otherwise = error "error on getType for expected dict entries"
 
-  -- called on a procedure that tries to return an expression (which is prohibited)
-  getType ST.DictionaryEntry{ST.entryType=Nothing, ST.category=ST.Procedure} =
-    return T.TypeError
+  getType entry@ST.DictionaryEntry{ST.entryType=Nothing, ST.category=ST.Procedure, ST.extra=extras} = do
+    let isEmptyProc = not . null $ filter ST.isEmptyFunction extras
+    domain <- (if isEmptyProc
+      then return []
+      else do
+        let fields = head $ filter ST.isFieldsExtra extras
+        (T.TypeList list) <- getType fields
+        return list
+        )
+    return $ T.ProcedureT domain
 
   getType _ = error "error on getType for unexpected dict entries"
 
