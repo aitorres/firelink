@@ -113,7 +113,7 @@ data SymTable = SymTable
       stCurrScope :: !Int, -- ^ Current scope
       stIterationVars :: ![String], -- ^ List of currently protected iteration variables
       stIterableVars :: ![String], -- ^ List of currently protected iterable variables
-      stSwitchTypes :: ![TC.Type] -- ^ List of currently active switch variable types
+      stSwitchTypes :: ![TC.Type], -- ^ List of currently active switch variable types
       stVisitedMethod :: !(Maybe String) -- ^ List of currently visited method
     }
 
