@@ -1,0 +1,22 @@
+hello ashen one
+
+traveling somewhere
+with
+    var k of type humanity <<= 0,
+    var r of type humanity <<= 47
+in your inventory
+    k <<= 1 \
+    trust your inventory
+        r eq 47:
+            traveling somewhere
+                k <<= 3
+            you died
+        liar!:
+            traveling somewhere
+                k <<= 2
+            you died
+    inventory closed \
+    k <<= 1
+you died
+
+farewell ashen one
