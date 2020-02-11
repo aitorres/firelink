@@ -150,7 +150,6 @@ raiseCompilerError msg = do
     putStrLn msg
     exitFailure
 
-
 failByNonExistantFile :: String -> IO ()
 failByNonExistantFile f =
     raiseCompilerError $ "Your journey cannot be started from " ++ f ++ ", ashen one, as " ++ bold ++ "the file could not be found" ++ nocolor ++ "."
@@ -159,13 +158,20 @@ failByFileExtension :: IO ()
 failByFileExtension =
     raiseCompilerError $ "The filename MUST have the " ++ bold ++ ".souls" ++ nocolor ++ " extension, ashen one."
 
+failByEmptyArgs :: IO ()
+failByEmptyArgs =
+    raiseCompilerError $ "Your journey must be started from a " ++ bold ++ red ++ "<file path>" ++ nocolor ++ ", ashen one."
+
+failByEmptyFile :: IO ()
+failByEmptyFile =
+    raiseCompilerError $ "Your journey must not be started from an " ++ bold ++ red ++ "empty file" ++ nocolor ++ ", ashen one."
+
 handleLexError :: [Error] -> [Token] -> IO ()
 handleLexError errors tokens = do
     printLexErrors
         $ map (\(err, tks) -> (err, insertLexErrorOnContext err tks))
         $ groupLexErrorWithTokenContext errors tokens
     putStrLn "Fix your lexical mistakes, ashen one."
-
 
 handleCompileError :: CompilerError -> [Token] -> IO ()
 handleCompileError compileError tokens =
@@ -197,11 +203,7 @@ compile program = do
 firelink :: IO ()
 firelink = do
     args <- getArgs
-    if null args then do
-        putStrLn $ red ++ bold ++ "FireLink" ++ nocolor
-        putStrLn $ "Your journey must be started from a " ++ bold ++ red ++ "<file path>" ++ nocolor ++ ", ashen one."
-        putStrLn "Usage: \t stack run <path>"
-        exitFailure
+    if null args then failByEmptyArgs
     else do
         let programFile = head args
         fileExists <- doesFileExist programFile
@@ -210,5 +212,6 @@ firelink = do
             else do
                 handle <- openFile programFile ReadMode
                 contents <- hGetContents handle
-                compile contents
+                if null contents then failByEmptyFile
+                else compile contents
         else failByNonExistantFile programFile
