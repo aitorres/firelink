@@ -9,7 +9,7 @@ traveling somewhere
     covenant left \
 
     trust your inventory
-        lit:
+        lit
             traveling somewhere
                 go back
             you died
@@ -20,14 +20,14 @@ traveling somewhere
     inventory closed \
 
     enter dungeon with 1
-    1:
+    1
         traveling somewhere
             go back
         you died
     dungeon exited \
 
     enter dungeon with 1
-    1:
+    1
         traveling somewhere
             go back
         you died

@@ -444,14 +444,18 @@ INSTR :: { G.Instruction }
   | ifBegin IFCASES IFEND                                               {% do
                                                                           checkRecoverableError $1 $3
                                                                           return $ G.InstIf (reverse $2) }
-  | switchBegin EXPR COLON SWITCHCASES DEFAULTCASE SWITCHEND            {% do
-                                                                          checkRecoverableError $1 $3
-                                                                          checkRecoverableError $1 $6
-                                                                          return $ G.InstSwitch $2 (reverse ($5 : $4)) }
-  | switchBegin EXPR COLON SWITCHCASES SWITCHEND                        {% do
-                                                                          checkRecoverableError $1 $3
-                                                                          checkRecoverableError $1 $5
-                                                                          return $ G.InstSwitch $2 (reverse $4) }
+  | SWITCHBEGIN COLON SWITCHCASES DEFAULTCASE SWITCHEND                 {% do
+                                                                          let (switchTk, switchExpr) = $1
+                                                                          checkRecoverableError switchTk $2
+                                                                          checkRecoverableError switchTk $5
+                                                                          ST.popSwitchType
+                                                                          return $ G.InstSwitch switchExpr (reverse ($4 : $3)) }
+  | SWITCHBEGIN COLON SWITCHCASES SWITCHEND                             {% do
+                                                                          let (switchTk, switchExpr) = $1
+                                                                          checkRecoverableError switchTk $2
+                                                                          checkRecoverableError switchTk $4
+                                                                          ST.popSwitchType
+                                                                          return $ G.InstSwitch switchExpr (reverse $3) }
   | FORBEGIN CODEBLOCK FOREND                                           {% do
                                                                           let (fstTk, iterVar, shouldPopIterVar, startExpr, stopExpr) = $1
                                                                           checkRecoverableError fstTk $3
@@ -466,6 +470,11 @@ INSTR :: { G.Instruction }
                                                                           RWS.when shouldPopIterVar ST.popIteratorVariable
                                                                           RWS.when shouldPopIterableVar ST.popIterableVariable
                                                                           return $ G.InstForEach iterVar iteredExpr $2 }
+
+SWITCHBEGIN :: { (T.Token, G.Expr) }
+  : switchBegin EXPR                                                    {% do
+                                                                          ST.addSwitchType (G.expType $2)
+                                                                          return ($1, $2) }
 
 FORBEGIN :: { (T.Token, G.Id, Bool, G.Expr, G.Expr) }
   : forBegin ID with EXPR souls untilLevel EXPR                         {% do
@@ -543,7 +552,8 @@ IFCASES :: { G.IfCases }
   | IFCASE                                                              { [$1] }
 
 IFCASE :: { G.IfCase }
-  : EXPR colon CODEBLOCK                                                {% do
+  : EXPR COLON CODEBLOCK                                                {% do
+                                                                            checkRecoverableError (G.expTok $1) $2
                                                                             checkBooleanGuard $1
                                                                             return $ G.GuardedCase $1 $3 }
 
@@ -568,7 +578,10 @@ SWITCHCASES :: { G.SwitchCases }
   | SWITCHCASE                                                          { [$1] }
 
 SWITCHCASE :: { G.SwitchCase }
-  : EXPR colon CODEBLOCK                                                { G.Case $1 $3 }
+  : EXPR COLON CODEBLOCK                                                {% do
+                                                                            checkRecoverableError (G.expTok $1) $2
+                                                                            expr <- checkSwitchCaseType $1
+                                                                            return $ G.Case expr $3 }
 
 SWITCHEND :: { Maybe G.RecoverableError }
   : switchEnd                                                           { Nothing }
@@ -848,6 +861,24 @@ checkIterVarType (G.Id tk@(T.Token {T.cleanedString=idName}) _) = do
       then do
         logSemError ("Constant " ++ show tk ++ " can not be used as an iteration variable") tk
       else return ()
+
+checkSwitchCaseType :: G.Expr -> ST.ParserMonad (G.Expr)
+checkSwitchCaseType expr = do
+  ST.SymTable {ST.stSwitchTypes=swTypes} <- RWS.get
+  if swTypes == [] then return (expr)
+  else do
+    let swType = head swTypes
+    case swType of
+      T.TypeError -> return (expr)
+      tp -> do
+        let exprType = G.expType expr
+        if exprType `T.canBeConvertedTo` tp
+        then let [castedExpr] = addCastToExprs [(expr, tp)] in
+          return (castedExpr)
+        else do
+          let tk = G.expTok expr
+          RWS.tell [Error ("Expresion type " ++ show exprType ++ " conflicts with switch type (expected: " ++ show tp ++ ")") (T.position tk)]
+          return (expr)
 
 checkRecoverableError :: T.Token -> Maybe G.RecoverableError -> ST.ParserMonad ()
 checkRecoverableError openTk maybeErr = do
