@@ -271,7 +271,7 @@ spec = do
             \   var x of type humanity \
             \in your inventory \
             \   enter dungeon with x:\
-            \      undiscovered:\
+            \      3:\
             \       traveling somewhere\
             \           go back\
             \       you died\
