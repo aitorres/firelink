@@ -418,7 +418,7 @@ INSTR :: { G.Instruction }
                                                                           return $G.InstFreeMem $2 }
   | cast ID PROCPARS                                                    {% do
                                                                           checkIdAvailability $2
-                                                                          params <- proceduresCheck $2 $3 $1
+                                                                          (_, params) <- methodsCheck $2 $3 $1
                                                                           return $ G.InstCallProc $2 params }
   | FUNCALL                                                             {% let (tk, i, params) = $1 in do
                                                                           buildAndCheckExpr tk $ G.EvalFunc i params
@@ -1009,92 +1009,68 @@ checkIndexAccess array index tk = do
       RWS.tell [Error "Left side is not a chest" (T.position tk)]
       return T.TypeError
 
-proceduresCheck :: G.Id -> [G.Expr] -> T.Token -> ST.ParserMonad ([G.Expr])
-proceduresCheck procId exprs tk = do
-  procType <- getType procId
+domainCallCheck :: G.Id -> [T.Type] -> [G.Expr] -> T.Token -> ST.ParserMonad (Maybe [G.Expr])
+domainCallCheck methodId domain exprs tk = do
+  let exprsTypes = exprsToTypes exprs
+  let exprsTypesL = length exprsTypes
+  let domainL = length domain
+  if exprsTypesL < domainL then do
+    RWS.tell [Error ("Method " ++ show methodId ++ " called with less arguments than expected") (T.position tk)]
+    return Nothing
+  else if exprsTypesL > domainL then do
+    RWS.tell [Error ("Method " ++ show methodId ++ " called with more arguments than expected") (T.position tk)]
+    return Nothing
+  else do
+    if T.TypeError `elem` exprsTypes then
+      return Nothing
+    else case findInvalidArgument $ zip exprsTypes domain of
+      -- all looking good, now cast each argument to it's correspondent parameter type
+      Nothing -> do
+        let castedExprs = addCastToExprs $ zip exprs domain
+        return $ Just castedExprs
+
+      -- oh no, an argument could not be implicitly casted to its correspondent argument
+      Just x -> do
+        let formalType = domain !! x
+        paramType <- getType $ exprs !! x
+        let errMsgTypes = "Type mismatch: param. #" ++ show x ++ " received " ++ show paramType ++ " and expected " ++ show formalType
+        let errMsg =  errMsgTypes ++ " while calling  " ++ show methodId
+        RWS.tell [Error (errMsg) (T.position tk)]
+        return Nothing
+  where
+    -- left side is the type of the argument, right side is the parameter type
+    findInvalidArgument :: [(T.Type, T.Type)] -> Maybe Int
+    findInvalidArgument ts = findInvalid ts 0
+
+    findInvalid :: [(T.Type, T.Type)] -> Int -> Maybe Int
+    findInvalid [] _ = Nothing
+    findInvalid ((argT, paramT) : xs) i = if argT `T.canBeConvertedTo` paramT
+      then findInvalid xs (i + 1)
+      else Just i
+
+methodsCheck :: G.Id -> [G.Expr] -> T.Token -> ST.ParserMonad (T.Type, [G.Expr])
+methodsCheck methodId exprs tk = do
+  procType <- getType methodId
   case procType of
     T.ProcedureT domain -> do
-      let exprsTypes = exprsToTypes exprs
-      let exprsTypesL = length exprsTypes
-      let domainL = length domain
-      if exprsTypesL < domainL then do
-        RWS.tell [Error ("Procedure " ++ show procId ++ " received less arguments than it expected") (T.position tk)]
-        return exprs
-      else if exprsTypesL > domainL then do
-        RWS.tell [Error ("Procedure " ++ show procId ++ " received more arguments than it expected") (T.position tk)]
-        return exprs
-      else do
-        if T.TypeError `elem` exprsTypes then
-          return exprs
-        else case findInvalidArgument $ zip exprsTypes domain of
-          -- all looking good, now cast each argument to it's correspondent parameter type
-          Nothing -> do
-            let castedExprs = addCastToExprs $ zip exprs domain
-            return (castedExprs)
-
-          -- oh oh, an argument could not be implicitly casted to its correspondent argument
-          Just x -> do
-            RWS.tell [Error ("Argument #" ++ show x ++ " type mismatch with parameter #" ++ show x ++ " type") (T.position tk)]
-            return exprs
-
-    T.TypeError -> return exprs
+      mParams <- domainCallCheck methodId domain exprs tk
+      case mParams of
+        Nothing -> return (T.VoidT, exprs)
+        Just params -> return (T.VoidT, params)
+    T.FunctionT domain range -> do
+      mParams <- domainCallCheck methodId domain exprs tk
+      case mParams of
+        Nothing -> return (T.TypeError, exprs)
+        Just params -> return (range, params)
+    T.TypeError -> return (T.TypeError, exprs)
     _ -> do
       RWS.tell [Error "You're trying to call a non-callable expression" (T.position tk)]
-      return exprs
-  where
-    -- left side is the type of the argument, right side is the parameter type
-    findInvalidArgument :: [(T.Type, T.Type)] -> Maybe Int
-    findInvalidArgument ts = findInvalid ts 0
-
-    findInvalid :: [(T.Type, T.Type)] -> Int -> Maybe Int
-    findInvalid [] _ = Nothing
-    findInvalid ((argT, paramT) : xs) i = if argT `T.canBeConvertedTo` paramT
-      then findInvalid xs (i + 1)
-      else Just i
+      return (T.TypeError, exprs)
 
 functionsCheck :: G.Id -> [G.Expr] -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
-functionsCheck funId exprs tk = do
-  funType <- getType funId
-  let originalExpr = G.EvalFunc funId exprs
-  case funType of
-    T.FunctionT domain range -> do
-      let exprsTypes = exprsToTypes exprs
-      let exprsTypesL = length exprsTypes
-      let domainL = length domain
-      if exprsTypesL < domainL then do
-        RWS.tell [Error ("Function " ++ show funId ++ " received less arguments than it expected") (T.position tk)]
-        return (T.TypeError, originalExpr)
-      else if exprsTypesL > domainL then do
-        RWS.tell [Error ("Function " ++ show funId ++ " received more arguments than it expected") (T.position tk)]
-        return (T.TypeError, originalExpr)
-      else do
-        if T.TypeError `elem` exprsTypes then
-          return (T.TypeError, originalExpr)
-        else case findInvalidArgument $ zip exprsTypes domain of
-          -- all looking good, now cast each argument to it's correspondent parameter type
-          Nothing -> do
-            let castedExprs = addCastToExprs $ zip exprs domain
-            return (range, G.EvalFunc funId castedExprs)
-
-          -- oh oh, an argument could not be implicitly casted to its correspondent argument
-          Just x -> do
-            RWS.tell [Error ("Argument #" ++ show x ++ " type mismatch with parameter #" ++ show x ++ " type") (T.position tk)]
-            return (T.TypeError, originalExpr)
-
-    T.TypeError -> return (T.TypeError, originalExpr) -- we don't need to log - getType already does that
-    _ -> do
-      RWS.tell [Error "You're trying to call a non-callable expression" (T.position tk)]
-      return (T.TypeError, originalExpr)
-  where
-    -- left side is the type of the argument, right side is the parameter type
-    findInvalidArgument :: [(T.Type, T.Type)] -> Maybe Int
-    findInvalidArgument ts = findInvalid ts 0
-
-    findInvalid :: [(T.Type, T.Type)] -> Int -> Maybe Int
-    findInvalid [] _ = Nothing
-    findInvalid ((argT, paramT) : xs) i = if argT `T.canBeConvertedTo` paramT
-      then findInvalid xs (i + 1)
-      else Just i
+functionsCheck i params tk = do
+  (t, ps) <- methodsCheck i params tk
+  return (t, G.EvalFunc i ps)
 
 memAccessCheck :: G.Expr -> T.Token -> ST.ParserMonad T.Type
 memAccessCheck expr tk = do
