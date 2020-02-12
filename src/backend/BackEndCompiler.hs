@@ -17,13 +17,13 @@ removeUnusedLabels :: [TAC] -> [TAC]
 removeUnusedLabels tacs = filter removeLabel tacs
     where
         usedLabels :: [Int]
-        usedLabels = map getLabelValue $ filter isGoTo tacs
+        usedLabels = map getLabelValue $ filter itJumps tacs
 
         getLabelValue :: TAC -> Int
         getLabelValue (ThreeAddressCode _ _ _ (Just (Label label))) = label
 
-        isGoTo :: TAC -> Bool
-        isGoTo (ThreeAddressCode tac _ _ _) = tac `elem` [GoTo, Eq, Neq, Lt, Lte, Gt, Gte]
+        itJumps :: TAC -> Bool
+        itJumps (ThreeAddressCode tac _ _ _) = tac `elem` [GoTo, Eq, Neq, Lt, Lte, Gt, Gte]
 
         removeLabel :: TAC -> Bool
         removeLabel (ThreeAddressCode NewLabel _ (Just (Label b)) _) = b `elem` usedLabels
