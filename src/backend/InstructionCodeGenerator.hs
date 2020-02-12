@@ -5,7 +5,7 @@ import ExprCodeGenerator (genCode', genCodeForBooleanExpr)
 import Grammar (Instruction(..), Expr(..), BaseExpr(..), Id(..), IfCase(..), CodeBlock(..), Program(..))
 import TACType
 import TypeChecking (Type(..))
-import Control.Monad.RWS (tell, unless)
+import Control.Monad.RWS (tell, unless, lift)
 
 
 instance GenerateCode CodeBlock where
@@ -18,7 +18,6 @@ instance GenerateCode Instruction where
     genCode instruction = do
         next <- newLabel
         genCodeForInstruction instruction next
-        genLabel next
 
 genCodeForInstruction :: Instruction -> OperandType -> CodeGenMonad ()
 
@@ -34,6 +33,7 @@ genCodeForInstruction (InstAsig lvalue@Expr {expAst = IdExpr id} rvalue) next =
     else do
         trueLabel <- newLabel
         falseLabel <- newLabel
+        lift $ print (trueLabel, falseLabel)
         genCodeForBooleanExpr rvalue trueLabel falseLabel
         operand <- genCode' lvalue
         genLabel trueLabel
@@ -41,6 +41,7 @@ genCodeForInstruction (InstAsig lvalue@Expr {expAst = IdExpr id} rvalue) next =
         genGoTo next
         genLabel falseLabel
         genIdAssignment operand $ Constant ("false", TrileanT)
+        genLabel next
     where
         genIdAssignment :: OperandType -> OperandType -> CodeGenMonad ()
         genIdAssignment lValue rValue =
@@ -68,6 +69,7 @@ genCodeForInstruction (InstIf ifcases) next = do
     let lastInstruction = last ifcases
     mapM_ (genCodeForIfCase next False) initInstructions
     genCodeForIfCase next True lastInstruction
+    genLabel next
 
 {-
 Indeterminate looping statement
@@ -82,6 +84,7 @@ genCodeForInstruction (InstWhile guard codeblock) next = do
     genLabel trueLabel
     genCode codeblock
     genGoTo begin
+    genLabel next
 
 genCodeForIfCase :: OperandType -> Bool -> IfCase -> CodeGenMonad ()
 genCodeForIfCase next isLast (GuardedCase expr codeblock) = do

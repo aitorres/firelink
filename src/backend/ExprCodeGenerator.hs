@@ -64,21 +64,37 @@ genCodeForBooleanExpr :: Expr -> OperandType -> OperandType -> CodeGenMonad ()
 
 genCodeForBooleanExpr expr trueLabel falseLabel = case expAst expr of
     -- Boolean literals
-    TrueLit -> genGoTo trueLabel
-    FalseLit -> genGoTo falseLabel
+    TrueLit -> unless (isFall trueLabel) $ genGoTo trueLabel
+    FalseLit -> unless (isFall falseLabel) $ genGoTo falseLabel
 
     -- Boolean negation
     Op1 Not expr -> genCodeForBooleanExpr expr falseLabel trueLabel
 
     IdExpr _ -> do
         symEntry <- genCode' expr
-        tell [TAC.ThreeAddressCode
-                { TAC.tacOperand = TAC.Eq
-                , TAC.tacLvalue = Just symEntry
-                , TAC.tacRvalue1 = Just $ TAC.Constant ("true", TrileanT)
-                , TAC.tacRvalue2 = Just trueLabel
-                }]
-        genGoTo falseLabel
+        let isTrueNotFall = not $ isFall trueLabel
+        let isFalseNotFall = not $ isFall falseLabel
+        if isTrueNotFall && isFalseNotFall then do
+            tell [TAC.ThreeAddressCode
+                    { TAC.tacOperand = TAC.Eq
+                    , TAC.tacLvalue = Just symEntry
+                    , TAC.tacRvalue1 = Just $ TAC.Constant ("true", TrileanT)
+                    , TAC.tacRvalue2 = Just trueLabel
+                    }]
+            genGoTo falseLabel
+        else if isTrueNotFall then
+            tell [TAC.ThreeAddressCode
+                    { TAC.tacOperand = TAC.Eq
+                    , TAC.tacLvalue = Just symEntry
+                    , TAC.tacRvalue1 = Just $ TAC.Constant ("true", TrileanT)
+                    , TAC.tacRvalue2 = Just trueLabel
+                    }]
+        else when isFalseNotFall (tell [TAC.ThreeAddressCode
+                    { TAC.tacOperand = TAC.Eq
+                    , TAC.tacLvalue = Just symEntry
+                    , TAC.tacRvalue1 = Just $ TAC.Constant ("false", TrileanT)
+                    , TAC.tacRvalue2 = Just falseLabel
+                    }])
     -- Boolean comparation
     Op2 op lhs rhs | op `elem` comparableOp2 -> do
         leftExprId <- genCode' lhs
@@ -123,7 +139,8 @@ genCodeForBooleanExpr expr trueLabel falseLabel = case expAst expr of
                 (if isFall falseLabel then newLabel else return falseLabel)
         let rhsTrueLabel = trueLabel
         let rhsFalseLabel = falseLabel
-
+        lift $ print expr
+        lift $ print ((lhsTrueLabel, lhsFalseLabel), (rhsTrueLabel, rhsFalseLabel))
         if op == Or then do
             genCodeForBooleanExpr lhs lhsTrueLabel lhsFalseLabel
             genCodeForBooleanExpr rhs rhsTrueLabel rhsFalseLabel
