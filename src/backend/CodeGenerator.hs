@@ -62,5 +62,16 @@ isFall :: OperandType -> Bool
 isFall (Label l) = l == (-1)
 isFall _ = error "calling isFall with non-label"
 
+genIdAssignment :: OperandType -> OperandType -> CodeGenMonad ()
+genIdAssignment lValue rValue =
+    tell [ThreeAddressCode
+        { tacOperand = Assign
+        , tacLvalue = Just lValue
+        , tacRvalue1 = Just rValue
+        , tacRvalue2 = Nothing
+        }]
+
+
+
 class GenerateCode a where
     genCode :: a -> CodeGenMonad ()
