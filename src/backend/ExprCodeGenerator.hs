@@ -18,6 +18,29 @@ genCode' :: Expr -> CodeGenMonad OperandType
 genCode' Expr {expAst=ast, expType=t} = genCodeForExpr t ast
 
 genCodeForExpr :: Type -> BaseExpr -> CodeGenMonad OperandType
+genCodeForExpr _ (IdExpr (Id Token {cleanedString=idName} idScope)) = do
+    symEntry <- findSymEntry <$> ask
+    return $ TAC.Variable $ TACVariable symEntry
+    where
+        findSymEntry :: Dictionary -> DictionaryEntry
+        findSymEntry = head . filter (\s -> scope s == idScope) . findChain idName
+
+
+genCodeForExpr TrileanT exp = do
+    trueLabel <- newLabel
+    falseLabel <- newLabel
+    next <- newLabel
+    newId <- newtemp
+    let lvalue = TAC.Variable newId
+    genCodeForBooleanExpr exp trueLabel falseLabel
+    genLabel trueLabel
+    genIdAssignment lvalue $ TAC.Constant ("true", TrileanT)
+    genGoTo next
+    genLabel falseLabel
+    genIdAssignment lvalue $ TAC.Constant ("false", TrileanT)
+    genLabel next
+    return lvalue
+
 genCodeForExpr _ (Op2 op lexpr rexpr) = do
     lId <- genCode' lexpr
     rId <- genCode' rexpr
@@ -37,13 +60,6 @@ genCodeForExpr _ (Op2 op lexpr rexpr) = do
 genCodeForExpr t (IntLit n) = return $ TAC.Constant (show n, t)
 genCodeForExpr t (FloatLit n) = return $ TAC.Constant (show n, t)
 
-genCodeForExpr _ (IdExpr (Id Token {cleanedString=idName} idScope)) = do
-    symEntry <- findSymEntry <$> ask
-    return $ TAC.Variable $ TACVariable symEntry
-    where
-        findSymEntry :: Dictionary -> DictionaryEntry
-        findSymEntry = head . filter (\s -> scope s == idScope) . findChain idName
-
 -- TODO: Do type casting correctly
 genCodeForExpr t (Caster expr _) = genCode' expr
 
@@ -60,18 +76,18 @@ genCodeForExpr _ (Op1 Negate expr) = do
 
 genCodeForExpr _ e = error $ "This expression hasn't been implemented " ++ show e
 
-genCodeForBooleanExpr :: Expr -> OperandType -> OperandType -> CodeGenMonad ()
+genCodeForBooleanExpr :: BaseExpr -> OperandType -> OperandType -> CodeGenMonad ()
 
-genCodeForBooleanExpr expr trueLabel falseLabel = case expAst expr of
+genCodeForBooleanExpr expr trueLabel falseLabel = case expr of
     -- Boolean literals
     TrueLit -> unless (isFall trueLabel) $ genGoTo trueLabel
     FalseLit -> unless (isFall falseLabel) $ genGoTo falseLabel
 
     -- Boolean negation
-    Op1 Not expr -> genCodeForBooleanExpr expr falseLabel trueLabel
+    Op1 Not expr -> genCodeForBooleanExpr (expAst expr) falseLabel trueLabel
 
     IdExpr _ -> do
-        symEntry <- genCode' expr
+        symEntry <- genCodeForExpr TrileanT expr
         let isTrueNotFall = not $ isFall trueLabel
         let isFalseNotFall = not $ isFall falseLabel
         if isTrueNotFall && isFalseNotFall then do
@@ -139,15 +155,13 @@ genCodeForBooleanExpr expr trueLabel falseLabel = case expAst expr of
                 (if isFall falseLabel then newLabel else return falseLabel)
         let rhsTrueLabel = trueLabel
         let rhsFalseLabel = falseLabel
-        lift $ print expr
-        lift $ print ((lhsTrueLabel, lhsFalseLabel), (rhsTrueLabel, rhsFalseLabel))
         if op == Or then do
-            genCodeForBooleanExpr lhs lhsTrueLabel lhsFalseLabel
-            genCodeForBooleanExpr rhs rhsTrueLabel rhsFalseLabel
+            genCodeForBooleanExpr (expAst lhs) lhsTrueLabel lhsFalseLabel
+            genCodeForBooleanExpr (expAst rhs) rhsTrueLabel rhsFalseLabel
             when (isFall trueLabel) (genLabel lhsTrueLabel)
         else do
-            genCodeForBooleanExpr lhs lhsTrueLabel lhsFalseLabel
-            genCodeForBooleanExpr rhs rhsTrueLabel rhsFalseLabel
+            genCodeForBooleanExpr (expAst lhs) lhsTrueLabel lhsFalseLabel
+            genCodeForBooleanExpr (expAst rhs) rhsTrueLabel rhsFalseLabel
             when (isFall falseLabel) (genLabel lhsFalseLabel)
 
 mapOp2ToTacOperation :: Op2 -> TAC.Operation

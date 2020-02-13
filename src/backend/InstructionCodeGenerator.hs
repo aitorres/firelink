@@ -34,7 +34,7 @@ genCodeForInstruction (InstAsig lvalue@Expr {expAst = IdExpr id} rvalue) next =
         trueLabel <- newLabel
         falseLabel <- newLabel
         lift $ print (trueLabel, falseLabel)
-        genCodeForBooleanExpr rvalue trueLabel falseLabel
+        genCodeForBooleanExpr (expAst rvalue) trueLabel falseLabel
         operand <- genCode' lvalue
         genLabel trueLabel
         genIdAssignment operand $ Constant ("true", TrileanT)
@@ -42,16 +42,6 @@ genCodeForInstruction (InstAsig lvalue@Expr {expAst = IdExpr id} rvalue) next =
         genLabel falseLabel
         genIdAssignment operand $ Constant ("false", TrileanT)
         genLabel next
-    where
-        genIdAssignment :: OperandType -> OperandType -> CodeGenMonad ()
-        genIdAssignment lValue rValue =
-            tell [ThreeAddressCode
-                { tacOperand = Assign
-                , tacLvalue = Just lValue
-                , tacRvalue1 = Just rValue
-                , tacRvalue2 = Nothing
-                }]
-
 
 
 {-
@@ -80,7 +70,7 @@ genCodeForInstruction (InstWhile guard codeblock) next = do
     trueLabel <- newLabel
     let falseLabel = next
     genLabel begin
-    genCodeForBooleanExpr guard trueLabel falseLabel
+    genCodeForBooleanExpr (expAst guard) trueLabel falseLabel
     genLabel trueLabel
     genCode codeblock
     genGoTo begin
@@ -90,7 +80,7 @@ genCodeForIfCase :: OperandType -> Bool -> IfCase -> CodeGenMonad ()
 genCodeForIfCase next isLast (GuardedCase expr codeblock) = do
     trueLabel <- if isLast then return fall else newLabel
     falseLabel <- if isLast then return next else newLabel
-    genCodeForBooleanExpr expr trueLabel falseLabel
+    genCodeForBooleanExpr (expAst expr) trueLabel falseLabel
     unless isLast $ genLabel trueLabel
     genCode codeblock
     unless isLast $ genGoTo next
