@@ -387,7 +387,6 @@ DECLARS :: { [G.Instruction] }
   : with DECLARSL DECLAREND                                             {% do
                                                                             let instrlist = getAssigsFromDeclarations (reverse $2)
                                                                             checkRecoverableError $1 $3
-                                                                            addIdsToSymTable (reverse $2)
                                                                             return instrlist }
 
 DECLAREND :: { Maybe G.RecoverableError }
@@ -395,8 +394,14 @@ DECLAREND :: { Maybe G.RecoverableError }
   | error                                                               { Just G.MissingDeclarationListEnd }
 
 DECLARSL :: { [NameDeclaration] }
-  : DECLARSL comma DECLAR                                               { $3:$1 }
-  | DECLAR                                                              { [$1] }
+  : DECLARSL comma DECLARADD                                            { $3:$1 }
+  | DECLARADD                                                           { [$1] }
+
+DECLARADD :: { NameDeclaration }
+  : DECLAR                                                              {% do
+                                                                            -- Adds a declaration to the ST as soon as it's parsed
+                                                                            addIdToSymTable Nothing $1
+                                                                            return $1 }
 
 DECLAR :: { NameDeclaration }
   : var ID ofType TYPE                                                  { (ST.Variable, $2, $4, Nothing) }
