@@ -2,7 +2,7 @@ hello ashen one
 
   invocation nearest_square
   requesting
-    val n of type hollow
+    val n of type humanity
   with skill of type humanity
     traveling somewhere
     with
@@ -26,14 +26,14 @@ hello ashen one
   -- Bakhshali method
   invocation sqrt_approx
   requesting
-    val s of type hollow,
+    val s of type humanity,
     val iters of type humanity
-  with skill of type hollow
+  with skill of type humanity
     traveling somewhere
     with
-      var root_approx of type hollow <<= summon nearest_square granting s to the knight,
-      var an of type hollow,
-      var bn of type hollow,
+      var root_approx of type humanity <<= summon nearest_square granting s to the knight,
+      var an of type humanity,
+      var bn of type humanity,
       var i of type humanity <<= 0
     in your inventory
       upgrading i with 1 soul until level iters
