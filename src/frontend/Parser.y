@@ -1391,7 +1391,10 @@ instance TypeCheckable ST.DictionaryEntry where
           (T.TypeList list) <- getType fields
           return list
           )
-      return $ T.FunctionT domain range
+      case range of
+        -- The range is returned as a one-type typelist, we return the actual type
+        T.TypeList (r:_) -> return $ T.FunctionT domain r
+        _ -> return $ T.FunctionT domain range
 
     | cat `elem` [
         ST.Variable, ST.Constant,
