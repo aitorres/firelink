@@ -693,10 +693,9 @@ addIdToSymTable mi d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idN
         }
       entry <- checkIdAvailability gId
       case (entry, maybeExp) of
-        (Nothing, _) -> return ()
-        (_, Nothing) -> return ()
         (Just en, Just exp) -> do
           checkTypeOfAssignment en exp (G.expTok exp)
+        _ -> return ()
 
     -- The name does exists on the table, we just add it depending on the scope
     Just entry -> do
@@ -1201,6 +1200,7 @@ checkAccess e (G.Id tk'@T.Token{T.cleanedString=i} _) tk = do
     T.UnionT scope properties -> checkProperty properties scope
     T.TypeError -> return defaultReturn
     _ -> do
+      RWS.liftIO $ print $ show t
       logSemError "Left side of access is not a record nor union" tk
       return defaultReturn
   where
