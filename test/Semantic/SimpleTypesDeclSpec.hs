@@ -4,7 +4,7 @@ import           FireLink.FrontEnd.Errors
 import qualified FireLink.FrontEnd.Grammar  as G
 import qualified FireLink.FrontEnd.SymTable as ST
 import qualified FireLink.FrontEnd.Tokens   as T
-import qualified FireLink.Utils    as UU
+import qualified FireLink.Utils             as UU
 import           Test.Hspec
 import qualified TestUtils                  as U
 
