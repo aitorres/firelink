@@ -1434,15 +1434,7 @@ instance TypeCheckable ST.Extra where
     types <- mapM getType $ ST.sortByArgPosition $ ST.findAllInScope scope dict
     return $ T.TypeList types
 
-  getType (ST.Fields b scope) = do
-    ST.SymTable {ST.stDict=dict} <- RWS.get
-    let entries = ST.findAllInScope scope dict
-    let entryNames = map ST.name entries
-    types <- mapM getType entries
-    case b of
-      ST.Record -> return $ T.RecordT scope $ map T.PropType $ zip entryNames types
-      ST.Union -> return $ T.UnionT scope $ map T.PropType $ zip entryNames types
-      _ -> error "wrong data type for Fields extra"
+  getType (ST.Fields b scope) = buildStruct b scope
 
   getType ST.EmptyFunction = return $ T.TypeList []
 
@@ -1456,6 +1448,17 @@ instance TypeCheckable ST.Extra where
       | otherwise = return $ T.AliasT s -- works because it always exists
                                         -- it shouldn't be added otherwise
   getType _ = error "error on getType for SymTable extra"
+
+buildStruct :: ST.TypeFields -> Int -> ST.ParserMonad (T.Type)
+buildStruct t scope = do
+  ST.SymTable {ST.stDict=dict} <- RWS.get
+  let entries = ST.findAllInScope scope dict
+  let entryNames = map ST.name entries
+  types <- mapM getType entries
+  case t of
+    ST.Record -> return $ T.RecordT scope $ map T.PropType $ zip entryNames types
+    ST.Union -> return $ T.UnionT scope $ map T.PropType $ zip entryNames types
+    _ -> error "wrong data type for Fields extra"
 
 logSemError :: String -> T.Token -> ST.ParserMonad ()
 logSemError msg tk = RWS.tell [Error msg (T.position tk)]
