@@ -249,3 +249,59 @@ spec = do
             \you died\n\
 
             \farewell ashen one" `U.shouldErrorOn` ("~>", 12, 51)
+        it "accepts valid assigment of a struct literal for record" $
+            U.shouldNotError "hello ashen one\n\
+
+            \traveling somewhere\n\
+
+            \with\n\
+            \   var x of type bezel { a of type humanity, b of type hollow } \n\
+            \in your inventory\n\
+
+            \   x <<= { a <<= 1, b <<= 5.6 } \n\
+
+            \you died\n\
+
+            \farewell ashen one"
+        it "accepts valid assigment of a struct literal for union" $
+            U.shouldNotError "hello ashen one\n\
+
+            \traveling somewhere\n\
+
+            \with\n\
+            \   var x of type link { a of type humanity, b of type hollow } \n\
+            \in your inventory\n\
+
+            \   x <<= { a <<= 1 } \n\
+
+            \you died\n\
+
+            \farewell ashen one"
+        it "accepts valid initialization on declaration of a struct literal for record" $
+            U.shouldNotError "hello ashen one\n\
+
+            \traveling somewhere\n\
+
+            \with\n\
+            \   var x of type bezel { a of type humanity, b of type hollow } <<= { a <<= 1, b <<= 5.4 } \n\
+            \in your inventory\n\
+
+            \   go back \n\
+
+            \you died\n\
+
+            \farewell ashen one"
+        it "accepts valid initialization on declaration of a struct literal for union" $
+            U.shouldNotError "hello ashen one\n\
+
+            \traveling somewhere\n\
+
+            \with\n\
+            \   var x of type link { a of type humanity, b of type hollow } <<= { b <<= 5.4 } \n\
+            \in your inventory\n\
+
+            \   go back \n\
+
+            \you died\n\
+
+            \farewell ashen one"
