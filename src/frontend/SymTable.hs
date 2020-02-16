@@ -1,13 +1,13 @@
 module SymTable where
 
 import qualified Control.Monad.RWS as RWS
-import qualified Data.Map.Strict as Map
-import qualified Tokens as T
-import qualified Grammar as G
-import qualified TypeChecking as TC
-import Errors
+import qualified Data.Map.Strict   as Map
+import           Errors
+import qualified Grammar           as G
+import qualified Tokens            as T
+import qualified TypeChecking      as TC
 
-import Data.Sort (sortBy)
+import           Data.Sort         (sortBy)
 
 type Scope = Int
 type ScopeStack = [Scope]
@@ -24,7 +24,6 @@ data Category
     | ValueParam
     | Constructor
     deriving (Eq, Show)
-
 
 data TypeFields = Callable | Union | Record
     deriving (Show, Eq)
@@ -59,32 +58,32 @@ data Extra
 
 isFieldsExtra :: Extra -> Bool
 isFieldsExtra (Fields _ _) = True
-isFieldsExtra _ = False
+isFieldsExtra _            = False
 
 isEmptyFunction :: Extra -> Bool
 isEmptyFunction EmptyFunction = True
-isEmptyFunction _ = False
+isEmptyFunction _             = False
 
 isArgPosition :: Extra -> Bool
 isArgPosition ArgPosition{} = True
-isArgPosition _ = False
+isArgPosition _             = False
 
 findArgPosition :: [Extra] -> Extra
 findArgPosition = head . filter isArgPosition
 
 findFieldsExtra :: Extra -> Maybe Extra
-findFieldsExtra a@Fields{} = Just a
+findFieldsExtra a@Fields{}          = Just a
 findFieldsExtra (CompoundRec _ _ e) = findFieldsExtra e
-findFieldsExtra (Recursive _ e) = findFieldsExtra e
-findFieldsExtra _ = Nothing
+findFieldsExtra (Recursive _ e)     = findFieldsExtra e
+findFieldsExtra _                   = Nothing
 
 isExtraAType :: Extra -> Bool
-isExtraAType Recursive{} = True
-isExtraAType Compound{} = True
+isExtraAType Recursive{}   = True
+isExtraAType Compound{}    = True
 isExtraAType CompoundRec{} = True
-isExtraAType Fields{} = True
-isExtraAType Simple{} = True
-isExtraAType _ = False
+isExtraAType Fields{}      = True
+isExtraAType Simple{}      = True
+isExtraAType _             = False
 
 extractTypeFromExtra :: [Extra] -> Extra
 extractTypeFromExtra = head . filter isExtraAType
@@ -137,7 +136,7 @@ findChain = Map.findWithDefault []
 findPervasive :: String -> DictionaryEntries -> Maybe DictionaryEntry
 findPervasive _ [] = Nothing
 findPervasive s ds = case filter (\d -> name d == s) $ filter (\d -> scope d == 0) ds of
-    [] -> Nothing
+    []  -> Nothing
     a:_ -> Just a
 
 findBest :: String -> DictionaryEntries -> ScopeStack -> Maybe DictionaryEntry
@@ -158,7 +157,7 @@ dictLookup n = do
         je@(Just _) -> je
         Nothing -> case pervasive of
             je@(Just _) -> je
-            _ -> Nothing)
+            _           -> Nothing)
 
 addEntry :: DictionaryEntry -> ParserMonad ()
 addEntry d@DictionaryEntry{name=n} = do
@@ -180,7 +179,7 @@ exitScope :: ParserMonad ()
 exitScope = do
     st@SymTable {stScopeStack=scopeStack} <- RWS.get
     case scopeStack of
-        [] -> RWS.put st{stScopeStack=[]}
+        []  -> RWS.put st{stScopeStack=[]}
         _:s -> RWS.put st{stScopeStack=s}
 
 addIteratorVariable :: String -> ParserMonad ()
@@ -192,7 +191,7 @@ popIteratorVariable :: ParserMonad ()
 popIteratorVariable = do
     st@SymTable {stIterationVars=iterationVars} <- RWS.get
     RWS.put st{stIterationVars=case iterationVars of
-        [] -> []
+        []  -> []
         _:s -> s}
 
 addVisitedMethod :: String -> ParserMonad ()
@@ -214,7 +213,7 @@ popIterableVariable :: ParserMonad ()
 popIterableVariable = do
     st@SymTable {stIterableVars=iterableVars} <- RWS.get
     RWS.put st{stIterableVars=case iterableVars of
-        [] -> []
+        []  -> []
         _:s -> s}
 
 addSwitchType :: TC.Type -> ParserMonad ()
@@ -226,7 +225,7 @@ popSwitchType :: ParserMonad ()
 popSwitchType = do
     st@SymTable {stSwitchTypes=types} <- RWS.get
     RWS.put st{stSwitchTypes=case types of
-        [] -> []
+        []  -> []
         _:s -> s}
 
 smallHumanity :: String

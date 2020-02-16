@@ -1,9 +1,9 @@
 module CodeGenerator where
 
-import Control.Monad.RWS (RWST(..), get, put, tell)
-import TACType
-import TypeChecking
-import SymTable (DictionaryEntry(..), Dictionary(..))
+import           Control.Monad.RWS (RWST (..), get, put, tell)
+import           SymTable          (Dictionary (..), DictionaryEntry (..))
+import           TACType
+import           TypeChecking
 
 data CodeGenState = CodeGenState
     { cgsNextLabel :: !Int
@@ -16,7 +16,7 @@ initialState = CodeGenState {cgsNextTemp = 0, cgsNextLabel = 0}
 data TACSymEntry = TACTemporal String | TACVariable DictionaryEntry
 
 instance SymEntryCompatible TACSymEntry where
-    getSymID (TACTemporal s) = s
+    getSymID (TACTemporal s)     = s
     getSymID (TACVariable entry) = name entry
 
 instance Show TACSymEntry where
@@ -60,7 +60,7 @@ fall = Label (-1)
 
 isFall :: OperandType -> Bool
 isFall (Label l) = l == (-1)
-isFall _ = error "calling isFall with non-label"
+isFall _         = error "calling isFall with non-label"
 
 genIdAssignment :: OperandType -> OperandType -> CodeGenMonad ()
 genIdAssignment lValue rValue =

@@ -1,9 +1,9 @@
 module Grammar where
 
-import Tokens (Token(..))
-import TypeChecking (Type(..))
-import Data.List (intercalate)
-import qualified Utils as U
+import           Data.List    (intercalate)
+import           Tokens       (Token (..))
+import           TypeChecking (Type (..))
+import qualified Utils        as U
 
 type Instructions = [Instruction]
 type Params = [Expr]
@@ -78,26 +78,26 @@ arrayOp2 = [ColConcat]
 
 instance Show Op1 where
   show Negate = "-"
-  show Not = "not"
+  show Not    = "not"
 
 instance Show Op2 where
-  show Add = "+"
-  show Substract = "-"
-  show Multiply = "*"
-  show Divide = "/"
-  show Mod = "%"
-  show Lt = "lt"
-  show Gt = "gt"
-  show Lte = "lte"
-  show Gte = "gte"
-  show Eq = "eq"
-  show Neq = "neq"
-  show And = "and"
-  show Or = "or"
-  show SetUnion = "union"
-  show SetIntersect = "intersect"
+  show Add           = "+"
+  show Substract     = "-"
+  show Multiply      = "*"
+  show Divide        = "/"
+  show Mod           = "%"
+  show Lt            = "lt"
+  show Gt            = "gt"
+  show Lte           = "lte"
+  show Gte           = "gte"
+  show Eq            = "eq"
+  show Neq           = "neq"
+  show And           = "and"
+  show Or            = "or"
+  show SetUnion      = "union"
+  show SetIntersect  = "intersect"
   show SetDifference = "diff"
-  show ColConcat = ">-<"
+  show ColConcat     = ">-<"
 
 joinExprList :: [Expr] -> String
 joinExprList = intercalate ", " . map show

@@ -1,11 +1,13 @@
 module InstructionCodeGenerator where
 
-import CodeGenerator
-import ExprCodeGenerator (genCode', genCodeForBooleanExpr)
-import Grammar (Instruction(..), Expr(..), BaseExpr(..), Id(..), IfCase(..), CodeBlock(..), Program(..))
-import TACType
-import TypeChecking (Type(..))
-import Control.Monad.RWS (tell, unless, lift)
+import           CodeGenerator
+import           Control.Monad.RWS (lift, tell, unless)
+import           ExprCodeGenerator (genCode', genCodeForBooleanExpr)
+import           Grammar           (BaseExpr (..), CodeBlock (..), Expr (..),
+                                    Id (..), IfCase (..), Instruction (..),
+                                    Program (..))
+import           TACType
+import           TypeChecking      (Type (..))
 
 
 instance GenerateCode CodeBlock where

@@ -1,7 +1,7 @@
 module TypeChecking where
 
-import Data.List (sort)
-import qualified Tokens as T
+import           Data.List (sort)
+import qualified Tokens    as T
 
 newtype PropType = PropType (String, Type)
   deriving Show
@@ -38,7 +38,7 @@ instance Show Type where
   show StructLitT = "struct literal"
   show (ArrayT t) = "chest of type " ++ show t
   show (SetT t) = "armor of type " ++ show t
-  show (RecordT _ ps) = "link with elements " ++ formattedElements
+  show (RecordT _ ps) = "bezel with elements " ++ formattedElements
     where elements = concatMap (\(PropType (a, t)) -> a ++ " of type " ++ show t ++ ", ") ps
           usefulChars = length elements - 2
           formattedElements = take usefulChars elements
@@ -94,9 +94,9 @@ instance Ord PropType where
   PropType (s, _) <= PropType (s', _) = s <= s'
 
 getTypeFromContainer :: Type -> Maybe Type
-getTypeFromContainer (SetT t) = Just t
+getTypeFromContainer (SetT t)   = Just t
 getTypeFromContainer (ArrayT t) = Just t
-getTypeFromContainer _ = Nothing
+getTypeFromContainer _          = Nothing
 
 booleanSingleton :: [Type]
 booleanSingleton = [TrileanT]

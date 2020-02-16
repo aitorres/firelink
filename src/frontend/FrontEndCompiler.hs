@@ -1,12 +1,12 @@
 module FrontEndCompiler (frontEnd) where
 
-import Errors
-import Grammar (Program(..))
-import SymTable (SymTable(..), initialState)
-import Tokens (Token(..))
-import Control.Monad.RWS (runRWST)
-import Parser (parse)
-import Lexer (scanTokens)
+import           Control.Monad.RWS (runRWST)
+import           Errors
+import           Grammar           (Program (..))
+import           Lexer             (scanTokens)
+import           Parser            (parse)
+import           SymTable          (SymTable (..), initialState)
+import           Tokens            (Token (..))
 
 type CompilerResult = Either (CompilerError, [Token]) (Program, SymTable, [Token])
 
