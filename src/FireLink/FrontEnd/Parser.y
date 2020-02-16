@@ -9,7 +9,7 @@ import Data.List (sort)
 import qualified FireLink.FrontEnd.Grammar as G
 import qualified Control.Monad.RWS as RWS
 import qualified FireLink.FrontEnd.TypeChecking as T
-import FireLink.FrontEnd.Utils
+import FireLink.Utils
 import FireLink.FrontEnd.Errors
 }
 

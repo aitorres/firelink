@@ -4,7 +4,7 @@ import qualified Data.Map                   as Map
 import           FireLink.FrontEnd.Errors
 import qualified FireLink.FrontEnd.Grammar  as G
 import qualified FireLink.FrontEnd.SymTable as ST
-import qualified FireLink.FrontEnd.Utils    as UU
+import qualified FireLink.Utils    as UU
 import           Test.Hspec
 import qualified TestUtils                  as U
 

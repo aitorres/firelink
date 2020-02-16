@@ -7,7 +7,7 @@ Stability   : experimental
 -}
 module FireLink.FrontEnd.Tokens (
     Token(..), AbstractToken(..)) where
-import qualified FireLink.FrontEnd.Utils as U
+import qualified FireLink.Utils as U
 
 -- |All the posible tokens of the language
 data AbstractToken = TkId | TkConst | TkVar | TkOfType | TkAsig

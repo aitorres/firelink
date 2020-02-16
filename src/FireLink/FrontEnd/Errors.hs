@@ -1,6 +1,6 @@
 module FireLink.FrontEnd.Errors where
 
-import           FireLink.FrontEnd.Utils
+import           FireLink.Utils
 
 data Error = Error String Position
     deriving Show

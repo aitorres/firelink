@@ -6,7 +6,7 @@ import qualified FireLink.FrontEnd.Grammar  as G
 import qualified FireLink.FrontEnd.Lexer    as L
 import           FireLink.FrontEnd.Parser
 import qualified FireLink.FrontEnd.SymTable as ST
-import           FireLink.FrontEnd.Utils
+import           FireLink.Utils
 import           Test.Hspec
 
 extractSymTable

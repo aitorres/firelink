@@ -5,7 +5,7 @@ module FireLink.FrontEnd.Lexer (
 import Data.List.Extra (replace)
 import FireLink.FrontEnd.Tokens
 import FireLink.FrontEnd.Errors
-import FireLink.FrontEnd.Utils
+import FireLink.Utils
 }
 %wrapper "monadUserState"
 

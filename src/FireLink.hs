@@ -11,7 +11,7 @@ import           FireLink.FrontEnd.Errors
 import           FireLink.FrontEnd.FrontEndCompiler
 import qualified FireLink.FrontEnd.SymTable         as ST
 import           FireLink.FrontEnd.Tokens
-import           FireLink.FrontEnd.Utils
+import           FireLink.Utils
 import           System.Directory                   (doesFileExist)
 import           System.Environment                 (getArgs)
 import           System.Exit                        (exitFailure, exitSuccess)
