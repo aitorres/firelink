@@ -1,0 +1,35 @@
+hello ashen one
+
+requiring help of
+    knight bez bezel { a of type humanity, b of type hollow },
+    knight lez link { i of type humanity, j of type hollow }
+help received
+
+traveling somewhere
+with
+    var x of type bez,
+    var y of type lez
+in your inventory
+    x <<= {a <<= 1, b <<= 5.6} \
+    y <<= {i <<= 3} \
+
+    -- Error: less args
+    x <<= {a <<= 1} \
+
+    -- Error: more args
+    x <<= {a <<= 1, b <<= 5, c <<= |?| } \
+
+    -- Error: not exactly 1 arg
+    y <<= {i <<= 1, j <<= 3} \
+
+    -- Error: invalid names
+    x <<= {p <<= 1, a <<= 1} \
+    y <<= {a <<= 9} \
+
+    -- Error: invalid types
+    x <<= {a <<= 9.1, b <<= |a| } \
+    x <<= {a <<= 9.1, b <<= 8.1 } \
+    y <<= { i <<= @fish@ }
+you died
+
+farewell ashen one

@@ -121,6 +121,7 @@ instance Show AbstractToken where
     show TkArray = U.green ++ U.bold ++ U.underline
     show TkSet = U.green ++ U.bold ++ U.underline
     show TkRecord = U.green ++ U.bold ++ U.underline
+    show TkUnionStruct = U.green ++ U.bold ++ U.underline
     show TkAlias = U.cyan ++ U.bold
     show TkAliasListBegin = U.magenta ++ U.bold
     show TkAliasListEnd = U.magenta ++ U.bold

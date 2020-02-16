@@ -5,6 +5,7 @@ module Parser (
 import qualified Tokens as T
 import qualified SymTable as ST
 import Data.Maybe
+import Data.List (sort)
 import qualified Grammar as G
 import qualified Control.Monad.RWS as RWS
 import qualified TypeChecking as T
@@ -229,6 +230,9 @@ EXPR :: { G.Expr }
   | floatLit                                                            {% buildAndCheckExpr $1 $ G.FloatLit (read (T.cleanedString $1) :: Float) }
   | charLit                                                             {% buildAndCheckExpr $1 $ G.CharLit $ head (T.cleanedString $1) }
   | stringLit                                                           {% buildAndCheckExpr $1 $ G.StringLit (T.cleanedString $1) }
+  | STRUCTLIT                                                           {% do
+                                                                            let (tk, stlit) = $1
+                                                                            buildAndCheckExpr tk $ G.StructLit $ reverse stlit }
   | trueLit                                                             {% buildAndCheckExpr $1 G.TrueLit }
   | falseLit                                                            {% buildAndCheckExpr $1 G.FalseLit }
   | unknownLit                                                          {% buildAndCheckExpr $1 G.UndiscoveredLit }
@@ -262,6 +266,18 @@ EXPR :: { G.Expr }
   | EXPR diff EXPR                                                      {% buildAndCheckExpr $2 $ G.Op2 G.SetDifference $1 $3 }
   | FUNCALL                                                             {% let (tk, i, params) = $1 in buildAndCheckExpr tk $ G.EvalFunc i params }
   | LVALUE                                                              { $1 }
+
+STRUCTLIT :: { (T.Token, [(G.Id, G.Expr)]) }
+  : brOpen PROPLIST BRCLOSE                                             {% do
+                                                                            checkRecoverableError $1 $3
+                                                                            return ($1, $2) }
+
+PROPLIST :: { [(G.Id, G.Expr)]}
+  : PROP                                                                { [$1] }
+  | PROPLIST comma PROP                                                  { $3:$1 }
+
+PROP :: { (G.Id, G.Expr) }
+  : ID asig EXPR                                                        { ($1, $3) }
 
 EXPRL :: { [G.Expr] }
   : {- empty -}                                                         { [] }
@@ -417,7 +433,10 @@ INSTR :: { G.Instruction }
                                                                           checkConstantReassignment $1
                                                                           checkIterVariables $1
                                                                           checkIterableVariables $1
-                                                                          checkTypeOfAssignment $1 $3 $2
+                                                                          t <- getType $3
+                                                                          if t == T.StructLitT
+                                                                          then checkStructAssignment $1 $3 $2
+                                                                          else checkTypeOfAssignment $1 $3 $2
                                                                           return $ G.InstAsig $1 $3 }
   | malloc EXPR                                                         {% do
                                                                           checkPointerVariable $2
@@ -693,10 +712,13 @@ addIdToSymTable mi d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idN
         }
       entry <- checkIdAvailability gId
       case (entry, maybeExp) of
-        (Nothing, _) -> return ()
-        (_, Nothing) -> return ()
         (Just en, Just exp) -> do
-          checkTypeOfAssignment en exp (G.expTok exp)
+          t <- getType exp
+          if t == T.StructLitT
+          then do
+            checkStructAssignment en exp (G.expTok exp)
+          else checkTypeOfAssignment en exp (G.expTok exp)
+        _ -> return ()
 
     -- The name does exists on the table, we just add it depending on the scope
     Just entry -> do
@@ -894,7 +916,7 @@ checkRecoverableError openTk maybeErr = do
       logSemError (errorName ++ " (recovered from to continue parsing)") openTk
 
 extractFieldsFromExtra :: [ST.Extra] -> ST.Extra
-extractFieldsFromExtra [] = error "The `extra` array doesn't have any `Fields` item"
+extractFieldsFromExtra [] = error $ "The `extra` array doesn't have any `Fields` item"
 extractFieldsFromExtra (s@ST.Fields{} : _) = s
 extractFieldsFromExtra (_:ss) = extractFieldsFromExtra ss
 
@@ -1193,19 +1215,43 @@ checkIsActive e tk = do
     isUnion (G.Expr {G.expType=(T.UnionT _ _)}) = True
     isUnion _ = False
 
+makeStructFromAlias :: T.Type -> ST.ParserMonad (T.Type)
+makeStructFromAlias (T.AliasT n) = do
+  mEntry <- ST.dictLookup n
+  case mEntry of
+    -- Case: direct alias for a struct
+    Just ST.DictionaryEntry {ST.extra=[ST.Fields t scope]} -> buildStruct t scope
+    -- Case: indirect alias
+    Just ST.DictionaryEntry {ST.extra=[ST.Simple al]} -> makeStructFromAlias (T.AliasT al)
+    -- Case: direct alias for a non-struct
+    _ -> return T.TypeError
+makeStructFromAlias _ = logRTError "makeStructFromAlias function wrongfully received a type different from T.AliasT"
+
 checkAccess :: G.Expr -> G.Id -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
 checkAccess e (G.Id tk'@T.Token{T.cleanedString=i} _) tk = do
   t <- getType e
   case t of
-    T.RecordT scope properties -> checkProperty properties scope
-    T.UnionT scope properties -> checkProperty properties scope
-    T.TypeError -> return defaultReturn
-    _ -> do
-      logSemError "Left side of access is not a record nor union" tk
-      return defaultReturn
+    tp@(T.AliasT _) -> do
+      struct <- makeStructFromAlias tp
+      case struct of
+        -- If makeStructFromAlias returns typeError, then we NEED to report the message
+        T.TypeError -> returnWithError
+        t -> checkAccessFromType t
+    t -> checkAccessFromType t
   where
+    -- This function NEVER receives an alias, always a "definite" type
+    checkAccessFromType :: T.Type -> ST.ParserMonad (T.Type, G.BaseExpr)
+    checkAccessFromType t = case t of
+      T.RecordT scope properties -> checkProperty properties scope
+      T.UnionT scope properties -> checkProperty properties scope
+      T.TypeError -> return defaultReturn
+      _ -> returnWithError
     baseExpr :: G.Id -> G.BaseExpr
     baseExpr = G.Access e
+    returnWithError :: ST.ParserMonad (T.Type, G.BaseExpr)
+    returnWithError = do
+      logSemError "Left side of access is not a record nor union" tk
+      return defaultReturn
     defaultReturn :: (T.Type, G.BaseExpr)
     defaultReturn = (T.TypeError, baseExpr $ G.Id tk' (-1))
     checkProperty :: [T.PropType] -> Int -> ST.ParserMonad (T.Type, G.BaseExpr)
@@ -1283,6 +1329,69 @@ checkSetSize expr tk = do
       logSemError "`size` expects a set" tk
       return T.TypeError
 
+checkStructAssignment :: (TypeCheckable a) => a -> G.Expr -> T.Token -> ST.ParserMonad ()
+checkStructAssignment lval (G.Expr {G.expAst = (G.StructLit structProps)}) tk = do
+  lvalType <- getType lval
+  checkStructAssignment' lvalType
+  where
+    checkStructAssignment' :: T.Type -> ST.ParserMonad ()
+    checkStructAssignment' lvalType = case lvalType of
+      T.RecordT scope properties -> do
+        let propL = length properties
+        let structPropsL = length structProps
+        if structPropsL /= propL then do
+          let mismatch = propL - structPropsL
+          let errDetails = if mismatch > 0 then "(missing " ++ show mismatch ++ " properties)" else "(assigning " ++ show (-mismatch) ++ " additional properties)"
+          logSemError ("Bezel literal must assign exactly one value to each valid property " ++ errDetails) tk
+        else do
+          let propNames = map (\(T.PropType (s, _)) -> s) properties
+          let structPropNames = map (\( (G.Id (T.Token {T.cleanedString=spName}) _) , _) -> spName) structProps
+          if propNames /= structPropNames then do
+            let invalidNames = filter (\x -> not $ x `elem` propNames) structPropNames
+            let firstInvalidName = head invalidNames
+            logSemError ("Invalid property name " ++ firstInvalidName ++ " for bezel literal assignment") tk
+          else do
+            let propTypes = map (\(T.PropType (s, t)) -> t) properties
+            let structPropVals = map snd structProps
+            checkRecordTypes propNames propTypes structPropVals
+
+      T.UnionT scope properties -> do
+        let structPropsL = length structProps
+        if structPropsL /= 1 then logSemError ("Link literal must assign exactly one valid property") tk
+        else do
+          let propNames = map (\(T.PropType (s, _)) -> s) properties
+          let (G.Id (T.Token {T.cleanedString = structPropName}) _, structPropVal) = head structProps
+          if not (structPropName `elem` propNames) then logSemError ("Invalid property name " ++ structPropName ++ " for link literal assignment") tk
+          else do
+            let T.PropType (_, propType) = head $ filter (\(T.PropType (n, _)) -> n == structPropName) properties
+            structPropValT <- getType structPropVal
+            if structPropValT `T.canBeConvertedTo` propType then return ()
+            else do
+              let errDetails = "(expected " ++ show propType ++ ", received " ++ show structPropValT ++ ")"
+              logSemError ("Type mismach on link literal assignment " ++ errDetails) tk
+
+      tA@(T.AliasT _) -> do
+        newT <- makeStructFromAlias tA
+        if newT == T.TypeError then logNonStructType (show tA)
+        else checkStructAssignment' newT
+
+      T.TypeError -> return ()
+
+      _ -> logNonStructType (show lvalType)
+    checkRecordTypes :: [String] -> [T.Type] -> [G.Expr] -> ST.ParserMonad ()
+    checkRecordTypes [] [] [] = return ()
+    checkRecordTypes (n:names) (t:types) (v:vals) = do
+      vT <- getType v
+      if vT `T.canBeConvertedTo` t then checkRecordTypes names types vals
+      else do
+        logSemError ("Type mismatch on bezel assignment: property " ++ n ++ " required " ++ show t ++ ", received " ++ show vT) tk
+        -- Not stopping the propagation 'cause it's useful to know all the type mismatches
+        checkRecordTypes names types vals
+
+    logNonStructType :: String -> ST.ParserMonad ()
+    logNonStructType bT = logSemError ("Type mismatch on struct assignment (" ++ bT ++ " is not a struct type)") tk
+checkStructAssignment _ _ _ = error $ "checkStructAssignment function called with a non-struct literal or expression"
+
 checkTypeOfAssignment :: (TypeCheckable a, TypeCheckable b) => a -> b -> T.Token -> ST.ParserMonad ()
 checkTypeOfAssignment lval rval tk = do
   lvalType <- getType lval
@@ -1334,10 +1443,11 @@ buildType bExpr tk = case bExpr of
     then return (T.SmallIntT, bExpr)
     else if minBigInt <= n && n <= maxBigInt
     then return (T.BigIntT, bExpr)
-    else error "TODO: check for the int size, modify grammar to carry token position"
+    else logRTError "TODO: check for the int size, modify grammar to carry token position"
   G.FloatLit _ -> return (T.FloatT, bExpr)
   G.CharLit _ -> return (T.CharT, bExpr)
   G.StringLit _ -> return (T.StringT, bExpr)
+  G.StructLit props -> return (T.StructLitT, bExpr)
 
   G.ArrayLit exprs -> containerCheck exprs T.ArrayT G.ArrayLit tk
   G.SetLit exprs -> containerCheck exprs T.SetT G.SetLit tk
@@ -1401,7 +1511,7 @@ instance TypeCheckable ST.DictionaryEntry where
         ST.RecordItem, ST.UnionItem,
         ST.RefParam, ST.ValueParam] = getType $ ST.extractTypeFromExtra extras
 
-    | otherwise = error "error on getType for expected dict entries"
+    | otherwise = logRTError "error on getType for expected dict entries"
 
   getType entry@ST.DictionaryEntry{ST.entryType=Nothing, ST.category=ST.Procedure, ST.extra=extras} = do
     let isEmptyProc = not . null $ filter ST.isEmptyFunction extras
@@ -1414,7 +1524,7 @@ instance TypeCheckable ST.DictionaryEntry where
         )
     return $ T.ProcedureT domain
 
-  getType _ = error "error on getType for unexpected dict entries"
+  getType _ = logRTError "error on getType for unexpected dict entries"
 
 instance TypeCheckable ST.Extra where
   getType (ST.Recursive s extra) = do
@@ -1434,15 +1544,7 @@ instance TypeCheckable ST.Extra where
     types <- mapM getType $ ST.sortByArgPosition $ ST.findAllInScope scope dict
     return $ T.TypeList types
 
-  getType (ST.Fields b scope) = do
-    ST.SymTable {ST.stDict=dict} <- RWS.get
-    let entries = ST.findAllInScope scope dict
-    let entryNames = map ST.name entries
-    types <- mapM getType entries
-    case b of
-      ST.Record -> return $ T.RecordT scope $ map T.PropType $ zip entryNames types
-      ST.Union -> return $ T.UnionT scope $ map T.PropType $ zip entryNames types
-      _ -> error "wrong data type for Fields extra"
+  getType (ST.Fields b scope) = buildStruct b scope
 
   getType ST.EmptyFunction = return $ T.TypeList []
 
@@ -1455,8 +1557,31 @@ instance TypeCheckable ST.Extra where
       | s == ST.void = return T.VoidT
       | otherwise = return $ T.AliasT s -- works because it always exists
                                         -- it shouldn't be added otherwise
-  getType _ = error "error on getType for SymTable extra"
+  getType _ = logRTError "error on getType for SymTable extra"
+
+buildStruct :: ST.TypeFields -> Int -> ST.ParserMonad (T.Type)
+buildStruct t scope = do
+  ST.SymTable {ST.stDict=dict} <- RWS.get
+  let entries = ST.findAllInScope scope dict
+  let entryNames = map ST.name entries
+  types <- mapM getType entries
+  case t of
+    ST.Record -> return $ T.RecordT scope $ map T.PropType $ zip entryNames types
+    ST.Union -> return $ T.UnionT scope $ map T.PropType $ zip entryNames types
+    _ -> logRTError "wrong data type for Fields extra"
 
 logSemError :: String -> T.Token -> ST.ParserMonad ()
 logSemError msg tk = RWS.tell [Error msg (T.position tk)]
+
+rtMessage :: String -> String
+rtMessage msg =
+  let header = "Firelink Internal Runtime Error:\t" ++ msg ++ "\n"
+      mid = "\tPlease, open a new issue on Github attaching the .souls file you just used\n"
+      end = "\tGithub Issue Tracker: https://github.com/aitorres/firelink/issues"
+      fullMsg = header ++ mid ++ end
+  in fullMsg
+
+logRTError :: String -> ST.ParserMonad (a)
+logRTError msg = error $ rtMessage msg
+
 }

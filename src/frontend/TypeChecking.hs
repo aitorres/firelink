@@ -14,6 +14,7 @@ data Type
   | CharT
   | StringT
   | VoidT
+  | StructLitT
   | ArrayT Type
   | SetT Type
   | RecordT Int [PropType]
@@ -34,6 +35,7 @@ instance Show Type where
   show CharT = "sign"
   show StringT = "miracle"
   show VoidT = "abyss"
+  show StructLitT = "struct literal"
   show (ArrayT t) = "chest of type " ++ show t
   show (SetT t) = "armor of type " ++ show t
   show (RecordT _ ps) = "link with elements " ++ formattedElements
@@ -59,6 +61,7 @@ instance Eq Type where
   FloatT == FloatT = True
   CharT == CharT = True
   StringT == StringT = True
+  StructLitT == StructLitT = True
   ArrayT t == ArrayT t' = t == t'
   SetT t == SetT t' = t == t'
   UnionT s pt == UnionT s' pt' = sort pt == sort pt' && s == s'

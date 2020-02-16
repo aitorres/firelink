@@ -1,0 +1,23 @@
+hello ashen one
+
+requiring help of
+    knight bez bezel { a of type humanity, b of type hollow },
+    knight lez link { i of type humanity, j of type hollow },
+    knight yez bez,
+    knight nay humanity
+help received
+
+traveling somewhere
+with
+    var x of type bez,
+    var z of type yez,
+    var p of type nay,
+    var y of type bezel { a of type humanity, b of type hollow }
+in your inventory
+    x~>a <<= 1 \
+    y~>a <<= 2 \
+    z~>a <<= 3 \
+    p~>a <<= 3
+you died
+
+farewell ashen one
