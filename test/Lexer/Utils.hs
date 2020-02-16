@@ -1,5 +1,5 @@
 module Utils where
-import           Tokens (AbstractToken (..), Token (..))
+import           FireLink.FrontEnd.Tokens (AbstractToken (..), Token (..))
 
 getAbstractToken :: Token -> AbstractToken
 getAbstractToken = aToken

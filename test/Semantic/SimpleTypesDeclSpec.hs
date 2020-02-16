@@ -1,12 +1,12 @@
 module SimpleTypesDeclSpec where
 
-import           Errors
-import qualified Grammar    as G
-import qualified SymTable   as ST
+import           FireLink.FrontEnd.Errors
+import qualified FireLink.FrontEnd.Grammar  as G
+import qualified FireLink.FrontEnd.SymTable as ST
+import qualified FireLink.FrontEnd.Tokens   as T
+import qualified FireLink.FrontEnd.Utils    as UU
 import           Test.Hspec
-import qualified TestUtils  as U
-import qualified Tokens     as T
-import qualified Utils      as UU
+import qualified TestUtils                  as U
 
 program :: String -> String
 program e = "hello ashen one\

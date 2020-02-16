@@ -1,9 +1,9 @@
 module ScalarTypesSpec where
 
-import           Lexer
+import           FireLink.FrontEnd.Lexer
+import           FireLink.FrontEnd.Tokens
 import           Test.Hspec
-import           Tokens
-import           Utils      (getAbstractToken)
+import           Utils                    (getAbstractToken)
 
 spec :: Spec
 spec = describe "Lexer" $ do

@@ -1,6 +1,6 @@
 module UnboundedLoopStructuresSpec where
 
-import           Grammar
+import           FireLink.FrontEnd.Grammar
 import           Test.Hspec
 import           Utils
 
