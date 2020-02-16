@@ -32,6 +32,7 @@ data BaseExpr
   | StringLit String
   | ArrayLit [Expr]
   | SetLit [Expr]
+  | StructLit [(Id, Expr)]
 
   | Op1 Op1 Expr
   | Op2 Op2 Expr Expr
@@ -101,6 +102,9 @@ instance Show Op2 where
 joinExprList :: [Expr] -> String
 joinExprList = intercalate ", " . map show
 
+joinProps :: [(Id, Expr)] -> String
+joinProps = intercalate ", " . map (\(i, e) -> show i ++ " <<= " ++ show e)
+
 instance Show BaseExpr where
   show TrueLit = "lit"
   show FalseLit = "unlit"
@@ -111,6 +115,7 @@ instance Show BaseExpr where
   show (CharLit a) = [a]
   show (StringLit s) = s
   show (ArrayLit exprs) = "<$" ++ joinExprList exprs ++ "$>"
+  show (StructLit props) = "{ ++ " ++ joinProps props ++ " }"
   show (SetLit exprs) = "{$" ++ joinExprList exprs ++ "$}"
   show (Op1 o e) = show o ++ " " ++ show e
   show (Op2 o e e') = show e ++ " " ++ show o ++ " " ++ show e'
