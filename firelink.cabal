@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 58deab76635e0c4e50402c0260001fa2944aadb2bc97fba361a3567c7bf95bb1
+-- hash: 4de26675e66388ca51cc558fa19763807fbe25ac85c9c77a1564d29ac4af0796
 
 name:           firelink
 version:        0.1.0.0
@@ -71,7 +71,7 @@ executable firelink-exe
       Paths_firelink
   hs-source-dirs:
       app
-  ghc-options: -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -Wmissing-export-lists -Wpartial-fields -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -Wmissing-export-lists -Wpartial-fields -fwarn-unused-imports -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
     , base >=4.7 && <5
@@ -108,7 +108,7 @@ test-suite lexer-tests
       Paths_firelink
   hs-source-dirs:
       test/Lexer
-  ghc-options: -Wall -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -Wpartial-fields -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -Wpartial-fields -fwarn-unused-imports -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
     , base >=4.7 && <5
