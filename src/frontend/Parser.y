@@ -916,7 +916,7 @@ checkRecoverableError openTk maybeErr = do
       logSemError (errorName ++ " (recovered from to continue parsing)") openTk
 
 extractFieldsFromExtra :: [ST.Extra] -> ST.Extra
-extractFieldsFromExtra [] = error "The `extra` array doesn't have any `Fields` item"
+extractFieldsFromExtra [] = logRTErrorF "The `extra` array doesn't have any `Fields` item"
 extractFieldsFromExtra (s@ST.Fields{} : _) = s
 extractFieldsFromExtra (_:ss) = extractFieldsFromExtra ss
 
@@ -1225,7 +1225,7 @@ makeStructFromAlias (T.AliasT n) = do
     Just ST.DictionaryEntry {ST.extra=[ST.Simple al]} -> makeStructFromAlias (T.AliasT al)
     -- Case: direct alias for a non-struct
     _ -> return T.TypeError
-makeStructFromAlias _ = error "makeStructFromAlias function wrongfully received a type different from T.AliasT"
+makeStructFromAlias _ = logRTError "makeStructFromAlias function wrongfully received a type different from T.AliasT"
 
 checkAccess :: G.Expr -> G.Id -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
 checkAccess e (G.Id tk'@T.Token{T.cleanedString=i} _) tk = do
@@ -1443,7 +1443,7 @@ buildType bExpr tk = case bExpr of
     then return (T.SmallIntT, bExpr)
     else if minBigInt <= n && n <= maxBigInt
     then return (T.BigIntT, bExpr)
-    else error "TODO: check for the int size, modify grammar to carry token position"
+    else logRTError "TODO: check for the int size, modify grammar to carry token position"
   G.FloatLit _ -> return (T.FloatT, bExpr)
   G.CharLit _ -> return (T.CharT, bExpr)
   G.StringLit _ -> return (T.StringT, bExpr)
@@ -1511,7 +1511,7 @@ instance TypeCheckable ST.DictionaryEntry where
         ST.RecordItem, ST.UnionItem,
         ST.RefParam, ST.ValueParam] = getType $ ST.extractTypeFromExtra extras
 
-    | otherwise = error "error on getType for expected dict entries"
+    | otherwise = logRTError "error on getType for expected dict entries"
 
   getType entry@ST.DictionaryEntry{ST.entryType=Nothing, ST.category=ST.Procedure, ST.extra=extras} = do
     let isEmptyProc = not . null $ filter ST.isEmptyFunction extras
@@ -1524,7 +1524,7 @@ instance TypeCheckable ST.DictionaryEntry where
         )
     return $ T.ProcedureT domain
 
-  getType _ = error "error on getType for unexpected dict entries"
+  getType _ = logRTError "error on getType for unexpected dict entries"
 
 instance TypeCheckable ST.Extra where
   getType (ST.Recursive s extra) = do
@@ -1557,7 +1557,7 @@ instance TypeCheckable ST.Extra where
       | s == ST.void = return T.VoidT
       | otherwise = return $ T.AliasT s -- works because it always exists
                                         -- it shouldn't be added otherwise
-  getType _ = error "error on getType for SymTable extra"
+  getType _ = logRTError "error on getType for SymTable extra"
 
 buildStruct :: ST.TypeFields -> Int -> ST.ParserMonad (T.Type)
 buildStruct t scope = do
@@ -1568,8 +1568,20 @@ buildStruct t scope = do
   case t of
     ST.Record -> return $ T.RecordT scope $ map T.PropType $ zip entryNames types
     ST.Union -> return $ T.UnionT scope $ map T.PropType $ zip entryNames types
-    _ -> error "wrong data type for Fields extra"
+    _ -> logRTError "wrong data type for Fields extra"
 
 logSemError :: String -> T.Token -> ST.ParserMonad ()
 logSemError msg tk = RWS.tell [Error msg (T.position tk)]
+
+logRTError :: String -> ST.ParserMonad (a)
+logRTError msg = return $ logRTErrorF msg
+
+logRTErrorF :: String -> a
+logRTErrorF msg =
+  let header = "Firelink Internal Runtime Error:\t" ++ msg ++ "\n"
+      mid = "\tPlease, open a new issue on Github attaching the .souls file you just used\n"
+      end = "\tGithub Issue Tracker: https://github.com/aitorres/firelink/issues"
+      fullMsg = header ++ mid ++ end
+  in error fullMsg
+
 }
