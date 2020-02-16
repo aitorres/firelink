@@ -1,11 +1,13 @@
-module BackEndCompiler where
+module BackEndCompiler (
+    backend
+) where
 
-import Grammar (Program(..))
-import SymTable (Dictionary(..))
-import CodeGenerator (initialState, TAC(..), genCode)
-import InstructionCodeGenerator ()
-import Control.Monad.RWS (runRWST)
-import TACType
+import           CodeGenerator            (TAC (..), genCode, initialState)
+import           Control.Monad.RWS        (runRWST)
+import           Grammar                  (Program (..))
+import           InstructionCodeGenerator ()
+import           SymTable                 (Dictionary (..))
+import           TACType
 
 backend :: Program -> Dictionary -> IO [TAC]
 backend program dictionary = do
@@ -13,7 +15,6 @@ backend program dictionary = do
     return code
 
 removeUnusedLabels :: [TAC] -> [TAC]
--- removeUnusedLabels t = t
 removeUnusedLabels tacs = filter removeLabel tacs
     where
         usedLabels :: [Int]
