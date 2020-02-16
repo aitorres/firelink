@@ -1192,20 +1192,43 @@ checkIsActive e tk = do
     isUnion (G.Expr {G.expType=(T.UnionT _ _)}) = True
     isUnion _ = False
 
+makeStructFromAlias :: T.Type -> ST.ParserMonad (T.Type)
+makeStructFromAlias (T.AliasT n) = do
+  mEntry <- ST.dictLookup n
+  case mEntry of
+    -- Case: direct alias for a struct
+    Just ST.DictionaryEntry {ST.extra=[ST.Fields t scope]} -> buildStruct t scope
+    -- Case: indirect alias
+    Just ST.DictionaryEntry {ST.extra=[ST.Simple al]} -> makeStructFromAlias (T.AliasT al)
+    -- Case: direct alias for a non-struct
+    _ -> return T.TypeError
+makeStructFromAlias _ = error "makeStructFromAlias function wrongfully received a type different from T.AliasT"
+
 checkAccess :: G.Expr -> G.Id -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
 checkAccess e (G.Id tk'@T.Token{T.cleanedString=i} _) tk = do
   t <- getType e
   case t of
-    T.RecordT scope properties -> checkProperty properties scope
-    T.UnionT scope properties -> checkProperty properties scope
-    T.TypeError -> return defaultReturn
-    _ -> do
-      RWS.liftIO $ print $ show t
-      logSemError "Left side of access is not a record nor union" tk
-      return defaultReturn
+    tp@(T.AliasT _) -> do
+      struct <- makeStructFromAlias tp
+      case struct of
+        -- If makeStructFromAlias returns typeError, then we NEED to report the message
+        T.TypeError -> returnWithError
+        t -> checkAccessFromType t
+    t -> checkAccessFromType t
   where
+    -- This function NEVER receives an alias, always a "definite" type
+    checkAccessFromType :: T.Type -> ST.ParserMonad (T.Type, G.BaseExpr)
+    checkAccessFromType t = case t of
+      T.RecordT scope properties -> checkProperty properties scope
+      T.UnionT scope properties -> checkProperty properties scope
+      T.TypeError -> return defaultReturn
+      _ -> returnWithError
     baseExpr :: G.Id -> G.BaseExpr
     baseExpr = G.Access e
+    returnWithError :: ST.ParserMonad (T.Type, G.BaseExpr)
+    returnWithError = do
+      logSemError "Left side of access is not a record nor union" tk
+      return defaultReturn
     defaultReturn :: (T.Type, G.BaseExpr)
     defaultReturn = (T.TypeError, baseExpr $ G.Id tk' (-1))
     checkProperty :: [T.PropType] -> Int -> ST.ParserMonad (T.Type, G.BaseExpr)
