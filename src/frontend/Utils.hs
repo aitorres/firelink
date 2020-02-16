@@ -1,5 +1,10 @@
 module Utils where
 
+import           Data.List (intercalate)
+
+joinWithCommas :: (Show a) => [a] -> String
+joinWithCommas = intercalate ", " . map show
+
 red :: String
 red = "\x1b[31m"
 
