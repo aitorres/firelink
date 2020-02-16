@@ -277,6 +277,23 @@ El acceso a una propiedad de nombre `prop` de un registro `a` se realiza mediant
 
 Por defecto, todas las _propiedades_ de un registro se inicializan al valor por defecto correspondiente según el tipo.
 
+Los literales de registros (`bezel literals`) son expresiones de la siguiente forma (con indentación agregada para mayor legibilidad):
+
+```firelink
+{
+  <nombre 1> <<= <valor 1>,
+  <nombre 2> <<= <valor 2>,
+  ...
+  <nombre n> <<= <valor n>
+}
+```
+
+Donde `n` es la cantidad de _propiedades_ del tipo registro al cuál pertenece, cada una con una expresión (valor) asignada. Estos literales, para considerarse válidos, deben cumplir que:
+
+- Tienen exactamente la misma cantidad de propiedades que el tipo registro al cual se están asignando
+- Todos los nombres del tipo registro determinado están presentes en el literal de registro (sin importar el orden)
+- Los tipos de las expresiones corresponden al tipo al cuál está asociado su nombre en el tipo registro determinado
+
 #### Unión
 
 Representa un valor que puede ser de algún tipo entre varios, bajo un mismo nombre en un mismo bloque de memoria. Su declarador de tipo es `link`.
@@ -294,6 +311,16 @@ link {
 ```
 
 Donde `n` es la cantidad de tipos de la unión, cada una con un nombre *único* para el mismo registro, independientemente de los tipos.
+
+Los literales de uniones (`link literals`) son expresiones de la siguiente forma (con indentación agregada para mayor legibilidad):
+
+```firelink
+{
+  <nombre> <<= <valor>
+}
+```
+
+Donde `nombre` corresponde a _alguno_ de los nombres válidos del tipo unión al cuál pertenece, y valor es una expresión cuyo tipo equivale al tipo asociado con el nombre en el tipo unión. No se considerarán válidos literales de uniones que tengan más de un par nombre/valor, que tengan un nombre que no exista en el tipo unión, o cuya expresión pertenezca a un tipo incompatible con el tipo asociado al nombre declarado.
 
 ##### Funciones de las uniones
 
