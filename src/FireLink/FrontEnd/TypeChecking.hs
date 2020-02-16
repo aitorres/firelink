@@ -1,8 +1,8 @@
-module TypeChecking where
+module FireLink.FrontEnd.TypeChecking where
 
-import           Data.List (sort)
-import qualified Tokens    as T
-import           Utils     (joinWithCommas)
+import           Data.List                (sort)
+import qualified FireLink.FrontEnd.Tokens as T
+import           FireLink.FrontEnd.Utils  (joinWithCommas)
 
 newtype PropType = PropType (String, Type)
 

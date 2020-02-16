@@ -1,13 +1,13 @@
-module SymTable where
+module FireLink.FrontEnd.SymTable where
 
-import qualified Control.Monad.RWS as RWS
-import qualified Data.Map.Strict   as Map
-import           Errors
-import qualified Grammar           as G
-import qualified Tokens            as T
-import qualified TypeChecking      as TC
+import qualified Control.Monad.RWS              as RWS
+import qualified Data.Map.Strict                as Map
+import           FireLink.FrontEnd.Errors
+import qualified FireLink.FrontEnd.Grammar      as G
+import qualified FireLink.FrontEnd.Tokens       as T
+import qualified FireLink.FrontEnd.TypeChecking as TC
 
-import           Data.Sort         (sortBy)
+import           Data.Sort                      (sortBy)
 
 type Scope = Int
 type ScopeStack = [Scope]

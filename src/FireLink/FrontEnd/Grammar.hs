@@ -1,9 +1,9 @@
-module Grammar where
+module FireLink.FrontEnd.Grammar where
 
-import           Data.List    (intercalate)
-import           Tokens       (Token (..))
-import           TypeChecking (Type (..))
-import qualified Utils        as U
+import           Data.List                      (intercalate)
+import           FireLink.FrontEnd.Tokens       (Token (..))
+import           FireLink.FrontEnd.TypeChecking (Type (..))
+import qualified FireLink.FrontEnd.Utils        as U
 
 type Instructions = [Instruction]
 type Params = [Expr]

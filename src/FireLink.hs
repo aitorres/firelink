@@ -1,24 +1,25 @@
-module Lib (
+module FireLink (
     firelink
 ) where
 
-import           BackEndCompiler    (backend)
-import           CodeGenerator      (TAC (..))
-import qualified Control.Monad.RWS  as RWS
-import           Data.List          (groupBy, intercalate)
-import qualified Data.Map           as Map
-import           Errors
-import           FrontEndCompiler
-import qualified SymTable           as ST
-import           System.Directory   (doesFileExist)
-import           System.Environment (getArgs)
-import           System.Exit        (exitFailure, exitSuccess)
-import           System.FilePath    (takeExtension)
-import           System.IO          (IOMode (..), hGetContents, openFile)
-import qualified TACType            as TAC
-import           Text.Printf        (printf)
-import           Tokens
-import           Utils
+import qualified Control.Monad.RWS                  as RWS
+import           Data.List                          (groupBy, intercalate)
+import qualified Data.Map                           as Map
+import           FireLink.BackEnd.BackEndCompiler   (backend)
+import           FireLink.BackEnd.CodeGenerator     (TAC (..))
+import           FireLink.FrontEnd.Errors
+import           FireLink.FrontEnd.FrontEndCompiler
+import qualified FireLink.FrontEnd.SymTable         as ST
+import           FireLink.FrontEnd.Tokens
+import           FireLink.FrontEnd.Utils
+import           System.Directory                   (doesFileExist)
+import           System.Environment                 (getArgs)
+import           System.Exit                        (exitFailure, exitSuccess)
+import           System.FilePath                    (takeExtension)
+import           System.IO                          (IOMode (..), hGetContents,
+                                                     openFile)
+import qualified TACType                            as TAC
+import           Text.Printf                        (printf)
 
 prettyPrintSymTable :: ST.SymTable -> IO ()
 prettyPrintSymTable ST.SymTable{ST.stDict=dict} = do

@@ -5,9 +5,9 @@ Description : Collection of data types and functions that let us represent
 Maintainer  : 14-10924@usb.ve, 14-11082@usb.ve
 Stability   : experimental
 -}
-module Tokens (
+module FireLink.FrontEnd.Tokens (
     Token(..), AbstractToken(..)) where
-import qualified Utils as U
+import qualified FireLink.FrontEnd.Utils as U
 
 -- |All the posible tokens of the language
 data AbstractToken = TkId | TkConst | TkVar | TkOfType | TkAsig

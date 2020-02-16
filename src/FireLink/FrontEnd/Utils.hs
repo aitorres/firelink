@@ -1,4 +1,4 @@
-module Utils where
+module FireLink.FrontEnd.Utils where
 
 import           Data.List (intercalate)
 

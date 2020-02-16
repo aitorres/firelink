@@ -1,14 +1,17 @@
-module ExprCodeGenerator where
+module FireLink.BackEnd.ExprCodeGenerator where
 
-import           CodeGenerator
-import           Control.Monad     (void)
+import           Control.Monad                  (void)
 import           Control.Monad.RWS
-import           Grammar           (BaseExpr (..), Expr (..), Id (..), Op1 (..),
-                                    Op2 (..), booleanOp2, comparableOp2)
-import           SymTable          (Dictionary, DictionaryEntry (..), findChain)
-import qualified TACType           as TAC
-import           Tokens            (Token (..))
-import           TypeChecking      (Type (..))
+import           FireLink.BackEnd.CodeGenerator
+import           FireLink.FrontEnd.Grammar      (BaseExpr (..), Expr (..),
+                                                 Id (..), Op1 (..), Op2 (..),
+                                                 booleanOp2, comparableOp2)
+import           FireLink.FrontEnd.SymTable     (Dictionary,
+                                                 DictionaryEntry (..),
+                                                 findChain)
+import           FireLink.FrontEnd.Tokens       (Token (..))
+import           FireLink.FrontEnd.TypeChecking (Type (..))
+import qualified TACType                        as TAC
 
 instance GenerateCode Expr where
     genCode = void . genCode'
