@@ -5,6 +5,7 @@ module Parser (
 import qualified Tokens as T
 import qualified SymTable as ST
 import Data.Maybe
+import Data.List (sort)
 import qualified Grammar as G
 import qualified Control.Monad.RWS as RWS
 import qualified TypeChecking as T
@@ -229,6 +230,9 @@ EXPR :: { G.Expr }
   | floatLit                                                            {% buildAndCheckExpr $1 $ G.FloatLit (read (T.cleanedString $1) :: Float) }
   | charLit                                                             {% buildAndCheckExpr $1 $ G.CharLit $ head (T.cleanedString $1) }
   | stringLit                                                           {% buildAndCheckExpr $1 $ G.StringLit (T.cleanedString $1) }
+  | STRUCTLIT                                                           {% do
+                                                                            let (tk, stlit) = $1
+                                                                            buildAndCheckExpr tk $ G.StructLit $ reverse stlit }
   | trueLit                                                             {% buildAndCheckExpr $1 G.TrueLit }
   | falseLit                                                            {% buildAndCheckExpr $1 G.FalseLit }
   | unknownLit                                                          {% buildAndCheckExpr $1 G.UndiscoveredLit }
@@ -262,6 +266,18 @@ EXPR :: { G.Expr }
   | EXPR diff EXPR                                                      {% buildAndCheckExpr $2 $ G.Op2 G.SetDifference $1 $3 }
   | FUNCALL                                                             {% let (tk, i, params) = $1 in buildAndCheckExpr tk $ G.EvalFunc i params }
   | LVALUE                                                              { $1 }
+
+STRUCTLIT :: { (T.Token, [(G.Id, G.Expr)]) }
+  : brOpen PROPLIST BRCLOSE                                             {% do
+                                                                            checkRecoverableError $1 $3
+                                                                            return ($1, $2) }
+
+PROPLIST :: { [(G.Id, G.Expr)]}
+  : PROP                                                                { [$1] }
+  | PROPLIST comma PROP                                                  { $3:$1 }
+
+PROP :: { (G.Id, G.Expr) }
+  : ID asig EXPR                                                        { ($1, $3) }
 
 EXPRL :: { [G.Expr] }
   : {- empty -}                                                         { [] }
@@ -417,7 +433,10 @@ INSTR :: { G.Instruction }
                                                                           checkConstantReassignment $1
                                                                           checkIterVariables $1
                                                                           checkIterableVariables $1
-                                                                          checkTypeOfAssignment $1 $3 $2
+                                                                          t <- getType $3
+                                                                          if t == T.StructLitT
+                                                                          then checkStructAssignment $1 $3 $2
+                                                                          else checkTypeOfAssignment $1 $3 $2
                                                                           return $ G.InstAsig $1 $3 }
   | malloc EXPR                                                         {% do
                                                                           checkPointerVariable $2
@@ -694,7 +713,11 @@ addIdToSymTable mi d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idN
       entry <- checkIdAvailability gId
       case (entry, maybeExp) of
         (Just en, Just exp) -> do
-          checkTypeOfAssignment en exp (G.expTok exp)
+          t <- getType exp
+          if t == T.StructLitT
+          then do
+            checkStructAssignment en exp (G.expTok exp)
+          else checkTypeOfAssignment en exp (G.expTok exp)
         _ -> return ()
 
     -- The name does exists on the table, we just add it depending on the scope
@@ -1306,6 +1329,69 @@ checkSetSize expr tk = do
       logSemError "`size` expects a set" tk
       return T.TypeError
 
+checkStructAssignment :: (TypeCheckable a) => a -> G.Expr -> T.Token -> ST.ParserMonad ()
+checkStructAssignment lval (G.Expr {G.expAst = (G.StructLit structProps)}) tk = do
+  lvalType <- getType lval
+  checkStructAssignment' lvalType
+  where
+    checkStructAssignment' :: T.Type -> ST.ParserMonad ()
+    checkStructAssignment' lvalType = case lvalType of
+      T.RecordT scope properties -> do
+        let propL = length properties
+        let structPropsL = length structProps
+        if structPropsL /= propL then do
+          let mismatch = propL - structPropsL
+          let errDetails = if mismatch > 0 then "(missing " ++ show mismatch ++ " properties)" else "(assigning " ++ show (-mismatch) ++ " additional properties)"
+          logSemError ("Bezel literal must assign exactly one value to each valid property " ++ errDetails) tk
+        else do
+          let propNames = map (\(T.PropType (s, _)) -> s) properties
+          let structPropNames = map (\( (G.Id (T.Token {T.cleanedString=spName}) _) , _) -> spName) structProps
+          if propNames /= structPropNames then do
+            let invalidNames = filter (\x -> not $ x `elem` propNames) structPropNames
+            let firstInvalidName = head invalidNames
+            logSemError ("Invalid property name " ++ firstInvalidName ++ " for bezel literal assignment") tk
+          else do
+            let propTypes = map (\(T.PropType (s, t)) -> t) properties
+            let structPropVals = map snd structProps
+            checkRecordTypes propNames propTypes structPropVals
+
+      T.UnionT scope properties -> do
+        let structPropsL = length structProps
+        if structPropsL /= 1 then logSemError ("Link literal must assign exactly one valid property") tk
+        else do
+          let propNames = map (\(T.PropType (s, _)) -> s) properties
+          let (G.Id (T.Token {T.cleanedString = structPropName}) _, structPropVal) = head structProps
+          if not (structPropName `elem` propNames) then logSemError ("Invalid property name " ++ structPropName ++ " for link literal assignment") tk
+          else do
+            let T.PropType (_, propType) = head $ filter (\(T.PropType (n, _)) -> n == structPropName) properties
+            structPropValT <- getType structPropVal
+            if structPropValT `T.canBeConvertedTo` propType then return ()
+            else do
+              let errDetails = "(expected " ++ show propType ++ ", received " ++ show structPropValT ++ ")"
+              logSemError ("Type mismach on link literal assignment " ++ errDetails) tk
+
+      tA@(T.AliasT _) -> do
+        newT <- makeStructFromAlias tA
+        if newT == T.TypeError then logNonStructType (show tA)
+        else checkStructAssignment' newT
+
+      T.TypeError -> return ()
+
+      _ -> logNonStructType (show lvalType)
+    checkRecordTypes :: [String] -> [T.Type] -> [G.Expr] -> ST.ParserMonad ()
+    checkRecordTypes [] [] [] = return ()
+    checkRecordTypes (n:names) (t:types) (v:vals) = do
+      vT <- getType v
+      if vT `T.canBeConvertedTo` t then checkRecordTypes names types vals
+      else do
+        logSemError ("Type mismatch on bezel assignment: property " ++ n ++ " required " ++ show t ++ ", received " ++ show vT) tk
+        -- Not stopping the propagation 'cause it's useful to know all the type mismatches
+        checkRecordTypes names types vals
+
+    logNonStructType :: String -> ST.ParserMonad ()
+    logNonStructType bT = logSemError ("Type mismatch on struct assignment (" ++ bT ++ " is not a struct type)") tk
+checkStructAssignment _ _ _ = error $ "checkStructAssignment function called with a non-struct literal or expression"
+
 checkTypeOfAssignment :: (TypeCheckable a, TypeCheckable b) => a -> b -> T.Token -> ST.ParserMonad ()
 checkTypeOfAssignment lval rval tk = do
   lvalType <- getType lval
@@ -1361,6 +1447,7 @@ buildType bExpr tk = case bExpr of
   G.FloatLit _ -> return (T.FloatT, bExpr)
   G.CharLit _ -> return (T.CharT, bExpr)
   G.StringLit _ -> return (T.StringT, bExpr)
+  G.StructLit props -> return (T.StructLitT, bExpr)
 
   G.ArrayLit exprs -> containerCheck exprs T.ArrayT G.ArrayLit tk
   G.SetLit exprs -> containerCheck exprs T.SetT G.SetLit tk
