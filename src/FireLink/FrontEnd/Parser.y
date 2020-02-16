@@ -2,15 +2,15 @@
 module FireLink.FrontEnd.Parser (
   parse) where
 
-import qualified FireLink.FrontEnd.Tokens as T
-import qualified FireLink.FrontEnd.SymTable as ST
-import Data.Maybe
-import Data.List (sort)
-import qualified FireLink.FrontEnd.Grammar as G
-import qualified Control.Monad.RWS as RWS
+import qualified Control.Monad.RWS              as RWS
+import           Data.List                      (sort)
+import           Data.Maybe
+import           FireLink.FrontEnd.Errors
+import qualified FireLink.FrontEnd.Grammar      as G
+import qualified FireLink.FrontEnd.SymTable     as ST
+import qualified FireLink.FrontEnd.Tokens       as T
 import qualified FireLink.FrontEnd.TypeChecking as T
-import FireLink.Utils
-import FireLink.FrontEnd.Errors
+import           FireLink.Utils
 }
 
 %name                                                                     parse

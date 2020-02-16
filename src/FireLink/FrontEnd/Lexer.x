@@ -2,9 +2,10 @@
 module FireLink.FrontEnd.Lexer (
     scanTokens,
     ) where
-import Data.List.Extra (replace)
-import FireLink.FrontEnd.Tokens
+
+import Data.List.Extra          (replace)
 import FireLink.FrontEnd.Errors
+import FireLink.FrontEnd.Tokens
 import FireLink.Utils
 }
 %wrapper "monadUserState"
