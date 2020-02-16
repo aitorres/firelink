@@ -916,7 +916,7 @@ checkRecoverableError openTk maybeErr = do
       logSemError (errorName ++ " (recovered from to continue parsing)") openTk
 
 extractFieldsFromExtra :: [ST.Extra] -> ST.Extra
-extractFieldsFromExtra [] = logRTErrorF "The `extra` array doesn't have any `Fields` item"
+extractFieldsFromExtra [] = error $ "The `extra` array doesn't have any `Fields` item"
 extractFieldsFromExtra (s@ST.Fields{} : _) = s
 extractFieldsFromExtra (_:ss) = extractFieldsFromExtra ss
 
@@ -1573,15 +1573,15 @@ buildStruct t scope = do
 logSemError :: String -> T.Token -> ST.ParserMonad ()
 logSemError msg tk = RWS.tell [Error msg (T.position tk)]
 
-logRTError :: String -> ST.ParserMonad (a)
-logRTError msg = return $ logRTErrorF msg
-
-logRTErrorF :: String -> a
-logRTErrorF msg =
+rtMessage :: String -> String
+rtMessage msg =
   let header = "Firelink Internal Runtime Error:\t" ++ msg ++ "\n"
       mid = "\tPlease, open a new issue on Github attaching the .souls file you just used\n"
       end = "\tGithub Issue Tracker: https://github.com/aitorres/firelink/issues"
       fullMsg = header ++ mid ++ end
-  in error fullMsg
+  in fullMsg
+
+logRTError :: String -> ST.ParserMonad (a)
+logRTError msg = error $ rtMessage msg
 
 }
