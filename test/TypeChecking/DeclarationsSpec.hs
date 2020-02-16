@@ -1,7 +1,7 @@
 module DeclarationsSpec where
 
-import Test.Hspec
-import qualified TestUtils as U
+import           Test.Hspec
+import qualified TestUtils  as U
 
 baseProgram :: String -> String
 baseProgram d = "hello ashen one\n\

@@ -1,5 +1,5 @@
 module Utils where
-import Tokens (Token(..), AbstractToken(..))
+import           Tokens (AbstractToken (..), Token (..))
 
 getAbstractToken :: Token -> AbstractToken
 getAbstractToken = aToken

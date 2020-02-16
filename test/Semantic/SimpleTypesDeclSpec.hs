@@ -1,12 +1,12 @@
 module SimpleTypesDeclSpec where
 
-import Test.Hspec
-import Errors
-import qualified TestUtils as U
-import qualified Utils as UU
-import qualified SymTable as ST
-import qualified Grammar as G
-import qualified Tokens as T
+import           Errors
+import qualified Grammar    as G
+import qualified SymTable   as ST
+import           Test.Hspec
+import qualified TestUtils  as U
+import qualified Tokens     as T
+import qualified Utils      as UU
 
 program :: String -> String
 program e = "hello ashen one\

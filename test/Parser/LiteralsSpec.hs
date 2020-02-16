@@ -1,8 +1,8 @@
 module LiteralsSpec where
 
-import Test.Hspec
-import Utils
-import Grammar
+import           Grammar
+import           Test.Hspec
+import           Utils
 
 buildProgramWithLiteral :: String -> String
 buildProgramWithLiteral l = "\

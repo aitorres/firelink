@@ -1,12 +1,12 @@
 module TypeAliasesSpec where
 
-import Test.Hspec
-import Errors
-import qualified Utils as UU
-import qualified TestUtils as U
-import qualified SymTable as ST
-import qualified Grammar as G
-import qualified Data.Map as Map
+import qualified Data.Map   as Map
+import           Errors
+import qualified Grammar    as G
+import qualified SymTable   as ST
+import           Test.Hspec
+import qualified TestUtils  as U
+import qualified Utils      as UU
 
 program :: String -> String
 program e = "hello ashen one\

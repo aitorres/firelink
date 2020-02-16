@@ -1,7 +1,7 @@
 module ForEachInstructionSpec where
 
-import Test.Hspec
-import qualified TestUtils as U
+import           Test.Hspec
+import qualified TestUtils  as U
 
 baseProgram :: String -> String -> String
 baseProgram t1 t2 = "hello ashen one\n\

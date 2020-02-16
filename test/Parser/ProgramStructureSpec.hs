@@ -1,8 +1,8 @@
 module ProgramStructureSpec where
 
-import Test.Hspec
-import Utils
-import Grammar
+import           Grammar
+import           Test.Hspec
+import           Utils
 
 spec :: Spec
 spec = describe "ProgramStructure" $ do

@@ -1,9 +1,9 @@
 module InstructionsSpec where
 
-import Test.Hspec
-import Grammar
-import Utils
-import Tokens
+import           Grammar
+import           Test.Hspec
+import           Tokens
+import           Utils
 
 buildProgram :: String -> String
 buildProgram s = "\

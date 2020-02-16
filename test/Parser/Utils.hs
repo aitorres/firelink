@@ -1,11 +1,11 @@
 module Utils where
 
-import qualified SymTable as ST
-import Lexer (scanTokens)
-import qualified Test.Hspec as TH
-import Parser
-import Grammar
 import qualified Control.Monad.RWS as RWS
+import           Grammar
+import           Lexer             (scanTokens)
+import           Parser
+import qualified SymTable          as ST
+import qualified Test.Hspec        as TH
 
 runTestForValidProgram :: String -> (Program -> Bool) -> IO ()
 runTestForValidProgram program predicate = do

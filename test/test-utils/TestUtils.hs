@@ -1,13 +1,13 @@
 module TestUtils where
 
-import qualified SymTable as ST
-import qualified Lexer as L
-import Utils
-import Test.Hspec
-import Parser
-import Errors
-import qualified Grammar as G
 import qualified Control.Monad.RWS as RWS
+import           Errors
+import qualified Grammar           as G
+import qualified Lexer             as L
+import           Parser
+import qualified SymTable          as ST
+import           Test.Hspec
+import           Utils
 
 extractSymTable
     :: String

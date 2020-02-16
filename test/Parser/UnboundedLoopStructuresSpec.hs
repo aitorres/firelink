@@ -1,8 +1,8 @@
 module UnboundedLoopStructuresSpec where
 
-import Test.Hspec
-import Utils
-import Grammar
+import           Grammar
+import           Test.Hspec
+import           Utils
 
 buildProgram :: String -> String
 buildProgram c = "\

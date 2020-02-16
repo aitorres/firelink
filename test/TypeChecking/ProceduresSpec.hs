@@ -1,7 +1,7 @@
 module ProceduresSpec where
 
-import Test.Hspec
-import qualified TestUtils as U
+import           Test.Hspec
+import qualified TestUtils  as U
 
 spec :: Spec
 spec =
@@ -9,7 +9,7 @@ spec =
         it "should accept a program with a return instruction on a procedure" $
             U.shouldNotError "\
                 \hello ashen one\n\
-                
+
                 \spell f\n\
                 \traveling somewhere\n\
                 \    go back\n\
@@ -25,7 +25,7 @@ spec =
         it "should reject a program with a typed return expression on a procedure" $
             "\
             \hello ashen one\n\
-            
+
             \spell f\n\
             \traveling somewhere\n\
             \    go back with 4\n\

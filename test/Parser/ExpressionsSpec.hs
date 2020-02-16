@@ -1,9 +1,9 @@
 module ExpressionsSpec where
 
-import Test.Hspec
-import Utils
-import Grammar
-import Tokens
+import           Grammar
+import           Test.Hspec
+import           Tokens
+import           Utils
 
 buildProgramWithExpr :: String -> String
 buildProgramWithExpr e = "\

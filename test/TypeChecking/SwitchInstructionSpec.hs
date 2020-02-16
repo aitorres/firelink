@@ -1,7 +1,7 @@
 module SwitchInstructionSpec where
 
-import Test.Hspec
-import qualified TestUtils as U
+import           Test.Hspec
+import qualified TestUtils  as U
 
 spec :: Spec
 spec =

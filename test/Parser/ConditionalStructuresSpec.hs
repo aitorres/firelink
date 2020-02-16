@@ -1,9 +1,9 @@
 module ConditionalStructuresSpec where
 
-import Test.Hspec
-import Utils
-import Grammar
-import Tokens
+import           Grammar
+import           Test.Hspec
+import           Tokens
+import           Utils
 
 
 spec :: Spec

@@ -1,7 +1,7 @@
 module FunctionsSpec where
 
-import Test.Hspec
-import qualified TestUtils as U
+import           Test.Hspec
+import qualified TestUtils  as U
 
 spec :: Spec
 spec =
@@ -9,7 +9,7 @@ spec =
         it "should accept a program with a properly typed return expression on a function" $
             U.shouldNotError "\
                 \hello ashen one\n\
-                
+
                 \invocation f\n\
                 \with skill of type humanity\n\
                 \traveling somewhere\n\
@@ -26,7 +26,7 @@ spec =
         it "should accept a program with a compatible return expression on a function" $
             U.shouldNotError "\
                 \hello ashen one\n\
-                
+
                 \invocation f\n\
                 \with skill of type hollow\n\
                 \traveling somewhere\n\
@@ -43,7 +43,7 @@ spec =
         it "should reject a program with an improperly typed return expression on a function" $
             "\
             \hello ashen one\n\
-            
+
             \invocation f\n\
             \with skill of type humanity\n\
             \traveling somewhere\n\
@@ -60,7 +60,7 @@ spec =
         it "should reject a program with a go-back return without an expression on a function" $
             "\
             \hello ashen one\n\
-            
+
             \invocation f\n\
             \with skill of type humanity\n\
             \traveling somewhere\n\
