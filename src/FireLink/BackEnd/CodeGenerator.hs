@@ -1,9 +1,10 @@
-module CodeGenerator where
+module FireLink.BackEnd.CodeGenerator where
 
-import           Control.Monad.RWS (RWST (..), get, put, tell)
-import           SymTable          (Dictionary (..), DictionaryEntry (..))
+import           Control.Monad.RWS              (RWST (..), get, put, tell)
+import           FireLink.FrontEnd.SymTable     (Dictionary (..),
+                                                 DictionaryEntry (..))
+import           FireLink.FrontEnd.TypeChecking
 import           TACType
-import           TypeChecking
 
 data CodeGenState = CodeGenState
     { cgsNextLabel :: !Int

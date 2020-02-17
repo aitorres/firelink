@@ -1,11 +1,11 @@
 module Utils where
 
-import qualified Control.Monad.RWS as RWS
-import           Grammar
-import           Lexer             (scanTokens)
-import           Parser
-import qualified SymTable          as ST
-import qualified Test.Hspec        as TH
+import qualified Control.Monad.RWS          as RWS
+import           FireLink.FrontEnd.Grammar
+import           FireLink.FrontEnd.Lexer    (scanTokens)
+import           FireLink.FrontEnd.Parser
+import qualified FireLink.FrontEnd.SymTable as ST
+import qualified Test.Hspec                 as TH
 
 runTestForValidProgram :: String -> (Program -> Bool) -> IO ()
 runTestForValidProgram program predicate = do

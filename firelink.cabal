@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 4de26675e66388ca51cc558fa19763807fbe25ac85c9c77a1564d29ac4af0796
+-- hash: 086233a705a1a7fd16c5a63b6ac7d073f9c25e8f75fdcdd012407915beeb3e4a
 
 name:           firelink
 version:        0.1.0.0
@@ -26,28 +26,26 @@ source-repository head
 
 library
   exposed-modules:
-      Lib
-      Errors
-      FrontEndCompiler
-      Grammar
-      Lexer
-      Parser
-      SymTable
-      Tokens
-      TypeChecking
-      Utils
+      FireLink
+      FireLink.BackEnd.BackEndCompiler
+      FireLink.BackEnd.CodeGenerator
+      FireLink.BackEnd.ExprCodeGenerator
+      FireLink.BackEnd.InstructionCodeGenerator
+      FireLink.FrontEnd.Errors
+      FireLink.FrontEnd.FrontEndCompiler
+      FireLink.FrontEnd.Grammar
+      FireLink.FrontEnd.Lexer
+      FireLink.FrontEnd.Parser
+      FireLink.FrontEnd.SymTable
+      FireLink.FrontEnd.Tokens
+      FireLink.FrontEnd.TypeChecking
+      FireLink.Utils
       TACType
-      BackEndCompiler
-      CodeGenerator
-      ExprCodeGenerator
-      InstructionCodeGenerator
   other-modules:
       Paths_firelink
   hs-source-dirs:
       src
-      src/frontend
       src/tac
-      src/backend
   build-tools:
       alex
     , happy

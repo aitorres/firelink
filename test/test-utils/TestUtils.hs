@@ -1,13 +1,13 @@
 module TestUtils where
 
-import qualified Control.Monad.RWS as RWS
-import           Errors
-import qualified Grammar           as G
-import qualified Lexer             as L
-import           Parser
-import qualified SymTable          as ST
+import qualified Control.Monad.RWS          as RWS
+import           FireLink.FrontEnd.Errors
+import qualified FireLink.FrontEnd.Grammar  as G
+import qualified FireLink.FrontEnd.Lexer    as L
+import           FireLink.FrontEnd.Parser
+import qualified FireLink.FrontEnd.SymTable as ST
+import           FireLink.Utils
 import           Test.Hspec
-import           Utils
 
 extractSymTable
     :: String

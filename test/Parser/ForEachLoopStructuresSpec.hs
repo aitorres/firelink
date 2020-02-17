@@ -1,8 +1,8 @@
 module ForEachLoopStructuresSpec where
 
-import           Grammar
+import           FireLink.FrontEnd.Grammar
+import           FireLink.FrontEnd.Tokens
 import           Test.Hspec
-import           Tokens
 import           Utils
 
 buildProgram :: String -> String

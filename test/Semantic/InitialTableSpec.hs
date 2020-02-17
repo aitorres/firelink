@@ -1,9 +1,9 @@
 module InitialTableSpec where
 
-import qualified Control.Monad.RWS as RWS
-import qualified Lexer             as L
-import qualified Parser            as P
-import qualified SymTable          as ST
+import qualified Control.Monad.RWS          as RWS
+import qualified FireLink.FrontEnd.Lexer    as L
+import qualified FireLink.FrontEnd.Parser   as P
+import qualified FireLink.FrontEnd.SymTable as ST
 import           Test.Hspec
 
 program :: String

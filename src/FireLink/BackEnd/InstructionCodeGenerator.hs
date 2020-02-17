@@ -1,13 +1,16 @@
-module InstructionCodeGenerator where
+module FireLink.BackEnd.InstructionCodeGenerator where
 
-import           CodeGenerator
-import           Control.Monad.RWS (lift, tell, unless)
-import           ExprCodeGenerator (genCode', genCodeForBooleanExpr)
-import           Grammar           (BaseExpr (..), CodeBlock (..), Expr (..),
-                                    Id (..), IfCase (..), Instruction (..),
-                                    Program (..))
+import           Control.Monad.RWS                  (lift, tell, unless)
+import           FireLink.BackEnd.CodeGenerator
+import           FireLink.BackEnd.ExprCodeGenerator (genCode',
+                                                     genCodeForBooleanExpr)
+import           FireLink.FrontEnd.Grammar          (BaseExpr (..),
+                                                     CodeBlock (..), Expr (..),
+                                                     Id (..), IfCase (..),
+                                                     Instruction (..),
+                                                     Program (..))
+import           FireLink.FrontEnd.TypeChecking     (Type (..))
 import           TACType
-import           TypeChecking      (Type (..))
 
 
 instance GenerateCode CodeBlock where

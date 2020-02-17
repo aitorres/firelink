@@ -1,8 +1,8 @@
 module PointersSpec where
 
-import qualified SymTable   as ST
+import qualified FireLink.FrontEnd.SymTable as ST
 import           Test.Hspec
-import qualified TestUtils  as U
+import qualified TestUtils                  as U
 
 varEntry :: ST.DictionaryEntry
 varEntry = ST.DictionaryEntry

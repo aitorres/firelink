@@ -1,12 +1,13 @@
-module BackEndCompiler (
+module FireLink.BackEnd.BackEndCompiler (
     backend
 ) where
 
-import           CodeGenerator            (TAC (..), genCode, initialState)
-import           Control.Monad.RWS        (runRWST)
-import           Grammar                  (Program (..))
-import           InstructionCodeGenerator ()
-import           SymTable                 (Dictionary (..))
+import           Control.Monad.RWS                         (runRWST)
+import           FireLink.BackEnd.CodeGenerator            (TAC (..), genCode,
+                                                            initialState)
+import           FireLink.BackEnd.InstructionCodeGenerator ()
+import           FireLink.FrontEnd.Grammar                 (Program (..))
+import           FireLink.FrontEnd.SymTable                (Dictionary (..))
 import           TACType
 
 backend :: Program -> Dictionary -> IO [TAC]

@@ -1,12 +1,12 @@
-module FrontEndCompiler (frontEnd) where
+module FireLink.FrontEnd.FrontEndCompiler (frontEnd) where
 
-import           Control.Monad.RWS (runRWST)
-import           Errors
-import           Grammar           (Program (..))
-import           Lexer             (scanTokens)
-import           Parser            (parse)
-import           SymTable          (SymTable (..), initialState)
-import           Tokens            (Token (..))
+import           Control.Monad.RWS          (runRWST)
+import           FireLink.FrontEnd.Errors
+import           FireLink.FrontEnd.Grammar  (Program (..))
+import           FireLink.FrontEnd.Lexer    (scanTokens)
+import           FireLink.FrontEnd.Parser   (parse)
+import           FireLink.FrontEnd.SymTable (SymTable (..), initialState)
+import           FireLink.FrontEnd.Tokens   (Token (..))
 
 type CompilerResult = Either (CompilerError, [Token]) (Program, SymTable, [Token])
 
