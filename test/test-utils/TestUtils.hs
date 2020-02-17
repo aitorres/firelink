@@ -70,7 +70,7 @@ extractArgPositionFromExtra (_:ss) = extractArgPositionFromExtra ss
 extractOffsetFromExtra :: Extractor
 extractOffsetFromExtra [] = error "The `extra` array doesn't have any `Offset` item"
 extractOffsetFromExtra (s@ST.Offset{} : _) = s
-extractOffsetFromExtra (_:ss) = extractArgPositionFromExtra ss
+extractOffsetFromExtra (_:ss) = extractOffsetFromExtra ss
 
 runTestForInvalidProgram :: String -> IO ()
 runTestForInvalidProgram program = do
