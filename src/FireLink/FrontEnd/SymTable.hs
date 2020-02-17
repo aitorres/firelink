@@ -54,6 +54,11 @@ data Extra
     | Simple String -- For non-composite types
 
     | ArgPosition Int -- For argument list position
+
+    -- Offset to retrieve variable at TAC. Only used in variables/constants
+    | Offset Int
+    -- Width of type
+    | Width Int
     deriving Show
 
 isFieldsExtra :: Extra -> Bool
@@ -244,8 +249,8 @@ miracle :: String
 miracle = ">-miracle"
 armor :: String
 armor = "armor"
-arrowTo :: String
-arrowTo = "arrow to"
+arrow :: String
+arrow = "arrow to"
 bezel :: String
 bezel = "bezel"
 link :: String
@@ -254,23 +259,23 @@ void :: String
 void = "void"
 errorType :: String
 errorType = "errorType"
-arrow :: String
-arrow = "arrow"
+
+wordSize :: Int
+wordSize = 4
 
 initialState :: SymTable
 initialState = SymTable (Map.fromList l) [1, 0] 1 [] [] [] Nothing
-    where l = [(smallHumanity, [DictionaryEntry smallHumanity Type 0 Nothing []])
-            , (humanity, [DictionaryEntry humanity Type 0 Nothing []])
-            , (hollow, [DictionaryEntry hollow Type 0 Nothing []])
-            , (sign, [DictionaryEntry sign Type 0 Nothing []])
-            , (bonfire, [DictionaryEntry bonfire Type 0 Nothing []])
-            , (chest, [DictionaryEntry chest Constructor 0 Nothing []])
-            , (miracle, [DictionaryEntry miracle Constructor 0 Nothing []])
-            , (armor, [DictionaryEntry armor Constructor 0 Nothing []])
-            , (arrowTo, [DictionaryEntry arrowTo Constructor 0 Nothing []])
+    where l = [(smallHumanity, [DictionaryEntry smallHumanity Type 0 Nothing [Width 2]])
+            , (humanity, [DictionaryEntry humanity Type 0 Nothing [Width 4]])
+            , (hollow, [DictionaryEntry hollow Type 0 Nothing [Width 8]])
+            , (sign, [DictionaryEntry sign Type 0 Nothing [Width 1]])
+            , (bonfire, [DictionaryEntry bonfire Type 0 Nothing [Width 1]])
+            , (chest, [DictionaryEntry chest Constructor 0 Nothing [Width wordSize]])
+            , (miracle, [DictionaryEntry miracle Constructor 0 Nothing [Width wordSize]])
+            , (armor, [DictionaryEntry armor Constructor 0 Nothing [Width wordSize]])
             , (bezel, [DictionaryEntry bezel Constructor 0 Nothing []])
             , (link, [DictionaryEntry link Constructor 0 Nothing []])
-            , (arrow, [DictionaryEntry arrow Constructor 0 Nothing []])
+            , (arrow, [DictionaryEntry arrow Constructor 0 Nothing [Width wordSize]])
             , (void, [DictionaryEntry void Type 0 Nothing []])
             ]
 

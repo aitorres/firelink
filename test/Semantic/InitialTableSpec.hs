@@ -23,7 +23,6 @@ testEntryExistence e cat = do
     ST.category entry `shouldBe` cat
     ST.scope entry `shouldBe` 0
     ST.entryType entry `shouldSatisfy` (\Nothing -> True)
-    ST.extra entry `shouldSatisfy` null
 
 spec :: Spec
 spec = describe "Initial table" $ do

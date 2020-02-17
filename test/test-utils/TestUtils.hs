@@ -67,6 +67,11 @@ extractArgPositionFromExtra [] = error "The `extra` array doesn't have any `ArgP
 extractArgPositionFromExtra (s@ST.ArgPosition{} : _) = s
 extractArgPositionFromExtra (_:ss) = extractArgPositionFromExtra ss
 
+extractOffsetFromExtra :: Extractor
+extractOffsetFromExtra [] = error "The `extra` array doesn't have any `Offset` item"
+extractOffsetFromExtra (s@ST.Offset{} : _) = s
+extractOffsetFromExtra (_:ss) = extractArgPositionFromExtra ss
+
 runTestForInvalidProgram :: String -> IO ()
 runTestForInvalidProgram program = do
     let ([], tokens) = L.scanTokens program

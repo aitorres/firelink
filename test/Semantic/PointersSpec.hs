@@ -8,7 +8,7 @@ varEntry :: ST.DictionaryEntry
 varEntry = ST.DictionaryEntry
     { ST.scope = 1
     , ST.category = ST.Variable
-    , ST.entryType = Just "arrow"
+    , ST.entryType = Just "arrow to"
     , ST.name = "x"
     , ST.extra = []
     }
@@ -34,7 +34,7 @@ spec = do
             let p = sampleProgram ""
             (_, ST.SymTable {ST.stDict=dict}, _) <- U.extractSymTable p
             U.testEntry dict varEntry U.extractRecursiveFromExtra
-                (\(ST.Recursive "arrow" (ST.Simple "sign")) -> True)
+                (\(ST.Recursive "arrow to" (ST.Simple "sign")) -> True)
 
     describe "Pointers operations" $ do
         it "allows to request memory for its usage" $
