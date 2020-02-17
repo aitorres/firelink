@@ -1,10 +1,10 @@
 module InitialTableSpec where
 
-import Test.Hspec
-import qualified SymTable as ST
-import qualified Lexer as L
-import qualified Parser as P
 import qualified Control.Monad.RWS as RWS
+import qualified Lexer             as L
+import qualified Parser            as P
+import qualified SymTable          as ST
+import           Test.Hspec
 
 program :: String
 program = "\

@@ -1,15 +1,14 @@
 module ExprCodeGenerator where
 
-import CodeGenerator
-import Grammar ( BaseExpr(..)
-               , Expr(..), Op2(..), Id(..)
-               , Op1(..), comparableOp2, booleanOp2)
-import Tokens (Token(..))
-import TypeChecking (Type(..))
-import Control.Monad.RWS
-import Control.Monad (void)
-import SymTable (DictionaryEntry(..), findChain, Dictionary)
-import qualified TACType as TAC
+import           CodeGenerator
+import           Control.Monad     (void)
+import           Control.Monad.RWS
+import           Grammar           (BaseExpr (..), Expr (..), Id (..), Op1 (..),
+                                    Op2 (..), booleanOp2, comparableOp2)
+import           SymTable          (Dictionary, DictionaryEntry (..), findChain)
+import qualified TACType           as TAC
+import           Tokens            (Token (..))
+import           TypeChecking      (Type (..))
 
 instance GenerateCode Expr where
     genCode = void . genCode'
@@ -166,22 +165,22 @@ genCodeForBooleanExpr expr trueLabel falseLabel = case expr of
 
 mapOp2ToTacOperation :: Op2 -> TAC.Operation
 mapOp2ToTacOperation op = case op of
-    Lt -> TAC.Lt
-    Gt -> TAC.Gt
-    Lte -> TAC.Lte
-    Gte -> TAC.Gte
-    Eq -> TAC.Eq
-    Neq -> TAC.Neq
-    Add -> TAC.Add
+    Lt        -> TAC.Lt
+    Gt        -> TAC.Gt
+    Lte       -> TAC.Lte
+    Gte       -> TAC.Gte
+    Eq        -> TAC.Eq
+    Neq       -> TAC.Neq
+    Add       -> TAC.Add
     Substract -> TAC.Sub
-    Multiply -> TAC.Mult
-    Divide -> TAC.Div
-    Mod -> TAC.Mod
+    Multiply  -> TAC.Mult
+    Divide    -> TAC.Div
+    Mod       -> TAC.Mod
 
 complement :: TAC.Operation -> TAC.Operation
-complement TAC.Lt = TAC.Gte
+complement TAC.Lt  = TAC.Gte
 complement TAC.Lte = TAC.Gt
-complement TAC.Gt = TAC.Lte
+complement TAC.Gt  = TAC.Lte
 complement TAC.Gte = TAC.Lt
-complement TAC.Eq = TAC.Neq
+complement TAC.Eq  = TAC.Neq
 complement TAC.Neq = TAC.Eq

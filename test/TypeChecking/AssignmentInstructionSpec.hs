@@ -1,7 +1,7 @@
 module AssignmentInstructionSpec where
 
-import Test.Hspec
-import qualified TestUtils as U
+import           Test.Hspec
+import qualified TestUtils  as U
 
 baseProgram :: String -> String -> String -> String
 baseProgram c t e = "hello ashen one\n\

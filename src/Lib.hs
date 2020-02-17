@@ -1,25 +1,24 @@
-module Lib
-    ( firelink
-    ) where
-import qualified Control.Monad.RWS as RWS
-import Tokens
-import Lexer
-import Parser (parse)
-import qualified SymTable as ST
-import System.Directory (doesFileExist)
-import System.Environment (getArgs)
-import System.Exit (exitSuccess, exitFailure)
-import System.FilePath (takeExtension)
-import System.IO (openFile, IOMode(..), hGetContents)
-import qualified Data.Map as Map
-import Data.List (intercalate, groupBy)
-import Text.Printf (printf)
-import Utils
-import FrontEndCompiler
-import BackEndCompiler (backend)
-import CodeGenerator (TAC(..))
-import Errors
-import qualified TACType as TAC
+module Lib (
+    firelink
+) where
+
+import           BackEndCompiler    (backend)
+import           CodeGenerator      (TAC (..))
+import qualified Control.Monad.RWS  as RWS
+import           Data.List          (groupBy, intercalate)
+import qualified Data.Map           as Map
+import           Errors
+import           FrontEndCompiler
+import qualified SymTable           as ST
+import           System.Directory   (doesFileExist)
+import           System.Environment (getArgs)
+import           System.Exit        (exitFailure, exitSuccess)
+import           System.FilePath    (takeExtension)
+import           System.IO          (IOMode (..), hGetContents, openFile)
+import qualified TACType            as TAC
+import           Text.Printf        (printf)
+import           Tokens
+import           Utils
 
 prettyPrintSymTable :: ST.SymTable -> IO ()
 prettyPrintSymTable ST.SymTable{ST.stDict=dict} = do
@@ -42,13 +41,13 @@ groupTokensByRowNumber :: [Either Error Token] -> [[Either Error Token]]
 groupTokensByRowNumber = groupBy (\e e' -> getRow e == getRow e')
     where
         getRow e = case e of
-                    Left (Error _ pn) -> row pn
+                    Left (Error _ pn)         -> row pn
                     Right Token {position=pn} -> row pn
 
 lengthOfLine :: [Either Error Token] -> Int
 lengthOfLine tokens = case last tokens of
     Right tk@Token {position=pn} -> column pn + length (show tk)
-    Left (Error s pn) -> column pn + length s
+    Left (Error s pn)            -> column pn + length s
 
 joinTokens :: Int -> [Either Error Token] -> String
 joinTokens _ [] = ""
@@ -176,7 +175,7 @@ handleLexError errors tokens = do
 handleCompileError :: CompilerError -> [Token] -> IO ()
 handleCompileError compileError tokens =
     case ceErrorCategory compileError of
-        LexError -> handleLexError (ceErrors compileError) tokens
+        LexError      -> handleLexError (ceErrors compileError) tokens
         SemanticError -> printSemErrors (ceErrors compileError) tokens
 
 printTacCode :: [TAC] -> IO ()
@@ -186,7 +185,7 @@ printTacCode = mapM_ prettyPrint
         prettyPrint tac = putStrLn $ (if isLabel tac then "" else "\t") ++ show tac
         isLabel :: TAC -> Bool
         isLabel (TAC.ThreeAddressCode TAC.NewLabel _ _ _) = True
-        isLabel _ = False
+        isLabel _                                         = False
 
 compile :: String -> IO ()
 compile program = do

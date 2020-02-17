@@ -1,10 +1,13 @@
 module TypeChecking where
 
-import Data.List (sort)
-import qualified Tokens as T
+import           Data.List (sort)
+import qualified Tokens    as T
+import           Utils     (joinWithCommas)
 
 newtype PropType = PropType (String, Type)
-  deriving Show
+
+instance Show PropType where
+  show (PropType (s, t)) = s ++ " of type " ++ show t
 
 data Type
   = BigIntT
@@ -38,18 +41,12 @@ instance Show Type where
   show StructLitT = "struct literal"
   show (ArrayT t) = "chest of type " ++ show t
   show (SetT t) = "armor of type " ++ show t
-  show (RecordT _ ps) = "link with elements " ++ formattedElements
-    where elements = concatMap (\(PropType (a, t)) -> a ++ " of type " ++ show t ++ ", ") ps
-          usefulChars = length elements - 2
-          formattedElements = take usefulChars elements
-  show (UnionT _ ps) = "link with elements " ++ formattedElements
-    where elements = concatMap (\(PropType (a, t)) -> a ++ " of type " ++ show t ++ ", ") ps
-          usefulChars = length elements - 2
-          formattedElements = take usefulChars elements
+  show (RecordT _ ps) = "bezel with elements { " ++ joinWithCommas ps ++ " }"
+  show (UnionT _ ps) = "link with elements { " ++ joinWithCommas ps ++ " }"
   show (PointerT t) = "arrow to " ++ show t
-  show (FunctionT as r) = "invocation requiring " ++ concatMap (\t -> show t ++ ", ") as ++ " and returning " ++ show r
-  show (ProcedureT as) = "spell requesting " ++ concatMap (\t -> show t ++ ", ") as
-  show (TypeList ts) = "typelist " ++ concatMap (\t -> show t ++ ", ") ts
+  show (FunctionT as r) = "invocation requiring " ++ joinWithCommas as ++ " and returning " ++ show r
+  show (ProcedureT as) = "spell requesting " ++ joinWithCommas as
+  show (TypeList ts) = "typelist " ++ joinWithCommas ts
   show (AliasT t) = "knight to " ++ t
   show Any = "any"
   show TypeError = "error type (if you see this, open an issue on github)"
@@ -94,9 +91,9 @@ instance Ord PropType where
   PropType (s, _) <= PropType (s', _) = s <= s'
 
 getTypeFromContainer :: Type -> Maybe Type
-getTypeFromContainer (SetT t) = Just t
+getTypeFromContainer (SetT t)   = Just t
 getTypeFromContainer (ArrayT t) = Just t
-getTypeFromContainer _ = Nothing
+getTypeFromContainer _          = Nothing
 
 booleanSingleton :: [Type]
 booleanSingleton = [TrileanT]

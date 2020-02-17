@@ -1,9 +1,9 @@
 module Grammar where
 
-import Tokens (Token(..))
-import TypeChecking (Type(..))
-import Data.List (intercalate)
-import qualified Utils as U
+import           Data.List    (intercalate)
+import           Tokens       (Token (..))
+import           TypeChecking (Type (..))
+import qualified Utils        as U
 
 type Instructions = [Instruction]
 type Params = [Expr]
@@ -78,29 +78,26 @@ arrayOp2 = [ColConcat]
 
 instance Show Op1 where
   show Negate = "-"
-  show Not = "not"
+  show Not    = "not"
 
 instance Show Op2 where
-  show Add = "+"
-  show Substract = "-"
-  show Multiply = "*"
-  show Divide = "/"
-  show Mod = "%"
-  show Lt = "lt"
-  show Gt = "gt"
-  show Lte = "lte"
-  show Gte = "gte"
-  show Eq = "eq"
-  show Neq = "neq"
-  show And = "and"
-  show Or = "or"
-  show SetUnion = "union"
-  show SetIntersect = "intersect"
+  show Add           = "+"
+  show Substract     = "-"
+  show Multiply      = "*"
+  show Divide        = "/"
+  show Mod           = "%"
+  show Lt            = "lt"
+  show Gt            = "gt"
+  show Lte           = "lte"
+  show Gte           = "gte"
+  show Eq            = "eq"
+  show Neq           = "neq"
+  show And           = "and"
+  show Or            = "or"
+  show SetUnion      = "union"
+  show SetIntersect  = "intersect"
   show SetDifference = "diff"
-  show ColConcat = ">-<"
-
-joinExprList :: [Expr] -> String
-joinExprList = intercalate ", " . map show
+  show ColConcat     = ">-<"
 
 joinProps :: [(Id, Expr)] -> String
 joinProps = intercalate ", " . map (\(i, e) -> show i ++ " <<= " ++ show e)
@@ -114,9 +111,9 @@ instance Show BaseExpr where
   show (FloatLit a) = show a
   show (CharLit a) = [a]
   show (StringLit s) = s
-  show (ArrayLit exprs) = "<$" ++ joinExprList exprs ++ "$>"
+  show (ArrayLit exprs) = "<$" ++ U.joinWithCommas exprs ++ "$>"
   show (StructLit props) = "{ ++ " ++ joinProps props ++ " }"
-  show (SetLit exprs) = "{$" ++ joinExprList exprs ++ "$}"
+  show (SetLit exprs) = "{$" ++ U.joinWithCommas exprs ++ "$}"
   show (Op1 o e) = show o ++ " " ++ show e
   show (Op2 o e e') = show e ++ " " ++ show o ++ " " ++ show e'
   show (Access e i) = show e ++ "~>" ++ show i
@@ -126,7 +123,7 @@ instance Show BaseExpr where
   show (AsciiOf e) = "ascii_of " ++ show e
   show (IsActive e) = "is_active " ++ show e
   show (SetSize s) = "size " ++ show s
-  show (EvalFunc i p) = "summon " ++ show i ++ " granting " ++ joinExprList p ++ " to the knight"
+  show (EvalFunc i p) = "summon " ++ show i ++ " granting " ++ U.joinWithCommas p ++ " to the knight"
   show (Caster a _) = "(casting) " ++ show a
 
 data Expr = Expr {
