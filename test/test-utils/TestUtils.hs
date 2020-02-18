@@ -72,6 +72,11 @@ extractOffsetFromExtra [] = error "The `extra` array doesn't have any `Offset` i
 extractOffsetFromExtra (s@ST.Offset{} : _) = s
 extractOffsetFromExtra (_:ss) = extractOffsetFromExtra ss
 
+extractWidthFromExtra :: Extractor
+extractWidthFromExtra [] = error "The `extra` array doesn't have any `Width` item"
+extractWidthFromExtra (s@ST.Width{} : _) = s
+extractWidthFromExtra (_:ss) = extractWidthFromExtra ss
+
 runTestForInvalidProgram :: String -> IO ()
 runTestForInvalidProgram program = do
     let ([], tokens) = L.scanTokens program

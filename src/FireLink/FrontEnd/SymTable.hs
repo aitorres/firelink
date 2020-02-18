@@ -57,7 +57,8 @@ data Extra
 
     -- Offset to retrieve variable at TAC. Only used in variables/constants
     | Offset Int
-    -- Width of type
+
+    -- Width of type. It is not world-aligned
     | Width Int
     deriving Show
 
@@ -265,17 +266,17 @@ wordSize = 4
 
 initialState :: SymTable
 initialState = SymTable (Map.fromList l) [1, 0] 1 [] [] [] Nothing
-    where l = [(smallHumanity, [DictionaryEntry smallHumanity Type 0 Nothing [Width 2]])
-            , (humanity, [DictionaryEntry humanity Type 0 Nothing [Width 4]])
-            , (hollow, [DictionaryEntry hollow Type 0 Nothing [Width 8]])
-            , (sign, [DictionaryEntry sign Type 0 Nothing [Width 1]])
-            , (bonfire, [DictionaryEntry bonfire Type 0 Nothing [Width 1]])
-            , (chest, [DictionaryEntry chest Constructor 0 Nothing [Width wordSize]])
-            , (miracle, [DictionaryEntry miracle Constructor 0 Nothing [Width wordSize]])
-            , (armor, [DictionaryEntry armor Constructor 0 Nothing [Width wordSize]])
+    where l = [(smallHumanity, [DictionaryEntry smallHumanity Type 0 Nothing []])
+            , (humanity, [DictionaryEntry humanity Type 0 Nothing []])
+            , (hollow, [DictionaryEntry hollow Type 0 Nothing []])
+            , (sign, [DictionaryEntry sign Type 0 Nothing []])
+            , (bonfire, [DictionaryEntry bonfire Type 0 Nothing []])
+            , (chest, [DictionaryEntry chest Constructor 0 Nothing []])
+            , (miracle, [DictionaryEntry miracle Constructor 0 Nothing []])
+            , (armor, [DictionaryEntry armor Constructor 0 Nothing []])
             , (bezel, [DictionaryEntry bezel Constructor 0 Nothing []])
             , (link, [DictionaryEntry link Constructor 0 Nothing []])
-            , (arrow, [DictionaryEntry arrow Constructor 0 Nothing [Width wordSize]])
+            , (arrow, [DictionaryEntry arrow Constructor 0 Nothing []])
             , (void, [DictionaryEntry void Type 0 Nothing []])
             ]
 
