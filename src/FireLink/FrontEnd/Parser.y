@@ -199,7 +199,6 @@ NON_OPENER_INSTEND :: { Maybe G.RecoverableError }
 ALIASES :: { () }
   : aliasListBegin ALIASL ALIASLISTEND                                  {% do
                                                                             checkRecoverableError $1 $3
-                                                                            addIdsToSymTable $ reverse $2
                                                                             st <- RWS.get
                                                                             RWS.put st{ST.stScopeStack=[1, 0]} }
   | {- empty -}                                                         { () }
@@ -208,9 +207,14 @@ ALIASLISTEND :: { Maybe G.RecoverableError }
  : aliasListEnd                                                         { Nothing }
  | error                                                                { Just G.MissingAliasListEnd }
 
-ALIASL :: { [NameDeclaration] }
-  : ALIASL comma ALIAS                                                  { $3:$1 }
-  | ALIAS                                                               { [$1] }
+ALIASL :: { () }
+  : ALIASL comma ALIASADD                                               { () }
+  | ALIASADD                                                            { () }
+
+ALIASADD :: { () }
+  : ALIAS                                                               {% do
+                                                                            addIdToSymTable Nothing $1
+                                                                            return () }
 
 ALIAS :: { NameDeclaration }
   : alias ID TYPE                                                       { (ST.Type, $2, $3, Nothing) }
