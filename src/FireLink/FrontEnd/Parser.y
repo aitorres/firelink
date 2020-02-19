@@ -213,11 +213,11 @@ ALIASL :: { () }
 
 ALIASADD :: { () }
   : ALIAS                                                               {% do
-                                                                            addIdToSymTable Nothing $1
+                                                                            addIdToSymTable $1
                                                                             return () }
 
 ALIAS :: { NameDeclaration }
-  : alias ID TYPE                                                       { (ST.Type, $2, $3, Nothing) }
+  : alias ID TYPE                                                       { (ST.Type, $2, [$3], Nothing) }
 
 LVALUE :: { G.Expr }
   : ID                                                                  {% do
@@ -307,9 +307,6 @@ METHOD :: { () }
                                                                           st <- RWS.get
                                                                           RWS.put st{ST.stScopeStack=[1, 0]} }
 
-FUNCPREFIX :: { Maybe (ST.Scope, G.Id) }
-  : functionBegin ID METHODPARS functionType TYPE                       {% addFunction (ST.Function,
-                                                                              $2, G.Callable (Just $5) $3, Nothing) }
 FUNC :: { () }
   : FUNCPREFIX CODEBLOCK functionEnd                                    {% do
                                                                             ST.popVisitedMethod
@@ -317,9 +314,15 @@ FUNC :: { () }
                                                                               Nothing -> return ()
                                                                               Just (s, i) -> updateCodeBlockOfFun s i $2 }
 
-PROCPREFIX :: { Maybe (ST.Scope, G.Id) }
-  : procedureBegin ID PROCPARSDEC                                       {% addFunction (ST.Procedure,
-                                                                              $2, G.Callable Nothing $3, Nothing) }
+FUNCPREFIX :: { Maybe (ST.Scope, G.Id) }
+  : FUNCNAME METHODPARS functionType TYPE                               {% do
+                                                                          currScope <- ST.getCurrentScope
+                                                                          let extras = [ ST.Fields ST.Callable currScope, $4 ]
+                                                                          addFunction (ST.Function, $1, extras, Nothing) }
+
+FUNCNAME :: { G.Id }
+FUNCNAME : functionBegin ID                                             {% ST.enterScope >> return $2 }
+
 PROC :: { () }
   : PROCPREFIX CODEBLOCK procedureEnd                                   {% do
                                                                             ST.popVisitedMethod
@@ -327,43 +330,67 @@ PROC :: { () }
                                                                               Nothing -> return ()
                                                                               Just (s, i) -> updateCodeBlockOfFun s i $2 }
 
-PROCPARSDEC :: { [ArgDeclaration] }
-  : METHODPARS toTheEstusFlask                                          { $1 }
-  | {- empty -}                                                         { [] }
+PROCPREFIX :: { Maybe (ST.Scope, G.Id) }
+  : PROCNAME METHODPARS  toTheEstusFlask                                {% do
+                                                                            currScope <- ST.getCurrentScope
+                                                                            let extras = [ ST.Fields ST.Callable currScope ]
+                                                                            addFunction (ST.Procedure, $1, extras, Nothing) }
 
-METHODPARS :: { [ArgDeclaration] }
-  : paramRequest PARS                                                   { reverse $2 }
-  | {- empty -}                                                         { [] }
+PROCNAME :: { G.Id }
+PROCNAME : procedureBegin ID                                            {% ST.enterScope >> return $2 }
 
-PARS :: { [ArgDeclaration] }
-  : PARS comma PAR                                                      { $3:$1 }
-  | PAR                                                                 { [$1] }
+METHODPARS :: { () }
+  : paramRequest PARS                                                   {% ST.resetArgPosition >> return () }
+  | {- empty -}                                                         { () }
 
-PAR :: { ArgDeclaration }
-  : PARTYPE ID ofType TYPE                                              { ($1, $2, $4) }
+PARS :: { () }
+  : PARS comma PAR                                                      { () }
+  | PAR                                                                 { () }
 
-PARTYPE :: { G.ArgType }
-  : parVal                                                              { G.Val }
-  | parRef                                                              { G.Ref }
+PAR :: { () }
+  : PARTYPE ID ofType TYPE                                              {% do
+                                                                          argPosition <- ST.genNextArgPosition
+                                                                          let extras = [$4, ST.ArgPosition argPosition]
+                                                                          addIdToSymTable ($1, $2, extras, Nothing) }
 
-TYPE :: { G.GrammarType }
-  : ID                                                                  { let G.Id t _ = $1 in G.Simple t Nothing }
-  | bigInt                                                              { G.Simple $1 Nothing }
-  | smallInt                                                            { G.Simple $1 Nothing }
-  | float                                                               { G.Simple $1 Nothing }
-  | char                                                                { G.Simple $1 Nothing }
-  | bool                                                                { G.Simple $1 Nothing }
-  | ltelit EXPR array ofType TYPE                                       {% createAnonymousAlias $1 $ G.Compound $3 $5 (Just $2) }
+PARTYPE :: { ST.Category }
+  : parVal                                                              { ST.ValueParam }
+  | parRef                                                              { ST.RefParam }
 
-  | ltelit EXPR string                                                  {% createAnonymousAlias $1 $ G.Simple $3 (Just $2) }
-  | set ofType TYPE                                                     {% createAnonymousAlias $1 $ G.Compound $1 $3 Nothing }
-  | pointer TYPE                                                        {% createAnonymousAlias $1 $ G.Compound $1 $2 Nothing }
-  | record brOpen STRUCTITS BRCLOSE                                     {% do
+TYPE :: { ST.Extra }
+  : ID                                                                  { let G.Id t _ = $1 in ST.Simple (T.cleanedString t) }
+  | bigInt                                                              { ST.Simple (T.cleanedString $1) }
+  | smallInt                                                            { ST.Simple (T.cleanedString $1) }
+  | float                                                               { ST.Simple (T.cleanedString $1) }
+  | char                                                                { ST.Simple (T.cleanedString $1) }
+  | bool                                                                { ST.Simple (T.cleanedString $1) }
+  | ltelit EXPR array ofType TYPE                                       {% createAnonymousAlias $1 $
+                                                                              ST.CompoundRec (T.cleanedString $3) $2 $5 }
+
+  | ltelit EXPR string                                                  {% createAnonymousAlias $1 $
+                                                                              ST.Compound (T.cleanedString $3) $2 }
+  | set ofType TYPE                                                     {% createAnonymousAlias $1 $
+                                                                              ST.Recursive (T.cleanedString $1) $3 }
+  | pointer TYPE                                                        {% createAnonymousAlias $1 $
+                                                                              ST.Recursive (T.cleanedString $1) $2 }
+  | RECORD_OPEN  brOpen STRUCTITS BRCLOSE                               {% do
                                                                              checkRecoverableError $2 $4
-                                                                             createAnonymousAlias $1 $ G.Record $1 $ reverse $3 }
-  | unionStruct brOpen STRUCTITS BRCLOSE                                {% do
+                                                                             currScope <- ST.getCurrentScope
+                                                                             ST.exitScope
+                                                                             ret <- createAnonymousAlias $1 $ ST.Fields ST.Record currScope
+                                                                             return ret }
+  | UNION_OPEN brOpen STRUCTITS BRCLOSE                                 {% do
                                                                              checkRecoverableError $2 $4
-                                                                             createAnonymousAlias $1 $ G.Record $1 $ reverse $3 }
+                                                                             currScope <- ST.getCurrentScope
+                                                                             ST.exitScope
+                                                                             ret <- createAnonymousAlias $1 $ ST.Fields ST.Union currScope
+                                                                             return ret }
+
+RECORD_OPEN :: { T.Token }
+RECORD_OPEN : record                                                    {% ST.enterScope >> return $1 }
+
+UNION_OPEN :: { T.Token }
+UNION_OPEN : unionStruct                                                {% ST.enterScope >> return $1 }
 
 BRCLOSE :: { Maybe G.RecoverableError }
   : brClose                                                             { Nothing }
@@ -373,12 +400,12 @@ PARENSCLOSE :: { Maybe G.RecoverableError }
   : parensClose                                                         { Nothing }
   | error                                                               { Just G.MissingClosingParens }
 
-STRUCTITS :: { [RecordItem] }
-  : STRUCTITS comma STRUCTIT                                            { $3:$1 }
-  | STRUCTIT                                                            { [$1] }
+STRUCTITS :: { () }
+  : STRUCTITS comma STRUCTIT                                            { () }
+  | STRUCTIT                                                            { () }
 
-STRUCTIT :: { RecordItem }
-  : ID ofType TYPE                                                      { ($1, $3) }
+STRUCTIT :: { () }
+  : ID ofType TYPE                                                      {% addIdToSymTable (ST.RecordItem, $1, [$3], Nothing) }
 
 ID :: { G.Id }
   : id                                                                  {% do
@@ -421,13 +448,13 @@ DECLARSL :: { [NameDeclaration] }
 DECLARADD :: { NameDeclaration }
   : DECLAR                                                              {% do
                                                                             -- Adds a declaration to the ST as soon as it's parsed
-                                                                            addIdToSymTable Nothing $1
+                                                                            addIdToSymTable $1
                                                                             return $1 }
 
 DECLAR :: { NameDeclaration }
-  : var ID ofType TYPE                                                  { (ST.Variable, $2, $4, Nothing) }
-  | var ID ofType TYPE asig EXPR                                        { (ST.Variable, $2, $4, Just $6) }
-  | const ID ofType TYPE asig EXPR                                      { (ST.Constant, $2, $4, Just $6) }
+  : var ID ofType TYPE                                                  { (ST.Variable, $2, [$4], Nothing) }
+  | var ID ofType TYPE asig EXPR                                        { (ST.Variable, $2, [$4], Just $6) }
+  | const ID ofType TYPE asig EXPR                                      { (ST.Constant, $2, [$4], Just $6) }
 
 INSTRL :: { G.Instructions }
   : INSTRL seq INSTR                                                    { $3 : $1 }
@@ -647,18 +674,17 @@ PARSLIST :: { G.Params }
 
 {
 
-type NameDeclaration = (ST.Category, G.Id, G.GrammarType, Maybe G.Expr)
-type ArgDeclaration = (G.ArgType, G.Id, G.GrammarType)
-type RecordItem = (G.Id, G.GrammarType)
+type NameDeclaration = (ST.Category, G.Id, [ST.Extra], Maybe G.Expr)
+type RecordItem = (G.Id, ST.Extra)
 
-createAnonymousAlias :: T.Token -> G.GrammarType -> ST.ParserMonad G.GrammarType
+createAnonymousAlias :: T.Token -> ST.Extra -> ST.ParserMonad ST.Extra
 createAnonymousAlias token grammarType = do
   anonymousAlias <- ST.genAliasName
   currentScope <- ST.getCurrentScope
   let tk = token{T.cleanedString=anonymousAlias, T.aToken = T.TkId}
-  let declaration = (ST.Type, G.Id tk currentScope, grammarType, Nothing)
-  addIdToSymTable Nothing declaration
-  return $ G.Simple tk Nothing
+  let declaration = (ST.Type, G.Id tk currentScope, [grammarType], Nothing)
+  addIdToSymTable declaration
+  return $ ST.Simple anonymousAlias
 
 getAssigsFromDeclarations :: [NameDeclaration] -> [G.Instruction]
 getAssigsFromDeclarations = map buildAsigInstr . filter hasInitialization
@@ -682,16 +708,6 @@ buildAndCheckExpr tk bExpr = do
       G.expTok = tk
     }
 
-extractFieldsForNewScope :: G.GrammarType -> Maybe [RecordItem]
-extractFieldsForNewScope (G.Callable (Just s) _) = extractFieldsForNewScope s
-extractFieldsForNewScope (G.Compound _ s _) = extractFieldsForNewScope s
-extractFieldsForNewScope (G.Record _ s) = Just s
-extractFieldsForNewScope _ = Nothing
-
-extractFunParamsForNewScope :: G.GrammarType -> Maybe [ArgDeclaration]
-extractFunParamsForNewScope (G.Callable _ s) = Just s
-extractFunParamsForNewScope _ = Nothing
-
 parseErrors :: [T.Token] -> ST.ParserMonad a
 parseErrors errors =
   let tk@T.Token {T.aToken=abst, T.position=pn} = errors !! 0
@@ -706,23 +722,23 @@ parseErrors errors =
 
 addIdsToSymTable :: [NameDeclaration] -> ST.ParserMonad ()
 addIdsToSymTable ids = do
-  RWS.mapM_ (addIdToSymTable Nothing) ids
+  RWS.mapM_ addIdToSymTable ids
 
-addIdToSymTable :: Maybe Int -> NameDeclaration -> ST.ParserMonad ()
-addIdToSymTable mi d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idName}) _), t, maybeExp) = do
+addIdToSymTable :: NameDeclaration -> ST.ParserMonad ()
+addIdToSymTable d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idName}) _), t, maybeExp) = do
   maybeIdEntry <- ST.dictLookup idName
-  maybeTypeEntry <- findTypeOnEntryTable t
+  let typeEntry = getTypeNameForSymTable $ head $ filter ST.isExtraAType t
   currScope <- ST.getCurrentScope
   ST.SymTable {ST.stIterationVars=iterVars} <- RWS.get
   case maybeIdEntry of
     -- The name doesn't exists on the table, we just add it
     Nothing -> do
-      insertIdToEntry mi t ST.DictionaryEntry
+      ST.addEntry ST.DictionaryEntry
         { ST.name = idName
         , ST.category = c
         , ST.scope = currScope
-        , ST.entryType = ST.name <$> maybeTypeEntry
-        , ST.extra = []
+        , ST.entryType = Just typeEntry
+        , ST.extra = t
         }
       entry <- checkIdAvailability gId
       case (entry, maybeExp) of
@@ -749,50 +765,22 @@ addIdToSymTable mi d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idN
       else if (T.cleanedString tk) `elem` iterVars
       then logSemError ("Name " ++ show tk ++ " conflicts or shadows an iteration variable") tk
       else if currScope /= scope
-      then insertIdToEntry mi t ST.DictionaryEntry
+      then ST.addEntry ST.DictionaryEntry
         { ST.name = idName
         , ST.category = c
         , ST.scope = currScope
-        , ST.entryType = ST.name <$> maybeTypeEntry
-        , ST.extra = []
+        , ST.entryType = Just typeEntry
+        , ST.extra = t
         }
       else logSemError ("Name " ++ idName ++ " was already declared on this scope") tk
-
-insertIdToEntry :: Maybe Int -> G.GrammarType -> ST.DictionaryEntry -> ST.ParserMonad ()
-insertIdToEntry mi t entry = do
-  maybeExtra <- buildExtraForType t
-  let pos = (case mi of
-              Nothing -> []
-              Just i -> [ST.ArgPosition i])
-  case maybeExtra of
-    Nothing -> return ()
-    Just ex -> do
-      ST.addEntry entry{ST.extra = pos ++ ex}
-      -- To add the record params to the dictionary
-      case extractFieldsForNewScope t of
-        Nothing -> return ()
-        Just s ->  do
-          let (ST.Fields _ scope) = fromJust . head $ filter isJust $ map ST.findFieldsExtra ex
-          st@ST.SymTable {ST.stScopeStack=scopes} <- RWS.get
-          RWS.put st{ST.stScopeStack=(scope:scopes)}
-          addIdsToSymTable $ map (\(a, b) -> (ST.RecordItem, a, b, Nothing)) s
-          ST.exitScope
-      case extractFunParamsForNewScope t of
-        -- If it is nothing then this is not a function
-        Nothing -> return ()
-
-        Just s ->
-          -- it can be a function without parameters
-          if not $ null $ filter ST.isEmptyFunction ex then
-            return ()
-          else do
-            st@ST.SymTable {ST.stScopeStack=scopes} <- RWS.get
-            let (ST.Fields ST.Callable scope) = head $ filter ST.isFieldsExtra ex
-            RWS.put st{ST.stScopeStack=(scope:scopes)}
-            RWS.mapM_ (\(i, n) -> addIdToSymTable (Just i) n) $ zip [0..] $
-              map (\(argType, i, t) -> (if argType == G.Val
-                                  then ST.ValueParam
-                                  else ST.RefParam, i, t, Nothing)) s
+  where
+    getTypeNameForSymTable :: ST.Extra -> String
+    getTypeNameForSymTable (ST.Simple s) = s
+    getTypeNameForSymTable (ST.Recursive s _) = s
+    getTypeNameForSymTable (ST.Compound s _) = s
+    getTypeNameForSymTable (ST.CompoundRec s _ _) = s
+    getTypeNameForSymTable (ST.Fields ST.Record _) = ST.bezel
+    getTypeNameForSymTable (ST.Fields ST.Union _) = ST.link
 
 checkConstantReassignment :: G.Expr -> ST.ParserMonad ()
 checkConstantReassignment e = case G.expAst e of
@@ -946,7 +934,7 @@ addFunction d@(_, i@(G.Id tk@(T.Token {T.cleanedString=idName}) _), _, _) = do
   maybeEntry <- ST.dictLookup idName
   case maybeEntry of
     Nothing -> do
-      addIdToSymTable Nothing d
+      addIdToSymTable d
       return $ Just (currScope, i)
     Just entry -> do
       logSemError ("Function " ++ idName ++ " was already declared") tk
@@ -958,113 +946,6 @@ updateCodeBlockOfFun currScope (G.Id tk@(T.Token {T.cleanedString=idName}) _) co
             then let e = ST.extra x in x{ST.extra = (ST.CodeBlock code) : e}
             else x)
   ST.updateEntry (\ds -> Just $ map f ds) idName
-
-findTypeOnEntryTable :: G.GrammarType -> ST.ParserMonad (Maybe ST.DictionaryEntry)
-
--- For simple data types
-findTypeOnEntryTable (G.Simple tk mSize) = do
-  maybeEntry <- ST.dictLookup $ ST.tokensToEntryName tk
-  case maybeEntry of
-    Nothing -> do
-      logSemError ("Type " ++ show tk ++ " not found") tk
-      return maybeEntry
-    _ -> return maybeEntry
-
--- For compound data types, this extracts the constructor
-findTypeOnEntryTable (G.Compound tk _ _) = do
-  ST.dictLookup $ ST.tokensToEntryName tk
-
--- For record alike data types (unions and structs), this extracts their constructor
-findTypeOnEntryTable (G.Record tk _) = ST.dictLookup $ ST.tokensToEntryName tk
-
--- For functions
-findTypeOnEntryTable (G.Callable (Just t) _) = findTypeOnEntryTable t
-
-findTypeOnEntryTable (G.Callable Nothing _) = return Nothing
-
-buildExtraForType :: G.GrammarType -> ST.ParserMonad (Maybe [ST.Extra])
-
--- For string alike data types
-buildExtraForType t@(G.Simple _ maybeSize) = do
-  maybeType <- findTypeOnEntryTable t
-  case maybeType of
-    Nothing -> return Nothing
-    Just t' -> return $ Just [case maybeSize of
-      Just e -> ST.Compound (ST.name t') e
-      Nothing -> ST.Simple (ST.name t')]
-
--- For array alike data types
-buildExtraForType t@(G.Compound _ tt@(G.Simple _ _) maybeExpr) = do
-  maybeTypeEntry <- findTypeOnEntryTable tt
-  constructor <- (ST.name . fromJust) <$> findTypeOnEntryTable t -- This call should never fail
-  case maybeTypeEntry of
-    Just t -> do
-      extras <- fromJust <$> buildExtraForType tt -- safe
-      let newExtra = if null extras then (ST.Simple $ ST.name t) else (head extras)
-      return $ Just (case maybeExpr of
-        Just e -> [ST.CompoundRec constructor e newExtra]
-        Nothing -> [ST.Recursive constructor newExtra])
-    Nothing -> return Nothing
-
-buildExtraForType t@(G.Compound _ tt@(G.Compound{}) maybeExpr) = do
-  maybeExtra <- buildExtraForType tt
-  case maybeExtra of
-    Nothing -> return Nothing
-    Just (extra':_) -> do
-      constructor <- (ST.name . fromJust) <$> findTypeOnEntryTable t -- This call should never fail
-      return $ case maybeExpr of
-        Just e -> Just [ST.CompoundRec constructor e extra']
-        Nothing -> Just [ST.Recursive constructor extra']
-
-buildExtraForType t@(G.Compound _ tt@(G.Record{}) maybeExpr) = do
-  maybeExtra <- buildExtraForType tt
-  case maybeExtra of
-    Nothing -> return Nothing
-    Just (extra':_) -> do
-      constructor <- (ST.name . fromJust) <$> findTypeOnEntryTable t -- This call should never fail
-      return $ case maybeExpr of
-        Just e -> Just [ST.CompoundRec constructor e extra']
-        Nothing -> Just [ST.Recursive constructor extra']
-
-buildExtraForType t@(G.Record tk _) = do
-  st@ST.SymTable {ST.stCurrScope=currScope} <- RWS.get
-  let constr = (case T.aToken tk of
-                  T.TkRecord -> ST.Record
-                  T.TkUnionStruct -> ST.Union)
-
-  let ret = Just [ST.Fields constr $ currScope + 1]
-  RWS.put st{ST.stCurrScope=(currScope + 1)}
-  return ret
-
-buildExtraForType t@(G.Callable t' []) = do
-  case t' of
-    -- For void functions
-    Nothing -> return $ Just [ST.EmptyFunction]
-    Just tt -> do
-      mExtra <- buildExtraForType tt
-      case mExtra of
-        Nothing -> return Nothing
-        Just extras -> return $ Just (ST.EmptyFunction : extras)
-
-buildExtraForType t@(G.Callable t' _) = do
-  case t' of
-    Nothing -> do
-      st@ST.SymTable{ST.stCurrScope=currScope} <- RWS.get
-      let ret = Just [ST.Fields ST.Callable $ currScope + 1]
-      RWS.put st{ST.stCurrScope=currScope + 1}
-      return ret
-    Just tt -> do
-      mExtra <- buildExtraForType tt
-      case mExtra of
-        Nothing -> return $ Nothing
-        Just extras -> do
-          st@ST.SymTable {ST.stCurrScope=currScope} <- RWS.get
-          let ret = Just ((ST.Fields ST.Callable $ currScope + 1) : extras)
-          RWS.put st{ST.stCurrScope=(currScope + 1)}
-          return ret
-
--- For anything else
-buildExtraForType _ = return $ Just []
 
 ------------------
 -- TYPECHECKING --

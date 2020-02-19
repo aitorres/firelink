@@ -169,16 +169,6 @@ newtype CodeBlock
   = CodeBlock Instructions
   deriving Show
 
-data ArgType = Val | Ref
-  deriving (Show, Eq)
-
-data GrammarType
-  = Simple Token (Maybe Expr)
-  | Compound Token GrammarType (Maybe Expr)
-  | Record Token [(Id, GrammarType)]
-  | Callable (Maybe GrammarType) [(ArgType, Id, GrammarType)]
-  deriving Show
-
 data RecoverableError
   = MissingProgramEnd
   | MissingDeclarationListEnd

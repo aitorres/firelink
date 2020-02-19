@@ -120,7 +120,8 @@ data SymTable = SymTable
       stIterableVars :: ![String], -- ^ List of currently protected iterable variables
       stSwitchTypes :: ![TC.Type], -- ^ List of currently active switch variable types
       stVisitedMethod :: !(Maybe String), -- ^ List of currently visited method
-      stNextAnonymousAlias :: !Int -- ^ Next anonymous alias to be used with anonymous data types
+      stNextAnonymousAlias :: !Int, -- ^ Next anonymous alias to be used with anonymous data types
+      stNextParamId :: !Int -- ^ Used to generate next parameter id (for ordering) in functions
     }
 
 type ParserMonad = RWS.RWST () [Error] SymTable IO
@@ -179,9 +180,20 @@ updateEntry f s = do
 
 genAliasName :: ParserMonad String
 genAliasName = do
-    st@SymTable {stNextAnonymousAlias=nextAliasId} <- RWS.get
-    RWS.put st{stNextAnonymousAlias=nextAliasId + 1}
+    st@SymTable {stNextAnonymousAlias = nextAliasId} <- RWS.get
+    RWS.put st{stNextAnonymousAlias = nextAliasId + 1}
     return $ "_alias_" ++ show nextAliasId
+
+genNextArgPosition :: ParserMonad Int
+genNextArgPosition = do
+    st@SymTable {stNextParamId = nextParamId} <- RWS.get
+    RWS.put st{stNextParamId = nextParamId + 1}
+    return nextParamId
+
+resetArgPosition :: ParserMonad ()
+resetArgPosition = do
+    st <- RWS.get
+    RWS.put st{stNextParamId = 0}
 
 enterScope :: ParserMonad ()
 enterScope = do
@@ -277,7 +289,7 @@ wordSize :: Int
 wordSize = 4
 
 initialState :: SymTable
-initialState = SymTable (Map.fromList l) [1, 0] 1 [] [] [] Nothing 0
+initialState = SymTable (Map.fromList l) [1, 0] 1 [] [] [] Nothing 0 0
     where l = [(smallHumanity, [DictionaryEntry smallHumanity Type 0 Nothing [Width 2]])
             , (humanity, [DictionaryEntry humanity Type 0 Nothing [Width 4]])
             , (hollow, [DictionaryEntry hollow Type 0 Nothing [Width 8]])
