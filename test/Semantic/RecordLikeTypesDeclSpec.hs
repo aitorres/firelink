@@ -111,20 +111,20 @@ spec = do
             (_, ST.SymTable {ST.stDict=dict}, errors) <- U.extractSymTable p
             errors `shouldSatisfy` null
             U.testEntry dict varEntry
-                { ST.entryType = Just "_alias_1" , ST.scope = 1}
+                { ST.entryType = Just "_alias_1", ST.scope = 1, ST.category = ST.Variable }
                 U.extractSimpleFromExtra (\(ST.Simple "_alias_1") -> True)
             U.testEntry dict varEntry
-                { ST.entryType = Just "bezel", ST.name = "_alias_1", ST.category = ST.Type
-                , ST.scope = 3 }
-                U.extractFieldsFromExtra (\(ST.Fields ST.Record 3) -> True)
-            U.testEntry dict varEntry
-                { ST.entryType = Just "_alias_0", ST.scope = 3, ST.category = ST.RecordItem }
-                U.extractSimpleFromExtra (\(ST.Simple "_alias_0") -> True)
-            U.testEntry dict varEntry
-                { ST.entryType = Just "bezel", ST.name = "_alias_0", ST.category = ST.Type }
+                { ST.entryType = Just "bezel", ST.name = "_alias_1", ST.category = ST.Type }
                 U.extractFieldsFromExtra (\(ST.Fields ST.Record 2) -> True)
             U.testEntry dict varEntry
-                { ST.entryType = Just "humanity", ST.scope = 2, ST.category = ST.RecordItem }
+                { ST.entryType = Just "_alias_0" , ST.scope = 2, ST.category = ST.RecordItem }
+                U.extractSimpleFromExtra (\(ST.Simple "_alias_0") -> True)
+            U.testEntry dict varEntry
+                { ST.entryType = Just "bezel", ST.name = "_alias_0", ST.category = ST.Type
+                , ST.scope = 2 }
+                U.extractFieldsFromExtra (\(ST.Fields ST.Record 3) -> True)
+            U.testEntry dict varEntry
+                { ST.entryType = Just "humanity", ST.scope = 3, ST.category = ST.RecordItem }
                 U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
     describe "Record like variable accessing" $ do
         it "allows to access ST.records properties" $

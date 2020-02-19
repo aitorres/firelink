@@ -1467,8 +1467,10 @@ buildStruct :: ST.TypeFields -> Int -> ST.ParserMonad (T.Type)
 buildStruct t scope = do
   ST.SymTable {ST.stDict=dict} <- RWS.get
   let entries = ST.findAllInScope scope dict
+  ST.pushScope scope
   let entryNames = map ST.name entries
   types <- mapM getType entries
+  ST.exitScope
   case t of
     ST.Record -> return $ T.RecordT scope $ map T.PropType $ zip entryNames types
     ST.Union -> return $ T.UnionT scope $ map T.PropType $ zip entryNames types
