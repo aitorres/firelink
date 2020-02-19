@@ -46,8 +46,6 @@ data Extra
         TypeFields
         Scope -- We only need the scope where the fields live
 
-    | EmptyFunction -- For functions/procs that doesn't have any arguments
-
     | CodeBlock -- For names that carries a codeblock ast
         G.CodeBlock
 
@@ -66,10 +64,6 @@ isFieldsExtra :: Extra -> Bool
 isFieldsExtra (Fields _ _) = True
 isFieldsExtra _            = False
 
-isEmptyFunction :: Extra -> Bool
-isEmptyFunction EmptyFunction = True
-isEmptyFunction _             = False
-
 isArgPosition :: Extra -> Bool
 isArgPosition ArgPosition{} = True
 isArgPosition _             = False
@@ -87,7 +81,8 @@ isExtraAType :: Extra -> Bool
 isExtraAType Recursive{}   = True
 isExtraAType Compound{}    = True
 isExtraAType CompoundRec{} = True
-isExtraAType Fields{}      = True
+isExtraAType (Fields Record _) = True
+isExtraAType (Fields Union _) = True
 isExtraAType Simple{}      = True
 isExtraAType _             = False
 
@@ -123,6 +118,7 @@ data SymTable = SymTable
       stNextAnonymousAlias :: !Int, -- ^ Next anonymous alias to be used with anonymous data types
       stNextParamId :: !Int -- ^ Used to generate next parameter id (for ordering) in functions
     }
+    deriving Show
 
 type ParserMonad = RWS.RWST () [Error] SymTable IO
 
@@ -199,6 +195,11 @@ enterScope :: ParserMonad ()
 enterScope = do
     st@SymTable {stCurrScope=cs, stScopeStack=scopeStack} <- RWS.get
     RWS.put st{stCurrScope=cs + 1, stScopeStack=cs + 1 : scopeStack}
+
+pushScope :: Int ->ParserMonad ()
+pushScope c = do
+    st@SymTable {stScopeStack=scopeStack} <- RWS.get
+    RWS.put st{stScopeStack=c : scopeStack}
 
 exitScope :: ParserMonad ()
 exitScope = do

@@ -9,7 +9,7 @@ varEntry :: ST.DictionaryEntry
 varEntry = ST.DictionaryEntry
     { ST.scope = 1
     , ST.category = ST.Procedure
-    , ST.entryType = Nothing
+    , ST.entryType = Just "void"
     , ST.name = "fun"
     , ST.extra = []
     }
@@ -34,8 +34,8 @@ spec = do
             (_, ST.SymTable {ST.stDict=dict}, _) <- U.extractSymTable p
             U.testEntry dict varEntry U.extractCodeblockFromExtra
                 (\(ST.CodeBlock (G.CodeBlock [G.InstReturn])) -> True)
-            U.testEntry dict varEntry U.extractEmptyFunctionFromExtra
-                (\ST.EmptyFunction -> True)
+            U.testEntry dict varEntry U.extractFieldsFromExtra
+                (\(ST.Fields ST.Callable _) -> True)
         it "allows to declare procedures with one val argument" $ do
             let p = "hello ashen one\n\
 
@@ -186,11 +186,11 @@ spec = do
             U.testEntry dict varEntry
                 { ST.scope = 1
                 , ST.name = "fun1"
-                } U.extractEmptyFunctionFromExtra (const True)
+                } U.extractFieldsFromExtra (const True)
             U.testEntry dict varEntry
                 { ST.scope = 1
                 , ST.name = "fun2"
-                } U.extractEmptyFunctionFromExtra (const True)
+                } U.extractFieldsFromExtra (const True)
     describe "Functions calls" $ do
         it "allows to call declared procedures with no parameters" $
             U.shouldNotError "hello ashen one\n\

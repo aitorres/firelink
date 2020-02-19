@@ -57,11 +57,6 @@ extractCodeblockFromExtra [] = error "The `extra` array doesn't have any `CodeBl
 extractCodeblockFromExtra (s@ST.CodeBlock{} : _) = s
 extractCodeblockFromExtra (_:ss) = extractCodeblockFromExtra ss
 
-extractEmptyFunctionFromExtra :: Extractor
-extractEmptyFunctionFromExtra [] = error "The `extra` array doesn't have any `EmptyFunction` item"
-extractEmptyFunctionFromExtra (s@ST.EmptyFunction : _) = s
-extractEmptyFunctionFromExtra (_:ss) = extractEmptyFunctionFromExtra ss
-
 extractArgPositionFromExtra :: Extractor
 extractArgPositionFromExtra [] = error "The `extra` array doesn't have any `ArgPosition` item"
 extractArgPositionFromExtra (s@ST.ArgPosition{} : _) = s

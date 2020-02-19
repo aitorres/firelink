@@ -309,9 +309,7 @@ METHOD :: { () }
 
 FUNC :: { () }
   : FUNCPREFIX CODEBLOCK functionEnd                                    {% do
-                                                                            RWS.lift $ putStrLn "before called"
                                                                             ST.popVisitedMethod
-                                                                            RWS.lift $ putStrLn "after called"
                                                                             case $1 of
                                                                               Nothing -> return ()
                                                                               Just (s, i) -> updateCodeBlockOfFun s i $2 }
@@ -319,10 +317,11 @@ FUNC :: { () }
 FUNCPREFIX :: { Maybe (ST.Scope, G.Id) }
   : FUNCNAME METHODPARS functionType TYPE                               {% do
                                                                           currScope <- ST.getCurrentScope
-                                                                          let extras = [ ST.Fields ST.Callable currScope, $4 ]
-                                                                          RWS.lift $ print "hola"
+                                                                          ST.exitScope
+                                                                          let extras = [ $4, ST.Fields ST.Callable currScope ]
                                                                           ret <- addFunction (ST.Function, $1, extras, Nothing)
-                                                                          RWS.lift $ print $ "after calling addfunction " ++ show ret
+                                                                          ST.pushScope currScope
+
                                                                           return ret }
 
 FUNCNAME :: { G.Id }
@@ -331,27 +330,35 @@ FUNCNAME : functionBegin ID                                             {% ST.en
 PROC :: { () }
   : PROCPREFIX CODEBLOCK procedureEnd                                   {% do
                                                                             ST.popVisitedMethod
-                                                                            RWS.lift $ putStrLn "afet popvisitingmethod"
                                                                             case $1 of
                                                                               Nothing -> return ()
                                                                               Just (s, i) -> updateCodeBlockOfFun s i $2 }
 
 PROCPREFIX :: { Maybe (ST.Scope, G.Id) }
-  : PROCNAME METHODPARS  toTheEstusFlask                                {% do
+  : PROCNAME PROCPARS                                                   {% do
                                                                             currScope <- ST.getCurrentScope
-                                                                            let extras = [ ST.Fields ST.Callable currScope ]
-                                                                            addFunction (ST.Procedure, $1, extras, Nothing) }
+                                                                            ST.exitScope
+                                                                            let extras = [ ST.Simple ST.void, ST.Fields ST.Callable currScope ]
+                                                                            st <- RWS.get >>= return . ST.stDict
+
+                                                                            ret <- addFunction (ST.Procedure, $1, extras, Nothing)
+                                                                            ST.pushScope currScope
+                                                                            return ret }
 
 PROCNAME :: { G.Id }
 PROCNAME : procedureBegin ID                                            {% ST.enterScope >> return $2 }
 
-METHODPARS :: { () }
-  : paramRequest PARS                                                   {% ST.resetArgPosition >> return () }
-  | {- empty -}                                                         { () }
+PROCPARS :: { Int }
+PROCPARS : paramRequest PARS toTheEstusFlask                            {% ST.resetArgPosition >> return $2 }
+  | {- empty -}                                                         { 0 }
 
-PARS :: { () }
-  : PARS comma PAR                                                      { () }
-  | PAR                                                                 { () }
+METHODPARS :: { Int }
+  : paramRequest PARS                                                   {% ST.resetArgPosition >> return $2 }
+  | {- empty -}                                                         { 0 }
+
+PARS :: { Int }
+  : PARS comma PAR                                                      { 1 + $1 }
+  | PAR                                                                 { 1 }
 
 PAR :: { () }
   : PARTYPE ID ofType TYPE                                              {% do
@@ -429,6 +436,7 @@ CODEBLOCK :: { G.CodeBlock }
 INSTBEGIN :: { T.Token }
 INSTBEGIN : instructionsBegin                                           {% do
                                                                             ST.enterScope
+                                                                            st <- RWS.get
                                                                             return $1 }
 
 INSTEND :: { Maybe G.RecoverableError }
@@ -482,7 +490,7 @@ INSTR :: { G.Instruction }
   | free EXPR                                                           {% do
                                                                           checkPointerVariable $2
                                                                           return $G.InstFreeMem $2 }
-  | cast ID PROCPARS                                                    {% do
+  | cast ID PROCARGS                                                    {% do
                                                                           checkIdAvailability $2
                                                                           (_, params) <- methodsCheck $2 $3 $1
                                                                           return $ G.InstCallProc $2 params }
@@ -664,7 +672,7 @@ TOTHEKNIGHT :: { Maybe G.RecoverableError }
   : toTheKnight                                                         { Nothing }
   | error                                                               { Just G.MissingFunCallEnd }
 
-PROCPARS :: { G.Params }
+PROCARGS :: { G.Params }
   : offering PARSLIST TOTHEESTUSFLASK                                   {% do
                                                                              checkRecoverableError $1 $3
                                                                              return $ reverse $2 }
@@ -732,7 +740,6 @@ addIdsToSymTable ids = do
 
 addIdToSymTable :: NameDeclaration -> ST.ParserMonad ()
 addIdToSymTable d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idName}) _), t, maybeExp) = do
-  RWS.lift $ putStrLn $ "On addIdToSymTable, with " ++ idName
   maybeIdEntry <- ST.dictLookup idName
   let typeEntry = getTypeNameForSymTable $ head $ filter ST.isExtraAType t
   currScope <- ST.getCurrentScope
@@ -748,7 +755,6 @@ addIdToSymTable d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idName
         , ST.extra = t
         }
       entry <- checkIdAvailability gId
-      RWS.lift $ putStrLn $ "maybeExp is " ++ show maybeExp
       case (entry, maybeExp) of
         (Just en, Just exp) -> do
           t <- getType exp
@@ -886,7 +892,6 @@ checkIterableVariables e = case G.expAst e of
 
 checkIdAvailability :: G.Id -> ST.ParserMonad (Maybe ST.DictionaryEntry)
 checkIdAvailability (G.Id tk@(T.Token {T.cleanedString=idName}) _) = do
-  RWS.lift $ putStrLn $ "Checking id availability of " ++ idName
   maybeEntry <- ST.dictLookup idName
   case maybeEntry of
     Nothing -> do
@@ -944,7 +949,6 @@ addFunction d@(_, i@(G.Id tk@(T.Token {T.cleanedString=idName}) _), _, _) = do
   case maybeEntry of
     Nothing -> do
       addIdToSymTable d
-      RWS.lift $ putStrLn $ "function " ++ idName ++ " was inserted"
       return $ Just (currScope, i)
     Just entry -> do
       logSemError ("Function " ++ idName ++ " was already declared") tk
@@ -1409,17 +1413,13 @@ instance TypeCheckable G.Expr where
 instance TypeCheckable ST.DictionaryEntry where
   getType entry@ST.DictionaryEntry{ST.entryType=Just _, ST.category = cat, ST.extra = extras}
     | cat `elem` [ST.Function, ST.Procedure] = do
-      let isEmptyFunction = not . null $ filter ST.isEmptyFunction extras
       range <- (case cat of
         ST.Procedure -> return T.VoidT
         ST.Function -> getType entry{ST.category=ST.Variable}) -- cheating
-      domain <- (if isEmptyFunction
-        then return []
-        else do
+      domain <- do
           let fields = head $ filter ST.isFieldsExtra extras
           (T.TypeList list) <- getType fields
           return list
-          )
       case range of
         -- The range is returned as a one-type typelist, we return the actual type
         T.TypeList (r:_) -> return $ T.FunctionT domain r
@@ -1431,17 +1431,6 @@ instance TypeCheckable ST.DictionaryEntry where
         ST.RefParam, ST.ValueParam, ST.Type] = getType $ ST.extractTypeFromExtra extras
 
     | otherwise = logRTError "error on getType for expected dict entries"
-
-  getType entry@ST.DictionaryEntry{ST.entryType=Nothing, ST.category=ST.Procedure, ST.extra=extras} = do
-    let isEmptyProc = not . null $ filter ST.isEmptyFunction extras
-    domain <- (if isEmptyProc
-      then return []
-      else do
-        let fields = head $ filter ST.isFieldsExtra extras
-        (T.TypeList list) <- getType fields
-        return list
-        )
-    return $ T.ProcedureT domain
 
   getType _ = logRTError "error on getType for unexpected dict entries"
 
@@ -1464,8 +1453,6 @@ instance TypeCheckable ST.Extra where
     return $ T.TypeList types
 
   getType (ST.Fields b scope) = buildStruct b scope
-
-  getType ST.EmptyFunction = return $ T.TypeList []
 
   getType (ST.Simple s)
       | s == ST.smallHumanity = return T.SmallIntT

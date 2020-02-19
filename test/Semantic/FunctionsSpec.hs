@@ -35,8 +35,8 @@ spec = do
             (_, ST.SymTable {ST.stDict=dict}, _) <- U.extractSymTable p
             U.testEntry dict varEntry U.extractCodeblockFromExtra
                 (\(ST.CodeBlock (G.CodeBlock [G.InstReturnWith _])) -> True)
-            U.testEntry dict varEntry U.extractEmptyFunctionFromExtra
-                (\ST.EmptyFunction -> True)
+            U.testEntry dict varEntry U.extractFieldsFromExtra
+                (\(ST.Fields ST.Callable _) -> True)
         it "allows to declare functions with one val argument" $ do
             let p = "hello ashen one\n\
 
@@ -215,12 +215,12 @@ spec = do
                 { ST.scope = 1
                 , ST.name = "fun1"
                 , ST.entryType = Just "humanity"
-                } U.extractEmptyFunctionFromExtra (const True)
+                } U.extractFieldsFromExtra (const True)
             U.testEntry dict varEntry
                 { ST.scope = 1
                 , ST.name = "fun2"
                 , ST.entryType = Just "sign"
-                } U.extractEmptyFunctionFromExtra (const True)
+                } U.extractFieldsFromExtra (const True)
     describe "Functions calls" $ do
         it "allows to call declared functions with no parameters" $
             U.shouldNotError "hello ashen one\n\
