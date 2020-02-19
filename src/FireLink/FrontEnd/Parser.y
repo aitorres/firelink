@@ -309,7 +309,9 @@ METHOD :: { () }
 
 FUNC :: { () }
   : FUNCPREFIX CODEBLOCK functionEnd                                    {% do
+                                                                            RWS.lift $ putStrLn "before called"
                                                                             ST.popVisitedMethod
+                                                                            RWS.lift $ putStrLn "after called"
                                                                             case $1 of
                                                                               Nothing -> return ()
                                                                               Just (s, i) -> updateCodeBlockOfFun s i $2 }
@@ -318,7 +320,10 @@ FUNCPREFIX :: { Maybe (ST.Scope, G.Id) }
   : FUNCNAME METHODPARS functionType TYPE                               {% do
                                                                           currScope <- ST.getCurrentScope
                                                                           let extras = [ ST.Fields ST.Callable currScope, $4 ]
-                                                                          addFunction (ST.Function, $1, extras, Nothing) }
+                                                                          RWS.lift $ print "hola"
+                                                                          ret <- addFunction (ST.Function, $1, extras, Nothing)
+                                                                          RWS.lift $ print $ "after calling addfunction " ++ show ret
+                                                                          return ret }
 
 FUNCNAME :: { G.Id }
 FUNCNAME : functionBegin ID                                             {% ST.enterScope >> return $2 }
@@ -326,6 +331,7 @@ FUNCNAME : functionBegin ID                                             {% ST.en
 PROC :: { () }
   : PROCPREFIX CODEBLOCK procedureEnd                                   {% do
                                                                             ST.popVisitedMethod
+                                                                            RWS.lift $ putStrLn "afet popvisitingmethod"
                                                                             case $1 of
                                                                               Nothing -> return ()
                                                                               Just (s, i) -> updateCodeBlockOfFun s i $2 }
@@ -726,6 +732,7 @@ addIdsToSymTable ids = do
 
 addIdToSymTable :: NameDeclaration -> ST.ParserMonad ()
 addIdToSymTable d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idName}) _), t, maybeExp) = do
+  RWS.lift $ putStrLn $ "On addIdToSymTable, with " ++ idName
   maybeIdEntry <- ST.dictLookup idName
   let typeEntry = getTypeNameForSymTable $ head $ filter ST.isExtraAType t
   currScope <- ST.getCurrentScope
@@ -741,6 +748,7 @@ addIdToSymTable d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idName
         , ST.extra = t
         }
       entry <- checkIdAvailability gId
+      RWS.lift $ putStrLn $ "maybeExp is " ++ show maybeExp
       case (entry, maybeExp) of
         (Just en, Just exp) -> do
           t <- getType exp
@@ -878,6 +886,7 @@ checkIterableVariables e = case G.expAst e of
 
 checkIdAvailability :: G.Id -> ST.ParserMonad (Maybe ST.DictionaryEntry)
 checkIdAvailability (G.Id tk@(T.Token {T.cleanedString=idName}) _) = do
+  RWS.lift $ putStrLn $ "Checking id availability of " ++ idName
   maybeEntry <- ST.dictLookup idName
   case maybeEntry of
     Nothing -> do
@@ -929,12 +938,13 @@ extractFieldsFromExtra (_:ss) = extractFieldsFromExtra ss
 
 addFunction :: NameDeclaration -> ST.ParserMonad (Maybe (ST.Scope, G.Id))
 addFunction d@(_, i@(G.Id tk@(T.Token {T.cleanedString=idName}) _), _, _) = do
-  ST.SymTable {ST.stCurrScope=currScope} <- RWS.get
+  currScope <- ST.getCurrentScope
   ST.addVisitedMethod idName
   maybeEntry <- ST.dictLookup idName
   case maybeEntry of
     Nothing -> do
       addIdToSymTable d
+      RWS.lift $ putStrLn $ "function " ++ idName ++ " was inserted"
       return $ Just (currScope, i)
     Just entry -> do
       logSemError ("Function " ++ idName ++ " was already declared") tk
