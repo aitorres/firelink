@@ -1,6 +1,5 @@
 module TypeAliasesSpec where
 
-import qualified Data.Map                   as Map
 import           FireLink.FrontEnd.Errors
 import qualified FireLink.FrontEnd.Grammar  as G
 import qualified FireLink.FrontEnd.SymTable as ST
@@ -40,20 +39,38 @@ spec = describe "Aliases Declarations" $ do
     it "allows to define aliases to just primitive types" $
         testVoid "knight x humanity" alias{ST.entryType = Just "humanity"}
             U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
-    it "allows to define aliases to data types with size (strings alikes)" $
-        testVoid "knight x <12>-miracle" alias{ST.entryType = Just ">-miracle"}
-            U.extractCompoundFromExtra (\(ST.Compound ">-miracle" G.Expr{G.expAst=G.IntLit 12}) -> True)
-    it "allows to define aliases to recursive data types (no size) (set alike)" $
-        testVoid "knight x armor of type humanity" alias{ST.entryType = Just "armor"}
+    it "allows to define aliases to data types with size (strings alikes)" $ do
+        dict <- test "knight x <12>-miracle" alias{ST.entryType = Just "_alias_0"}
+            U.extractSimpleFromExtra (\(ST.Simple "_alias_0") -> True)
+        U.testEntry dict alias
+            { ST.name = "_alias_0"
+            , ST.entryType = Just ">-miracle"
+            }
+            U.extractCompoundFromExtra
+            (\(ST.Compound ">-miracle" G.Expr{G.expAst=G.IntLit 12}) -> True)
+    it "allows to define aliases to recursive data types (no size) (set alike)" $ do
+        dict <- test "knight x armor of type humanity" alias{ST.entryType = Just "_alias_0"}
+            U.extractSimpleFromExtra (\(ST.Simple "_alias_0") -> True)
+        U.testEntry dict alias
+            { ST.name = "_alias_0"
+            , ST.entryType = Just "armor" }
             U.extractRecursiveFromExtra
             (\(ST.Recursive "armor" (ST.Simple "humanity")) -> True)
-    it "allows to define aliases to recursive data types (with size) (arrays alike)" $
-        testVoid "knight x <10>-chest of type sign" alias{ST.entryType = Just ">-chest"}
+
+    it "allows to define aliases to recursive data types (with size) (arrays alike)" $ do
+        dict <- test "knight x <10>-chest of type sign" alias{ST.entryType = Just "_alias_0"}
+            U.extractSimpleFromExtra (\(ST.Simple "_alias_0") -> True)
+        U.testEntry dict alias
+            { ST.name = "_alias_0"
+            , ST.entryType = Just ">-chest" }
             U.extractCompoundRecFromExtra
             (\(ST.CompoundRec ">-chest" G.Expr{G.expAst=G.IntLit 10} (ST.Simple "sign")) -> True)
     it "allows to define aliases to custom user defined record data types" $ do
-        dict <- test "knight x bezel { y of type humanity }" alias{ST.entryType = Just "bezel"}
-            U.extractFieldsFromExtra
+        dict <- test "knight x bezel { y of type humanity }" alias{ST.entryType = Just "_alias_0"}
+            U.extractSimpleFromExtra (\(ST.Simple "_alias_0") -> True)
+        U.testEntry dict alias
+            { ST.name="_alias_0"
+            , ST.entryType=Just "bezel"} U.extractFieldsFromExtra
             (\(ST.Fields ST.Record 2) -> True)
         U.testEntry dict alias
             { ST.name="y"
@@ -62,7 +79,11 @@ spec = describe "Aliases Declarations" $ do
             , ST.entryType=Just "humanity"} U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
     it "allows to define aliases to custom user defined record data types with more than 1 field" $ do
         dict <- test "knight x bezel { y of type humanity, z of type sign }"
-            alias{ST.entryType = Just "bezel"} U.extractFieldsFromExtra
+            alias{ST.entryType = Just "_alias_0"} U.extractSimpleFromExtra
+            (\(ST.Simple "_alias_0") -> True)
+        U.testEntry dict alias
+            { ST.name = "_alias_0"
+            , ST.entryType = Just "bezel"}  U.extractFieldsFromExtra
             (\(ST.Fields ST.Record 2) -> True)
         U.testEntry dict alias
             { ST.name="y"
@@ -106,7 +127,7 @@ spec = describe "Aliases Declarations" $ do
         \   go back\n\
         \you died\n\
         \ farewell ashen one\n"
-        (_, ST.SymTable {ST.stDict=dict}, errors) <- U.extractSymTable p
+        (_, _, errors) <- U.extractSymTable p
         errors `shouldNotSatisfy` null
         let Error _ pn = head errors
         UU.row pn `shouldBe` 4
