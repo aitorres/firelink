@@ -378,11 +378,11 @@ TYPE :: { ST.Extra }
                                                                             Just _ -> return ()
                                                                             _ -> logSemError ("Type " ++ show t ++ " not found") t
                                                                           return $ ST.Simple (T.cleanedString t) }
-  | bigInt                                                              { ST.Simple (T.cleanedString $1) }
-  | smallInt                                                            { ST.Simple (T.cleanedString $1) }
-  | float                                                               { ST.Simple (T.cleanedString $1) }
-  | char                                                                { ST.Simple (T.cleanedString $1) }
-  | bool                                                                { ST.Simple (T.cleanedString $1) }
+  | bigInt                                                              { ST.Simple ST.humanity }
+  | smallInt                                                            { ST.Simple ST.smallHumanity }
+  | float                                                               { ST.Simple ST.hollow }
+  | char                                                                { ST.Simple ST.sign }
+  | bool                                                                { ST.Simple ST.bonfire }
   | ltelit EXPR array ofType TYPE                                       {% createAnonymousAlias $1 $
                                                                               ST.CompoundRec (T.cleanedString $3) $2 $5 }
 
@@ -477,6 +477,7 @@ DECLARADD :: { Maybe G.Instruction }
                                                                                 let baseLvalue = G.IdExpr lvalueId
                                                                                 let (G.Id idToken _) = lvalueId
                                                                                 lvalue <- buildAndCheckExpr idToken baseLvalue
+                                                                                ST.SymTable {ST.stScopeStack = stack} <- RWS.get
                                                                                 assignment <- checkAssignment lvalue token rvalue True
                                                                                 return $ Just assignment }
 
@@ -731,8 +732,7 @@ parseErrors errors =
   in  fail msg
 
 addIdsToSymTable :: [NameDeclaration] -> ST.ParserMonad ()
-addIdsToSymTable ids = do
-  RWS.mapM_ addIdToSymTable ids
+addIdsToSymTable = RWS.mapM_ addIdToSymTable
 
 addIdToSymTable :: NameDeclaration -> ST.ParserMonad ()
 addIdToSymTable d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idName}) _), t) = do
@@ -1460,7 +1460,11 @@ instance TypeCheckable ST.Extra where
       | s == ST.sign = return T.CharT
       | s == ST.bonfire = return T.TrileanT
       | s == ST.void = return T.VoidT
-      | otherwise = ST.dictLookup s >>= (getType . fromJust)
+      | otherwise = do
+        maybeEntry <- ST.dictLookup s
+        case maybeEntry of
+          Nothing -> return T.TypeError
+          Just e -> getType e
   getType _ = logRTError "error on getType for SymTable extra"
 
 buildStruct :: ST.TypeFields -> Int -> ST.ParserMonad (T.Type)

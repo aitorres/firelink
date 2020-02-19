@@ -36,7 +36,7 @@ spec =
     it "should reject simultaneous declarations of invalid types" $
       baseProgram "\
       \var x of type sign <<= |a|, \n\
-      \var y of type small humanity <<= x" `U.shouldErrorOn` ("<<=", 5, 34)
+      \var y of type small humanity <<= x" `U.shouldErrorOn` ("<<=", 5, 30)
 
     it "should reject simultaneous declarations of uncastable type" $
       baseProgram "\

@@ -133,7 +133,7 @@ data Expr = Expr {
 } deriving Eq
 
 instance Show Expr where
-  show = show . expAst
+  show exp = show (expAst exp) ++ ":" ++ show (expType exp)
 
 newtype Program
   = Program CodeBlock
