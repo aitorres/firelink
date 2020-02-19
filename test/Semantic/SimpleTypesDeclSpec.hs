@@ -51,24 +51,42 @@ spec = do
         it "allows to declare variables of type `bonfire`" $
             testVoid "bonfire" varEntry{ST.entryType = Just "bonfire"}
                 U.extractSimpleFromExtra (\(ST.Simple "bonfire") -> True)
-        it "allows to declare variables of type `<n>-miracle`" $
-            testVoid "<1>-miracle"  varEntry{ST.entryType = Just ">-miracle"} U.extractCompoundFromExtra
+        it "allows to declare variables of type `<n>-miracle`" $ do
+            dict <- test "<1>-miracle"  varEntry{ST.entryType = Just "_alias_0"}
+                U.extractSimpleFromExtra (\(ST.Simple "_alias_0") -> True)
+            U.testEntry dict varEntry
+                { ST.name = "_alias_0"
+                , ST.category = ST.Type
+                , ST.entryType = Just ">-miracle" } U.extractCompoundFromExtra
                 (\(ST.Compound ">-miracle" G.Expr{G.expAst=G.IntLit 1}) -> True)
-        it "allows to declare variables of recursive type `<n>-chest of type humanity" $
-            testVoid "<1>-chest of type humanity"  varEntry{ST.entryType = Just ">-chest"}
-            U.extractCompoundRecFromExtra
-                (\(ST.CompoundRec ">-chest"
-                    G.Expr{G.expAst=G.IntLit 1}
-                    (ST.Simple "humanity")) -> True)
-        it "allows to declare variables of recursive type `<n>-chest of type <m>-chest of type humanity" $
-            testVoid "<1>-chest of type <2>-chest of type humanity" varEntry{ST.entryType = Just ">-chest"}
-                U.extractCompoundRecFromExtra (\(ST.CompoundRec
+        it "allows to declare variables of recursive type `<n>-chest of type humanity" $ do
+            dict <- test "<1>-chest of type humanity"  varEntry{ST.entryType = Just "_alias_0"}
+                U.extractSimpleFromExtra (\(ST.Simple "_alias_0") -> True)
+            U.testEntry dict varEntry
+                { ST.name = "_alias_0"
+                , ST.category = ST.Type
+                , ST.entryType = Just ">-chest" }
+                U.extractCompoundRecFromExtra
+                    (\(ST.CompoundRec ">-chest"
+                        G.Expr{G.expAst=G.IntLit 1}
+                        (ST.Simple "humanity")) -> True)
+        it "allows to declare variables of recursive type `<n>-chest of type <m>-chest of type humanity" $ do
+            dict <- test "<1>-chest of type <2>-chest of type humanity" varEntry{ST.entryType = Just "_alias_1"}
+                U.extractSimpleFromExtra (\(ST.Simple "_alias_1") -> True)
+            U.testEntry dict varEntry
+                { ST.name = "_alias_1"
+                , ST.entryType = Just ">-chest"
+                , ST.category = ST.Type
+                } U.extractCompoundRecFromExtra (\(ST.CompoundRec
                     ">-chest"
-                    G.Expr{G.expAst=G.IntLit 1}
-                    (ST.CompoundRec
-                        ">-chest"
+                    G.Expr{G.expAst=G.IntLit 1} (ST.Simple "_alias_0")) -> True)
+            U.testEntry dict varEntry
+                { ST.name = "_alias_0"
+                , ST.entryType = Just ">-chest"
+                , ST.category = ST.Type
+                } U.extractCompoundRecFromExtra (\(ST.CompoundRec ">-chest"
                         G.Expr{G.expAst=G.IntLit 2}
-                        (ST.Simple "humanity"))) -> True)
+                        (ST.Simple "humanity")) -> True)
         it "allows to declare variables of recursive type `<n>-chest of type <n>-miracle" $ do
             dict <- test "<1>-chest of type <2>-miracle" varEntry{ST.entryType = Just "_alias_1" }
                 U.extractSimpleFromExtra (\(ST.Simple "_alias_1") -> True)
