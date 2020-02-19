@@ -111,4 +111,3 @@ spec = describe "Aliases Declarations" $ do
         let Error _ pn = head errors
         UU.row pn `shouldBe` 4
         UU.column pn `shouldBe` 18
-        Map.findWithDefault [] "y" dict `shouldSatisfy` null

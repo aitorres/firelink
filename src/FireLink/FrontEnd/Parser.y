@@ -4,7 +4,7 @@ module FireLink.FrontEnd.Parser (
 
 import qualified Control.Monad.RWS              as RWS
 import           Data.List                      (sort)
-import           Data.Maybe
+import           Data.Maybe                     (catMaybes, isJust, fromJust)
 import           FireLink.FrontEnd.Errors
 import qualified FireLink.FrontEnd.Grammar      as G
 import qualified FireLink.FrontEnd.SymTable     as ST
@@ -217,7 +217,7 @@ ALIASADD :: { () }
                                                                             return () }
 
 ALIAS :: { NameDeclaration }
-  : alias ID TYPE                                                       { (ST.Type, $2, [$3], Nothing) }
+  : alias ID TYPE                                                       { (ST.Type, $2, [$3]) }
 
 LVALUE :: { G.Expr }
   : ID                                                                  {% do
@@ -319,7 +319,7 @@ FUNCPREFIX :: { Maybe (ST.Scope, G.Id) }
                                                                           currScope <- ST.getCurrentScope
                                                                           ST.exitScope
                                                                           let extras = [ $4, ST.Fields ST.Callable currScope ]
-                                                                          ret <- addFunction (ST.Function, $1, extras, Nothing)
+                                                                          ret <- addFunction (ST.Function, $1, extras)
                                                                           ST.pushScope currScope
 
                                                                           return ret }
@@ -341,7 +341,7 @@ PROCPREFIX :: { Maybe (ST.Scope, G.Id) }
                                                                             let extras = [ ST.Simple ST.void, ST.Fields ST.Callable currScope ]
                                                                             st <- RWS.get >>= return . ST.stDict
 
-                                                                            ret <- addFunction (ST.Procedure, $1, extras, Nothing)
+                                                                            ret <- addFunction (ST.Procedure, $1, extras)
                                                                             ST.pushScope currScope
                                                                             return ret }
 
@@ -364,14 +364,20 @@ PAR :: { () }
   : PARTYPE ID ofType TYPE                                              {% do
                                                                           argPosition <- ST.genNextArgPosition
                                                                           let extras = [$4, ST.ArgPosition argPosition]
-                                                                          addIdToSymTable ($1, $2, extras, Nothing) }
+                                                                          addIdToSymTable ($1, $2, extras) }
 
 PARTYPE :: { ST.Category }
   : parVal                                                              { ST.ValueParam }
   | parRef                                                              { ST.RefParam }
 
 TYPE :: { ST.Extra }
-  : ID                                                                  { let G.Id t _ = $1 in ST.Simple (T.cleanedString t) }
+  : ID                                                                  {% do
+                                                                          let G.Id t _ = $1
+                                                                          maybeEntry <- ST.dictLookup (T.cleanedString t)
+                                                                          case maybeEntry of
+                                                                            Just _ -> return ()
+                                                                            _ -> logSemError ("Type " ++ show t ++ " not found") t
+                                                                          return $ ST.Simple (T.cleanedString t) }
   | bigInt                                                              { ST.Simple (T.cleanedString $1) }
   | smallInt                                                            { ST.Simple (T.cleanedString $1) }
   | float                                                               { ST.Simple (T.cleanedString $1) }
@@ -418,7 +424,7 @@ STRUCTITS :: { () }
   | STRUCTIT                                                            { () }
 
 STRUCTIT :: { () }
-  : ID ofType TYPE                                                      {% addIdToSymTable (ST.RecordItem, $1, [$3], Nothing) }
+  : ID ofType TYPE                                                      {% addIdToSymTable (ST.RecordItem, $1, [$3]) }
 
 ID :: { G.Id }
   : id                                                                  {% do
@@ -447,7 +453,7 @@ INSTEND :: { Maybe G.RecoverableError }
 
 DECLARS :: { [G.Instruction] }
   : with DECLARSL DECLAREND                                             {% do
-                                                                            let instrlist = getAssigsFromDeclarations (reverse $2)
+                                                                            let instrlist = catMaybes (reverse $2)
                                                                             checkRecoverableError $1 $3
                                                                             return instrlist }
 
@@ -455,20 +461,29 @@ DECLAREND :: { Maybe G.RecoverableError }
   : declarend                                                           { Nothing }
   | error                                                               { Just G.MissingDeclarationListEnd }
 
-DECLARSL :: { [NameDeclaration] }
+DECLARSL :: { [Maybe G.Instruction] }
   : DECLARSL comma DECLARADD                                            { $3:$1 }
   | DECLARADD                                                           { [$1] }
 
-DECLARADD :: { NameDeclaration }
+DECLARADD :: { Maybe G.Instruction }
   : DECLAR                                                              {% do
                                                                             -- Adds a declaration to the ST as soon as it's parsed
-                                                                            addIdToSymTable $1
-                                                                            return $1 }
+                                                                            let (declar, _) = $1
+                                                                            addIdToSymTable declar
+                                                                            let ((_, lvalueId, _), maybeRValue) = $1
+                                                                            case maybeRValue of
+                                                                              Nothing -> return Nothing
+                                                                              Just (token, rvalue) -> do
+                                                                                let baseLvalue = G.IdExpr lvalueId
+                                                                                let (G.Id idToken _) = lvalueId
+                                                                                lvalue <- buildAndCheckExpr idToken baseLvalue
+                                                                                assignment <- checkAssignment lvalue token rvalue True
+                                                                                return $ Just assignment }
 
-DECLAR :: { NameDeclaration }
-  : var ID ofType TYPE                                                  { (ST.Variable, $2, [$4], Nothing) }
-  | var ID ofType TYPE asig EXPR                                        { (ST.Variable, $2, [$4], Just $6) }
-  | const ID ofType TYPE asig EXPR                                      { (ST.Constant, $2, [$4], Just $6) }
+DECLAR :: { (NameDeclaration, Maybe (T.Token, G.Expr)) }
+  : var ID ofType TYPE                                                  { ((ST.Variable, $2, [$4]), Nothing) }
+  | var ID ofType TYPE asig EXPR                                        { ((ST.Variable, $2, [$4]), Just ($5, $6))  }
+  | const ID ofType TYPE asig EXPR                                      { ((ST.Constant, $2, [$4]), Just ($5, $6)) }
 
 INSTRL :: { G.Instructions }
   : INSTRL seq INSTR                                                    { $3 : $1 }
@@ -476,13 +491,7 @@ INSTRL :: { G.Instructions }
 
 INSTR :: { G.Instruction }
   : LVALUE asig EXPR                                                    {% do
-                                                                          checkConstantReassignment $1
-                                                                          checkIterVariables $1
-                                                                          checkIterableVariables $1
-                                                                          t <- getType $3
-                                                                          if t == T.StructLitT
-                                                                          then checkStructAssignment $1 $3 $2
-                                                                          else checkTypeOfAssignment $1 $3 $2
+                                                                          checkAssignment $1 $2 $3 False
                                                                           return $ G.InstAsig $1 $3 }
   | malloc EXPR                                                         {% do
                                                                           checkPointerVariable $2
@@ -688,7 +697,7 @@ PARSLIST :: { G.Params }
 
 {
 
-type NameDeclaration = (ST.Category, G.Id, [ST.Extra], Maybe G.Expr)
+type NameDeclaration = (ST.Category, G.Id, [ST.Extra])
 type RecordItem = (G.Id, ST.Extra)
 
 createAnonymousAlias :: T.Token -> ST.Extra -> ST.ParserMonad ST.Extra
@@ -696,22 +705,9 @@ createAnonymousAlias token grammarType = do
   anonymousAlias <- ST.genAliasName
   currentScope <- ST.getCurrentScope
   let tk = token{T.cleanedString=anonymousAlias, T.aToken = T.TkId}
-  let declaration = (ST.Type, G.Id tk currentScope, [grammarType], Nothing)
+  let declaration = (ST.Type, G.Id tk currentScope, [grammarType])
   addIdToSymTable declaration
   return $ ST.Simple anonymousAlias
-
-getAssigsFromDeclarations :: [NameDeclaration] -> [G.Instruction]
-getAssigsFromDeclarations = map buildAsigInstr . filter hasInitialization
-  where
-    hasInitialization :: NameDeclaration -> Bool
-    hasInitialization (_, _, _, exp) = isJust exp
-    buildAsigInstr :: NameDeclaration -> G.Instruction
-    buildAsigInstr (_, gId@(G.Id tk _), _, Just exp) =
-      let expr = G.Expr
-                  { G.expAst = G.IdExpr gId
-                  , G.expType = G.expType exp
-                  , G.expTok = tk
-                  } in G.InstAsig expr exp
 
 buildAndCheckExpr :: T.Token -> G.BaseExpr -> ST.ParserMonad G.Expr
 buildAndCheckExpr tk bExpr = do
@@ -739,7 +735,7 @@ addIdsToSymTable ids = do
   RWS.mapM_ addIdToSymTable ids
 
 addIdToSymTable :: NameDeclaration -> ST.ParserMonad ()
-addIdToSymTable d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idName}) _), t, maybeExp) = do
+addIdToSymTable d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idName}) _), t) = do
   maybeIdEntry <- ST.dictLookup idName
   let typeEntry = getTypeNameForSymTable $ head $ filter ST.isExtraAType t
   currScope <- ST.getCurrentScope
@@ -754,15 +750,6 @@ addIdToSymTable d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idName
         , ST.entryType = Just typeEntry
         , ST.extra = t
         }
-      entry <- checkIdAvailability gId
-      case (entry, maybeExp) of
-        (Just en, Just exp) -> do
-          t <- getType exp
-          if t == T.StructLitT
-          then do
-            checkStructAssignment en exp (G.expTok exp)
-          else checkTypeOfAssignment en exp (G.expTok exp)
-        _ -> return ()
 
     -- The name does exists on the table, we just add it depending on the scope
     Just entry -> do
@@ -936,13 +923,25 @@ checkRecoverableError openTk maybeErr = do
       let errorName = show err
       logSemError (errorName ++ " (recovered from to continue parsing)") openTk
 
+checkAssignment :: G.Expr -> T.Token -> G.Expr -> Bool -> ST.ParserMonad G.Instruction
+checkAssignment lvalue token rvalue isInit = do
+  RWS.unless isInit $ do
+    checkConstantReassignment lvalue
+    checkIterVariables lvalue
+    checkIterableVariables lvalue
+  t <- getType rvalue
+  if t == T.StructLitT
+  then checkStructAssignment lvalue rvalue token
+  else checkTypeOfAssignment lvalue rvalue token
+  return $ G.InstAsig lvalue rvalue
+
 extractFieldsFromExtra :: [ST.Extra] -> ST.Extra
 extractFieldsFromExtra [] = error $ "The `extra` array doesn't have any `Fields` item"
 extractFieldsFromExtra (s@ST.Fields{} : _) = s
 extractFieldsFromExtra (_:ss) = extractFieldsFromExtra ss
 
 addFunction :: NameDeclaration -> ST.ParserMonad (Maybe (ST.Scope, G.Id))
-addFunction d@(_, i@(G.Id tk@(T.Token {T.cleanedString=idName}) _), _, _) = do
+addFunction d@(_, i@(G.Id tk@(T.Token {T.cleanedString=idName}) _), _) = do
   currScope <- ST.getCurrentScope
   ST.addVisitedMethod idName
   maybeEntry <- ST.dictLookup idName
@@ -1461,8 +1460,7 @@ instance TypeCheckable ST.Extra where
       | s == ST.sign = return T.CharT
       | s == ST.bonfire = return T.TrileanT
       | s == ST.void = return T.VoidT
-      | otherwise = return $ T.AliasT s -- works because it always exists
-                                        -- it shouldn't be added otherwise
+      | otherwise = ST.dictLookup s >>= (getType . fromJust)
   getType _ = logRTError "error on getType for SymTable extra"
 
 buildStruct :: ST.TypeFields -> Int -> ST.ParserMonad (T.Type)

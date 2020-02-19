@@ -284,7 +284,7 @@ link = "link"
 void :: String
 void = "void"
 errorType :: String
-errorType = "errorType"
+errorType = "_errorType"
 
 wordSize :: Int
 wordSize = 4
