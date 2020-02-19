@@ -119,7 +119,8 @@ data SymTable = SymTable
       stIterationVars :: ![String], -- ^ List of currently protected iteration variables
       stIterableVars :: ![String], -- ^ List of currently protected iterable variables
       stSwitchTypes :: ![TC.Type], -- ^ List of currently active switch variable types
-      stVisitedMethod :: !(Maybe String) -- ^ List of currently visited method
+      stVisitedMethod :: !(Maybe String), -- ^ List of currently visited method
+      stNextAnonymousAlias :: !Int -- ^ Next anonymous alias to be used with anonymous data types
     }
 
 type ParserMonad = RWS.RWST () [Error] SymTable IO
@@ -176,6 +177,12 @@ updateEntry f s = do
     st@SymTable {stDict=dict} <- RWS.get
     RWS.put st{stDict=Map.update f s dict}
 
+genAliasName :: ParserMonad String
+genAliasName = do
+    st@SymTable {stNextAnonymousAlias=nextAliasId} <- RWS.get
+    RWS.put st{stNextAnonymousAlias=nextAliasId + 1}
+    return $ "_alias_" ++ show nextAliasId
+
 enterScope :: ParserMonad ()
 enterScope = do
     st@SymTable {stCurrScope=cs, stScopeStack=scopeStack} <- RWS.get
@@ -187,6 +194,11 @@ exitScope = do
     case scopeStack of
         []  -> RWS.put st{stScopeStack=[]}
         _:s -> RWS.put st{stScopeStack=s}
+
+getCurrentScope :: ParserMonad Scope
+getCurrentScope = do
+    st@SymTable {stScopeStack=(currScope : _)} <- RWS.get
+    return currScope
 
 addIteratorVariable :: String -> ParserMonad ()
 addIteratorVariable var = do
@@ -265,12 +277,12 @@ wordSize :: Int
 wordSize = 4
 
 initialState :: SymTable
-initialState = SymTable (Map.fromList l) [1, 0] 1 [] [] [] Nothing
-    where l = [(smallHumanity, [DictionaryEntry smallHumanity Type 0 Nothing []])
-            , (humanity, [DictionaryEntry humanity Type 0 Nothing []])
-            , (hollow, [DictionaryEntry hollow Type 0 Nothing []])
-            , (sign, [DictionaryEntry sign Type 0 Nothing []])
-            , (bonfire, [DictionaryEntry bonfire Type 0 Nothing []])
+initialState = SymTable (Map.fromList l) [1, 0] 1 [] [] [] Nothing 0
+    where l = [(smallHumanity, [DictionaryEntry smallHumanity Type 0 Nothing [Width 2]])
+            , (humanity, [DictionaryEntry humanity Type 0 Nothing [Width 4]])
+            , (hollow, [DictionaryEntry hollow Type 0 Nothing [Width 8]])
+            , (sign, [DictionaryEntry sign Type 0 Nothing [Width 1]])
+            , (bonfire, [DictionaryEntry bonfire Type 0 Nothing [Width 1]])
             , (chest, [DictionaryEntry chest Constructor 0 Nothing []])
             , (miracle, [DictionaryEntry miracle Constructor 0 Nothing []])
             , (armor, [DictionaryEntry armor Constructor 0 Nothing []])

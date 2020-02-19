@@ -353,16 +353,17 @@ TYPE :: { G.GrammarType }
   | float                                                               { G.Simple $1 Nothing }
   | char                                                                { G.Simple $1 Nothing }
   | bool                                                                { G.Simple $1 Nothing }
-  | ltelit EXPR array ofType TYPE                                       { G.Compound $3 $5 (Just $2) }
-  | ltelit EXPR string                                                  { G.Simple $3 (Just $2) }
-  | set ofType TYPE                                                     { G.Compound $1 $3 Nothing }
-  | pointer TYPE                                                        { G.Compound $1 $2 Nothing }
+  | ltelit EXPR array ofType TYPE                                       {% createAnonymousAlias $1 $ G.Compound $3 $5 (Just $2) }
+
+  | ltelit EXPR string                                                  {% createAnonymousAlias $1 $ G.Simple $3 (Just $2) }
+  | set ofType TYPE                                                     {% createAnonymousAlias $1 $ G.Compound $1 $3 Nothing }
+  | pointer TYPE                                                        {% createAnonymousAlias $1 $ G.Compound $1 $2 Nothing }
   | record brOpen STRUCTITS BRCLOSE                                     {% do
                                                                              checkRecoverableError $2 $4
-                                                                             return $ G.Record $1 $ reverse $3 }
+                                                                             createAnonymousAlias $1 $ G.Record $1 $ reverse $3 }
   | unionStruct brOpen STRUCTITS BRCLOSE                                {% do
                                                                              checkRecoverableError $2 $4
-                                                                             return $ G.Record $1 $ reverse $3 }
+                                                                             createAnonymousAlias $1 $ G.Record $1 $ reverse $3 }
 
 BRCLOSE :: { Maybe G.RecoverableError }
   : brClose                                                             { Nothing }
@@ -381,7 +382,7 @@ STRUCTIT :: { RecordItem }
 
 ID :: { G.Id }
   : id                                                                  {% do
-                                                                            ST.SymTable {ST.stScopeStack = (currScope : _)} <- RWS.get
+                                                                            currScope <- ST.getCurrentScope
                                                                             return $ G.Id $1 currScope }
 
 CODEBLOCK :: { G.CodeBlock }
@@ -648,8 +649,16 @@ PARSLIST :: { G.Params }
 
 type NameDeclaration = (ST.Category, G.Id, G.GrammarType, Maybe G.Expr)
 type ArgDeclaration = (G.ArgType, G.Id, G.GrammarType)
-type AliasDeclaration = (G.Id, G.GrammarType)
-type RecordItem = AliasDeclaration
+type RecordItem = (G.Id, G.GrammarType)
+
+createAnonymousAlias :: T.Token -> G.GrammarType -> ST.ParserMonad G.GrammarType
+createAnonymousAlias token grammarType = do
+  anonymousAlias <- ST.genAliasName
+  currentScope <- ST.getCurrentScope
+  let tk = token{T.cleanedString=anonymousAlias, T.aToken = T.TkId}
+  let declaration = (ST.Type, G.Id tk currentScope, grammarType, Nothing)
+  addIdToSymTable Nothing declaration
+  return $ G.Simple tk Nothing
 
 getAssigsFromDeclarations :: [NameDeclaration] -> [G.Instruction]
 getAssigsFromDeclarations = map buildAsigInstr . filter hasInitialization
@@ -703,7 +712,8 @@ addIdToSymTable :: Maybe Int -> NameDeclaration -> ST.ParserMonad ()
 addIdToSymTable mi d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idName}) _), t, maybeExp) = do
   maybeIdEntry <- ST.dictLookup idName
   maybeTypeEntry <- findTypeOnEntryTable t
-  ST.SymTable {ST.stScopeStack=(currScope:_), ST.stIterationVars=iterVars} <- RWS.get
+  currScope <- ST.getCurrentScope
+  ST.SymTable {ST.stIterationVars=iterVars} <- RWS.get
   case maybeIdEntry of
     -- The name doesn't exists on the table, we just add it
     Nothing -> do
@@ -803,6 +813,11 @@ checkConstantReassignment e = case G.expAst e of
 
 checkPointerVariable :: G.Expr -> ST.ParserMonad ()
 checkPointerVariable G.Expr {G.expType=(T.PointerT _)} = return ()
+checkPointerVariable exp@G.Expr {G.expType=(T.AliasT alias)} = do
+  t <- getTypeFromAliasName alias
+  case t of
+    T.PointerT _ -> return ()
+    _ -> checkPointerVariable exp {G.expType=T.TypeError}
 checkPointerVariable G.Expr {G.expTok=tk} =
   logSemError ("Expresion " ++ show tk ++ " must be a valid pointer") tk
 
@@ -1058,6 +1073,13 @@ buildExtraForType _ = return $ Just []
 class TypeCheckable a where
   getType :: a -> ST.ParserMonad T.Type
 
+getTypeFromAliasName :: String -> ST.ParserMonad T.Type
+getTypeFromAliasName aliasName = do
+  maybeEntry <- ST.dictLookup aliasName
+  case maybeEntry of
+    Nothing -> return T.TypeError
+    Just entry -> getType entry
+
 isIntegerType :: T.Type -> Bool
 isIntegerType t = t `elem` T.integerTypes
 
@@ -1184,12 +1206,17 @@ functionsCheck i params tk = do
 memAccessCheck :: G.Expr -> T.Token -> ST.ParserMonad T.Type
 memAccessCheck expr tk = do
   t <- getType expr
-  case t of
-    T.PointerT t' -> return t'
-    T.TypeError -> return T.TypeError
-    _ -> do
-      logSemError "Trying to access memory of non-arrow variable" tk
-      return T.TypeError
+  checkType t
+  where
+    checkType :: T.Type -> ST.ParserMonad T.Type
+    checkType t =
+      case t of
+        T.PointerT t' -> return t'
+        T.TypeError -> return T.TypeError
+        T.AliasT name -> getTypeFromAliasName name >>= checkType
+        _ -> do
+          logSemError "Trying to access memory of non-arrow variable" tk
+          return T.TypeError
 
 checkAsciiOf :: G.Expr -> T.Token -> ST.ParserMonad T.Type
 checkAsciiOf e tk = do
@@ -1490,9 +1517,6 @@ instance TypeCheckable G.Expr where
 
 instance TypeCheckable ST.DictionaryEntry where
   getType entry@ST.DictionaryEntry{ST.entryType=Just _, ST.category = cat, ST.extra = extras}
-    -- If it is an alias, return just the name
-    | cat == ST.Type = return $ T.AliasT (ST.name entry)
-
     | cat `elem` [ST.Function, ST.Procedure] = do
       let isEmptyFunction = not . null $ filter ST.isEmptyFunction extras
       range <- (case cat of
@@ -1513,7 +1537,7 @@ instance TypeCheckable ST.DictionaryEntry where
     | cat `elem` [
         ST.Variable, ST.Constant,
         ST.RecordItem, ST.UnionItem,
-        ST.RefParam, ST.ValueParam] = getType $ ST.extractTypeFromExtra extras
+        ST.RefParam, ST.ValueParam, ST.Type] = getType $ ST.extractTypeFromExtra extras
 
     | otherwise = logRTError "error on getType for expected dict entries"
 
