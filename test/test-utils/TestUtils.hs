@@ -57,15 +57,20 @@ extractCodeblockFromExtra [] = error "The `extra` array doesn't have any `CodeBl
 extractCodeblockFromExtra (s@ST.CodeBlock{} : _) = s
 extractCodeblockFromExtra (_:ss) = extractCodeblockFromExtra ss
 
-extractEmptyFunctionFromExtra :: Extractor
-extractEmptyFunctionFromExtra [] = error "The `extra` array doesn't have any `EmptyFunction` item"
-extractEmptyFunctionFromExtra (s@ST.EmptyFunction : _) = s
-extractEmptyFunctionFromExtra (_:ss) = extractEmptyFunctionFromExtra ss
-
 extractArgPositionFromExtra :: Extractor
 extractArgPositionFromExtra [] = error "The `extra` array doesn't have any `ArgPosition` item"
 extractArgPositionFromExtra (s@ST.ArgPosition{} : _) = s
 extractArgPositionFromExtra (_:ss) = extractArgPositionFromExtra ss
+
+extractOffsetFromExtra :: Extractor
+extractOffsetFromExtra [] = error "The `extra` array doesn't have any `Offset` item"
+extractOffsetFromExtra (s@ST.Offset{} : _) = s
+extractOffsetFromExtra (_:ss) = extractOffsetFromExtra ss
+
+extractWidthFromExtra :: Extractor
+extractWidthFromExtra [] = error "The `extra` array doesn't have any `Width` item"
+extractWidthFromExtra (s@ST.Width{} : _) = s
+extractWidthFromExtra (_:ss) = extractWidthFromExtra ss
 
 runTestForInvalidProgram :: String -> IO ()
 runTestForInvalidProgram program = do

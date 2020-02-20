@@ -8,7 +8,7 @@ varEntry :: ST.DictionaryEntry
 varEntry = ST.DictionaryEntry
     { ST.scope = 1
     , ST.category = ST.Variable
-    , ST.entryType = Just "arrow"
+    , ST.entryType = Just "arrow to"
     , ST.name = "x"
     , ST.extra = []
     }
@@ -33,8 +33,12 @@ spec = do
         it "allows to declare variables with pointers data types" $ do
             let p = sampleProgram ""
             (_, ST.SymTable {ST.stDict=dict}, _) <- U.extractSymTable p
-            U.testEntry dict varEntry U.extractRecursiveFromExtra
-                (\(ST.Recursive "arrow" (ST.Simple "sign")) -> True)
+            U.testEntry dict varEntry{ST.entryType = Just "_alias_0"} U.extractSimpleFromExtra
+                (\(ST.Simple "_alias_0") -> True)
+            let aliasEntry = varEntry{ST.name="_alias_0", ST.category = ST.Type}
+            U.testEntry dict aliasEntry U.extractRecursiveFromExtra
+                (\(ST.Recursive "arrow to" (ST.Simple "sign")) -> True)
+
 
     describe "Pointers operations" $ do
         it "allows to request memory for its usage" $

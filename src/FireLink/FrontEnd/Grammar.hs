@@ -133,7 +133,7 @@ data Expr = Expr {
 } deriving Eq
 
 instance Show Expr where
-  show = show . expAst
+  show exp = show (expAst exp) ++ ":" ++ show (expType exp)
 
 newtype Program
   = Program CodeBlock
@@ -167,16 +167,6 @@ data SwitchCase
 
 newtype CodeBlock
   = CodeBlock Instructions
-  deriving Show
-
-data ArgType = Val | Ref
-  deriving (Show, Eq)
-
-data GrammarType
-  = Simple Token (Maybe Expr)
-  | Compound Token GrammarType (Maybe Expr)
-  | Record Token [(Id, GrammarType)]
-  | Callable (Maybe GrammarType) [(ArgType, Id, GrammarType)]
   deriving Show
 
 data RecoverableError

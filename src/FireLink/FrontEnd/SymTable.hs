@@ -46,23 +46,23 @@ data Extra
         TypeFields
         Scope -- We only need the scope where the fields live
 
-    | EmptyFunction -- For functions/procs that doesn't have any arguments
-
     | CodeBlock -- For names that carries a codeblock ast
         G.CodeBlock
 
     | Simple String -- For non-composite types
 
     | ArgPosition Int -- For argument list position
+
+    -- Offset to retrieve variable at TAC. Only used in variables/constants
+    | Offset Int
+
+    -- Width of type. It is not world-aligned
+    | Width Int
     deriving Show
 
 isFieldsExtra :: Extra -> Bool
 isFieldsExtra (Fields _ _) = True
 isFieldsExtra _            = False
-
-isEmptyFunction :: Extra -> Bool
-isEmptyFunction EmptyFunction = True
-isEmptyFunction _             = False
 
 isArgPosition :: Extra -> Bool
 isArgPosition ArgPosition{} = True
@@ -81,7 +81,8 @@ isExtraAType :: Extra -> Bool
 isExtraAType Recursive{}   = True
 isExtraAType Compound{}    = True
 isExtraAType CompoundRec{} = True
-isExtraAType Fields{}      = True
+isExtraAType (Fields Record _) = True
+isExtraAType (Fields Union _) = True
 isExtraAType Simple{}      = True
 isExtraAType _             = False
 
@@ -113,8 +114,11 @@ data SymTable = SymTable
       stIterationVars :: ![String], -- ^ List of currently protected iteration variables
       stIterableVars :: ![String], -- ^ List of currently protected iterable variables
       stSwitchTypes :: ![TC.Type], -- ^ List of currently active switch variable types
-      stVisitedMethod :: !(Maybe String) -- ^ List of currently visited method
+      stVisitedMethod :: !(Maybe String), -- ^ List of currently visited method
+      stNextAnonymousAlias :: !Int, -- ^ Next anonymous alias to be used with anonymous data types
+      stNextParamId :: !Int -- ^ Used to generate next parameter id (for ordering) in functions
     }
+    deriving Show
 
 type ParserMonad = RWS.RWST () [Error] SymTable IO
 
@@ -170,10 +174,32 @@ updateEntry f s = do
     st@SymTable {stDict=dict} <- RWS.get
     RWS.put st{stDict=Map.update f s dict}
 
+genAliasName :: ParserMonad String
+genAliasName = do
+    st@SymTable {stNextAnonymousAlias = nextAliasId} <- RWS.get
+    RWS.put st{stNextAnonymousAlias = nextAliasId + 1}
+    return $ "_alias_" ++ show nextAliasId
+
+genNextArgPosition :: ParserMonad Int
+genNextArgPosition = do
+    st@SymTable {stNextParamId = nextParamId} <- RWS.get
+    RWS.put st{stNextParamId = nextParamId + 1}
+    return nextParamId
+
+resetArgPosition :: ParserMonad ()
+resetArgPosition = do
+    st <- RWS.get
+    RWS.put st{stNextParamId = 0}
+
 enterScope :: ParserMonad ()
 enterScope = do
     st@SymTable {stCurrScope=cs, stScopeStack=scopeStack} <- RWS.get
     RWS.put st{stCurrScope=cs + 1, stScopeStack=cs + 1 : scopeStack}
+
+pushScope :: Int ->ParserMonad ()
+pushScope c = do
+    st@SymTable {stScopeStack=scopeStack} <- RWS.get
+    RWS.put st{stScopeStack=c : scopeStack}
 
 exitScope :: ParserMonad ()
 exitScope = do
@@ -181,6 +207,11 @@ exitScope = do
     case scopeStack of
         []  -> RWS.put st{stScopeStack=[]}
         _:s -> RWS.put st{stScopeStack=s}
+
+getCurrentScope :: ParserMonad Scope
+getCurrentScope = do
+    st@SymTable {stScopeStack=(currScope : _)} <- RWS.get
+    return currScope
 
 addIteratorVariable :: String -> ParserMonad ()
 addIteratorVariable var = do
@@ -244,8 +275,8 @@ miracle :: String
 miracle = ">-miracle"
 armor :: String
 armor = "armor"
-arrowTo :: String
-arrowTo = "arrow to"
+arrow :: String
+arrow = "arrow to"
 bezel :: String
 bezel = "bezel"
 link :: String
@@ -253,21 +284,21 @@ link = "link"
 void :: String
 void = "void"
 errorType :: String
-errorType = "errorType"
-arrow :: String
-arrow = "arrow"
+errorType = "_errorType"
+
+wordSize :: Int
+wordSize = 4
 
 initialState :: SymTable
-initialState = SymTable (Map.fromList l) [1, 0] 1 [] [] [] Nothing
-    where l = [(smallHumanity, [DictionaryEntry smallHumanity Type 0 Nothing []])
-            , (humanity, [DictionaryEntry humanity Type 0 Nothing []])
-            , (hollow, [DictionaryEntry hollow Type 0 Nothing []])
-            , (sign, [DictionaryEntry sign Type 0 Nothing []])
-            , (bonfire, [DictionaryEntry bonfire Type 0 Nothing []])
+initialState = SymTable (Map.fromList l) [1, 0] 1 [] [] [] Nothing 0 0
+    where l = [(smallHumanity, [DictionaryEntry smallHumanity Type 0 Nothing [Width 2]])
+            , (humanity, [DictionaryEntry humanity Type 0 Nothing [Width 4]])
+            , (hollow, [DictionaryEntry hollow Type 0 Nothing [Width 8]])
+            , (sign, [DictionaryEntry sign Type 0 Nothing [Width 1]])
+            , (bonfire, [DictionaryEntry bonfire Type 0 Nothing [Width 1]])
             , (chest, [DictionaryEntry chest Constructor 0 Nothing []])
             , (miracle, [DictionaryEntry miracle Constructor 0 Nothing []])
             , (armor, [DictionaryEntry armor Constructor 0 Nothing []])
-            , (arrowTo, [DictionaryEntry arrowTo Constructor 0 Nothing []])
             , (bezel, [DictionaryEntry bezel Constructor 0 Nothing []])
             , (link, [DictionaryEntry link Constructor 0 Nothing []])
             , (arrow, [DictionaryEntry arrow Constructor 0 Nothing []])

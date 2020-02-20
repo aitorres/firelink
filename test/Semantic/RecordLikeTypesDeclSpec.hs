@@ -34,8 +34,13 @@ spec = do
     describe "Record like variable declarations" $ do
         it "allows declare variable of `record` type" $ do
             dict <- test "bezel { y of type humanity, z of type sign }"
-                varEntry{ST.entryType = Just "bezel"} U.extractFieldsFromExtra
-                (\(ST.Fields ST.Record 2) -> True)
+                varEntry{ST.entryType = Just "_alias_0"} U.extractSimpleFromExtra
+                (\(ST.Simple "_alias_0") -> True)
+            U.testEntry dict varEntry
+                { ST.name="_alias_0"
+                , ST.category=ST.Type
+                , ST.entryType = Just "bezel"
+                } U.extractFieldsFromExtra (\(ST.Fields ST.Record 2) -> True)
             U.testEntry dict varEntry
                 { ST.name="y"
                 , ST.category=ST.RecordItem
@@ -48,8 +53,12 @@ spec = do
                 , ST.entryType=Just "sign"} U.extractSimpleFromExtra (\(ST.Simple "sign") -> True)
         it "allows declare `union` type variables" $ do
             dict <- test "link { y of type humanity, z of type sign }"
-                varEntry{ST.entryType = Just "link"} U.extractFieldsFromExtra
-                (\(ST.Fields ST.Union 2) -> True)
+                varEntry{ST.entryType = Just "_alias_0"} U.extractSimpleFromExtra
+                    (\(ST.Simple "_alias_0") -> True)
+            U.testEntry dict varEntry
+                { ST.name="_alias_0"
+                , ST.category=ST.Type
+                , ST.entryType=Just "link"} U.extractFieldsFromExtra (\(ST.Fields ST.Union 2) -> True)
             U.testEntry dict varEntry
                 { ST.name="y"
                 , ST.category=ST.RecordItem
@@ -76,8 +85,8 @@ spec = do
             \ farewell ashen one"
             (_, ST.SymTable {ST.stDict=dict}, _) <- U.extractSymTable p
             U.testEntry dict varEntry
-                { ST.name = "y", ST.entryType = Just "bezel" }
-                U.extractFieldsFromExtra (\(ST.Fields ST.Record 2) -> True)
+                { ST.name = "y", ST.entryType = Just "_alias_0" }
+                U.extractSimpleFromExtra (\(ST.Simple "_alias_0") -> True)
             U.testEntry dict varEntry
                 { ST.name = "b", ST.entryType = Just "humanity" }
                 U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
@@ -102,10 +111,17 @@ spec = do
             (_, ST.SymTable {ST.stDict=dict}, errors) <- U.extractSymTable p
             errors `shouldSatisfy` null
             U.testEntry dict varEntry
-                { ST.entryType = Just "bezel" }
+                { ST.entryType = Just "_alias_1", ST.scope = 1, ST.category = ST.Variable }
+                U.extractSimpleFromExtra (\(ST.Simple "_alias_1") -> True)
+            U.testEntry dict varEntry
+                { ST.entryType = Just "bezel", ST.name = "_alias_1", ST.category = ST.Type }
                 U.extractFieldsFromExtra (\(ST.Fields ST.Record 2) -> True)
             U.testEntry dict varEntry
-                { ST.entryType = Just "bezel", ST.scope = 2, ST.category = ST.RecordItem }
+                { ST.entryType = Just "_alias_0" , ST.scope = 2, ST.category = ST.RecordItem }
+                U.extractSimpleFromExtra (\(ST.Simple "_alias_0") -> True)
+            U.testEntry dict varEntry
+                { ST.entryType = Just "bezel", ST.name = "_alias_0", ST.category = ST.Type
+                , ST.scope = 2 }
                 U.extractFieldsFromExtra (\(ST.Fields ST.Record 3) -> True)
             U.testEntry dict varEntry
                 { ST.entryType = Just "humanity", ST.scope = 3, ST.category = ST.RecordItem }

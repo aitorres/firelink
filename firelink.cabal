@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.33.0.
+-- This file has been generated from package.yaml by hpack version 0.31.2.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 086233a705a1a7fd16c5a63b6ac7d073f9c25e8f75fdcdd012407915beeb3e4a
+-- hash: 24e4d1ffc66d776a25695643066a6b95cfecde769236264364099e1cfa0d19f4
 
 name:           firelink
 version:        0.1.0.0
@@ -161,12 +161,14 @@ test-suite semantic-tests
       FunctionsSpec
       InitialTableSpec
       IterationsSpec
+      OffsetSpec
       PointersSpec
       ProceduresSpec
       RecordLikeTypesDeclSpec
       SimpleTypesDeclSpec
       TypeAliasesSpec
       VariablesSpec
+      WidthSpec
       TestUtils
       Paths_firelink
   hs-source-dirs:
