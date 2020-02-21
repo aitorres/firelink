@@ -34,9 +34,8 @@ spec :: Spec
 spec =
     describe "Offset calculation" $ do
         it "calculates offset for the first variable in the list" $
-            1 `shouldBe` 1
-        --     testOffset "var x of type humanity" [("x", 0)]
-        -- it "calculates offset for second variable in the list when first variable's type width is multiple of `wordsize`" $
-        --     testOffset "var x of type humanity, var y of type humanity" [("x", 0), ("y", 4)]
-        -- it "calculates offset for second variable in the list when first variable's type width is not a multiple of `wordSize`" $
-        --     testOffset "var x of type sign, var y of type humanity" [("x", 0), ("y", 4)]
+            testOffset "var x of type humanity" [("x", 0)]
+        it "calculates offset for second variable in the list when first variable's type width is multiple of `wordsize`" $
+            testOffset "var x of type humanity, var y of type humanity" [("x", 0), ("y", 4)]
+        it "calculates offset for second variable in the list when first variable's type width is not a multiple of `wordSize`" $
+            testOffset "var x of type sign, var y of type humanity" [("x", 0), ("y", 4)]
