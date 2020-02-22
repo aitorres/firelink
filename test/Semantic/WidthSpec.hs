@@ -71,7 +71,7 @@ spec = do
                 \   y of type <4>-chest of type humanity\
                 \}" 16
     describe "Width calculation for union data types" $ do
-        it "calculate width of just 1-attribute record" $
+        it "calculate width of just 1-attribute union" $
             testWidth "link { x of type humanity }" 8
         it "calculate width of 2+ attribute records" $ do
             testWidth "link { x of type humanity, y of type humanity }" 8
@@ -102,7 +102,7 @@ spec = do
                     \ you died \
                     \ farewell ashen one"
             (_, ST.SymTable {ST.stDict=dict}, _) <- U.extractSymTable program
-            mapM_ (test dict) [("x", 0), ("y", 1), ("z", 2), ("a", 0), ("b", 0)]
+            mapM_ (test dict) [("x", 0), ("y", 1), ("z", 2), ("a", 0), ("b", 1)]
             where
                 test :: ST.Dictionary -> (String, Int) -> IO ()
                 test dictionary (varName, unionAttrId) = do

@@ -405,18 +405,19 @@ TYPE :: { ST.Extra }
                                                                               [ ST.Recursive (T.cleanedString $1) $2
                                                                               , ST.Width ST.wordSize ] }
   | RECORD_OPEN  brOpen STRUCTITS BRCLOSE                               {% do
+                                                                            checkRecoverableError $2 $4
+                                                                            currScope <- ST.getCurrentScope
+                                                                            nextOffset <- ST.getNextOffset
+                                                                            ST.exitScope
+                                                                            ST.popOffset
+                                                                            ret <- createAnonymousAlias $1 $ [
+                                                                              ST.Fields ST.Record currScope, ST.Width nextOffset]
+                                                                            return ret }
+  | UNION_OPEN brOpen UNIONITS BRCLOSE                                  {% do
                                                                              checkRecoverableError $2 $4
                                                                              currScope <- ST.getCurrentScope
-                                                                             nextOffset <- ST.getNextOffset
                                                                              ST.exitScope
-                                                                             ST.popOffset
-                                                                             ret <- createAnonymousAlias $1 $ [
-                                                                               ST.Fields ST.Record currScope, ST.Width nextOffset]
-                                                                             return ret }
-  | UNION_OPEN brOpen STRUCTITS BRCLOSE                                 {% do
-                                                                             checkRecoverableError $2 $4
-                                                                             currScope <- ST.getCurrentScope
-                                                                             ST.exitScope
+                                                                             ST.popUnion
                                                                              ret <- createAnonymousAlias $1 $ [ST.Fields ST.Union currScope]
                                                                              return ret }
 
@@ -820,8 +821,9 @@ assignOffsetAndInsert entry = do
         Just typeEntry -> do
           nextOffset <- ST.getNextOffset
           let ST.Width width = ST.findWidth typeEntry
-          let remainingOffset = ST.wordSize - (nextOffset `mod` ST.wordSize)
-          let finalOffset = if width <= remainingOffset then nextOffset
+          let o = nextOffset `mod` ST.wordSize
+          let remainingOffset = ST.wordSize - o
+          let finalOffset = if o == 0 || width <= remainingOffset then nextOffset
                             else nextOffset + remainingOffset
           ST.putNextOffset $ finalOffset + width
           return $ (ST.Offset finalOffset) : extras
