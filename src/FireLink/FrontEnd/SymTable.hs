@@ -75,10 +75,13 @@ isArgPosition _             = False
 findArgPosition :: [Extra] -> Extra
 findArgPosition = head . filter isArgPosition
 
-findWidth :: [Extra] -> Extra
-findWidth extras = let widthExtras = filter isWidthExtra extras in
-    if null widthExtras then error "Width extra not found"
-    else head widthExtras
+findWidth :: DictionaryEntry -> Extra
+findWidth entry = f $ extra entry
+    where
+        f :: [Extra] -> Extra
+        f extras = let widthExtras = filter isWidthExtra extras in
+            if null widthExtras then error $ "Width extra not found for entry " ++ name entry
+            else head widthExtras
 
 findFieldsExtra :: Extra -> Maybe Extra
 findFieldsExtra a@Fields{}          = Just a
@@ -125,7 +128,8 @@ data SymTable = SymTable
       stSwitchTypes :: ![TC.Type], -- ^ List of currently active switch variable types
       stVisitedMethod :: !(Maybe String), -- ^ List of currently visited method
       stNextAnonymousAlias :: !Int, -- ^ Next anonymous alias to be used with anonymous data types
-      stNextParamId :: !Int -- ^ Used to generate next parameter id (for ordering) in functions
+      stNextParamId :: !Int, -- ^ Used to generate next parameter id (for ordering) in functions
+      stOffsetStack :: ![Int] -- ^ Used to carry offset in scopes
     }
     deriving Show
 
@@ -268,6 +272,39 @@ popSwitchType = do
         []  -> []
         _:s -> s}
 
+getNextOffset :: ParserMonad Int
+getNextOffset = do
+    SymTable {stOffsetStack=offset : _} <- RWS.get
+    return offset
+
+putNextOffset :: Int -> ParserMonad ()
+putNextOffset offset = do
+    st@SymTable{stOffsetStack = _ : offsets} <- RWS.get
+    RWS.put st{stOffsetStack = offset : offsets}
+
+pushOffset :: Int -> ParserMonad ()
+pushOffset offset = do
+    st@SymTable{stOffsetStack = offsets} <- RWS.get
+    RWS.put st{stOffsetStack = offset : offsets}
+
+popOffset :: ParserMonad ()
+popOffset = do
+    st@SymTable{stOffsetStack = _ : offsets} <- RWS.get
+    RWS.put st{stOffsetStack = offsets}
+
+-- This function tries to increase offset as better
+-- as it can
+updateOffsetWithWidth :: Int -> ParserMonad ()
+updateOffsetWithWidth width = do
+    currOffset <- getNextOffset
+    let remainingOffset = wordSize - (currOffset `mod` wordSize)
+    if width <= remainingOffset then
+        putNextOffset $ currOffset + width
+    else
+        putNextOffset $
+            (currOffset + remainingOffset) + -- to align to wordSize
+            width
+
 smallHumanity :: String
 smallHumanity = "small humanity"
 humanity :: String
@@ -299,7 +336,7 @@ wordSize :: Int
 wordSize = 4
 
 initialState :: SymTable
-initialState = SymTable (Map.fromList l) [1, 0] 1 [] [] [] Nothing 0 0
+initialState = SymTable (Map.fromList l) [1, 0] 1 [] [] [] Nothing 0 0 [0]
     where l = [(smallHumanity, [DictionaryEntry smallHumanity Type 0 Nothing [Width 2]])
             , (humanity, [DictionaryEntry humanity Type 0 Nothing [Width 4]])
             , (hollow, [DictionaryEntry hollow Type 0 Nothing [Width 8]])

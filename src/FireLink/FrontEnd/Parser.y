@@ -223,7 +223,7 @@ ALIAS :: { NameDeclaration }
                                                                             let t = $3
                                                                             let extras = (case maybeEntry of
                                                                                             Nothing -> [t]
-                                                                                            Just entry -> [t, ST.findWidth $ ST.extra entry])
+                                                                                            Just entry -> [t, ST.findWidth entry])
                                                                             return (ST.Type, $2, extras) }
 
 LVALUE :: { G.Expr }
@@ -407,8 +407,11 @@ TYPE :: { ST.Extra }
   | RECORD_OPEN  brOpen STRUCTITS BRCLOSE                               {% do
                                                                              checkRecoverableError $2 $4
                                                                              currScope <- ST.getCurrentScope
+                                                                             nextOffset <- ST.getNextOffset
                                                                              ST.exitScope
-                                                                             ret <- createAnonymousAlias $1 $ [ST.Fields ST.Record currScope]
+                                                                             ST.popOffset
+                                                                             ret <- createAnonymousAlias $1 $ [
+                                                                               ST.Fields ST.Record currScope, ST.Width nextOffset]
                                                                              return ret }
   | UNION_OPEN brOpen STRUCTITS BRCLOSE                                 {% do
                                                                              checkRecoverableError $2 $4
@@ -418,7 +421,7 @@ TYPE :: { ST.Extra }
                                                                              return ret }
 
 RECORD_OPEN :: { T.Token }
-RECORD_OPEN : record                                                    {% ST.enterScope >> return $1 }
+RECORD_OPEN : record                                                    {% ST.enterScope >> ST.pushOffset 0 >> return $1 }
 
 UNION_OPEN :: { T.Token }
 UNION_OPEN : unionStruct                                                {% ST.enterScope >> return $1 }
@@ -754,8 +757,8 @@ addIdToSymTable d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idName
   ST.SymTable {ST.stIterationVars=iterVars} <- RWS.get
   case maybeIdEntry of
     -- The name doesn't exists on the table, we just add it
-    Nothing -> do
-      ST.addEntry ST.DictionaryEntry
+    Nothing ->
+      assignOffsetAndInsert ST.DictionaryEntry
         { ST.name = idName
         , ST.category = c
         , ST.scope = currScope
@@ -778,7 +781,7 @@ addIdToSymTable d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idName
       else if (T.cleanedString tk) `elem` iterVars
       then logSemError ("Name " ++ show tk ++ " conflicts or shadows an iteration variable") tk
       else if currScope /= scope
-      then ST.addEntry ST.DictionaryEntry
+      then assignOffsetAndInsert ST.DictionaryEntry
         { ST.name = idName
         , ST.category = c
         , ST.scope = currScope
@@ -794,6 +797,34 @@ addIdToSymTable d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idName
     getTypeNameForSymTable (ST.CompoundRec s _ _) = s
     getTypeNameForSymTable (ST.Fields ST.Record _) = ST.bezel
     getTypeNameForSymTable (ST.Fields ST.Union _) = ST.link
+
+
+assignOffsetAndInsert :: ST.DictionaryEntry -> ST.ParserMonad ()
+assignOffsetAndInsert entry = do
+  let extras = ST.extra entry
+  finalExtras <-
+    if requiresOffset then do
+      let (ST.Simple t) = ST.extractTypeFromExtra extras
+      maybeTypeEntry <- ST.dictLookup t
+      case maybeTypeEntry of
+        Nothing -> return extras
+        Just typeEntry -> do
+          nextOffset <- ST.getNextOffset
+          let ST.Width width = ST.findWidth typeEntry
+          ST.updateOffsetWithWidth width
+          return $ (ST.Offset nextOffset) : extras
+    else return extras
+  ST.addEntry entry{ST.extra=finalExtras}
+  where
+    category :: ST.Category
+    category = ST.category entry
+    categoriesThatRequireOffset :: [ST.Category]
+    categoriesThatRequireOffset =
+      [ ST.ValueParam, ST.RefParam, ST.RecordItem
+      , ST.Variable, ST.Constant ]
+
+    requiresOffset :: Bool
+    requiresOffset = category `elem` categoriesThatRequireOffset
 
 checkConstantReassignment :: G.Expr -> ST.ParserMonad ()
 checkConstantReassignment e = case G.expAst e of

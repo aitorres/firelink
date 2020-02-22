@@ -58,9 +58,10 @@ spec = do
         it "calculate width of just 1-attribute record" $
             testWidth "bezel { x of type humanity }" 4
         it "calculate width of 2 attribute records" $
-            testWidth "bezel { x of type humanity, y of type humanity }" 4
+            testWidth "bezel { x of type humanity, y of type humanity }" 8
         it "tries to pack attributes as much as it can without breaking words" $
             testWidth "bezel { x of type humanity, y of type sign }" 5
         it "go to next multiple of 4 if a new attribute is broken" $ do
             testWidth "bezel { y of type sign, x of type humanity }" 8
             testWidth "bezel { y of type sign, y of type bonfire, x of type humanity }" 8
+            testWidth "bezel { x of type humanity, y of type sign, z of type bonfire" 6
