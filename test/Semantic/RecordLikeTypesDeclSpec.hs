@@ -61,12 +61,12 @@ spec = do
                 , ST.entryType=Just "link"} U.extractFieldsFromExtra (\(ST.Fields ST.Union 2) -> True)
             U.testEntry dict varEntry
                 { ST.name="y"
-                , ST.category=ST.RecordItem
+                , ST.category=ST.UnionItem
                 , ST.scope=2
                 , ST.entryType=Just "humanity"} U.extractSimpleFromExtra (\(ST.Simple "humanity") -> True)
             U.testEntry dict varEntry
                 { ST.name="z"
-                , ST.category=ST.RecordItem
+                , ST.category=ST.UnionItem
                 , ST.scope=2
                 , ST.entryType=Just "sign"} U.extractSimpleFromExtra (\(ST.Simple "sign") -> True)
         it "allows to declare record and simple var (in that order)" $ do

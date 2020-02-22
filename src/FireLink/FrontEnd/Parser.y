@@ -418,7 +418,8 @@ TYPE :: { ST.Extra }
                                                                              currScope <- ST.getCurrentScope
                                                                              ST.exitScope
                                                                              ST.popUnion
-                                                                             ret <- createAnonymousAlias $1 $ [ST.Fields ST.Union currScope]
+                                                                             ret <- createAnonymousAlias $1 $ [ST.Fields ST.Union currScope,
+                                                                              ST.Width $ 4 + $3]
                                                                              return ret }
 
 RECORD_OPEN :: { T.Token }
@@ -435,14 +436,21 @@ PARENSCLOSE :: { Maybe G.RecoverableError }
   : parensClose                                                         { Nothing }
   | error                                                               { Just G.MissingClosingParens }
 
-UNIONITS :: { () }
-  : UNIONITS comma UNIONIT                                             { () }
-  | UNIONIT                                                            { () }
+UNIONITS :: { Int }
+  : UNIONITS comma UNIONIT                                             { max $1 $3 }
+  | UNIONIT                                                            { $1 }
 
-UNIONIT :: { () }
+UNIONIT :: { Int }
   : ID ofType TYPE                                                      {% do
                                                                             unionAttrId <- fmap ST.UnionAttrId ST.genNextUnion
-                                                                            addIdToSymTable (ST.UnionItem, $1, [$3, unionAttrId]) }
+                                                                            addIdToSymTable (ST.UnionItem, $1, [$3, unionAttrId])
+                                                                            let ST.Simple t = $3
+                                                                            maybeTypeEntry <- ST.dictLookup t
+                                                                            case maybeTypeEntry of
+                                                                              Nothing -> return 0
+                                                                              Just entry -> do
+                                                                                let ST.Width w = ST.findWidth entry
+                                                                                return w }
 
 STRUCTITS :: { () }
   : STRUCTITS comma STRUCTIT                                            { () }

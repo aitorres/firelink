@@ -75,7 +75,7 @@ spec = do
             testWidth "link { x of type humanity }" 8
         it "calculate width of 2+ attribute records" $ do
             testWidth "link { x of type humanity, y of type humanity }" 8
-            testWidth "link { x of type sign, y of type bonfire, z of type small humanity }" 8
+            testWidth "link { x of type sign, y of type bonfire, z of type small humanity }" 6
             testWidth "\
             \ link {\
             \   x of type bezel {\
