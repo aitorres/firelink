@@ -108,7 +108,7 @@ comparableTypes :: [Type]
 comparableTypes = [BigIntT, SmallIntT, FloatT]
 
 ioTypes :: [Type]
-ioTypes = [BigIntT, SmallIntT, FloatT, CharT, StringT]
+ioTypes = [BigIntT, SmallIntT, FloatT, TrileanT, CharT, StringT]
 
 anySingleton :: [Type]
 anySingleton = [Any]
