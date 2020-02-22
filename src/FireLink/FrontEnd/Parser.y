@@ -811,8 +811,11 @@ assignOffsetAndInsert entry = do
         Just typeEntry -> do
           nextOffset <- ST.getNextOffset
           let ST.Width width = ST.findWidth typeEntry
-          ST.updateOffsetWithWidth width
-          return $ (ST.Offset nextOffset) : extras
+          let remainingOffset = ST.wordSize - (nextOffset `mod` ST.wordSize)
+          let finalOffset = if width <= remainingOffset then nextOffset
+                            else nextOffset + remainingOffset
+          ST.putNextOffset $ finalOffset + width
+          return $ (ST.Offset finalOffset) : extras
     else return extras
   ST.addEntry entry{ST.extra=finalExtras}
   where

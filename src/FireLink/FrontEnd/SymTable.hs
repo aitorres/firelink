@@ -292,19 +292,6 @@ popOffset = do
     st@SymTable{stOffsetStack = _ : offsets} <- RWS.get
     RWS.put st{stOffsetStack = offsets}
 
--- This function tries to increase offset as better
--- as it can
-updateOffsetWithWidth :: Int -> ParserMonad ()
-updateOffsetWithWidth width = do
-    currOffset <- getNextOffset
-    let remainingOffset = wordSize - (currOffset `mod` wordSize)
-    if width <= remainingOffset then
-        putNextOffset $ currOffset + width
-    else
-        putNextOffset $
-            (currOffset + remainingOffset) + -- to align to wordSize
-            width
-
 smallHumanity :: String
 smallHumanity = "small humanity"
 humanity :: String

@@ -14,7 +14,7 @@ testOffset programFragment testItems = do
             let chain = filter (\d -> ST.name d == varName) $ ST.findChain varName dictionary
             let dictEntry = head chain
             let ST.Offset actualOffset = U.extractOffsetFromExtra $ ST.extra dictEntry
-            expectedOffset `shouldBe` actualOffset
+            actualOffset `shouldBe` expectedOffset
         getDictionary :: String -> IO ST.Dictionary
         getDictionary program = do
             ST.SymTable {ST.stDict = dict} <- U.extractDictionary program
