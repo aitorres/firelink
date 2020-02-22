@@ -511,8 +511,12 @@ INSTR :: { G.Instruction }
   | returnWith EXPR                                                     {% do
                                                                           retExpr <- checkReturnType $2 $1
                                                                           return $ G.InstReturnWith retExpr }
-  | print EXPR                                                          { G.InstPrint $2 }
-  | read LVALUE                                                         { G.InstRead $2 }
+  | print EXPR                                                          {% do
+                                                                            checkIOTypes $2 $1
+                                                                            return $ G.InstPrint $2 }
+  | read LVALUE                                                         {% do
+                                                                            checkIOTypes $2 $1
+                                                                            return $ G.InstRead $2 }
   | whileBegin EXPR covenantIsActive COLON CODEBLOCK WHILEEND           {% do
                                                                             checkRecoverableError $1 $4
                                                                             checkRecoverableError $1 $6
@@ -922,6 +926,12 @@ checkRecoverableError openTk maybeErr = do
     Just err -> do
       let errorName = show err
       logSemError (errorName ++ " (recovered from to continue parsing)") openTk
+
+checkIOTypes :: G.Expr -> T.Token -> ST.ParserMonad ()
+checkIOTypes expr tk = do
+  t <- getType expr
+  if t `elem` T.ioTypes then return ()
+  else logSemError (show t ++ " is not an I/O valid type") tk
 
 checkAssignment :: G.Expr -> T.Token -> G.Expr -> Bool -> ST.ParserMonad G.Instruction
 checkAssignment lvalue token rvalue isInit = do
