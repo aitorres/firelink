@@ -217,7 +217,14 @@ ALIASADD :: { () }
                                                                             return () }
 
 ALIAS :: { NameDeclaration }
-  : alias ID TYPE                                                       { (ST.Type, $2, [$3]) }
+  : alias ID TYPE                                                       {% do
+                                                                            let (ST.Simple i) = $3
+                                                                            maybeEntry <- ST.dictLookup i
+                                                                            let t = $3
+                                                                            let extras = (case maybeEntry of
+                                                                                            Nothing -> [t]
+                                                                                            Just entry -> [t, ST.findWidth $ ST.extra entry])
+                                                                            return (ST.Type, $2, extras) }
 
 LVALUE :: { G.Expr }
   : ID                                                                  {% do
@@ -370,6 +377,7 @@ PARTYPE :: { ST.Category }
   : parVal                                                              { ST.ValueParam }
   | parRef                                                              { ST.RefParam }
 
+{- TYPE always returns "ST.Simple String" -}
 TYPE :: { ST.Extra }
   : ID                                                                  {% do
                                                                           let G.Id t _ = $1

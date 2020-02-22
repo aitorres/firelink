@@ -60,6 +60,10 @@ data Extra
     | Width Int
     deriving Show
 
+isWidthExtra :: Extra -> Bool
+isWidthExtra Width{} = True
+isWidthExtra _ = False
+
 isFieldsExtra :: Extra -> Bool
 isFieldsExtra (Fields _ _) = True
 isFieldsExtra _            = False
@@ -70,6 +74,11 @@ isArgPosition _             = False
 
 findArgPosition :: [Extra] -> Extra
 findArgPosition = head . filter isArgPosition
+
+findWidth :: [Extra] -> Extra
+findWidth extras = let widthExtras = filter isWidthExtra extras in
+    if null widthExtras then error "Width extra not found"
+    else head widthExtras
 
 findFieldsExtra :: Extra -> Maybe Extra
 findFieldsExtra a@Fields{}          = Just a
