@@ -43,15 +43,15 @@ spec = do
             testWidth "hollow" 8
     describe "Width calculation for composite data types" $ do
         it "calculates width for chests" $
-            testWidth "<4>-chest of type humanity" 4
+            testWidth "<4>-chest of type humanity" 8
         it "calculates width for chests of chests" $
-            testWidth "<4>-chest of type <4>-chest of type humanity" 4
+            testWidth "<4>-chest of type <4>-chest of type humanity" 8
         it "calculates width for sets" $
             testWidth "armor of type humanity" 4
         it "calculates width for sets of sets" $
             testWidth "armor of type armor of type humanity" 4
         it "calculates width for strings" $
-            testWidth "<4>-miracle" 4
+            testWidth "<4>-miracle" 8
         it "calculates width for pointers" $
             testWidth "arrow to hollow" 4
     describe "Width calculation for record data types" $ do

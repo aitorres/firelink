@@ -392,25 +392,29 @@ TYPE :: { ST.Extra }
   | char                                                                { ST.Simple ST.sign }
   | bool                                                                { ST.Simple ST.bonfire }
   | ltelit EXPR array ofType TYPE                                       {% createAnonymousAlias $1 $
-                                                                              ST.CompoundRec (T.cleanedString $3) $2 $5 }
+                                                                              [ ST.CompoundRec (T.cleanedString $3) $2 $5
+                                                                              , ST.Width $ ST.wordSize * 2 ] }
 
   | ltelit EXPR string                                                  {% createAnonymousAlias $1 $
-                                                                              ST.Compound (T.cleanedString $3) $2 }
+                                                                              [ ST.Compound (T.cleanedString $3) $2
+                                                                              , ST.Width $ ST.wordSize * 2 ] }
   | set ofType TYPE                                                     {% createAnonymousAlias $1 $
-                                                                              ST.Recursive (T.cleanedString $1) $3 }
+                                                                              [ ST.Recursive (T.cleanedString $1) $3
+                                                                              , ST.Width ST.wordSize ] }
   | pointer TYPE                                                        {% createAnonymousAlias $1 $
-                                                                              ST.Recursive (T.cleanedString $1) $2 }
+                                                                              [ ST.Recursive (T.cleanedString $1) $2
+                                                                              , ST.Width ST.wordSize ] }
   | RECORD_OPEN  brOpen STRUCTITS BRCLOSE                               {% do
                                                                              checkRecoverableError $2 $4
                                                                              currScope <- ST.getCurrentScope
                                                                              ST.exitScope
-                                                                             ret <- createAnonymousAlias $1 $ ST.Fields ST.Record currScope
+                                                                             ret <- createAnonymousAlias $1 $ [ST.Fields ST.Record currScope]
                                                                              return ret }
   | UNION_OPEN brOpen STRUCTITS BRCLOSE                                 {% do
                                                                              checkRecoverableError $2 $4
                                                                              currScope <- ST.getCurrentScope
                                                                              ST.exitScope
-                                                                             ret <- createAnonymousAlias $1 $ ST.Fields ST.Union currScope
+                                                                             ret <- createAnonymousAlias $1 $ [ST.Fields ST.Union currScope]
                                                                              return ret }
 
 RECORD_OPEN :: { T.Token }
@@ -709,12 +713,12 @@ PARSLIST :: { G.Params }
 type NameDeclaration = (ST.Category, G.Id, [ST.Extra])
 type RecordItem = (G.Id, ST.Extra)
 
-createAnonymousAlias :: T.Token -> ST.Extra -> ST.ParserMonad ST.Extra
-createAnonymousAlias token grammarType = do
+createAnonymousAlias :: T.Token -> [ST.Extra] -> ST.ParserMonad ST.Extra
+createAnonymousAlias token extras = do
   anonymousAlias <- ST.genAliasName
   currentScope <- ST.getCurrentScope
   let tk = token{T.cleanedString=anonymousAlias, T.aToken = T.TkId}
-  let declaration = (ST.Type, G.Id tk currentScope, [grammarType])
+  let declaration = (ST.Type, G.Id tk currentScope, extras)
   addIdToSymTable declaration
   return $ ST.Simple anonymousAlias
 
