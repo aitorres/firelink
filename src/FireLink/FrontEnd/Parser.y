@@ -424,7 +424,7 @@ RECORD_OPEN :: { T.Token }
 RECORD_OPEN : record                                                    {% ST.enterScope >> ST.pushOffset 0 >> return $1 }
 
 UNION_OPEN :: { T.Token }
-UNION_OPEN : unionStruct                                                {% ST.enterScope >> return $1 }
+UNION_OPEN : unionStruct                                                {% ST.enterScope >> ST.newUnion >> return $1 }
 
 BRCLOSE :: { Maybe G.RecoverableError }
   : brClose                                                             { Nothing }
@@ -433,6 +433,15 @@ BRCLOSE :: { Maybe G.RecoverableError }
 PARENSCLOSE :: { Maybe G.RecoverableError }
   : parensClose                                                         { Nothing }
   | error                                                               { Just G.MissingClosingParens }
+
+UNIONITS :: { () }
+  : UNIONITS comma UNIONIT                                             { () }
+  | UNIONIT                                                            { () }
+
+UNIONIT :: { () }
+  : ID ofType TYPE                                                      {% do
+                                                                            unionAttrId <- fmap ST.UnionAttrId ST.genNextUnion
+                                                                            addIdToSymTable (ST.UnionItem, $1, [$3, unionAttrId]) }
 
 STRUCTITS :: { () }
   : STRUCTITS comma STRUCTIT                                            { () }
@@ -824,7 +833,7 @@ assignOffsetAndInsert entry = do
     categoriesThatRequireOffset :: [ST.Category]
     categoriesThatRequireOffset =
       [ ST.ValueParam, ST.RefParam, ST.RecordItem
-      , ST.Variable, ST.Constant ]
+      , ST.Variable, ST.Constant, ST.UnionItem ]
 
     requiresOffset :: Bool
     requiresOffset = category `elem` categoriesThatRequireOffset
