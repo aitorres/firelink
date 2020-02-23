@@ -22,7 +22,7 @@ genCode' Expr {expAst=ast, expType=t} = genCodeForExpr t ast
 genCodeForExpr :: Type -> BaseExpr -> CodeGenMonad OperandType
 genCodeForExpr _ (IdExpr (Id Token {cleanedString=idName} idScope)) = do
     symEntry <- findSymEntry <$> ask
-    return $ TAC.Variable $ TACVariable symEntry
+    return $ TAC.Variable $ TACVariable symEntry 0
     where
         findSymEntry :: Dictionary -> DictionaryEntry
         findSymEntry = head . filter (\s -> scope s == idScope) . findChain idName

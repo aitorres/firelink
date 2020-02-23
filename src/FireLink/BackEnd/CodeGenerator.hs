@@ -2,7 +2,8 @@ module FireLink.BackEnd.CodeGenerator where
 
 import           Control.Monad.RWS              (RWST (..), get, put, tell)
 import           FireLink.FrontEnd.SymTable     (Dictionary (..),
-                                                 DictionaryEntry (..))
+                                                 DictionaryEntry (..),
+                                                 getOffset)
 import           FireLink.FrontEnd.TypeChecking
 import           TACType
 
@@ -14,11 +15,15 @@ data CodeGenState = CodeGenState
 initialState :: CodeGenState
 initialState = CodeGenState {cgsNextTemp = 0, cgsNextLabel = 0}
 
-data TACSymEntry = TACTemporal String | TACVariable DictionaryEntry
+type RelativeOffset = Int
+
+data TACSymEntry
+    = TACTemporal String
+    | TACVariable DictionaryEntry RelativeOffset
 
 instance SymEntryCompatible TACSymEntry where
     getSymID (TACTemporal s)     = s
-    getSymID (TACVariable entry) = name entry
+    getSymID (TACVariable entry rOffset) = "base[" ++ show (getOffset entry + rOffset) ++ "]"
 
 instance Show TACSymEntry where
     show = getSymID
