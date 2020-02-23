@@ -1,0 +1,28 @@
+hello ashen one
+
+traveling somewhere
+with
+    var n of type humanity <<= 1
+in your inventory
+
+    enter dungeon with n - 12 / 2:
+    1:
+        traveling somewhere
+            n <<= 15
+        you died
+    2:
+        traveling somewhere
+            n <<= 14 \
+            n <<= 2 * n
+        you died
+    empty dungeon:
+        traveling somewhere
+            n <<= -1
+        you died
+    dungeon exited \
+
+    n <<= n - 1
+
+you died
+
+farewell ashen one

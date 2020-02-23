@@ -1,0 +1,23 @@
+hello ashen one
+
+traveling somewhere
+with
+    var n of type humanity <<= 1
+in your inventory
+
+    enter dungeon with n + 1:
+    1:
+        traveling somewhere
+            n <<= 15
+        you died
+    2:
+        traveling somewhere
+            n <<= 20
+        you died
+    dungeon exited \
+
+    n <<= n - 1 / 2
+
+you died
+
+farewell ashen one
