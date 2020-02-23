@@ -197,11 +197,15 @@ NON_OPENER_INSTEND :: { Maybe G.RecoverableError }
   | error                                                               { Just G.MissingInstructionListEnd }
 
 ALIASES :: { () }
-  : aliasListBegin ALIASL ALIASLISTEND                                  {% do
+  : ALIASLISTBEGIN ALIASL ALIASLISTEND                                  {% do
                                                                             checkRecoverableError $1 $3
                                                                             st <- RWS.get
+                                                                            ST.popOffset
                                                                             RWS.put st{ST.stScopeStack=[1, 0]} }
   | {- empty -}                                                         { () }
+
+ALIASLISTBEGIN :: { T.Token }
+ALIASLISTBEGIN : aliasListBegin                                         {% ST.pushOffset 0 >> return $1 }
 
 ALIASLISTEND :: { Maybe G.RecoverableError }
  : aliasListEnd                                                         { Nothing }
@@ -299,8 +303,8 @@ NONEMPTYEXPRL :: { [G.Expr] }
   | NONEMPTYEXPRL comma EXPR                                            { $3:$1 }
 
 METHODS :: { () }
-  : {- empty -}                                                         { () }
-  | METHODL                                                             { () }
+  : {- empty -}                                                         {% ST.pushOffset 0 }
+  | METHODL                                                             {% ST.pushOffset 0 }
 
 METHODL :: { () }
   : METHODL METHOD                                                      { () }
@@ -309,9 +313,11 @@ METHODL :: { () }
 METHOD :: { () }
   : FUNC                                                                {% do
                                                                           st <- RWS.get
+                                                                          ST.popOffset
                                                                           RWS.put st{ST.stScopeStack=[1, 0]} }
   | PROC                                                                {% do
                                                                           st <- RWS.get
+                                                                          ST.popOffset
                                                                           RWS.put st{ST.stScopeStack=[1, 0]} }
 
 FUNC :: { () }
@@ -332,7 +338,7 @@ FUNCPREFIX :: { Maybe (ST.Scope, G.Id) }
                                                                           return ret }
 
 FUNCNAME :: { G.Id }
-FUNCNAME : functionBegin ID                                             {% ST.enterScope >> return $2 }
+FUNCNAME : functionBegin ID                                             {% ST.enterScope >> ST.pushOffset 0 >> return $2 }
 
 PROC :: { () }
   : PROCPREFIX CODEBLOCK procedureEnd                                   {% do
@@ -353,7 +359,7 @@ PROCPREFIX :: { Maybe (ST.Scope, G.Id) }
                                                                             return ret }
 
 PROCNAME :: { G.Id }
-PROCNAME : procedureBegin ID                                            {% ST.enterScope >> return $2 }
+PROCNAME : procedureBegin ID                                            {% ST.enterScope >> ST.pushOffset 0 >> return $2 }
 
 PROCPARS :: { Int }
 PROCPARS : paramRequest PARS toTheEstusFlask                            {% ST.resetArgPosition >> return $2 }
@@ -831,7 +837,11 @@ assignOffsetAndInsert entry = do
         Nothing -> return extras
         Just typeEntry -> do
           nextOffset <- ST.getNextOffset
-          let ST.Width width = ST.findWidth typeEntry
+          let ST.Width realWidth = ST.findWidth typeEntry
+
+          -- Ref params occupies 1 wordSize
+          let width = if category == ST.RefParam then ST.wordSize else realWidth
+
           let o = nextOffset `mod` ST.wordSize
           let remainingOffset = ST.wordSize - o
           let finalOffset = if o == 0 || width <= remainingOffset then nextOffset
@@ -1516,7 +1526,9 @@ instance TypeCheckable ST.Extra where
 
   getType (ST.Fields ST.Callable scope) = do
     ST.SymTable {ST.stDict=dict} <- RWS.get
-    types <- mapM getType $ ST.sortByArgPosition $ ST.findAllInScope scope dict
+    let isArg entry = ST.category entry `elem` [ST.ValueParam, ST.RefParam]
+    let args = filter isArg $ ST.findAllInScope scope dict
+    types <- mapM getType $ ST.sortByArgPosition args
     return $ T.TypeList types
 
   getType (ST.Fields b scope) = buildStruct b scope

@@ -80,7 +80,10 @@ isArgPosition ArgPosition{} = True
 isArgPosition _             = False
 
 findArgPosition :: [Extra] -> Extra
-findArgPosition = head . filter isArgPosition
+findArgPosition extras = let filtered = filter isArgPosition extras in
+    if null filtered then error "findArgPosition didn't found an ArgPosition"
+    else head filtered
+
 
 findWidth :: DictionaryEntry -> Extra
 findWidth entry = f $ extra entry
@@ -348,7 +351,7 @@ wordSize :: Int
 wordSize = 4
 
 initialState :: SymTable
-initialState = SymTable (Map.fromList l) [1, 0] 1 [] [] [] Nothing 0 0 [0] []
+initialState = SymTable (Map.fromList l) [1, 0] 1 [] [] [] Nothing 0 0 [] []
     where l = [(smallHumanity, [DictionaryEntry smallHumanity Type 0 Nothing [Width 2]])
             , (humanity, [DictionaryEntry humanity Type 0 Nothing [Width 4]])
             , (hollow, [DictionaryEntry hollow Type 0 Nothing [Width 8]])

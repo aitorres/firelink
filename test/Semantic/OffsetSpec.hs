@@ -5,9 +5,7 @@ import           Test.Hspec
 import qualified TestUtils  as U
 
 testOffset :: String -> [(String, Int)] -> IO ()
-testOffset programFragment testItems = do
-    dictionary <- getDictionary $ baseProgram programFragment
-    mapM_ (test dictionary) testItems
+testOffset = testProgram . baseProgram
     where
         baseProgram :: String -> String
         baseProgram s = "hello ashen one\n\
@@ -20,12 +18,17 @@ testOffset programFragment testItems = do
                     \ you died \
                     \ farewell ashen one"
 
+testProgram :: String -> [(String, Int)] -> IO ()
+testProgram program testItems = do
+    dictionary <- getDictionary program
+    mapM_ (test dictionary) testItems
+
 test :: ST.Dictionary -> (String, Int) -> IO ()
 test dictionary (varName, expectedOffset) = do
     let chain = filter (\d -> ST.name d == varName) $ ST.findChain varName dictionary
     let dictEntry = head chain
     let ST.Offset actualOffset = U.extractOffsetFromExtra $ ST.extra dictEntry
-    actualOffset `shouldBe` expectedOffset
+    (varName, actualOffset) `shouldBe` (varName, expectedOffset)
 getDictionary :: String -> IO ST.Dictionary
 getDictionary program = do
     ST.SymTable {ST.stDict = dict} <- U.extractDictionary program
@@ -47,8 +50,8 @@ spec =
             \   x3 of type sign\
             \},\
             \var x4 of type sign" [("x1", 0), ("x2", 0), ("x3", 4), ("x4", 5)]
-        it "takes advantage of scopes to achieve a better use of offsets" $ do
-            let program = "hello ashen one\n\
+        it "takes advantage of scopes to achieve a better use of offsets" $
+            testProgram "hello ashen one\n\
             \ traveling somewhere \
             \ with \
             \   var x of type humanity\
@@ -78,6 +81,48 @@ spec =
             \ covenant left\
             \ you died \
 
+            \ farewell ashen one" [("x", 0), ("y", 4), ("z", 4), ("w", 8)]
+        it "calculates offset for function/procedure arguments, starting on 0" $
+            testProgram "hello ashen one\n\
+
+            \ invocation fun1\
+            \ requesting\
+            \   val x1 of type bezel { x of type sign, y of type bonfire },\
+            \   ref x2 of type bezel { x of type humanity, y of type humanity },\
+            \   val x3 of type humanity\
+            \ with skill of type humanity\
+            \   traveling somewhere \
+            \   with\
+            \       var y1 of type humanity \
+            \   in your inventory \
+            \   go back with 1\
+            \ you died\
+            \ after this return to your world\
+
+            \ spell fun2\
+            \ requesting\
+            \   val x4 of type bezel { x of type sign, y of type bonfire },\
+            \   ref x5 of type bezel { x of type humanity, y of type bonfire },\
+            \   val x6 of type humanity\
+            \ to the estus flask\
+            \   traveling somewhere \
+            \   with\
+            \       var y2 of type humanity \
+            \   in your inventory \
+
+            \   go back\
+            \ you died\
+            \ ashen estus flask consumed\
+
+            \ traveling somewhere \
+            \ with \
+            \   var x7 of type humanity,\
+            \   var x8 of type sign\
+            \ in your inventory \
+            \ go back \
+            \ you died \
+
             \ farewell ashen one"
-            dictionary <- getDictionary program
-            mapM_ (test dictionary) [("x", 0), ("y", 4), ("z", 4), ("w", 8)]
+                [ ("x1", 0), ("x2", 4), ("x3", 8), ("y1", 12)
+                , ("x4", 0), ("x5", 4), ("x6", 8), ("y2", 12)
+                , ("x7", 0), ("x8", 4)]
