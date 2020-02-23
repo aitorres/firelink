@@ -63,6 +63,10 @@ data Extra
     | UnionAttrId Int
     deriving Show
 
+isOffsetExtra :: Extra -> Bool
+isOffsetExtra Offset{} = True
+isOffsetExtra _ = False
+
 isWidthExtra :: Extra -> Bool
 isWidthExtra Width{} = True
 isWidthExtra _ = False
@@ -84,6 +88,13 @@ findArgPosition extras = let filtered = filter isArgPosition extras in
     if null filtered then error "findArgPosition didn't found an ArgPosition"
     else head filtered
 
+findOffset :: DictionaryEntry -> Extra
+findOffset entry = f $ extra entry
+    where
+        f :: [Extra] -> Extra
+        f extras = let offsetExtras = filter isOffsetExtra extras in
+            if null offsetExtras then error $ "Offset extra not found for const/var " ++ name entry
+            else head offsetExtras
 
 findWidth :: DictionaryEntry -> Extra
 findWidth entry = f $ extra entry
@@ -107,6 +118,9 @@ isExtraAType (Fields Record _) = True
 isExtraAType (Fields Union _) = True
 isExtraAType Simple{}      = True
 isExtraAType _             = False
+
+getOffset :: DictionaryEntry -> Int
+getOffset entry = let (Offset n) = findOffset entry in n
 
 extractTypeFromExtra :: [Extra] -> Extra
 extractTypeFromExtra = head . filter isExtraAType
