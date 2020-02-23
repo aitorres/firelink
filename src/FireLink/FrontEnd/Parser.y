@@ -475,12 +475,15 @@ CODEBLOCK :: { G.CodeBlock }
 INSTBEGIN :: { T.Token }
 INSTBEGIN : instructionsBegin                                           {% do
                                                                             ST.enterScope
+                                                                            nextOffset <- ST.getNextOffset
+                                                                            ST.pushOffset nextOffset
                                                                             st <- RWS.get
                                                                             return $1 }
 
 INSTEND :: { Maybe G.RecoverableError }
   : instructionsEnd                                                     {% do
                                                                              ST.exitScope
+                                                                             ST.popOffset
                                                                              return Nothing }
   | error                                                               { Just G.MissingInstructionListEnd }
 
