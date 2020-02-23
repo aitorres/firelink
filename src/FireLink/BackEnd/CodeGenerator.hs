@@ -38,7 +38,7 @@ newLabel :: CodeGenMonad (Operand a b)
 newLabel = do
     state@CodeGenState {cgsNextLabel = label} <- get
     put $ state{cgsNextLabel = label + 1}
-    return $ Label label
+    return $ Label $ show label
 
 genGoTo :: OperandType -> CodeGenMonad ()
 genGoTo label = tell [ThreeAddressCode
@@ -57,10 +57,10 @@ genLabel label = tell [ThreeAddressCode
                             }]
 
 fall :: OperandType
-fall = Label (-1)
+fall = Label "-1"
 
 isFall :: OperandType -> Bool
-isFall (Label l) = l == (-1)
+isFall (Label l) = l == "-1"
 isFall _         = error "calling isFall with non-label"
 
 genIdAssignment :: OperandType -> OperandType -> CodeGenMonad ()

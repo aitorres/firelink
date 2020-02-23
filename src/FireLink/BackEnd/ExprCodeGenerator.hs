@@ -22,7 +22,7 @@ genCode' Expr {expAst=ast, expType=t} = genCodeForExpr t ast
 genCodeForExpr :: Type -> BaseExpr -> CodeGenMonad OperandType
 genCodeForExpr _ (IdExpr (Id Token {cleanedString=idName} idScope)) = do
     symEntry <- findSymEntry <$> ask
-    return $ TAC.Variable $ TACVariable symEntry
+    return $ TAC.Id $ TACVariable symEntry
     where
         findSymEntry :: Dictionary -> DictionaryEntry
         findSymEntry = head . filter (\s -> scope s == idScope) . findChain idName
@@ -33,7 +33,7 @@ genCodeForExpr TrileanT exp = do
     falseLabel <- newLabel
     next <- newLabel
     newId <- newtemp
-    let lvalue = TAC.Variable newId
+    let lvalue = TAC.Id newId
     genCodeForBooleanExpr exp trueLabel falseLabel
     genLabel trueLabel
     genIdAssignment lvalue $ TAC.Constant ("true", TrileanT)
@@ -47,7 +47,7 @@ genCodeForExpr _ (Op2 op lexpr rexpr) = do
     lId <- genCode' lexpr
     rId <- genCode' rexpr
     newId <- newtemp
-    let lvalue = TAC.Variable newId
+    let lvalue = TAC.Id newId
     tell [TAC.ThreeAddressCode
             { TAC.tacOperand = operation
             , TAC.tacLvalue = Just lvalue
@@ -67,7 +67,7 @@ genCodeForExpr t (Caster expr _) = genCode' expr
 
 genCodeForExpr _ (Op1 Negate expr) = do
     rId <- genCode' expr
-    lvalue <- TAC.Variable <$> newtemp
+    lvalue <- TAC.Id <$> newtemp
     tell [TAC.ThreeAddressCode
             { TAC.tacOperand = TAC.Minus
             , TAC.tacLvalue = Just lvalue
