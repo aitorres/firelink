@@ -435,7 +435,7 @@ spec = describe "Expressions" $ do
         runTestForExpr "size lit" (\(Program (
             CodeBlock
                 [InstReturnWith Expr{expAst=(
-                    SetSize Expr{expAst=TrueLit})}])) -> True)
+                    Size Expr{expAst=TrueLit})}])) -> True)
 
     it "accepts `lit union lit union lit` as an expression and associates to the left" $
         runTestForExpr "lit union lit union lit" (\(Program (

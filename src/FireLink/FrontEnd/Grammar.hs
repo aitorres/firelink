@@ -42,7 +42,7 @@ data BaseExpr
   | IdExpr Id
   | AsciiOf Expr
   | IsActive Expr
-  | SetSize Expr
+  | Size Expr
   | EvalFunc Id Params
   | Caster Expr Type
   deriving Eq
@@ -122,7 +122,7 @@ instance Show BaseExpr where
   show (IdExpr i) = show i
   show (AsciiOf e) = "ascii_of " ++ show e
   show (IsActive e) = "is_active " ++ show e
-  show (SetSize s) = "size " ++ show s
+  show (Size s) = "size " ++ show s
   show (EvalFunc i p) = "summon " ++ show i ++ " granting " ++ U.joinWithCommas p ++ " to the knight"
   show (Caster a _) = "(casting) " ++ show a
 
