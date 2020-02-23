@@ -424,6 +424,7 @@ TYPE :: { ST.Extra }
                                                                              currScope <- ST.getCurrentScope
                                                                              ST.exitScope
                                                                              ST.popUnion
+                                                                             ST.popOffset
                                                                              ret <- createAnonymousAlias $1 $ [ST.Fields ST.Union currScope,
                                                                               ST.Width $ 4 + $3]
                                                                              return ret }
@@ -432,7 +433,7 @@ RECORD_OPEN :: { T.Token }
 RECORD_OPEN : record                                                    {% ST.enterScope >> ST.pushOffset 0 >> return $1 }
 
 UNION_OPEN :: { T.Token }
-UNION_OPEN : unionStruct                                                {% ST.enterScope >> ST.newUnion >> return $1 }
+UNION_OPEN : unionStruct                                                {% ST.enterScope >> ST.pushOffset 0 >> ST.newUnion >> return $1 }
 
 BRCLOSE :: { Maybe G.RecoverableError }
   : brClose                                                             { Nothing }
@@ -844,7 +845,8 @@ assignOffsetAndInsert entry = do
 
           let o = nextOffset `mod` ST.wordSize
           let remainingOffset = ST.wordSize - o
-          let finalOffset = if o == 0 || width <= remainingOffset then nextOffset
+          let finalOffset = if category == ST.UnionItem then ST.wordSize
+                            else if o == 0 || width <= remainingOffset then nextOffset
                             else nextOffset + remainingOffset
           ST.putNextOffset $ finalOffset + width
           return $ (ST.Offset finalOffset) : extras

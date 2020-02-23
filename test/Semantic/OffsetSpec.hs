@@ -50,6 +50,12 @@ spec =
             \   x3 of type sign\
             \},\
             \var x4 of type sign" [("x1", 0), ("x2", 0), ("x3", 4), ("x4", 5)]
+        it "calculates offset for links" $
+            testOffset "\
+            \var x1 of type link {\
+            \   x2 of type humanity,\
+            \   x3 of type sign\
+            \}" [("x1", 0), ("x2", 4), ("x3", 4)]
         it "takes advantage of scopes to achieve a better use of offsets" $
             testProgram "hello ashen one\n\
             \ traveling somewhere \
