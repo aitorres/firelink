@@ -1,0 +1,17 @@
+hello ashen one
+
+traveling somewhere
+with
+    var n of type humanity <<= 0,
+    var i of type humanity <<= 5
+in your inventory
+
+    upgrading n with i souls until level 10
+        traveling somewhere
+            i <<= i - 1
+        you died
+    max level reached
+
+you died
+
+farewell ashen one
