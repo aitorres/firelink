@@ -213,9 +213,10 @@ Se cuenta con el siguiente operador:
 
 ##### Funciones de las cadenas de caracteres
 
-Se debe implementar la siguiente función especial en el preludio de **FireLink**.
+Se deben implementar las siguientes funciones especiales en el preludio de **FireLink**.
 
 - `ascii_of`: Retorna un arreglo de `humanity`s, representando los códigos asciis de cada caracter en el input.
+- `size`: `size a` retorna un `humanity` con la cantidad de caracteres que tenga la cadena.
 
 #### Arreglos
 
@@ -377,7 +378,7 @@ Representa la dirección en la que un valor de un tipo dado se encuentra almacen
 Todo apuntador al heap tiene los siguientes operadores:
 
 - `aim a`, que reserva cantidad de memoria suficiente para almacenar un valor del tipo del apuntador en el heap y lo inicializa a su valor por defecto.
-- `throw a`, que referencia el valor almacenado en esa ubicación de la memoria.
+- `throw a`, que derreferencia el valor almacenado en esa ubicación de la memoria.
 - `recover a`, que elimina la memoria reservada para un apuntador ya reservado y le asigna el valor nulo.
 
 El valor por defecto de un apuntador es el valor nulo, `abyss`.
@@ -546,16 +547,18 @@ go back with <expresion>
 
 No es posible utilizar esta instrucción con una expresión fuera de una función.
 
-El _alcance_ de la lista de instrucciones inmediatas a la declaración de la función es el mismo que el de la declaración de sus argumentos, por lo tanto no se puede ocultar un argumento mediante la declaración de otra variable. Es decir, el siguiente fragmento de código es inválido:
+El _alcance_ de la lista de instrucciones inmediatas a la declaración de la función es el mismo que el de la declaración de sus argumentos, por lo tanto no se puede ocultar un argumento mediante la declaración de otra variable. Además, a pesar de abrir alcances adicionales dentro de una función, el chequeador de tipos no permitirá ocultar el argumento por declarar otra variable.
+
+Por ejemplo, el siguiente fragmento de código es inválido:
 
 ```firelink
 invocation fun
 requesting
-  val x of type sign -- esta variable fue declarada en el scope 'x'
+  val x of type sign -- esta variable fue declarada en el scope 'a'
 with skill of type humanity
   traveling somewhere
   with
-    const x of type <5>-miracle -- aquí seguimos en el mismo scope 'x'
+    var x of type <5>-miracle -- aquí seguimos en el mismo scope 'a'
                                 -- esto es un error :x:
   in your inventory
     go back with 42
@@ -564,12 +567,12 @@ with skill of type humanity
 after this return to your world
 ```
 
-sin embargo, el siguiente fragmento es válido:
+De igual forma, el siguiente fragmento sigue siendo inválido:
 
 ```firelink
 invocation fun
 requesting
-  val x of type sign -- esta variable fue declarada en el scope 'x'
+  val x of type sign -- esta variable fue declarada en el scope 'a'
 with skill of type humanity
 
   traveling somewhere
@@ -577,8 +580,8 @@ with skill of type humanity
     while the lit covenant is active:
       traveling somewhere
       with
-        val x of type humanity -- esta variable fue declarada en el scope 'y' (y != x)
-                               -- esto es válido :heavy_check_mark:
+        var x of type humanity -- esta variable fue declarada en el scope 'b' (b != a)
+                               -- a pesar de esto, sigue siendo inválido :x:
       in your inventory
         go back with 42
       you died
@@ -669,6 +672,14 @@ Para imprimir una expresión a la salida estándar, se puede usar el siguiente p
 with orange saponite say <expresion>
 ```
 
+Únicamente se pueden imprimir expresiones de los siguientes tipos:
+
+- Big / Small humanity
+- Bonfire
+- Hollow
+- Sign
+- <n>-Miracle (para cualquier tamaño `n` válido)
+
 ### Leer
 
 Para leer una expresión y almacenarla en una variable, se puede usar el siguiente procedimiento:
@@ -677,7 +688,13 @@ Para leer una expresión y almacenarla en una variable, se puede usar el siguien
 transpose into <identificador>
 ```
 
-El identificador debe corresponder con una variable ya declarada de un tipo escalar.
+El identificador debe corresponder con una variable ya declarada de los siguientes tipos:
+
+- Big / Small humanity
+- Bonfire
+- Hollow
+- Sign
+- <n>-Miracle (para cualquier tamaño `n` válido, donde `n` será el tamaño máximo del buffer al leer, ignorando el exceso de haber)
 
 ### Selección
 
@@ -748,13 +765,13 @@ Dentro del bloque de instrucciones, no se permitirá modificar directamente la v
 
 Es importante resaltar que intentar declarar una variable nueva con el mismo nombre de una variable de iteración que esté viva se considerará un error semántico; es decir: no se puede oscurecer (_shadow_) una variable de iteración bajo ninguna circunstancia.
 
-Al terminar la iteración, la variable de iteración correspondiente tendrá el último valor utilizado dentro del ciclo.
+Al terminar la iteración, la variable de iteración correspondiente tendrá el valor resultante de la última comparación con la guardia al romper el ciclo (en el caso del ejemplo, `i <<= 20`.)
 
 ### Iteraciones por estructuras
 
 Las iteraciones por estructuras permiten repetir una secuencia no vacía de instrucciones asignando en una variable un elemento distinto de una estructura iterable en cada iteración.
 
-Las estructuras iterables son: listas y conjuntos.
+Las estructuras iterables son: listas y conjuntos. Sin embargo, durante el desarrollo del compilador, se dará prioridad a la iteración por listas, pudiendo no contar con la iteración por conjuntos.
 
 La sintaxis para una iteración por estructura es la siguiente:
 
