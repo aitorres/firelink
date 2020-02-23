@@ -2,16 +2,16 @@ module FireLink.BackEnd.InstructionCodeGenerator where
 
 import           Control.Monad.RWS                  (lift, tell, unless, when)
 import           FireLink.BackEnd.CodeGenerator
-import           FireLink.BackEnd.ExprCodeGenerator (genCode',
-                                                     genBooleanComparation,
+import           FireLink.BackEnd.ExprCodeGenerator (genBooleanComparation,
+                                                     genCode',
                                                      genCodeForBooleanExpr)
 import           FireLink.FrontEnd.Grammar          (BaseExpr (..),
                                                      CodeBlock (..), Expr (..),
                                                      Id (..), IfCase (..),
                                                      Instruction (..),
-                                                     SwitchCase (..),
-                                                     Program (..))
-import qualified FireLink.FrontEnd.Grammar as G (Op2 (..))
+                                                     Program (..),
+                                                     SwitchCase (..))
+import qualified FireLink.FrontEnd.Grammar          as G (Op2 (..))
 import           FireLink.FrontEnd.TypeChecking     (Type (..))
 import           TACType
 import qualified TACType                            as TAC
