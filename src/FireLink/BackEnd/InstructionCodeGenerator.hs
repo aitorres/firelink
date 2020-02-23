@@ -38,7 +38,6 @@ genCodeForInstruction (InstAsig lvalue@Expr {expAst = IdExpr id} rvalue) next =
     else do
         trueLabel <- newLabel
         falseLabel <- newLabel
-        lift $ print (trueLabel, falseLabel)
         genCodeForBooleanExpr (expAst rvalue) trueLabel falseLabel
         operand <- genCode' lvalue
         genLabel trueLabel

@@ -166,6 +166,10 @@ failByEmptyFile :: IO ()
 failByEmptyFile =
     raiseCompilerError $ "Your journey must not be started from an " ++ bold ++ red ++ "empty file" ++ nocolor ++ ", ashen one."
 
+failByUnknownFlag :: IO ()
+failByUnknownFlag =
+    raiseCompilerError $ "Your journey must not be started from an " ++ bold ++ red ++ "unrecognized flag" ++ nocolor ++ ", ashen one."
+
 handleLexError :: [Error] -> [Token] -> IO ()
 handleLexError errors tokens = do
     printLexErrors
@@ -180,25 +184,30 @@ handleCompileError compileError tokens =
         SemanticError -> printSemErrors (ceErrors compileError) tokens
 
 printTacCode :: [TAC] -> IO ()
-printTacCode = mapM_ prettyPrint
-    where
-        prettyPrint :: TAC -> IO ()
-        prettyPrint tac = putStrLn $ (if isLabel tac then "" else "\t") ++ show tac
-        isLabel :: TAC -> Bool
-        isLabel (TAC.ThreeAddressCode TAC.NewLabel _ _ _) = True
-        isLabel _                                         = False
+printTacCode = mapM_ print
 
-compile :: String -> IO ()
-compile program = do
+compile :: String -> Maybe String -> IO ()
+compile program compileFlag = do
     compilerResult <- frontEnd program
     case compilerResult of
         Left e -> uncurry handleCompileError e >> exitFailure
         Right (ast, symTable, tokens) -> do
-            prettyPrintSymTable symTable
-            printProgram tokens
-            -- code <- backend ast (ST.stDict symTable)
-            -- printTacCode code
-            -- exitSuccess
+            code <- backend ast (ST.stDict symTable)
+            case compileFlag of
+                Nothing -> do
+                    -- Default behavior: print everything
+                    putStrLn "\nFireLink: Printing SymTable"
+                    prettyPrintSymTable symTable
+                    putStrLn "\nFireLink: Printing recognized program"
+                    printProgram tokens
+                    putStrLn "\nFireLink: Printing Intermediate Representation in Three-Address Code"
+                    printTacCode code
+                Just flag ->
+                    if flag `elem` ["-s", "--symtable"] then prettyPrintSymTable symTable
+                    else if flag `elem` ["-p", "--program"] then printProgram tokens
+                    else if flag `elem` ["-t", "--tac"] then printTacCode code
+                    else failByUnknownFlag
+            exitSuccess
 
 firelink :: IO ()
 firelink = do
@@ -206,6 +215,7 @@ firelink = do
     if null args then failByEmptyArgs
     else do
         let programFile = head args
+        let compileFlag = if length args < 2 then Nothing else Just (args !! 1)
         fileExists <- doesFileExist programFile
         if fileExists then
             if takeExtension programFile /= ".souls" then failByFileExtension
@@ -213,5 +223,5 @@ firelink = do
                 handle <- openFile programFile ReadMode
                 contents <- hGetContents handle
                 if null contents then failByEmptyFile
-                else compile contents
+                else compile contents compileFlag
         else failByNonExistantFile programFile
