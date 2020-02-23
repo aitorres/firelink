@@ -46,15 +46,7 @@ genCodeForExpr TrileanT exp = do
 genCodeForExpr _ (Op2 op lexpr rexpr) = do
     lId <- genCode' lexpr
     rId <- genCode' rexpr
-    newId <- newtemp
-    let lvalue = TAC.Id newId
-    tell [TAC.ThreeAddressCode
-            { TAC.tacOperand = operation
-            , TAC.tacLvalue = Just lvalue
-            , TAC.tacRvalue1 = Just lId
-            , TAC.tacRvalue2 = Just rId
-            }]
-    return lvalue
+    genOp2Code operation lId rId
     where
         operation :: TAC.Operation
         operation = mapOp2ToTacOperation op
@@ -77,6 +69,18 @@ genCodeForExpr _ (Op1 Negate expr) = do
     return lvalue
 
 genCodeForExpr _ e = error $ "This expression hasn't been implemented " ++ show e
+
+genOp2Code :: TAC.Operation -> OperandType -> OperandType -> CodeGenMonad OperandType
+genOp2Code operation lId rId = do
+    newId <- newtemp
+    let lvalue = TAC.Id newId
+    tell [TAC.ThreeAddressCode
+            { TAC.tacOperand = operation
+            , TAC.tacLvalue = Just lvalue
+            , TAC.tacRvalue1 = Just lId
+            , TAC.tacRvalue2 = Just rId
+            }]
+    return lvalue
 
 genCodeForBooleanExpr :: BaseExpr -> OperandType -> OperandType -> CodeGenMonad ()
 

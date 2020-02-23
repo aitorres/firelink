@@ -4,7 +4,8 @@ import           Control.Monad.RWS                  (lift, tell, unless, when)
 import           FireLink.BackEnd.CodeGenerator
 import           FireLink.BackEnd.ExprCodeGenerator (genBooleanComparation,
                                                      genCode',
-                                                     genCodeForBooleanExpr)
+                                                     genCodeForBooleanExpr,
+                                                     genCodeForExpr, genOp2Code)
 import           FireLink.FrontEnd.Grammar          (BaseExpr (..),
                                                      CodeBlock (..), Expr (..),
                                                      Id (..), IfCase (..),
@@ -14,7 +15,6 @@ import           FireLink.FrontEnd.Grammar          (BaseExpr (..),
 import qualified FireLink.FrontEnd.Grammar          as G (Op2 (..))
 import           FireLink.FrontEnd.TypeChecking     (Type (..))
 import           TACType
-import qualified TACType                            as TAC
 
 
 instance GenerateCode CodeBlock where
@@ -100,15 +100,47 @@ Indeterminate looping statement
 Code-generation is similar as on the slides
 -}
 genCodeForInstruction (InstWhile guard codeblock) next = do
-    begin <- newLabel
-    trueLabel <- newLabel
-    let falseLabel = next
+    (begin, trueLabel, falseLabel) <- setUpIteration next
     genLabel begin
     genCodeForBooleanExpr (expAst guard) trueLabel falseLabel
     genLabel trueLabel
     genCode codeblock
     genGoTo begin
     genLabel next
+
+{-
+Bounded looping statement
+Code generation is similar to that of an indeterminate loop,
+in which the guard is to check whether the iteration variable has already
+reached the bound, and additional instructions are added underneath the code block
+in order to successfully update the value of the iteration variable
+after every iteration.
+-}
+genCodeForInstruction (InstFor id step bound codeblock) next = do
+    (begin, trueLabel, falseLabel) <- setUpIteration next
+    let idAst = IdExpr id
+    idOperand <- genCodeForExpr BigIntT idAst
+    boundOperand <- genCode' bound
+    genLabel begin
+    genBooleanComparation idOperand boundOperand trueLabel falseLabel G.Lt
+    genLabel trueLabel
+    genCode codeblock
+    incOperand <- genIncrement idOperand step
+    genIdAssignment idOperand incOperand
+    genGoTo begin
+    genLabel next
+    where
+            genIncrement :: OperandType -> Expr -> CodeGenMonad OperandType
+            genIncrement idOp step = do
+                stepOp <- genCode' step
+                genOp2Code Add idOp stepOp
+
+-- Aux function for iterations
+setUpIteration :: OperandType -> CodeGenMonad (OperandType, OperandType, OperandType)
+setUpIteration next = do
+    begin <- newLabel
+    trueLabel <- newLabel
+    return (begin, trueLabel, next)
 
 genCodeForIfCase :: OperandType -> Bool -> IfCase -> CodeGenMonad ()
 genCodeForIfCase next isLast (GuardedCase expr codeblock) = do
