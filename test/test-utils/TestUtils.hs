@@ -72,6 +72,11 @@ extractWidthFromExtra [] = error "The `extra` array doesn't have any `Width` ite
 extractWidthFromExtra (s@ST.Width{} : _) = s
 extractWidthFromExtra (_:ss) = extractWidthFromExtra ss
 
+extractUnionAttrIdFromExtra :: Extractor
+extractUnionAttrIdFromExtra [] = error "The `extra` array doesn't have any `UnionAttrId` item"
+extractUnionAttrIdFromExtra (s@ST.UnionAttrId{} : _) = s
+extractUnionAttrIdFromExtra (_:ss) = extractUnionAttrIdFromExtra ss
+
 runTestForInvalidProgram :: String -> IO ()
 runTestForInvalidProgram program = do
     let ([], tokens) = L.scanTokens program

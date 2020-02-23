@@ -58,7 +58,18 @@ data Extra
 
     -- Width of type. It is not world-aligned
     | Width Int
+
+    -- Unique identifier for each union-attribute
+    | UnionAttrId Int
     deriving Show
+
+isWidthExtra :: Extra -> Bool
+isWidthExtra Width{} = True
+isWidthExtra _ = False
+
+isUnionAttrId :: Extra -> Bool
+isUnionAttrId UnionAttrId{} = True
+isUnionAttrId _ = False
 
 isFieldsExtra :: Extra -> Bool
 isFieldsExtra (Fields _ _) = True
@@ -69,7 +80,18 @@ isArgPosition ArgPosition{} = True
 isArgPosition _             = False
 
 findArgPosition :: [Extra] -> Extra
-findArgPosition = head . filter isArgPosition
+findArgPosition extras = let filtered = filter isArgPosition extras in
+    if null filtered then error "findArgPosition didn't found an ArgPosition"
+    else head filtered
+
+
+findWidth :: DictionaryEntry -> Extra
+findWidth entry = f $ extra entry
+    where
+        f :: [Extra] -> Extra
+        f extras = let widthExtras = filter isWidthExtra extras in
+            if null widthExtras then error $ "Width extra not found for entry " ++ name entry
+            else head widthExtras
 
 findFieldsExtra :: Extra -> Maybe Extra
 findFieldsExtra a@Fields{}          = Just a
@@ -116,7 +138,10 @@ data SymTable = SymTable
       stSwitchTypes :: ![TC.Type], -- ^ List of currently active switch variable types
       stVisitedMethod :: !(Maybe String), -- ^ List of currently visited method
       stNextAnonymousAlias :: !Int, -- ^ Next anonymous alias to be used with anonymous data types
-      stNextParamId :: !Int -- ^ Used to generate next parameter id (for ordering) in functions
+      stNextParamId :: !Int, -- ^ Used to generate next parameter id (for ordering) in functions
+      stOffsetStack :: ![Int], -- ^ Used to carry offset in scopes
+      stUnionAttrIdStack :: ![Int] -- ^ Used to assign an unique identifier to each union-attr.
+                                   -- we need a stack because we can have nested unions
     }
     deriving Show
 
@@ -259,6 +284,42 @@ popSwitchType = do
         []  -> []
         _:s -> s}
 
+getNextOffset :: ParserMonad Int
+getNextOffset = do
+    SymTable {stOffsetStack=offset : _} <- RWS.get
+    return offset
+
+putNextOffset :: Int -> ParserMonad ()
+putNextOffset offset = do
+    st@SymTable{stOffsetStack = _ : offsets} <- RWS.get
+    RWS.put st{stOffsetStack = offset : offsets}
+
+pushOffset :: Int -> ParserMonad ()
+pushOffset offset = do
+    st@SymTable{stOffsetStack = offsets} <- RWS.get
+    RWS.put st{stOffsetStack = offset : offsets}
+
+popOffset :: ParserMonad ()
+popOffset = do
+    st@SymTable{stOffsetStack = _ : offsets} <- RWS.get
+    RWS.put st{stOffsetStack = offsets}
+
+newUnion :: ParserMonad ()
+newUnion = do
+    st@SymTable{stUnionAttrIdStack = unions} <- RWS.get
+    RWS.put st{stUnionAttrIdStack = 0 : unions}
+
+genNextUnion :: ParserMonad Int
+genNextUnion = do
+    st@SymTable{stUnionAttrIdStack = union : unions} <- RWS.get
+    RWS.put st{stUnionAttrIdStack = (union + 1) : unions}
+    return union
+
+popUnion :: ParserMonad ()
+popUnion = do
+    st@SymTable{stUnionAttrIdStack = _ : unions} <- RWS.get
+    RWS.put st{stUnionAttrIdStack = unions}
+
 smallHumanity :: String
 smallHumanity = "small humanity"
 humanity :: String
@@ -290,7 +351,7 @@ wordSize :: Int
 wordSize = 4
 
 initialState :: SymTable
-initialState = SymTable (Map.fromList l) [1, 0] 1 [] [] [] Nothing 0 0
+initialState = SymTable (Map.fromList l) [1, 0] 1 [] [] [] Nothing 0 0 [] []
     where l = [(smallHumanity, [DictionaryEntry smallHumanity Type 0 Nothing [Width 2]])
             , (humanity, [DictionaryEntry humanity Type 0 Nothing [Width 4]])
             , (hollow, [DictionaryEntry hollow Type 0 Nothing [Width 8]])

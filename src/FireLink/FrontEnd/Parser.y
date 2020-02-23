@@ -197,11 +197,15 @@ NON_OPENER_INSTEND :: { Maybe G.RecoverableError }
   | error                                                               { Just G.MissingInstructionListEnd }
 
 ALIASES :: { () }
-  : aliasListBegin ALIASL ALIASLISTEND                                  {% do
+  : ALIASLISTBEGIN ALIASL ALIASLISTEND                                  {% do
                                                                             checkRecoverableError $1 $3
                                                                             st <- RWS.get
+                                                                            ST.popOffset
                                                                             RWS.put st{ST.stScopeStack=[1, 0]} }
   | {- empty -}                                                         { () }
+
+ALIASLISTBEGIN :: { T.Token }
+ALIASLISTBEGIN : aliasListBegin                                         {% ST.pushOffset 0 >> return $1 }
 
 ALIASLISTEND :: { Maybe G.RecoverableError }
  : aliasListEnd                                                         { Nothing }
@@ -217,7 +221,14 @@ ALIASADD :: { () }
                                                                             return () }
 
 ALIAS :: { NameDeclaration }
-  : alias ID TYPE                                                       { (ST.Type, $2, [$3]) }
+  : alias ID TYPE                                                       {% do
+                                                                            let (ST.Simple i) = $3
+                                                                            maybeEntry <- ST.dictLookup i
+                                                                            let t = $3
+                                                                            let extras = (case maybeEntry of
+                                                                                            Nothing -> [t]
+                                                                                            Just entry -> [t, ST.findWidth entry])
+                                                                            return (ST.Type, $2, extras) }
 
 LVALUE :: { G.Expr }
   : ID                                                                  {% do
@@ -292,8 +303,8 @@ NONEMPTYEXPRL :: { [G.Expr] }
   | NONEMPTYEXPRL comma EXPR                                            { $3:$1 }
 
 METHODS :: { () }
-  : {- empty -}                                                         { () }
-  | METHODL                                                             { () }
+  : {- empty -}                                                         {% ST.pushOffset 0 }
+  | METHODL                                                             {% ST.pushOffset 0 }
 
 METHODL :: { () }
   : METHODL METHOD                                                      { () }
@@ -302,9 +313,11 @@ METHODL :: { () }
 METHOD :: { () }
   : FUNC                                                                {% do
                                                                           st <- RWS.get
+                                                                          ST.popOffset
                                                                           RWS.put st{ST.stScopeStack=[1, 0]} }
   | PROC                                                                {% do
                                                                           st <- RWS.get
+                                                                          ST.popOffset
                                                                           RWS.put st{ST.stScopeStack=[1, 0]} }
 
 FUNC :: { () }
@@ -325,7 +338,7 @@ FUNCPREFIX :: { Maybe (ST.Scope, G.Id) }
                                                                           return ret }
 
 FUNCNAME :: { G.Id }
-FUNCNAME : functionBegin ID                                             {% ST.enterScope >> return $2 }
+FUNCNAME : functionBegin ID                                             {% ST.enterScope >> ST.pushOffset 0 >> return $2 }
 
 PROC :: { () }
   : PROCPREFIX CODEBLOCK procedureEnd                                   {% do
@@ -346,7 +359,7 @@ PROCPREFIX :: { Maybe (ST.Scope, G.Id) }
                                                                             return ret }
 
 PROCNAME :: { G.Id }
-PROCNAME : procedureBegin ID                                            {% ST.enterScope >> return $2 }
+PROCNAME : procedureBegin ID                                            {% ST.enterScope >> ST.pushOffset 0 >> return $2 }
 
 PROCPARS :: { Int }
 PROCPARS : paramRequest PARS toTheEstusFlask                            {% ST.resetArgPosition >> return $2 }
@@ -370,6 +383,7 @@ PARTYPE :: { ST.Category }
   : parVal                                                              { ST.ValueParam }
   | parRef                                                              { ST.RefParam }
 
+{- TYPE always returns "ST.Simple String" -}
 TYPE :: { ST.Extra }
   : ID                                                                  {% do
                                                                           let G.Id t _ = $1
@@ -384,32 +398,42 @@ TYPE :: { ST.Extra }
   | char                                                                { ST.Simple ST.sign }
   | bool                                                                { ST.Simple ST.bonfire }
   | ltelit EXPR array ofType TYPE                                       {% createAnonymousAlias $1 $
-                                                                              ST.CompoundRec (T.cleanedString $3) $2 $5 }
+                                                                              [ ST.CompoundRec (T.cleanedString $3) $2 $5
+                                                                              , ST.Width $ ST.wordSize * 2 ] }
 
   | ltelit EXPR string                                                  {% createAnonymousAlias $1 $
-                                                                              ST.Compound (T.cleanedString $3) $2 }
+                                                                              [ ST.Compound (T.cleanedString $3) $2
+                                                                              , ST.Width $ ST.wordSize * 2 ] }
   | set ofType TYPE                                                     {% createAnonymousAlias $1 $
-                                                                              ST.Recursive (T.cleanedString $1) $3 }
+                                                                              [ ST.Recursive (T.cleanedString $1) $3
+                                                                              , ST.Width ST.wordSize ] }
   | pointer TYPE                                                        {% createAnonymousAlias $1 $
-                                                                              ST.Recursive (T.cleanedString $1) $2 }
+                                                                              [ ST.Recursive (T.cleanedString $1) $2
+                                                                              , ST.Width ST.wordSize ] }
   | RECORD_OPEN  brOpen STRUCTITS BRCLOSE                               {% do
+                                                                            checkRecoverableError $2 $4
+                                                                            currScope <- ST.getCurrentScope
+                                                                            nextOffset <- ST.getNextOffset
+                                                                            ST.exitScope
+                                                                            ST.popOffset
+                                                                            ret <- createAnonymousAlias $1 $ [
+                                                                              ST.Fields ST.Record currScope, ST.Width nextOffset]
+                                                                            return ret }
+  | UNION_OPEN brOpen UNIONITS BRCLOSE                                  {% do
                                                                              checkRecoverableError $2 $4
                                                                              currScope <- ST.getCurrentScope
                                                                              ST.exitScope
-                                                                             ret <- createAnonymousAlias $1 $ ST.Fields ST.Record currScope
-                                                                             return ret }
-  | UNION_OPEN brOpen STRUCTITS BRCLOSE                                 {% do
-                                                                             checkRecoverableError $2 $4
-                                                                             currScope <- ST.getCurrentScope
-                                                                             ST.exitScope
-                                                                             ret <- createAnonymousAlias $1 $ ST.Fields ST.Union currScope
+                                                                             ST.popUnion
+                                                                             ST.popOffset
+                                                                             ret <- createAnonymousAlias $1 $ [ST.Fields ST.Union currScope,
+                                                                              ST.Width $ 4 + $3]
                                                                              return ret }
 
 RECORD_OPEN :: { T.Token }
-RECORD_OPEN : record                                                    {% ST.enterScope >> return $1 }
+RECORD_OPEN : record                                                    {% ST.enterScope >> ST.pushOffset 0 >> return $1 }
 
 UNION_OPEN :: { T.Token }
-UNION_OPEN : unionStruct                                                {% ST.enterScope >> return $1 }
+UNION_OPEN : unionStruct                                                {% ST.enterScope >> ST.pushOffset 0 >> ST.newUnion >> return $1 }
 
 BRCLOSE :: { Maybe G.RecoverableError }
   : brClose                                                             { Nothing }
@@ -418,6 +442,22 @@ BRCLOSE :: { Maybe G.RecoverableError }
 PARENSCLOSE :: { Maybe G.RecoverableError }
   : parensClose                                                         { Nothing }
   | error                                                               { Just G.MissingClosingParens }
+
+UNIONITS :: { Int }
+  : UNIONITS comma UNIONIT                                             { max $1 $3 }
+  | UNIONIT                                                            { $1 }
+
+UNIONIT :: { Int }
+  : ID ofType TYPE                                                      {% do
+                                                                            unionAttrId <- fmap ST.UnionAttrId ST.genNextUnion
+                                                                            addIdToSymTable (ST.UnionItem, $1, [$3, unionAttrId])
+                                                                            let ST.Simple t = $3
+                                                                            maybeTypeEntry <- ST.dictLookup t
+                                                                            case maybeTypeEntry of
+                                                                              Nothing -> return 0
+                                                                              Just entry -> do
+                                                                                let ST.Width w = ST.findWidth entry
+                                                                                return w }
 
 STRUCTITS :: { () }
   : STRUCTITS comma STRUCTIT                                            { () }
@@ -442,12 +482,15 @@ CODEBLOCK :: { G.CodeBlock }
 INSTBEGIN :: { T.Token }
 INSTBEGIN : instructionsBegin                                           {% do
                                                                             ST.enterScope
+                                                                            nextOffset <- ST.getNextOffset
+                                                                            ST.pushOffset nextOffset
                                                                             st <- RWS.get
                                                                             return $1 }
 
 INSTEND :: { Maybe G.RecoverableError }
   : instructionsEnd                                                     {% do
                                                                              ST.exitScope
+                                                                             ST.popOffset
                                                                              return Nothing }
   | error                                                               { Just G.MissingInstructionListEnd }
 
@@ -705,12 +748,12 @@ PARSLIST :: { G.Params }
 type NameDeclaration = (ST.Category, G.Id, [ST.Extra])
 type RecordItem = (G.Id, ST.Extra)
 
-createAnonymousAlias :: T.Token -> ST.Extra -> ST.ParserMonad ST.Extra
-createAnonymousAlias token grammarType = do
+createAnonymousAlias :: T.Token -> [ST.Extra] -> ST.ParserMonad ST.Extra
+createAnonymousAlias token extras = do
   anonymousAlias <- ST.genAliasName
   currentScope <- ST.getCurrentScope
   let tk = token{T.cleanedString=anonymousAlias, T.aToken = T.TkId}
-  let declaration = (ST.Type, G.Id tk currentScope, [grammarType])
+  let declaration = (ST.Type, G.Id tk currentScope, extras)
   addIdToSymTable declaration
   return $ ST.Simple anonymousAlias
 
@@ -746,8 +789,8 @@ addIdToSymTable d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idName
   ST.SymTable {ST.stIterationVars=iterVars} <- RWS.get
   case maybeIdEntry of
     -- The name doesn't exists on the table, we just add it
-    Nothing -> do
-      ST.addEntry ST.DictionaryEntry
+    Nothing ->
+      assignOffsetAndInsert ST.DictionaryEntry
         { ST.name = idName
         , ST.category = c
         , ST.scope = currScope
@@ -770,7 +813,7 @@ addIdToSymTable d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idName
       else if (T.cleanedString tk) `elem` iterVars
       then logSemError ("Name " ++ show tk ++ " conflicts or shadows an iteration variable") tk
       else if currScope /= scope
-      then ST.addEntry ST.DictionaryEntry
+      then assignOffsetAndInsert ST.DictionaryEntry
         { ST.name = idName
         , ST.category = c
         , ST.scope = currScope
@@ -786,6 +829,43 @@ addIdToSymTable d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idName
     getTypeNameForSymTable (ST.CompoundRec s _ _) = s
     getTypeNameForSymTable (ST.Fields ST.Record _) = ST.bezel
     getTypeNameForSymTable (ST.Fields ST.Union _) = ST.link
+
+
+assignOffsetAndInsert :: ST.DictionaryEntry -> ST.ParserMonad ()
+assignOffsetAndInsert entry = do
+  let extras = ST.extra entry
+  finalExtras <-
+    if requiresOffset then do
+      let (ST.Simple t) = ST.extractTypeFromExtra extras
+      maybeTypeEntry <- ST.dictLookup t
+      case maybeTypeEntry of
+        Nothing -> return extras
+        Just typeEntry -> do
+          nextOffset <- ST.getNextOffset
+          let ST.Width realWidth = ST.findWidth typeEntry
+
+          -- Ref params occupies 1 wordSize
+          let width = if category == ST.RefParam then ST.wordSize else realWidth
+
+          let o = nextOffset `mod` ST.wordSize
+          let remainingOffset = ST.wordSize - o
+          let finalOffset = if category == ST.UnionItem then ST.wordSize
+                            else if o == 0 || width <= remainingOffset then nextOffset
+                            else nextOffset + remainingOffset
+          ST.putNextOffset $ finalOffset + width
+          return $ (ST.Offset finalOffset) : extras
+    else return extras
+  ST.addEntry entry{ST.extra=finalExtras}
+  where
+    category :: ST.Category
+    category = ST.category entry
+    categoriesThatRequireOffset :: [ST.Category]
+    categoriesThatRequireOffset =
+      [ ST.ValueParam, ST.RefParam, ST.RecordItem
+      , ST.Variable, ST.Constant, ST.UnionItem ]
+
+    requiresOffset :: Bool
+    requiresOffset = category `elem` categoriesThatRequireOffset
 
 checkConstantReassignment :: G.Expr -> ST.ParserMonad ()
 checkConstantReassignment e = case G.expAst e of
@@ -1457,7 +1537,9 @@ instance TypeCheckable ST.Extra where
 
   getType (ST.Fields ST.Callable scope) = do
     ST.SymTable {ST.stDict=dict} <- RWS.get
-    types <- mapM getType $ ST.sortByArgPosition $ ST.findAllInScope scope dict
+    let isArg entry = ST.category entry `elem` [ST.ValueParam, ST.RefParam]
+    let args = filter isArg $ ST.findAllInScope scope dict
+    types <- mapM getType $ ST.sortByArgPosition args
     return $ T.TypeList types
 
   getType (ST.Fields b scope) = buildStruct b scope
