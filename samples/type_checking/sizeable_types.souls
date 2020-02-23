@@ -1,0 +1,19 @@
+hello ashen one
+
+traveling somewhere
+with
+    var a of type <3>-chest of type humanity <<= <$ 1, 2, 3 $>,
+    var b of type <3>-miracle <<= @YES@,
+    var c of type armor of type humanity,
+    var f of type humanity
+in your inventory
+
+    -- Valid
+    f <<= size a \
+    f <<= size b \
+    f <<= size c \
+
+    -- Invalid
+    f <<= size f
+you died
+farewell ashen one
