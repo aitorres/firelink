@@ -95,6 +95,12 @@ getTypeFromContainer (SetT t)   = Just t
 getTypeFromContainer (ArrayT t) = Just t
 getTypeFromContainer _          = Nothing
 
+isSizeableType :: Type -> Bool
+isSizeableType (SetT _) = True
+isSizeableType (ArrayT _) = True
+isSizeableType StringT = True
+isSizeableType _ = False
+
 booleanSingleton :: [Type]
 booleanSingleton = [TrileanT]
 
@@ -106,6 +112,9 @@ integerTypes = [BigIntT, SmallIntT]
 
 comparableTypes :: [Type]
 comparableTypes = [BigIntT, SmallIntT, FloatT]
+
+ioTypes :: [Type]
+ioTypes = [BigIntT, SmallIntT, FloatT, TrileanT, CharT, StringT]
 
 anySingleton :: [Type]
 anySingleton = [Any]

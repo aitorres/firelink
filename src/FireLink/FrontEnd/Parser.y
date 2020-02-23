@@ -250,7 +250,7 @@ EXPR :: { G.Expr }
   | not EXPR                                                            {% buildAndCheckExpr $1 $ G.Op1 G.Not $2 }
   | asciiOf EXPR                                                        {% buildAndCheckExpr $1 $ G.AsciiOf $2 }
   | isActive EXPR                                                       {% buildAndCheckExpr $1 $ G.IsActive $2 }
-  | size EXPR                                                           {% buildAndCheckExpr $1 $ G.SetSize $2 }
+  | size EXPR                                                           {% buildAndCheckExpr $1 $ G.Size $2 }
   | EXPR plus EXPR                                                      {% buildAndCheckExpr $2 $ G.Op2 G.Add $1 $3 }
   | EXPR minus EXPR                                                     {% buildAndCheckExpr $2 $ G.Op2 G.Substract $1 $3 }
   | EXPR mult EXPR                                                      {% buildAndCheckExpr $2 $ G.Op2 G.Multiply $1 $3 }
@@ -511,8 +511,12 @@ INSTR :: { G.Instruction }
   | returnWith EXPR                                                     {% do
                                                                           retExpr <- checkReturnType $2 $1
                                                                           return $ G.InstReturnWith retExpr }
-  | print EXPR                                                          { G.InstPrint $2 }
-  | read LVALUE                                                         { G.InstRead $2 }
+  | print EXPR                                                          {% do
+                                                                            checkIOTypes $2 $1
+                                                                            return $ G.InstPrint $2 }
+  | read LVALUE                                                         {% do
+                                                                            checkIOTypes $2 $1
+                                                                            return $ G.InstRead $2 }
   | whileBegin EXPR covenantIsActive COLON CODEBLOCK WHILEEND           {% do
                                                                             checkRecoverableError $1 $4
                                                                             checkRecoverableError $1 $6
@@ -923,6 +927,12 @@ checkRecoverableError openTk maybeErr = do
       let errorName = show err
       logSemError (errorName ++ " (recovered from to continue parsing)") openTk
 
+checkIOTypes :: G.Expr -> T.Token -> ST.ParserMonad ()
+checkIOTypes expr tk = do
+  t <- getType expr
+  if t `elem` T.ioTypes then return ()
+  else logSemError (show t ++ " is not an I/O valid type") tk
+
 checkAssignment :: G.Expr -> T.Token -> G.Expr -> Bool -> ST.ParserMonad G.Instruction
 checkAssignment lvalue token rvalue isInit = do
   RWS.unless isInit $ do
@@ -1244,15 +1254,14 @@ binaryOpCheck leftExpr rightExpr op tk = do
         logSemError (T.typeMismatchMessage tk) tk
         return (T.TypeError, exp)
 
-checkSetSize :: G.Expr -> T.Token -> ST.ParserMonad T.Type
-checkSetSize expr tk = do
+checkSize :: G.Expr -> T.Token -> ST.ParserMonad T.Type
+checkSize expr tk = do
   t <- getType expr
-  case t of
-    T.SetT _ -> return T.BigIntT
-    T.TypeError -> return T.TypeError
-    _ -> do
-      logSemError "`size` expects a set" tk
-      return T.TypeError
+  if T.isSizeableType t then return T.BigIntT
+  else if t == T.TypeError then return T.TypeError
+  else do
+    logSemError "`size` expects a sizeable collection type" tk
+    return T.TypeError
 
 checkStructAssignment :: (TypeCheckable a) => a -> G.Expr -> T.Token -> ST.ParserMonad ()
 checkStructAssignment lval (G.Expr {G.expAst = (G.StructLit structProps)}) tk = do
@@ -1388,7 +1397,7 @@ buildType bExpr tk = case bExpr of
   G.IsActive e -> buildTypeForNonCasterExprs (checkIsActive e tk) bExpr
   G.AsciiOf e -> buildTypeForNonCasterExprs (checkAsciiOf e tk) bExpr
   G.Access e i -> checkAccess e i tk
-  G.SetSize e -> buildTypeForNonCasterExprs (checkSetSize e tk) bExpr
+  G.Size e -> buildTypeForNonCasterExprs (checkSize e tk) bExpr
 
 checkIdType :: G.Id -> ST.ParserMonad (T.Type, G.BaseExpr)
 checkIdType gId@(G.Id tk _) = do

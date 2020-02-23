@@ -1,0 +1,32 @@
+hello ashen one
+
+traveling somewhere
+with
+    var a of type <3>-miracle,
+    var b of type <3>-chest of type humanity,
+    var c of type bezel { x of type humanity },
+    var d of type humanity,
+    var e of type sign,
+    var f of type hollow,
+    var g of type link { y of type humanity }
+in your inventory
+    -- Valid
+    with orange saponite say a \
+    transpose into a \
+    with orange saponite say d \
+    transpose into d \
+    with orange saponite say e \
+    transpose into e \
+    with orange saponite say f \
+    transpose into f \
+
+    -- Invalid
+    with orange saponite say b \
+    transpose into b \
+    with orange saponite say c \
+    transpose into c \
+    with orange saponite say g \
+    transpose into g
+you died
+
+farewell ashen one
