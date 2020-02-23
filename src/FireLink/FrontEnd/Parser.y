@@ -28,7 +28,6 @@ import           FireLink.Utils
 %left eq neq
 %left plus minus
 %left mult div mod
-%left NEG
 
 
 %left colConcat
@@ -230,16 +229,6 @@ ALIAS :: { NameDeclaration }
                                                                                             Just entry -> [t, ST.findWidth entry])
                                                                             return (ST.Type, $2, extras) }
 
-LVALUE :: { G.Expr }
-  : ID                                                                  {% do
-                                                                            let (G.Id tk _) = $1
-                                                                            buildAndCheckExpr tk $ G.IdExpr $1 }
-  | EXPR accessor ID                                                    {% do
-                                                                            let expr = G.Access $1 $3
-                                                                            buildAndCheckExpr $2 expr }
-  | EXPR arrOpen EXPR arrClose                                          {% buildAndCheckExpr $2 $ G.IndexAccess $1 $3 }
-  | memAccessor EXPR                                                    {% buildAndCheckExpr $1 $ G.MemAccess $2 }
-
 EXPR :: { G.Expr }
   : intLit                                                              {% buildAndCheckExpr $1 $ G.IntLit (read (T.cleanedString $1) :: Int) }
   | floatLit                                                            {% buildAndCheckExpr $1 $ G.FloatLit (read (T.cleanedString $1) :: Float) }
@@ -280,7 +269,14 @@ EXPR :: { G.Expr }
   | EXPR intersect EXPR                                                 {% buildAndCheckExpr $2 $ G.Op2 G.SetIntersect $1 $3 }
   | EXPR diff EXPR                                                      {% buildAndCheckExpr $2 $ G.Op2 G.SetDifference $1 $3 }
   | FUNCALL                                                             {% let (tk, i, params) = $1 in buildAndCheckExpr tk $ G.EvalFunc i params }
-  | LVALUE                                                              { $1 }
+  | ID                                                                  {% do
+                                                                            let (G.Id tk _) = $1
+                                                                            buildAndCheckExpr tk $ G.IdExpr $1 }
+  | EXPR accessor ID                                                    {% do
+                                                                            let expr = G.Access $1 $3
+                                                                            buildAndCheckExpr $2 expr }
+  | EXPR arrOpen EXPR arrClose                                          {% buildAndCheckExpr $2 $ G.IndexAccess $1 $3 }
+  | memAccessor EXPR                                                    {% buildAndCheckExpr $1 $ G.MemAccess $2 }
 
 STRUCTLIT :: { (T.Token, [(G.Id, G.Expr)]) }
   : brOpen PROPLIST BRCLOSE                                             {% do
@@ -534,7 +530,8 @@ INSTRL :: { G.Instructions }
   | INSTR                                                               { [$1] }
 
 INSTR :: { G.Instruction }
-  : LVALUE asig EXPR                                                    {% do
+  : EXPR asig EXPR                                                      {% do
+                                                                          checkLvalue $1
                                                                           checkAssignment $1 $2 $3 False
                                                                           return $ G.InstAsig $1 $3 }
   | malloc EXPR                                                         {% do
@@ -557,8 +554,9 @@ INSTR :: { G.Instruction }
   | print EXPR                                                          {% do
                                                                             checkIOTypes $2 $1
                                                                             return $ G.InstPrint $2 }
-  | read LVALUE                                                         {% do
-                                                                            checkIOTypes $2 $1
+  | read EXPR                                                           {% do
+                                                                            validLvalue <- checkLvalue $2
+                                                                            RWS.when validLvalue $ checkIOTypes $2 $1
                                                                             return $ G.InstRead $2 }
   | whileBegin EXPR covenantIsActive COLON CODEBLOCK WHILEEND           {% do
                                                                             checkRecoverableError $1 $4
@@ -1418,6 +1416,13 @@ checkTypeOfAssignment lval rval tk = do
     if T.TypeError `elem` [lvalType, rvalType]
     then return ()
     else logSemError ("Type mismatch on assignment " ++ errorDetails) tk
+
+checkLvalue :: G.Expr -> ST.ParserMonad (Bool)
+checkLvalue expr =
+  if G.isValidLvalue expr then return True
+  else do
+    logSemError "This expression is not a valid LVAL expression (expected: id, memory access, property access or pointer deref)" (G.expTok expr)
+    return False
 
 minBigInt :: Int
 minBigInt = - 2147483648
