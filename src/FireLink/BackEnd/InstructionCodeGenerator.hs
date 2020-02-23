@@ -1,16 +1,20 @@
 module FireLink.BackEnd.InstructionCodeGenerator where
 
-import           Control.Monad.RWS                  (lift, tell, unless)
+import           Control.Monad.RWS                  (lift, tell, unless, when)
 import           FireLink.BackEnd.CodeGenerator
 import           FireLink.BackEnd.ExprCodeGenerator (genCode',
+                                                     genBooleanComparation,
                                                      genCodeForBooleanExpr)
 import           FireLink.FrontEnd.Grammar          (BaseExpr (..),
                                                      CodeBlock (..), Expr (..),
                                                      Id (..), IfCase (..),
                                                      Instruction (..),
+                                                     SwitchCase (..),
                                                      Program (..))
+import qualified FireLink.FrontEnd.Grammar as G (Op2 (..))
 import           FireLink.FrontEnd.TypeChecking     (Type (..))
 import           TACType
+import qualified TACType                            as TAC
 
 
 instance GenerateCode CodeBlock where
@@ -66,6 +70,32 @@ genCodeForInstruction (InstIf ifcases) next = do
     genLabel next
 
 {-
+Selection by cases statement (switch)
+The code-generation is similar to that of a conditional statement.
+
+Note that the base expression is evaluated just once, in order to avoid
+undesired repetition of side effects, and also as an optimization.
+
+If we are generating the last case, the next instruction is right beneath,
+so no `goto falseLabel` is generated.
+
+Otherwise, the next instruction of a swith case is the next instruction right
+after the switch whole block.
+
+One consideration: if a default case is provided, then it's generated as a normal
+switch case in which the given expr matches the base expr (basically,
+a comparison of the base expression against itself is raised). This can be
+further optimized to remove the unnecessary comparison.
+-}
+genCodeForInstruction (InstSwitch baseExpr switchCases) next = do
+    bExprOperand <- genCode' baseExpr
+    let initCases = init switchCases
+    let lastCase = last switchCases
+    mapM_ (genCodeForSwitchCase next bExprOperand False) initCases
+    genCodeForSwitchCase next bExprOperand True lastCase
+    genLabel next
+
+{-
 Indeterminate looping statement
 Code-generation is similar as on the slides
 -}
@@ -87,5 +117,22 @@ genCodeForIfCase next isLast (GuardedCase expr codeblock) = do
     genCodeForBooleanExpr (expAst expr) trueLabel falseLabel
     unless isLast $ genLabel trueLabel
     genCode codeblock
+    unless isLast $ genGoTo next
+    unless isLast $ genLabel falseLabel
+
+genCodeForSwitchCase :: OperandType -> OperandType -> Bool -> SwitchCase -> CodeGenMonad ()
+genCodeForSwitchCase next bExprOperand isLast sCase = do
+    trueLabel <- if isLast then return fall else newLabel
+    falseLabel <- if isLast then return next else newLabel
+    case sCase of
+        Case expr codeblock -> do
+            caseExprOperand <- genCode' expr
+            genBooleanComparation bExprOperand caseExprOperand trueLabel falseLabel G.Eq
+            unless isLast $ genLabel trueLabel
+            genCode codeblock
+        DefaultCase codeblock -> do
+            genBooleanComparation bExprOperand bExprOperand trueLabel falseLabel G.Eq
+            unless isLast $ genLabel trueLabel
+            genCode codeblock
     unless isLast $ genGoTo next
     unless isLast $ genLabel falseLabel
