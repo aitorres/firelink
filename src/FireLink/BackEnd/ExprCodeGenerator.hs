@@ -117,29 +117,7 @@ genCodeForBooleanExpr expr trueLabel falseLabel = case expr of
     Op2 op lhs rhs | op `elem` comparableOp2 -> do
         leftExprId <- genCode' lhs
         rightExprId <- genCode' rhs
-        let isTrueNotFall = not $ isFall trueLabel
-        let isFalseNotFall = not $ isFall falseLabel
-        if isTrueNotFall && isFalseNotFall then do
-            tell [TAC.ThreeAddressCode
-                    { TAC.tacOperand = mapOp2ToTacOperation op
-                    , TAC.tacLvalue = Just leftExprId
-                    , TAC.tacRvalue1 = Just rightExprId
-                    , TAC.tacRvalue2 = Just trueLabel
-                    }]
-            genGoTo falseLabel
-        else if isTrueNotFall then
-            tell [TAC.ThreeAddressCode
-                    { TAC.tacOperand = mapOp2ToTacOperation op
-                    , TAC.tacLvalue = Just leftExprId
-                    , TAC.tacRvalue1 = Just rightExprId
-                    , TAC.tacRvalue2 = Just trueLabel
-                    }]
-        else when isFalseNotFall (tell [TAC.ThreeAddressCode
-                    { TAC.tacOperand = complement $ mapOp2ToTacOperation op
-                    , TAC.tacLvalue = Just leftExprId
-                    , TAC.tacRvalue1 = Just rightExprId
-                    , TAC.tacRvalue2 = Just falseLabel
-                    }])
+        genBooleanComparation leftExprId rightExprId trueLabel falseLabel op
 
     -- Conjunction and disjunction
     Op2 op lhs rhs | op `elem` booleanOp2 -> do
@@ -165,6 +143,33 @@ genCodeForBooleanExpr expr trueLabel falseLabel = case expr of
             genCodeForBooleanExpr (expAst lhs) lhsTrueLabel lhsFalseLabel
             genCodeForBooleanExpr (expAst rhs) rhsTrueLabel rhsFalseLabel
             when (isFall falseLabel) (genLabel lhsFalseLabel)
+
+-- Used in boolean expr generation as well as switch case generation
+genBooleanComparation :: OperandType -> OperandType -> OperandType -> OperandType -> Op2 -> CodeGenMonad ()
+genBooleanComparation leftExprId rightExprId trueLabel falseLabel op = do
+    let isTrueNotFall = not $ isFall trueLabel
+    let isFalseNotFall = not $ isFall falseLabel
+    if isTrueNotFall && isFalseNotFall then do
+        tell [TAC.ThreeAddressCode
+                { TAC.tacOperand = mapOp2ToTacOperation op
+                , TAC.tacLvalue = Just leftExprId
+                , TAC.tacRvalue1 = Just rightExprId
+                , TAC.tacRvalue2 = Just trueLabel
+                }]
+        genGoTo falseLabel
+    else if isTrueNotFall then
+        tell [TAC.ThreeAddressCode
+                { TAC.tacOperand = mapOp2ToTacOperation op
+                , TAC.tacLvalue = Just leftExprId
+                , TAC.tacRvalue1 = Just rightExprId
+                , TAC.tacRvalue2 = Just trueLabel
+                }]
+    else when isFalseNotFall (tell [TAC.ThreeAddressCode
+                { TAC.tacOperand = complement $ mapOp2ToTacOperation op
+                , TAC.tacLvalue = Just leftExprId
+                , TAC.tacRvalue1 = Just rightExprId
+                , TAC.tacRvalue2 = Just falseLabel
+                }])
 
 mapOp2ToTacOperation :: Op2 -> TAC.Operation
 mapOp2ToTacOperation op = case op of
