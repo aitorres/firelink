@@ -67,6 +67,10 @@ isWidthExtra :: Extra -> Bool
 isWidthExtra Width{} = True
 isWidthExtra _ = False
 
+isOffsetExtra :: Extra -> Bool
+isOffsetExtra Offset{} = True
+isOffsetExtra _ = False
+
 isUnionAttrId :: Extra -> Bool
 isUnionAttrId UnionAttrId{} = True
 isUnionAttrId _ = False
@@ -84,7 +88,6 @@ findArgPosition extras = let filtered = filter isArgPosition extras in
     if null filtered then error "findArgPosition didn't found an ArgPosition"
     else head filtered
 
-
 findWidth :: DictionaryEntry -> Extra
 findWidth entry = f $ extra entry
     where
@@ -92,6 +95,14 @@ findWidth entry = f $ extra entry
         f extras = let widthExtras = filter isWidthExtra extras in
             if null widthExtras then error $ "Width extra not found for entry " ++ name entry
             else head widthExtras
+
+findOffset :: DictionaryEntry -> Extra
+findOffset entry = f $ extra entry
+    where
+        f :: [Extra] -> Extra
+        f extras = let offsetExtras = filter isOffsetExtra extras in
+            if null offsetExtras then error $ "Offset extra not found for entry " ++ name entry
+            else head offsetExtras
 
 findFieldsExtra :: Extra -> Maybe Extra
 findFieldsExtra a@Fields{}          = Just a

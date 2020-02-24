@@ -332,7 +332,9 @@ FUNCPREFIX :: { Maybe (ST.Scope, G.Id) }
                                                                           return $ Just (currScope, $1)  }
 
 FUNCNAME :: { G.Id }
-FUNCNAME : functionBegin ID                                             {% ST.enterScope >> ST.pushOffset 0 >> return $2 }
+FUNCNAME : functionBegin ID                                             {% do
+                                                                            offset <- getMethodOffset $2
+                                                                            ST.enterScope >> ST.pushOffset offset >> return $2 }
 
 PROC :: { () }
   : PROCPREFIX CODEBLOCK procedureEnd                                   {% do
@@ -353,7 +355,9 @@ PROCPREFIX :: { Maybe (ST.Scope, G.Id) }
                                                                             return $ Just (currScope, $1) }
 
 PROCNAME :: { G.Id }
-PROCNAME : procedureBegin ID                                            {% ST.enterScope >> ST.pushOffset 0 >> return $2 }
+PROCNAME : procedureBegin ID                                            {% do
+                                                                            offset <- getMethodOffset $2
+                                                                            ST.enterScope >> ST.pushOffset offset >> return $2 }
 
 PROCPARS :: { Int }
 PROCPARS : paramRequest PARS toTheEstusFlask                            {% ST.resetArgPosition >> return $2 }
@@ -725,6 +729,26 @@ PARSLIST :: { G.Params }
 
 type NameDeclaration = (ST.Category, G.Id, [ST.Extra])
 type RecordItem = (G.Id, ST.Extra)
+
+getMethodOffset :: G.Id -> ST.ParserMonad (Int)
+getMethodOffset (G.Id (T.Token {T.cleanedString=methodName}) _) = do
+  mEntry <- ST.dictLookup methodName
+  case mEntry of
+    Nothing -> return 0
+    Just ST.DictionaryEntry {ST.extra = extras } -> do
+      let (ST.Fields _ scope) = head $ filter ST.isFieldsExtra extras
+      ST.SymTable {ST.stDict=dict} <- RWS.get
+      let paramEntries = ST.findAllInScope scope dict
+      if length paramEntries == 0 then return 0
+      else do
+        let lastParam@(ST.DictionaryEntry {ST.entryType=Just typeName, ST.extra=paramExtras}) = last paramEntries
+        mtEntry <- ST.dictLookup typeName
+        case mtEntry of
+          Nothing -> logRTError "Param with no type found" >> return 0
+          Just tEntry -> do
+            let ST.Width typeWidth = ST.findWidth tEntry
+            let ST.Offset varOffset = ST.findOffset lastParam
+            return $ typeWidth + varOffset
 
 createAnonymousAlias :: T.Token -> [ST.Extra] -> ST.ParserMonad ST.Extra
 createAnonymousAlias token extras = do
@@ -1330,7 +1354,7 @@ checkStructAssignment lval (G.Expr {G.expAst = (G.StructLit structProps)}) tk = 
   where
     checkStructAssignment' :: T.Type -> ST.ParserMonad ()
     checkStructAssignment' lvalType = case lvalType of
-      T.RecordT scope properties -> do
+      T.RecordT _ properties -> do
         let propL = length properties
         let structPropsL = length structProps
         if structPropsL /= propL then do
@@ -1349,7 +1373,7 @@ checkStructAssignment lval (G.Expr {G.expAst = (G.StructLit structProps)}) tk = 
             let structPropVals = map snd structProps
             checkRecordTypes propNames propTypes structPropVals
 
-      T.UnionT scope properties -> do
+      T.UnionT _ properties -> do
         let structPropsL = length structProps
         if structPropsL /= 1 then logSemError ("Link literal must assign exactly one valid property") tk
         else do
