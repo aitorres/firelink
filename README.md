@@ -12,3 +12,21 @@
 ## Especificación
 
 Puedes encontrar la especificación del lenguaje en español [aquí](docs/spec.md).
+
+## Uso
+
+Tras compilar con `stack build`, se puede ejecutar el compilador de la siguiente manera:
+
+```bash
+stack run -- <archivo> [<flag>]
+```
+
+Donde:
+
+- `archivo`: es la ruta a un archivo `.souls` con el código a compilar
+- `flag`: es una opción de configuración válida, entre las que se encuentran:
+  - `-s` o `--symtable`: imprime la tabla de símbolos, si el archivo contiene un programa válido
+  - `-p` o `--program`: imprime el programa parseado, si el archivo contiene un programa válido
+  - `-t` o `--tac`: imprime la representación intermedia en código de tres direcciones (TAC) del programa, si el archivo contiene un programa válido
+
+Si no se pasa ningún _flag_, el compilador imprime todo lo génerado: tabla de símbolos, programa y código intermedio.

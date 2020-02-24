@@ -1,11 +1,12 @@
 module TestUtils where
 
-import qualified Control.Monad.RWS          as RWS
+import qualified Control.Monad.RWS           as RWS
 import           FireLink.FrontEnd.Errors
-import qualified FireLink.FrontEnd.Grammar  as G
-import qualified FireLink.FrontEnd.Lexer    as L
-import           FireLink.FrontEnd.Parser
-import qualified FireLink.FrontEnd.SymTable as ST
+import qualified FireLink.FrontEnd.Grammar   as G
+import qualified FireLink.FrontEnd.Lexer     as L
+import           FireLink.FrontEnd.Parser    (parse)
+import           FireLink.FrontEnd.Preparser (preparse)
+import qualified FireLink.FrontEnd.SymTable  as ST
 import           FireLink.Utils
 import           Test.Hspec
 
@@ -14,7 +15,9 @@ extractSymTable
     -> IO (G.Program, ST.SymTable, [Error])
 extractSymTable program = do
     let ([], tokens) = L.scanTokens program
-    RWS.runRWST (parse tokens) () ST.initialState
+    (_, preparseTable, preparseErrors) <- RWS.runRWST (preparse tokens) () ST.initialState
+    (p, table, parseErrors) <- RWS.runRWST (parse tokens) () $ ST.preparsedState preparseTable
+    return (p, table, removeDuplicateErrors $ preparseErrors ++ parseErrors)
 
 extractDictionary :: String -> IO ST.SymTable
 extractDictionary program = do

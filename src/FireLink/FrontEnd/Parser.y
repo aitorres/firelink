@@ -28,7 +28,6 @@ import           FireLink.Utils
 %left eq neq
 %left plus minus
 %left mult div mod
-%left NEG
 
 
 %left colConcat
@@ -216,9 +215,7 @@ ALIASL :: { () }
   | ALIASADD                                                            { () }
 
 ALIASADD :: { () }
-  : ALIAS                                                               {% do
-                                                                            addIdToSymTable $1
-                                                                            return () }
+  : ALIAS                                                               { }
 
 ALIAS :: { NameDeclaration }
   : alias ID TYPE                                                       {% do
@@ -229,16 +226,6 @@ ALIAS :: { NameDeclaration }
                                                                                             Nothing -> [t]
                                                                                             Just entry -> [t, ST.findWidth entry])
                                                                             return (ST.Type, $2, extras) }
-
-LVALUE :: { G.Expr }
-  : ID                                                                  {% do
-                                                                            let (G.Id tk _) = $1
-                                                                            buildAndCheckExpr tk $ G.IdExpr $1 }
-  | EXPR accessor ID                                                    {% do
-                                                                            let expr = G.Access $1 $3
-                                                                            buildAndCheckExpr $2 expr }
-  | EXPR arrOpen EXPR arrClose                                          {% buildAndCheckExpr $2 $ G.IndexAccess $1 $3 }
-  | memAccessor EXPR                                                    {% buildAndCheckExpr $1 $ G.MemAccess $2 }
 
 EXPR :: { G.Expr }
   : intLit                                                              {% buildAndCheckExpr $1 $ G.IntLit (read (T.cleanedString $1) :: Int) }
@@ -280,7 +267,14 @@ EXPR :: { G.Expr }
   | EXPR intersect EXPR                                                 {% buildAndCheckExpr $2 $ G.Op2 G.SetIntersect $1 $3 }
   | EXPR diff EXPR                                                      {% buildAndCheckExpr $2 $ G.Op2 G.SetDifference $1 $3 }
   | FUNCALL                                                             {% let (tk, i, params) = $1 in buildAndCheckExpr tk $ G.EvalFunc i params }
-  | LVALUE                                                              { $1 }
+  | ID                                                                  {% do
+                                                                            let (G.Id tk _) = $1
+                                                                            buildAndCheckExpr tk $ G.IdExpr $1 }
+  | EXPR accessor ID                                                    {% do
+                                                                            let expr = G.Access $1 $3
+                                                                            buildAndCheckExpr $2 expr }
+  | EXPR arrOpen EXPR arrClose                                          {% buildAndCheckExpr $2 $ G.IndexAccess $1 $3 }
+  | memAccessor EXPR                                                    {% buildAndCheckExpr $1 $ G.MemAccess $2 }
 
 STRUCTLIT :: { (T.Token, [(G.Id, G.Expr)]) }
   : brOpen PROPLIST BRCLOSE                                             {% do
@@ -332,13 +326,15 @@ FUNCPREFIX :: { Maybe (ST.Scope, G.Id) }
                                                                           currScope <- ST.getCurrentScope
                                                                           ST.exitScope
                                                                           let extras = [ $4, ST.Fields ST.Callable currScope ]
-                                                                          ret <- addFunction (ST.Function, $1, extras)
+                                                                          ST.addVisitedMethod $ G.extractIdName $1
                                                                           ST.pushScope currScope
 
-                                                                          return ret }
+                                                                          return $ Just (currScope, $1)  }
 
 FUNCNAME :: { G.Id }
-FUNCNAME : functionBegin ID                                             {% ST.enterScope >> ST.pushOffset 0 >> return $2 }
+FUNCNAME : functionBegin ID                                             {% do
+                                                                            offset <- getMethodOffset $2
+                                                                            ST.enterScope >> ST.pushOffset offset >> return $2 }
 
 PROC :: { () }
   : PROCPREFIX CODEBLOCK procedureEnd                                   {% do
@@ -354,12 +350,14 @@ PROCPREFIX :: { Maybe (ST.Scope, G.Id) }
                                                                             let extras = [ ST.Simple ST.void, ST.Fields ST.Callable currScope ]
                                                                             st <- RWS.get >>= return . ST.stDict
 
-                                                                            ret <- addFunction (ST.Procedure, $1, extras)
+                                                                            ST.addVisitedMethod $ G.extractIdName $1
                                                                             ST.pushScope currScope
-                                                                            return ret }
+                                                                            return $ Just (currScope, $1) }
 
 PROCNAME :: { G.Id }
-PROCNAME : procedureBegin ID                                            {% ST.enterScope >> ST.pushOffset 0 >> return $2 }
+PROCNAME : procedureBegin ID                                            {% do
+                                                                            offset <- getMethodOffset $2
+                                                                            ST.enterScope >> ST.pushOffset offset >> return $2 }
 
 PROCPARS :: { Int }
 PROCPARS : paramRequest PARS toTheEstusFlask                            {% ST.resetArgPosition >> return $2 }
@@ -374,10 +372,7 @@ PARS :: { Int }
   | PAR                                                                 { 1 }
 
 PAR :: { () }
-  : PARTYPE ID ofType TYPE                                              {% do
-                                                                          argPosition <- ST.genNextArgPosition
-                                                                          let extras = [$4, ST.ArgPosition argPosition]
-                                                                          addIdToSymTable ($1, $2, extras) }
+  : PARTYPE ID ofType TYPE                                              { }
 
 PARTYPE :: { ST.Category }
   : parVal                                                              { ST.ValueParam }
@@ -397,37 +392,24 @@ TYPE :: { ST.Extra }
   | float                                                               { ST.Simple ST.hollow }
   | char                                                                { ST.Simple ST.sign }
   | bool                                                                { ST.Simple ST.bonfire }
-  | ltelit EXPR array ofType TYPE                                       {% createAnonymousAlias $1 $
-                                                                              [ ST.CompoundRec (T.cleanedString $3) $2 $5
-                                                                              , ST.Width $ ST.wordSize * 2 ] }
-
-  | ltelit EXPR string                                                  {% createAnonymousAlias $1 $
-                                                                              [ ST.Compound (T.cleanedString $3) $2
-                                                                              , ST.Width $ ST.wordSize * 2 ] }
-  | set ofType TYPE                                                     {% createAnonymousAlias $1 $
-                                                                              [ ST.Recursive (T.cleanedString $1) $3
-                                                                              , ST.Width ST.wordSize ] }
-  | pointer TYPE                                                        {% createAnonymousAlias $1 $
-                                                                              [ ST.Recursive (T.cleanedString $1) $2
-                                                                              , ST.Width ST.wordSize ] }
+  | ltelit EXPR array ofType TYPE                                       {% ST.genAliasName >>= \x -> return $ ST.Simple x }
+  | ltelit EXPR string                                                  {% ST.genAliasName >>= \x -> return $ ST.Simple x }
+  | set ofType TYPE                                                     {% ST.genAliasName >>= \x -> return $ ST.Simple x }
+  | pointer TYPE                                                        {% ST.genAliasName >>= \x -> return $ ST.Simple x }
   | RECORD_OPEN  brOpen STRUCTITS BRCLOSE                               {% do
                                                                             checkRecoverableError $2 $4
                                                                             currScope <- ST.getCurrentScope
                                                                             nextOffset <- ST.getNextOffset
                                                                             ST.exitScope
                                                                             ST.popOffset
-                                                                            ret <- createAnonymousAlias $1 $ [
-                                                                              ST.Fields ST.Record currScope, ST.Width nextOffset]
-                                                                            return ret }
+                                                                            ST.genAliasName >>= \x -> return $ ST.Simple x }
   | UNION_OPEN brOpen UNIONITS BRCLOSE                                  {% do
                                                                              checkRecoverableError $2 $4
                                                                              currScope <- ST.getCurrentScope
                                                                              ST.exitScope
                                                                              ST.popUnion
                                                                              ST.popOffset
-                                                                             ret <- createAnonymousAlias $1 $ [ST.Fields ST.Union currScope,
-                                                                              ST.Width $ 4 + $3]
-                                                                             return ret }
+                                                                             ST.genAliasName >>= \x -> return $ ST.Simple x }
 
 RECORD_OPEN :: { T.Token }
 RECORD_OPEN : record                                                    {% ST.enterScope >> ST.pushOffset 0 >> return $1 }
@@ -449,8 +431,6 @@ UNIONITS :: { Int }
 
 UNIONIT :: { Int }
   : ID ofType TYPE                                                      {% do
-                                                                            unionAttrId <- fmap ST.UnionAttrId ST.genNextUnion
-                                                                            addIdToSymTable (ST.UnionItem, $1, [$3, unionAttrId])
                                                                             let ST.Simple t = $3
                                                                             maybeTypeEntry <- ST.dictLookup t
                                                                             case maybeTypeEntry of
@@ -464,7 +444,7 @@ STRUCTITS :: { () }
   | STRUCTIT                                                            { () }
 
 STRUCTIT :: { () }
-  : ID ofType TYPE                                                      {% addIdToSymTable (ST.RecordItem, $1, [$3]) }
+  : ID ofType TYPE                                                      { }
 
 ID :: { G.Id }
   : id                                                                  {% do
@@ -534,7 +514,8 @@ INSTRL :: { G.Instructions }
   | INSTR                                                               { [$1] }
 
 INSTR :: { G.Instruction }
-  : LVALUE asig EXPR                                                    {% do
+  : EXPR asig EXPR                                                      {% do
+                                                                          checkLvalue $1
                                                                           checkAssignment $1 $2 $3 False
                                                                           return $ G.InstAsig $1 $3 }
   | malloc EXPR                                                         {% do
@@ -557,8 +538,9 @@ INSTR :: { G.Instruction }
   | print EXPR                                                          {% do
                                                                             checkIOTypes $2 $1
                                                                             return $ G.InstPrint $2 }
-  | read LVALUE                                                         {% do
-                                                                            checkIOTypes $2 $1
+  | read EXPR                                                           {% do
+                                                                            validLvalue <- checkLvalue $2
+                                                                            RWS.when validLvalue $ checkIOTypes $2 $1
                                                                             return $ G.InstRead $2 }
   | whileBegin EXPR covenantIsActive COLON CODEBLOCK WHILEEND           {% do
                                                                             checkRecoverableError $1 $4
@@ -747,6 +729,26 @@ PARSLIST :: { G.Params }
 
 type NameDeclaration = (ST.Category, G.Id, [ST.Extra])
 type RecordItem = (G.Id, ST.Extra)
+
+getMethodOffset :: G.Id -> ST.ParserMonad (Int)
+getMethodOffset (G.Id (T.Token {T.cleanedString=methodName}) _) = do
+  mEntry <- ST.dictLookup methodName
+  case mEntry of
+    Nothing -> return 0
+    Just ST.DictionaryEntry {ST.extra = extras } -> do
+      let (ST.Fields _ scope) = head $ filter ST.isFieldsExtra extras
+      ST.SymTable {ST.stDict=dict} <- RWS.get
+      let paramEntries = ST.findAllInScope scope dict
+      if length paramEntries == 0 then return 0
+      else do
+        let lastParam@(ST.DictionaryEntry {ST.entryType=Just typeName, ST.extra=paramExtras}) = last paramEntries
+        mtEntry <- ST.dictLookup typeName
+        case mtEntry of
+          Nothing -> logRTError "Param with no type found" >> return 0
+          Just tEntry -> do
+            let ST.Width typeWidth = ST.findWidth tEntry
+            let ST.Offset varOffset = ST.findOffset lastParam
+            return $ typeWidth + varOffset
 
 createAnonymousAlias :: T.Token -> [ST.Extra] -> ST.ParserMonad ST.Extra
 createAnonymousAlias token extras = do
@@ -1011,6 +1013,8 @@ checkIOTypes :: G.Expr -> T.Token -> ST.ParserMonad ()
 checkIOTypes expr tk = do
   t <- getType expr
   if t `elem` T.ioTypes then return ()
+  -- Avoid propagation
+  else if t == T.TypeError then return ()
   else logSemError (show t ++ " is not an I/O valid type") tk
 
 checkAssignment :: G.Expr -> T.Token -> G.Expr -> Bool -> ST.ParserMonad G.Instruction
@@ -1026,7 +1030,7 @@ checkAssignment lvalue token rvalue isInit = do
   return $ G.InstAsig lvalue rvalue
 
 extractFieldsFromExtra :: [ST.Extra] -> ST.Extra
-extractFieldsFromExtra [] = error $ "The `extra` array doesn't have any `Fields` item"
+extractFieldsFromExtra [] = logRTErrorNonMonadic "The `extra` array doesn't have any `Fields` item"
 extractFieldsFromExtra (s@ST.Fields{} : _) = s
 extractFieldsFromExtra (_:ss) = extractFieldsFromExtra ss
 
@@ -1350,7 +1354,7 @@ checkStructAssignment lval (G.Expr {G.expAst = (G.StructLit structProps)}) tk = 
   where
     checkStructAssignment' :: T.Type -> ST.ParserMonad ()
     checkStructAssignment' lvalType = case lvalType of
-      T.RecordT scope properties -> do
+      T.RecordT _ properties -> do
         let propL = length properties
         let structPropsL = length structProps
         if structPropsL /= propL then do
@@ -1369,7 +1373,7 @@ checkStructAssignment lval (G.Expr {G.expAst = (G.StructLit structProps)}) tk = 
             let structPropVals = map snd structProps
             checkRecordTypes propNames propTypes structPropVals
 
-      T.UnionT scope properties -> do
+      T.UnionT _ properties -> do
         let structPropsL = length structProps
         if structPropsL /= 1 then logSemError ("Link literal must assign exactly one valid property") tk
         else do
@@ -1404,7 +1408,7 @@ checkStructAssignment lval (G.Expr {G.expAst = (G.StructLit structProps)}) tk = 
 
     logNonStructType :: String -> ST.ParserMonad ()
     logNonStructType bT = logSemError ("Type mismatch on struct assignment (" ++ bT ++ " is not a struct type)") tk
-checkStructAssignment _ _ _ = error $ "checkStructAssignment function called with a non-struct literal or expression"
+checkStructAssignment _ _ _ = logRTError "checkStructAssignment function called with a non-struct literal or expression"
 
 checkTypeOfAssignment :: (TypeCheckable a, TypeCheckable b) => a -> b -> T.Token -> ST.ParserMonad ()
 checkTypeOfAssignment lval rval tk = do
@@ -1418,6 +1422,13 @@ checkTypeOfAssignment lval rval tk = do
     if T.TypeError `elem` [lvalType, rvalType]
     then return ()
     else logSemError ("Type mismatch on assignment " ++ errorDetails) tk
+
+checkLvalue :: G.Expr -> ST.ParserMonad (Bool)
+checkLvalue expr =
+  if G.isValidLvalue expr then return True
+  else do
+    logSemError "This expression is not a valid LVAL expression (expected: id, memory access, property access or pointer deref)" (G.expTok expr)
+    return False
 
 minBigInt :: Int
 minBigInt = - 2147483648
@@ -1581,6 +1592,9 @@ rtMessage msg =
       end = "\tGithub Issue Tracker: https://github.com/aitorres/firelink/issues"
       fullMsg = header ++ mid ++ end
   in fullMsg
+
+logRTErrorNonMonadic :: String -> a
+logRTErrorNonMonadic msg = error $ rtMessage msg
 
 logRTError :: String -> ST.ParserMonad (a)
 logRTError msg = error $ rtMessage msg

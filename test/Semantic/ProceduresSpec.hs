@@ -16,7 +16,7 @@ varEntry = ST.DictionaryEntry
 
 spec :: Spec
 spec = do
-    describe "Procedures declarations" $ do
+    describe "Procedure declarations" $ do
         it "allows to declare procedures with no arguments" $ do
             let p = "hello ashen one\n\
 
@@ -191,7 +191,7 @@ spec = do
                 { ST.scope = 1
                 , ST.name = "fun2"
                 } U.extractFieldsFromExtra (const True)
-    describe "Functions calls" $ do
+    describe "Procedure calls" $ do
         it "allows to call declared procedures with no parameters" $
             U.shouldNotError "hello ashen one\n\
 
@@ -259,31 +259,31 @@ spec = do
             \   cast fun\n\
             \ you died \
             \ farewell ashen one"
-        -- it "allows corecursion" $ do
-        --     let p = "hello ashen one\n\
+        it "allows corecursion" $ do
+            let p = "hello ashen one\n\
 
-        --     \spell fun\n\
-        --     \with skill of type humanity\n\
+            \spell fun\n\
 
-        --     \traveling somewhere\n\
-        --     \   go back with summon fun1\n\
-        --     \you died\n\
+            \traveling somewhere\n\
+            \   cast fun1 \\ \n\
+            \   go back\n\
+            \you died\n\
 
-        --     \ashen estus flask consumed\n\
+            \ashen estus flask consumed\n\
 
-        --     \spell fun1\n\
-        --     \with skill of type humanity\n\
+            \spell fun1\n\
 
-        --     \traveling somewhere\n\
-        --     \   go back with summon fun\n\
-        --     \you died\n\
+            \traveling somewhere\n\
+            \   cast fun \\ \n\
+            \   go back\n\
+            \you died\n\
 
-        --     \ashen estus flask consumed\n\
+            \ashen estus flask consumed\n\
 
 
-        --     \ traveling somewhere\n\
-        --     \   with orange saponite say summon fun\n\
-        --     \ you died \
-        --     \ farewell ashen one"
-        --     errors <- U.extractErrors p
-        --     errors `shouldSatisfy` null
+            \ traveling somewhere\n\
+            \   cast fun\n\
+            \ you died \
+            \ farewell ashen one"
+            errors <- U.extractErrors p
+            errors `shouldSatisfy` null

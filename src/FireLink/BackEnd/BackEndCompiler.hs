@@ -13,15 +13,15 @@ import           TACType
 backend :: Program -> Dictionary -> IO [TAC]
 backend program dictionary = do
     (_, _, code) <- runRWST (genCode program) dictionary initialState
-    return code
+    return $ removeUnusedLabels code
 
 removeUnusedLabels :: [TAC] -> [TAC]
 removeUnusedLabels tacs = filter removeLabel tacs
     where
-        usedLabels :: [Int]
+        usedLabels :: [String]
         usedLabels = map getLabelValue $ filter itJumps tacs
 
-        getLabelValue :: TAC -> Int
+        getLabelValue :: TAC -> String
         getLabelValue (ThreeAddressCode _ _ _ (Just (Label label))) = label
 
         itJumps :: TAC -> Bool

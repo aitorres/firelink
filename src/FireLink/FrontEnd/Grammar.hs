@@ -50,6 +50,16 @@ data BaseExpr
 data Op1 = Negate | Not
   deriving Eq
 
+isValidLvalue :: Expr -> Bool
+isValidLvalue Expr {expAst=e} = isValidLvalue' e
+
+isValidLvalue' :: BaseExpr -> Bool
+isValidLvalue' Access{}      = True
+isValidLvalue' MemAccess{}   = True
+isValidLvalue' IndexAccess{} = True
+isValidLvalue' IdExpr{}      = True
+isValidLvalue' _             = False
+
 arithmeticOp1 :: [Op1]
 arithmeticOp1 = [Negate]
 

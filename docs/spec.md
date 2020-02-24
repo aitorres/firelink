@@ -547,6 +547,8 @@ go back with <expresion>
 
 No es posible utilizar esta instrucción con una expresión fuera de una función.
 
+Las funciones soportan correcursión.
+
 El _alcance_ de la lista de instrucciones inmediatas a la declaración de la función es el mismo que el de la declaración de sus argumentos, por lo tanto no se puede ocultar un argumento mediante la declaración de otra variable. Además, a pesar de abrir alcances adicionales dentro de una función, el chequeador de tipos no permitirá ocultar el argumento por declarar otra variable.
 
 Por ejemplo, el siguiente fragmento de código es inválido:
@@ -643,7 +645,7 @@ go back
 
 No es posible utilizar la instrucción `go back` dentro de una función; sin embargo, se puede utilizar en el cuerpo principal del programa para detener la ejecución inmediatamente.
 
-El manejo del scope de los procedimientos es análogo al de las funciones (previamente descrito)
+El manejo del scope de los procedimientos es análogo al de las funciones (previamente descrito). Los procedimientos de igual forma soportan correcursión.
 
 #### Llamada a Procedimientos
 

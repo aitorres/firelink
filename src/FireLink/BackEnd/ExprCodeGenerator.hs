@@ -22,7 +22,7 @@ genCode' Expr {expAst=ast, expType=t} = genCodeForExpr t ast
 genCodeForExpr :: Type -> BaseExpr -> CodeGenMonad OperandType
 genCodeForExpr _ (IdExpr (Id Token {cleanedString=idName} idScope)) = do
     symEntry <- findSymEntry <$> ask
-    return $ TAC.Variable $ TACVariable symEntry 0
+    return $ TAC.Id $ TACVariable symEntry 0
     where
         findSymEntry :: Dictionary -> DictionaryEntry
         findSymEntry = head . filter (\s -> scope s == idScope) . findChain idName
@@ -33,7 +33,7 @@ genCodeForExpr TrileanT exp = do
     falseLabel <- newLabel
     next <- newLabel
     newId <- newtemp
-    let lvalue = TAC.Variable newId
+    let lvalue = TAC.Id newId
     genCodeForBooleanExpr exp trueLabel falseLabel
     genLabel trueLabel
     genIdAssignment lvalue $ TAC.Constant ("true", TrileanT)
@@ -46,15 +46,7 @@ genCodeForExpr TrileanT exp = do
 genCodeForExpr _ (Op2 op lexpr rexpr) = do
     lId <- genCode' lexpr
     rId <- genCode' rexpr
-    newId <- newtemp
-    let lvalue = TAC.Variable newId
-    tell [TAC.ThreeAddressCode
-            { TAC.tacOperand = operation
-            , TAC.tacLvalue = Just lvalue
-            , TAC.tacRvalue1 = Just lId
-            , TAC.tacRvalue2 = Just rId
-            }]
-    return lvalue
+    genOp2Code operation lId rId
     where
         operation :: TAC.Operation
         operation = mapOp2ToTacOperation op
@@ -67,7 +59,7 @@ genCodeForExpr t (Caster expr _) = genCode' expr
 
 genCodeForExpr _ (Op1 Negate expr) = do
     rId <- genCode' expr
-    lvalue <- TAC.Variable <$> newtemp
+    lvalue <- TAC.Id <$> newtemp
     tell [TAC.ThreeAddressCode
             { TAC.tacOperand = TAC.Minus
             , TAC.tacLvalue = Just lvalue
@@ -77,6 +69,18 @@ genCodeForExpr _ (Op1 Negate expr) = do
     return lvalue
 
 genCodeForExpr _ e = error $ "This expression hasn't been implemented " ++ show e
+
+genOp2Code :: TAC.Operation -> OperandType -> OperandType -> CodeGenMonad OperandType
+genOp2Code operation lId rId = do
+    newId <- newtemp
+    let lvalue = TAC.Id newId
+    tell [TAC.ThreeAddressCode
+            { TAC.tacOperand = operation
+            , TAC.tacLvalue = Just lvalue
+            , TAC.tacRvalue1 = Just lId
+            , TAC.tacRvalue2 = Just rId
+            }]
+    return lvalue
 
 genCodeForBooleanExpr :: BaseExpr -> OperandType -> OperandType -> CodeGenMonad ()
 
@@ -117,29 +121,7 @@ genCodeForBooleanExpr expr trueLabel falseLabel = case expr of
     Op2 op lhs rhs | op `elem` comparableOp2 -> do
         leftExprId <- genCode' lhs
         rightExprId <- genCode' rhs
-        let isTrueNotFall = not $ isFall trueLabel
-        let isFalseNotFall = not $ isFall falseLabel
-        if isTrueNotFall && isFalseNotFall then do
-            tell [TAC.ThreeAddressCode
-                    { TAC.tacOperand = mapOp2ToTacOperation op
-                    , TAC.tacLvalue = Just leftExprId
-                    , TAC.tacRvalue1 = Just rightExprId
-                    , TAC.tacRvalue2 = Just trueLabel
-                    }]
-            genGoTo falseLabel
-        else if isTrueNotFall then
-            tell [TAC.ThreeAddressCode
-                    { TAC.tacOperand = mapOp2ToTacOperation op
-                    , TAC.tacLvalue = Just leftExprId
-                    , TAC.tacRvalue1 = Just rightExprId
-                    , TAC.tacRvalue2 = Just trueLabel
-                    }]
-        else when isFalseNotFall (tell [TAC.ThreeAddressCode
-                    { TAC.tacOperand = complement $ mapOp2ToTacOperation op
-                    , TAC.tacLvalue = Just leftExprId
-                    , TAC.tacRvalue1 = Just rightExprId
-                    , TAC.tacRvalue2 = Just falseLabel
-                    }])
+        genBooleanComparation leftExprId rightExprId trueLabel falseLabel op
 
     -- Conjunction and disjunction
     Op2 op lhs rhs | op `elem` booleanOp2 -> do
@@ -165,6 +147,33 @@ genCodeForBooleanExpr expr trueLabel falseLabel = case expr of
             genCodeForBooleanExpr (expAst lhs) lhsTrueLabel lhsFalseLabel
             genCodeForBooleanExpr (expAst rhs) rhsTrueLabel rhsFalseLabel
             when (isFall falseLabel) (genLabel lhsFalseLabel)
+
+-- Used in boolean expr generation as well as switch case generation
+genBooleanComparation :: OperandType -> OperandType -> OperandType -> OperandType -> Op2 -> CodeGenMonad ()
+genBooleanComparation leftExprId rightExprId trueLabel falseLabel op = do
+    let isTrueNotFall = not $ isFall trueLabel
+    let isFalseNotFall = not $ isFall falseLabel
+    if isTrueNotFall && isFalseNotFall then do
+        tell [TAC.ThreeAddressCode
+                { TAC.tacOperand = mapOp2ToTacOperation op
+                , TAC.tacLvalue = Just leftExprId
+                , TAC.tacRvalue1 = Just rightExprId
+                , TAC.tacRvalue2 = Just trueLabel
+                }]
+        genGoTo falseLabel
+    else if isTrueNotFall then
+        tell [TAC.ThreeAddressCode
+                { TAC.tacOperand = mapOp2ToTacOperation op
+                , TAC.tacLvalue = Just leftExprId
+                , TAC.tacRvalue1 = Just rightExprId
+                , TAC.tacRvalue2 = Just trueLabel
+                }]
+    else when isFalseNotFall (tell [TAC.ThreeAddressCode
+                { TAC.tacOperand = complement $ mapOp2ToTacOperation op
+                , TAC.tacLvalue = Just leftExprId
+                , TAC.tacRvalue1 = Just rightExprId
+                , TAC.tacRvalue2 = Just falseLabel
+                }])
 
 mapOp2ToTacOperation :: Op2 -> TAC.Operation
 mapOp2ToTacOperation op = case op of

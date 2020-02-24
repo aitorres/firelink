@@ -4,10 +4,10 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: de0f945d8334c4ebb65e76a9cf8e962e6fcb1f8a96fcf1a8843b60b99f7460bb
+-- hash: 3999e4c8719ac9e41f54ae6c8e529c0d61ae61e657142c2798638fb81af21546
 
 name:           firelink
-version:        0.1.0.0
+version:        0.2.0.0
 description:    Please see the README on GitHub at <https://github.com/aitorres/firelink#readme>
 homepage:       https://github.com/aitorres/firelink#readme
 bug-reports:    https://github.com/aitorres/firelink/issues
@@ -36,6 +36,7 @@ library
       FireLink.FrontEnd.Grammar
       FireLink.FrontEnd.Lexer
       FireLink.FrontEnd.Parser
+      FireLink.FrontEnd.Preparser
       FireLink.FrontEnd.SymTable
       FireLink.FrontEnd.Tokens
       FireLink.FrontEnd.TypeChecking
@@ -202,6 +203,7 @@ test-suite type-checking-tests
       IfInstructionSpec
       IOInstructionsSpec
       LoopInstructionsSpec
+      LvaluesSpec
       ProceduresSpec
       SizeSpec
       StructsSpec
