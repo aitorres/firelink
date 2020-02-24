@@ -1030,7 +1030,7 @@ checkAssignment lvalue token rvalue isInit = do
   return $ G.InstAsig lvalue rvalue
 
 extractFieldsFromExtra :: [ST.Extra] -> ST.Extra
-extractFieldsFromExtra [] = error $ "The `extra` array doesn't have any `Fields` item"
+extractFieldsFromExtra [] = logRTErrorNonMonadic "The `extra` array doesn't have any `Fields` item"
 extractFieldsFromExtra (s@ST.Fields{} : _) = s
 extractFieldsFromExtra (_:ss) = extractFieldsFromExtra ss
 
@@ -1408,7 +1408,7 @@ checkStructAssignment lval (G.Expr {G.expAst = (G.StructLit structProps)}) tk = 
 
     logNonStructType :: String -> ST.ParserMonad ()
     logNonStructType bT = logSemError ("Type mismatch on struct assignment (" ++ bT ++ " is not a struct type)") tk
-checkStructAssignment _ _ _ = error $ "checkStructAssignment function called with a non-struct literal or expression"
+checkStructAssignment _ _ _ = logRTError "checkStructAssignment function called with a non-struct literal or expression"
 
 checkTypeOfAssignment :: (TypeCheckable a, TypeCheckable b) => a -> b -> T.Token -> ST.ParserMonad ()
 checkTypeOfAssignment lval rval tk = do
@@ -1592,6 +1592,9 @@ rtMessage msg =
       end = "\tGithub Issue Tracker: https://github.com/aitorres/firelink/issues"
       fullMsg = header ++ mid ++ end
   in fullMsg
+
+logRTErrorNonMonadic :: String -> a
+logRTErrorNonMonadic msg = error $ rtMessage msg
 
 logRTError :: String -> ST.ParserMonad (a)
 logRTError msg = error $ rtMessage msg
