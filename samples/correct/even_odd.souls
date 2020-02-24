@@ -46,12 +46,13 @@ after this return to your world
 
 traveling somewhere
 with
-    var n of type humanity
+    var n of type humanity,
+    var b of type bonfire
 in your inventory
     with orange saponite say @Enter n: @ \
     transpose into n \
-    n <<= summon even granting n to the knight \
-    with orange saponite say n
+    b <<= summon even granting n to the knight \
+    with orange saponite say b
 you died
 
 farewell ashen one
