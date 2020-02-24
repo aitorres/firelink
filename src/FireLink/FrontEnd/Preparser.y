@@ -223,51 +223,51 @@ ALIAS :: { NameDeclaration }
                                                                             return (ST.Type, $2, extras) }
 
 EXPR :: { G.Expr }
-  : intLit                                                              {% buildAndCheckExpr $1 $ G.IntLit (read (T.cleanedString $1) :: Int) }
-  | floatLit                                                            {% buildAndCheckExpr $1 $ G.FloatLit (read (T.cleanedString $1) :: Float) }
-  | charLit                                                             {% buildAndCheckExpr $1 $ G.CharLit $ head (T.cleanedString $1) }
-  | stringLit                                                           {% buildAndCheckExpr $1 $ G.StringLit (T.cleanedString $1) }
+  : intLit                                                              {% preBuildExpr $1 $ G.IntLit (read (T.cleanedString $1) :: Int) }
+  | floatLit                                                            {% preBuildExpr $1 $ G.FloatLit (read (T.cleanedString $1) :: Float) }
+  | charLit                                                             {% preBuildExpr $1 $ G.CharLit $ head (T.cleanedString $1) }
+  | stringLit                                                           {% preBuildExpr $1 $ G.StringLit (T.cleanedString $1) }
   | STRUCTLIT                                                           {% do
                                                                             let (tk, stlit) = $1
-                                                                            buildAndCheckExpr tk $ G.StructLit $ reverse stlit }
-  | trueLit                                                             {% buildAndCheckExpr $1 G.TrueLit }
-  | falseLit                                                            {% buildAndCheckExpr $1 G.FalseLit }
-  | unknownLit                                                          {% buildAndCheckExpr $1 G.UndiscoveredLit }
-  | nullLit                                                             {% buildAndCheckExpr $1 G.NullLit }
-  | arrOpen EXPRL arrClose                                              {% buildAndCheckExpr $1 $ G.ArrayLit $ reverse $2 }
-  | setOpen EXPRL setClose                                              {% buildAndCheckExpr $1 $ G.SetLit $ reverse $2 }
+                                                                            preBuildExpr tk $ G.StructLit $ reverse stlit }
+  | trueLit                                                             {% preBuildExpr $1 G.TrueLit }
+  | falseLit                                                            {% preBuildExpr $1 G.FalseLit }
+  | unknownLit                                                          {% preBuildExpr $1 G.UndiscoveredLit }
+  | nullLit                                                             {% preBuildExpr $1 G.NullLit }
+  | arrOpen EXPRL arrClose                                              {% preBuildExpr $1 $ G.ArrayLit $ reverse $2 }
+  | setOpen EXPRL setClose                                              {% preBuildExpr $1 $ G.SetLit $ reverse $2 }
   | parensOpen EXPR PARENSCLOSE                                         {  $2{G.expTok=$1} }
-  | minus EXPR                                                          {% buildAndCheckExpr $1 $ G.Op1 G.Negate $2 }
-  | not EXPR                                                            {% buildAndCheckExpr $1 $ G.Op1 G.Not $2 }
-  | asciiOf EXPR                                                        {% buildAndCheckExpr $1 $ G.AsciiOf $2 }
-  | isActive EXPR                                                       {% buildAndCheckExpr $1 $ G.IsActive $2 }
-  | size EXPR                                                           {% buildAndCheckExpr $1 $ G.Size $2 }
-  | EXPR plus EXPR                                                      {% buildAndCheckExpr $2 $ G.Op2 G.Add $1 $3 }
-  | EXPR minus EXPR                                                     {% buildAndCheckExpr $2 $ G.Op2 G.Substract $1 $3 }
-  | EXPR mult EXPR                                                      {% buildAndCheckExpr $2 $ G.Op2 G.Multiply $1 $3 }
-  | EXPR div EXPR                                                       {% buildAndCheckExpr $2 $ G.Op2 G.Divide $1 $3 }
-  | EXPR mod EXPR                                                       {% buildAndCheckExpr $2 $ G.Op2 G.Mod $1 $3 }
-  | EXPR lt EXPR                                                        {% buildAndCheckExpr $2 $ G.Op2 G.Lt $1 $3 }
-  | EXPR gt EXPR                                                        {% buildAndCheckExpr $2 $ G.Op2 G.Gt $1 $3 }
-  | EXPR lte EXPR                                                       {% buildAndCheckExpr $2 $ G.Op2 G.Lte $1 $3 }
-  | EXPR gte EXPR                                                       {% buildAndCheckExpr $2 $ G.Op2 G.Gte $1 $3 }
-  | EXPR eq EXPR                                                        {% buildAndCheckExpr $2 $ G.Op2 G.Eq $1 $3 }
-  | EXPR neq EXPR                                                       {% buildAndCheckExpr $2 $ G.Op2 G.Neq $1 $3 }
-  | EXPR and EXPR                                                       {% buildAndCheckExpr $2 $ G.Op2 G.And $1 $3 }
-  | EXPR or EXPR                                                        {% buildAndCheckExpr $2 $ G.Op2 G.Or $1 $3 }
-  | EXPR colConcat EXPR                                                 {% buildAndCheckExpr $2 $ G.Op2 G.ColConcat $1 $3 }
-  | EXPR union EXPR                                                     {% buildAndCheckExpr $2 $ G.Op2 G.SetUnion $1 $3 }
-  | EXPR intersect EXPR                                                 {% buildAndCheckExpr $2 $ G.Op2 G.SetIntersect $1 $3 }
-  | EXPR diff EXPR                                                      {% buildAndCheckExpr $2 $ G.Op2 G.SetDifference $1 $3 }
-  | FUNCALL                                                             {% let (tk, i, params) = $1 in buildAndCheckExpr tk $ G.EvalFunc i params }
+  | minus EXPR                                                          {% preBuildExpr $1 $ G.Op1 G.Negate $2 }
+  | not EXPR                                                            {% preBuildExpr $1 $ G.Op1 G.Not $2 }
+  | asciiOf EXPR                                                        {% preBuildExpr $1 $ G.AsciiOf $2 }
+  | isActive EXPR                                                       {% preBuildExpr $1 $ G.IsActive $2 }
+  | size EXPR                                                           {% preBuildExpr $1 $ G.Size $2 }
+  | EXPR plus EXPR                                                      {% preBuildExpr $2 $ G.Op2 G.Add $1 $3 }
+  | EXPR minus EXPR                                                     {% preBuildExpr $2 $ G.Op2 G.Substract $1 $3 }
+  | EXPR mult EXPR                                                      {% preBuildExpr $2 $ G.Op2 G.Multiply $1 $3 }
+  | EXPR div EXPR                                                       {% preBuildExpr $2 $ G.Op2 G.Divide $1 $3 }
+  | EXPR mod EXPR                                                       {% preBuildExpr $2 $ G.Op2 G.Mod $1 $3 }
+  | EXPR lt EXPR                                                        {% preBuildExpr $2 $ G.Op2 G.Lt $1 $3 }
+  | EXPR gt EXPR                                                        {% preBuildExpr $2 $ G.Op2 G.Gt $1 $3 }
+  | EXPR lte EXPR                                                       {% preBuildExpr $2 $ G.Op2 G.Lte $1 $3 }
+  | EXPR gte EXPR                                                       {% preBuildExpr $2 $ G.Op2 G.Gte $1 $3 }
+  | EXPR eq EXPR                                                        {% preBuildExpr $2 $ G.Op2 G.Eq $1 $3 }
+  | EXPR neq EXPR                                                       {% preBuildExpr $2 $ G.Op2 G.Neq $1 $3 }
+  | EXPR and EXPR                                                       {% preBuildExpr $2 $ G.Op2 G.And $1 $3 }
+  | EXPR or EXPR                                                        {% preBuildExpr $2 $ G.Op2 G.Or $1 $3 }
+  | EXPR colConcat EXPR                                                 {% preBuildExpr $2 $ G.Op2 G.ColConcat $1 $3 }
+  | EXPR union EXPR                                                     {% preBuildExpr $2 $ G.Op2 G.SetUnion $1 $3 }
+  | EXPR intersect EXPR                                                 {% preBuildExpr $2 $ G.Op2 G.SetIntersect $1 $3 }
+  | EXPR diff EXPR                                                      {% preBuildExpr $2 $ G.Op2 G.SetDifference $1 $3 }
+  | FUNCALL                                                             {% let (tk, i, params) = $1 in preBuildExpr tk $ G.EvalFunc i params }
   | ID                                                                  {% do
                                                                             let (G.Id tk _) = $1
-                                                                            buildAndCheckExpr tk $ G.IdExpr $1 }
+                                                                            preBuildExpr tk $ G.IdExpr $1 }
   | EXPR accessor ID                                                    {% do
                                                                             let expr = G.Access $1 $3
-                                                                            buildAndCheckExpr $2 expr }
-  | EXPR arrOpen EXPR arrClose                                          {% buildAndCheckExpr $2 $ G.IndexAccess $1 $3 }
-  | memAccessor EXPR                                                    {% buildAndCheckExpr $1 $ G.MemAccess $2 }
+                                                                            preBuildExpr $2 expr }
+  | EXPR arrOpen EXPR arrClose                                          {% preBuildExpr $2 $ G.IndexAccess $1 $3 }
+  | memAccessor EXPR                                                    {% preBuildExpr $1 $ G.MemAccess $2 }
 
 STRUCTLIT :: { (T.Token, [(G.Id, G.Expr)]) }
   : brOpen PROPLIST BRCLOSE                                             {  ($1, $2) }
@@ -470,9 +470,7 @@ INSTEND :: { Maybe G.RecoverableError }
   | error                                                               { Just G.MissingInstructionListEnd }
 
 DECLARS :: { [G.Instruction] }
-  : with DECLARSL DECLAREND                                             {% do
-                                                                            let instrlist = catMaybes (reverse $2)
-                                                                            return instrlist }
+  : with DECLARSL DECLAREND                                             { catMaybes (reverse $2) }
 
 DECLAREND :: { Maybe G.RecoverableError }
   : declarend                                                           { Nothing }
@@ -492,7 +490,7 @@ DECLARADD :: { Maybe G.Instruction }
                                                                               Just (token, rvalue) -> do
                                                                                 let baseLvalue = G.IdExpr lvalueId
                                                                                 let (G.Id idToken _) = lvalueId
-                                                                                lvalue <- buildAndCheckExpr idToken baseLvalue
+                                                                                lvalue <- preBuildExpr idToken baseLvalue
                                                                                 return $ Just $ G.InstAsig lvalue rvalue }
 
 DECLAR :: { (NameDeclaration, Maybe (T.Token, G.Expr)) }
@@ -565,15 +563,14 @@ IFCASE :: { G.IfCase }
   : EXPR COLON CODEBLOCK                                                { G.GuardedCase $1 $3 }
 
 ELSECASE :: { G.IfCase }
-  : else COLON CODEBLOCK                                                {% do
-                                                                            return $ G.GuardedCase (G.Expr
-                                                                                                    { G.expAst = G.TrueLit
-                                                                                                    , G.expType = T.TrileanT
-                                                                                                    , G.expTok = (T.Token
-                                                                                                                    { T.aToken = T.TkLit
-                                                                                                                    , T.capturedString = "lit"
-                                                                                                                    , T.cleanedString = "lit"})
-                                                                                                    }) $3 }
+  : else COLON CODEBLOCK                                                { G.GuardedCase (G.Expr
+                                                                                          { G.expAst = G.TrueLit
+                                                                                          , G.expType = T.TrileanT
+                                                                                          , G.expTok = (T.Token
+                                                                                                          { T.aToken = T.TkLit
+                                                                                                          , T.capturedString = "lit"
+                                                                                                          , T.cleanedString = "lit"})
+                                                                                          }) $3 }
 
 IFEND :: { Maybe G.RecoverableError }
   : ifEnd                                                               { Nothing }
@@ -627,8 +624,8 @@ createAnonymousAlias token extras = do
   addIdToSymTable declaration
   return $ ST.Simple anonymousAlias
 
-buildAndCheckExpr :: T.Token -> G.BaseExpr -> ST.ParserMonad G.Expr
-buildAndCheckExpr tk bExpr = return G.Expr
+preBuildExpr :: T.Token -> G.BaseExpr -> ST.ParserMonad G.Expr
+preBuildExpr tk bExpr = return G.Expr
   { G.expAst = bExpr,
     -- Proper typechecking will be done at the Parsing stage
     G.expType = T.TypeError,
