@@ -192,7 +192,6 @@ compile program compileFlag = do
     case compilerResult of
         Left e -> uncurry handleCompileError e >> exitFailure
         Right (ast, symTable, tokens) -> do
-            code <- backend ast (ST.stDict symTable)
             case compileFlag of
                 Nothing -> do
                     -- Default behavior: print everything
@@ -201,11 +200,11 @@ compile program compileFlag = do
                     putStrLn "\nFireLink: Printing recognized program"
                     printProgram tokens
                     putStrLn "\nFireLink: Printing Intermediate Representation in Three-Address Code"
-                    printTacCode code
+                    backend ast (ST.stDict symTable) >>= printTacCode
                 Just flag ->
                     if flag `elem` ["-s", "--symtable"] then prettyPrintSymTable symTable
                     else if flag `elem` ["-p", "--program"] then printProgram tokens
-                    else if flag `elem` ["-t", "--tac"] then printTacCode code
+                    else if flag `elem` ["-t", "--tac"] then backend ast (ST.stDict symTable) >>= printTacCode
                     else failByUnknownFlag
             exitSuccess
 
