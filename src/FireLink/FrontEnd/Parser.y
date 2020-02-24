@@ -989,6 +989,8 @@ checkIOTypes :: G.Expr -> T.Token -> ST.ParserMonad ()
 checkIOTypes expr tk = do
   t <- getType expr
   if t `elem` T.ioTypes then return ()
+  -- Avoid propagation
+  else if t == T.TypeError then return ()
   else logSemError (show t ++ " is not an I/O valid type") tk
 
 checkAssignment :: G.Expr -> T.Token -> G.Expr -> Bool -> ST.ParserMonad G.Instruction
