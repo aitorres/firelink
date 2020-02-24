@@ -1,6 +1,6 @@
 module FireLink.FrontEnd.FrontEndCompiler (frontEnd) where
 
-import           Control.Monad.RWS          (runRWST, liftIO)
+import           Control.Monad.RWS          (runRWST)
 import           FireLink.FrontEnd.Errors
 import           FireLink.FrontEnd.Grammar  (Program (..))
 import           FireLink.FrontEnd.Lexer    (scanTokens)
@@ -21,32 +21,13 @@ lexer contents =
     else
         parserAndSemantic tokens
 
-prettyPrintSymTable :: SymTable -> IO ()
-prettyPrintSymTable SymTable{stDict=dict} = do
-    let dictList = Map.toList dict
-    mapM_ printKey dictList
-
-printKey :: (String, [DictionaryEntry]) -> IO ()
-printKey (name, keys) = do
-    printf "Entries for name \"%s\": \n" name
-    mapM_ printKey' keys
-    putStrLn ""
-    where
-        printKey' :: DictionaryEntry -> IO ()
-        printKey' st = do
-            putStrLn ""
-            putStr " - "
-            print st
-
 parserAndSemantic :: [Token] -> IO CompilerResult
 parserAndSemantic tokens = do
-    (_, pretable, _) <- runRWST (preparse tokens) () initialState
-    let SymTable {stDict=predict} = pretable
-    liftIO $ prettyPrintSymTable pretable
-    (ast, table, errors) <- runRWST (parse tokens) () $ preparsedState pretable
+    (_, preparseTable, preparseErrors) <- runRWST (preparse tokens) () initialState
+    (ast, table, parseErrors) <- runRWST (parse tokens) () $ preparsedState preparseTable
+    let errors = removeDuplicateErrors $ preparseErrors ++ parseErrors
     if not $ null errors then return $ Left (CompilerError SemanticError errors, tokens)
     else return $ Right (ast, table, tokens)
-
 
 frontEnd :: String -> IO CompilerResult
 frontEnd = lexer
