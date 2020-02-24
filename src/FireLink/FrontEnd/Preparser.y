@@ -493,9 +493,7 @@ DECLARADD :: { Maybe G.Instruction }
                                                                                 let baseLvalue = G.IdExpr lvalueId
                                                                                 let (G.Id idToken _) = lvalueId
                                                                                 lvalue <- buildAndCheckExpr idToken baseLvalue
-                                                                                ST.SymTable {ST.stScopeStack = stack} <- RWS.get
-                                                                                assignment <- checkAssignment lvalue token rvalue True
-                                                                                return $ Just assignment }
+                                                                                return $ Just $ G.InstAsig lvalue rvalue }
 
 DECLAR :: { (NameDeclaration, Maybe (T.Token, G.Expr)) }
   : var ID ofType TYPE                                                  { ((ST.Variable, $2, [$4]), Nothing) }
@@ -507,18 +505,12 @@ INSTRL :: { G.Instructions }
   | INSTR                                                               { [$1] }
 
 INSTR :: { G.Instruction }
-  : EXPR asig EXPR                                                      {% do
-                                                                          checkAssignment $1 $2 $3 False
-                                                                          return $ G.InstAsig $1 $3 }
+  : EXPR asig EXPR                                                      { G.InstAsig $1 $3 }
   | malloc EXPR                                                         { G.InstMalloc $2 }
   | free EXPR                                                           { G.InstFreeMem $2 }
-  | cast ID PROCARGS                                                    {% do
-                                                                          checkIdAvailability $2
-                                                                          (_, params) <- methodsCheck $2 $3 $1
-                                                                          return $ G.InstCallProc $2 params }
-  | FUNCALL                                                             {% let (tk, i, params) = $1 in do
-                                                                          buildAndCheckExpr tk $ G.EvalFunc i params
-                                                                          return $ G.InstCallFunc i params }
+  | cast ID PROCARGS                                                    { G.InstCallProc $2 $3 }
+  | FUNCALL                                                             { let (tk, i, params) = $1 in
+                                                                          G.InstCallFunc i params }
   | return                                                              { G.InstReturn }
   | returnWith EXPR                                                     { G.InstReturnWith $2 }
   | print EXPR                                                          { G.InstPrint $2 }
@@ -528,62 +520,27 @@ INSTR :: { G.Instruction }
                                                                           return $ G.InstIf (reverse ($3 : $2)) }
   | ifBegin IFCASES IFEND                                               {% do
                                                                           return $ G.InstIf (reverse $2) }
-  | SWITCHBEGIN COLON SWITCHCASES DEFAULTCASE SWITCHEND                 {% do
-                                                                          let (switchTk, switchExpr) = $1
-                                                                          ST.popSwitchType
-                                                                          return $ G.InstSwitch switchExpr (reverse ($4 : $3)) }
-  | SWITCHBEGIN COLON SWITCHCASES SWITCHEND                             {% do
-                                                                          let (switchTk, switchExpr) = $1
-                                                                          ST.popSwitchType
-                                                                          return $ G.InstSwitch switchExpr (reverse $3) }
-  | FORBEGIN CODEBLOCK FOREND                                           {% do
-                                                                          let (fstTk, iterVar, shouldPopIterVar, startExpr, stopExpr) = $1
-                                                                          if shouldPopIterVar
-                                                                          then do
-                                                                            ST.popIteratorVariable
-                                                                          else return ()
-                                                                          return $ G.InstFor iterVar startExpr stopExpr $2 }
-  | FOREACHBEGIN CODEBLOCK FOREACHEND                                   {% do
-                                                                          let (fstTk, iterVar, shouldPopIterVar, shouldPopIterableVar, iteredExpr) = $1
-                                                                          RWS.when shouldPopIterVar ST.popIteratorVariable
-                                                                          RWS.when shouldPopIterableVar ST.popIterableVariable
-                                                                          return $ G.InstForEach iterVar iteredExpr $2 }
+  | SWITCHBEGIN COLON SWITCHCASES DEFAULTCASE SWITCHEND                 { let (switchTk, switchExpr) = $1 in
+                                                                          G.InstSwitch switchExpr (reverse ($4 : $3)) }
+  | SWITCHBEGIN COLON SWITCHCASES SWITCHEND                             { let (switchTk, switchExpr) = $1 in
+                                                                          G.InstSwitch switchExpr (reverse $3) }
+  | FORBEGIN CODEBLOCK FOREND                                           { let (fstTk, iterVar, _, startExpr, stopExpr) = $1 in
+                                                                          G.InstFor iterVar startExpr stopExpr $2 }
+  | FOREACHBEGIN CODEBLOCK FOREACHEND                                   { let (fstTk, iterVar, _, _, iteredExpr) = $1 in
+                                                                          G.InstForEach iterVar iteredExpr $2 }
 
 SWITCHBEGIN :: { (T.Token, G.Expr) }
-  : switchBegin EXPR                                                    {% do
-                                                                          ST.addSwitchType (G.expType $2)
-                                                                          return ($1, $2) }
+  : switchBegin EXPR                                                    { ($1, $2) }
 
 FORBEGIN :: { (T.Token, G.Id, Bool, G.Expr, G.Expr) }
-  : forBegin ID with EXPR souls untilLevel EXPR                         {% do
-                                                                          mid <- checkIdAvailability $2
-                                                                          case mid of
-                                                                            Just ST.DictionaryEntry {ST.name=varName} -> do
-                                                                              ST.addIteratorVariable varName
-                                                                              return ($1, $2, True, $4, $7)
-                                                                            Nothing -> return ($1, $2, False, $4, $7) }
+  : forBegin ID with EXPR souls untilLevel EXPR                         { ($1, $2, False, $4, $7) }
 
 FOREND :: { Maybe G.RecoverableError }
   : forEnd                                                              { Nothing }
   | error                                                               { Just G.MissingForEnd }
 
 FOREACHBEGIN :: { (T.Token, G.Id, Bool, Bool, G.Expr) }
-  : forEachBegin ID withTitaniteFrom EXPR                               {% do
-                                                                          iteratorType <- getType $2
-                                                                          containerType <- getType $4
-                                                                          let isContainerAVariable = (case G.expAst $4 of
-                                                                                                        G.IdExpr _ -> True
-                                                                                                        _ -> False)
-                                                                          let ret = ($1, $2, iteratorType /= T.TypeError, containerType /= T.TypeError && isContainerAVariable, $4)
-                                                                          if iteratorType == T.TypeError then do
-                                                                            return ()
-                                                                          else ST.addIteratorVariable $ G.extractIdName $2
-                                                                          if containerType /= T.TypeError && isContainerAVariable then do
-                                                                            let (G.IdExpr (G.Id tk _)) = G.expAst $4
-                                                                            ST.addIterableVariable (T.cleanedString tk)
-                                                                          else return ()
-                                                                          return ret
-                                                                             }
+  : forEachBegin ID withTitaniteFrom EXPR                               { ($1, $2, False, False, $4) }
 
 FOREACHEND :: { Maybe G.RecoverableError }
   : forEachEnd                                                          { Nothing }
@@ -671,13 +628,12 @@ createAnonymousAlias token extras = do
   return $ ST.Simple anonymousAlias
 
 buildAndCheckExpr :: T.Token -> G.BaseExpr -> ST.ParserMonad G.Expr
-buildAndCheckExpr tk bExpr = do
-  (t, expr) <- buildType bExpr tk
-  return G.Expr
-    { G.expAst = expr,
-      G.expType = t,
-      G.expTok = tk
-    }
+buildAndCheckExpr tk bExpr = return G.Expr
+  { G.expAst = bExpr,
+    -- Proper typechecking will be done at the Parsing stage
+    G.expType = T.TypeError,
+    G.expTok = tk
+  }
 
 parseErrors :: [T.Token] -> ST.ParserMonad a
 parseErrors errors =
@@ -690,9 +646,6 @@ parseErrors errors =
       position = "line " ++ bold ++ red ++ line ++ nocolor ++ ", column " ++ bold ++ red ++ column' ++ nocolor ++ "."
       msg = header ++ "Unexpected token " ++ bold ++ red ++ name ++ nocolor ++ " at " ++ position ++ endmsg
   in  fail msg
-
-addIdsToSymTable :: [NameDeclaration] -> ST.ParserMonad ()
-addIdsToSymTable = RWS.mapM_ addIdToSymTable
 
 addIdToSymTable :: NameDeclaration -> ST.ParserMonad ()
 addIdToSymTable d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idName}) _), t) = do
@@ -779,19 +732,6 @@ assignOffsetAndInsert entry = do
 checkIdAvailability :: G.Id -> ST.ParserMonad (Maybe ST.DictionaryEntry)
 checkIdAvailability (G.Id tk@(T.Token {T.cleanedString=idName}) _) = ST.dictLookup idName >>= return
 
-checkAssignment :: G.Expr -> T.Token -> G.Expr -> Bool -> ST.ParserMonad G.Instruction
-checkAssignment lvalue token rvalue isInit = do
-  t <- getType rvalue
-  if t == T.StructLitT
-  then checkStructAssignment lvalue rvalue token
-  else checkTypeOfAssignment lvalue rvalue token
-  return $ G.InstAsig lvalue rvalue
-
-extractFieldsFromExtra :: [ST.Extra] -> ST.Extra
-extractFieldsFromExtra [] = error $ "The `extra` array doesn't have any `Fields` item"
-extractFieldsFromExtra (s@ST.Fields{} : _) = s
-extractFieldsFromExtra (_:ss) = extractFieldsFromExtra ss
-
 addFunction :: NameDeclaration -> ST.ParserMonad (Maybe (ST.Scope, G.Id))
 addFunction d@(_, i@(G.Id tk@(T.Token {T.cleanedString=idName}) _), _) = do
   currScope <- ST.getCurrentScope
@@ -812,530 +752,7 @@ updateCodeBlockOfFun currScope (G.Id tk@(T.Token {T.cleanedString=idName}) _) co
             else x)
   ST.updateEntry (\ds -> Just $ map f ds) idName
 
-------------------
--- TYPECHECKING --
-------------------
-
-class TypeCheckable a where
-  getType :: a -> ST.ParserMonad T.Type
-
-getTypeFromAliasName :: String -> ST.ParserMonad T.Type
-getTypeFromAliasName aliasName = do
-  maybeEntry <- ST.dictLookup aliasName
-  case maybeEntry of
-    Nothing -> return T.TypeError
-    Just entry -> getType entry
-
-isIntegerType :: T.Type -> Bool
-isIntegerType t = t `elem` T.integerTypes
-
-exprsToTypes :: [G.Expr] -> [T.Type]
-exprsToTypes = map G.expType
-
--- this functions assumes that expressions can be casted to the
--- target type if they are different
-addCastToExprs :: [(G.Expr, T.Type)] -> [G.Expr]
-addCastToExprs = map caster
-  where
-    caster :: (G.Expr, T.Type) -> G.Expr
-    caster (expr, t) = let t' = G.expType expr in
-      if t == t' then expr
-      else expr{G.expAst = G.Caster expr t'}
-
-containerCheck :: [G.Expr] -> (T.Type -> T.Type) -> ([G.Expr] -> G.BaseExpr) -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
-containerCheck [] c c' _ = return (c T.Any, c' [])
-containerCheck exprs typeCons exprCons tk = do
-  let types = exprsToTypes exprs
-  let t = findTypeForContainerLiteral types
-  case t of
-    -- case when there is already a type error on the list
-    (Nothing, T.TypeError) -> return (T.TypeError, exprCons exprs)
-
-    -- a particular expression couldn't be casted to the accumulated type
-    (Just x, T.TypeError) -> do
-      let tk = G.expTok $ exprs !! x -- not so efficient, but works
-      logSemError ("Type of item #" ++ show x ++ " of list mismatch") tk
-      return (T.TypeError, exprCons exprs)
-
-    -- when a real type is found, we can safely ignore the first part of the tuple
-    (_, t') -> do
-      let castedExprs = addCastToExprs $ zip exprs (replicate (length exprs) t')
-      return (typeCons t', exprCons castedExprs)
-
-findTypeForContainerLiteral :: [T.Type] -> (Maybe Int, T.Type)
-findTypeForContainerLiteral [] = (Nothing, T.Any)
-findTypeForContainerLiteral types = findT (zip [0..] types) (head types)
-  where
-    findT :: [(Int, T.Type)] -> T.Type -> (Maybe Int, T.Type)
-    findT [] a = (Nothing, a)
-    findT ((i, a) : xs) b =
-      if a `T.canBeConvertedTo` b then findT xs b
-      else if b `T.canBeConvertedTo` a then findT xs a
-      else (Just i, T.TypeError)
-
-checkIndexAccess :: G.Expr -> G.Expr -> T.Token -> ST.ParserMonad T.Type
-checkIndexAccess array index tk = do
-  arrayType <- getType array
-  indextype <- getType index
-  case arrayType of
-    T.ArrayT t -> if isIntegerType indextype
-      then return t
-      else return T.TypeError
-    T.TypeError -> return T.TypeError
-    _ -> do
-      logSemError "Left side is not a chest" tk
-      return T.TypeError
-
-domainCallCheck :: G.Id -> [T.Type] -> [G.Expr] -> T.Token -> ST.ParserMonad (Maybe [G.Expr])
-domainCallCheck methodId domain exprs tk = do
-  let exprsTypes = exprsToTypes exprs
-  let exprsTypesL = length exprsTypes
-  let domainL = length domain
-  if exprsTypesL < domainL then do
-    logSemError ("Method " ++ show methodId ++ " called with less arguments than expected") tk
-    return Nothing
-  else if exprsTypesL > domainL then do
-    logSemError ("Method " ++ show methodId ++ " called with more arguments than expected") tk
-    return Nothing
-  else do
-    if T.TypeError `elem` exprsTypes then
-      return Nothing
-    else case findInvalidArgument $ zip exprsTypes domain of
-      -- all looking good, now cast each argument to it's correspondent parameter type
-      Nothing -> do
-        let castedExprs = addCastToExprs $ zip exprs domain
-        return $ Just castedExprs
-
-      -- oh no, an argument could not be implicitly casted to its correspondent argument
-      Just x -> do
-        let formalType = domain !! x
-        paramType <- getType $ exprs !! x
-        let errMsgTypes = "Type mismatch: param. #" ++ show x ++ " received " ++ show paramType ++ " and expected " ++ show formalType
-        let errMsg =  errMsgTypes ++ " while calling  " ++ show methodId
-        logSemError errMsg tk
-        return Nothing
-  where
-    -- left side is the type of the argument, right side is the parameter type
-    findInvalidArgument :: [(T.Type, T.Type)] -> Maybe Int
-    findInvalidArgument ts = findInvalid ts 0
-
-    findInvalid :: [(T.Type, T.Type)] -> Int -> Maybe Int
-    findInvalid [] _ = Nothing
-    findInvalid ((argT, paramT) : xs) i = if argT `T.canBeConvertedTo` paramT
-      then findInvalid xs (i + 1)
-      else Just i
-
-methodsCheck :: G.Id -> [G.Expr] -> T.Token -> ST.ParserMonad (T.Type, [G.Expr])
-methodsCheck methodId exprs tk = do
-  procType <- getType methodId
-  case procType of
-    T.ProcedureT domain -> do
-      mParams <- domainCallCheck methodId domain exprs tk
-      case mParams of
-        Nothing -> return (T.VoidT, exprs)
-        Just params -> return (T.VoidT, params)
-    T.FunctionT domain range -> do
-      mParams <- domainCallCheck methodId domain exprs tk
-      case mParams of
-        Nothing -> return (T.TypeError, exprs)
-        Just params -> return (range, params)
-    T.TypeError -> return (T.TypeError, exprs)
-    _ -> do
-      logSemError "You're trying to call a non-callable expression" tk
-      return (T.TypeError, exprs)
-
-functionsCheck :: G.Id -> [G.Expr] -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
-functionsCheck i params tk = do
-  (t, ps) <- methodsCheck i params tk
-  return (t, G.EvalFunc i ps)
-
-memAccessCheck :: G.Expr -> T.Token -> ST.ParserMonad T.Type
-memAccessCheck expr tk = do
-  t <- getType expr
-  checkType t
-  where
-    checkType :: T.Type -> ST.ParserMonad T.Type
-    checkType t =
-      case t of
-        T.PointerT t' -> return t'
-        T.TypeError -> return T.TypeError
-        T.AliasT name -> getTypeFromAliasName name >>= checkType
-        _ -> do
-          logSemError "Trying to access memory of non-arrow variable" tk
-          return T.TypeError
-
-checkAsciiOf :: G.Expr -> T.Token -> ST.ParserMonad T.Type
-checkAsciiOf e tk = do
-  t <- getType e
-  case t of
-    T.CharT -> return T.BigIntT
-    T.StringT -> return $ T.ArrayT T.BigIntT
-    T.TypeError -> return T.TypeError
-    _ -> do
-      logSemError ("ascii_of requires argument to be a miracle or a sign") tk
-      return T.TypeError
-
-checkIsActive :: G.Expr -> T.Token -> ST.ParserMonad T.Type
-checkIsActive e tk = do
-  t <- getType e
-  case t of
-    T.TypeError -> return T.TypeError
-    _ ->
-      if isUnionAttr then return T.TrileanT
-      else do
-        logSemError ("is_active requires argument to be a union attribute") tk
-        return T.TypeError
-  where
-    isUnionAttr = case e of
-      (G.Expr {G.expAst=(G.Access r _)}) -> isUnion r
-      _ -> False
-    isUnion (G.Expr {G.expType=(T.UnionT _ _)}) = True
-    isUnion _ = False
-
-makeStructFromAlias :: T.Type -> ST.ParserMonad (T.Type)
-makeStructFromAlias (T.AliasT n) = do
-  mEntry <- ST.dictLookup n
-  case mEntry of
-    -- Case: direct alias for a struct
-    Just ST.DictionaryEntry {ST.extra=[ST.Fields t scope]} -> buildStruct t scope
-    -- Case: indirect alias
-    Just ST.DictionaryEntry {ST.extra=[ST.Simple al]} -> makeStructFromAlias (T.AliasT al)
-    -- Case: direct alias for a non-struct
-    _ -> return T.TypeError
-makeStructFromAlias _ = logRTError "makeStructFromAlias function wrongfully received a type different from T.AliasT"
-
-checkAccess :: G.Expr -> G.Id -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
-checkAccess e (G.Id tk'@T.Token{T.cleanedString=i} _) tk = do
-  t <- getType e
-  case t of
-    tp@(T.AliasT _) -> do
-      struct <- makeStructFromAlias tp
-      case struct of
-        -- If makeStructFromAlias returns typeError, then we NEED to report the message
-        T.TypeError -> returnWithError
-        t -> checkAccessFromType t
-    t -> checkAccessFromType t
-  where
-    -- This function NEVER receives an alias, always a "definite" type
-    checkAccessFromType :: T.Type -> ST.ParserMonad (T.Type, G.BaseExpr)
-    checkAccessFromType t = case t of
-      T.RecordT scope properties -> checkProperty properties scope
-      T.UnionT scope properties -> checkProperty properties scope
-      T.TypeError -> return defaultReturn
-      _ -> returnWithError
-    baseExpr :: G.Id -> G.BaseExpr
-    baseExpr = G.Access e
-    returnWithError :: ST.ParserMonad (T.Type, G.BaseExpr)
-    returnWithError = do
-      logSemError "Left side of access is not a record nor union" tk
-      return defaultReturn
-    defaultReturn :: (T.Type, G.BaseExpr)
-    defaultReturn = (T.TypeError, baseExpr $ G.Id tk' (-1))
-    checkProperty :: [T.PropType] -> Int -> ST.ParserMonad (T.Type, G.BaseExpr)
-    checkProperty props scope =
-      case filter ((==i) . fst) $ map (\(T.PropType e) -> e) props of
-        ((_,a):_) -> do
-          return (a, baseExpr $ G.Id tk' scope)
-        _ -> do
-          logSemError ("Property " ++ i ++ " doesn't exist") tk
-          return defaultReturn
-
-unaryOpCheck :: G.Expr -> G.Op1 -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
-unaryOpCheck expr op tk = do
-  t <- getType expr
-  let finalExpr = G.Op1 op expr
-  if t == T.TypeError then
-    return (T.TypeError, finalExpr)
-  else if t `elem` expectedForOperand then
-    let finalType = if op == G.Negate then t else T.TrileanT in
-    return (finalType, finalExpr)
-  else do
-    logSemError (T.typeMismatchMessage tk) tk
-    return (T.TypeError, finalExpr)
-  where
-    expectedForOperand
-      | op == G.Negate = T.arithmeticTypes
-      | otherwise = T.booleanSingleton
-
-binaryOpCheck :: G.Expr -> G.Expr -> G.Op2 -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
-binaryOpCheck leftExpr rightExpr op tk = do
-  leftType <- getType leftExpr
-  rightType <- getType rightExpr
-  if leftType == T.TypeError || rightType == T.TypeError then
-    return (T.TypeError, G.Op2 op leftExpr rightExpr)
-  else if leftType `T.canBeConvertedTo` rightType then
-    let [castedLeftExpr] = addCastToExprs [(leftExpr, rightType)] in
-    checkIfInExpected castedLeftExpr rightExpr
-  else if rightType `T.canBeConvertedTo` leftType then
-    let [castedRightExpr] = addCastToExprs [(rightExpr, leftType)] in
-    checkIfInExpected leftExpr castedRightExpr
-  else do
-    logSemError "Left and right side of operand can't be operated together" tk
-    return (T.TypeError, G.Op2 op leftExpr rightExpr)
-
-  where
-    expectedForOperands :: [T.Type]
-    expectedForOperands
-      | op `elem` G.arithmeticOp2 = T.arithmeticTypes
-      | op `elem` G.comparableOp2 = T.anySingleton -- we can compare any type if they are the same
-      | op `elem` G.booleanOp2 = T.booleanSingleton
-      | op `elem` G.setOp2 = T.anySetSingleton
-      | op `elem` G.arrayOp2 = T.arrayLikeSingleton
-      | otherwise = error (show op ++ " doesn't have a value in expectedForOperands function")
-    checkIfInExpected :: G.Expr -> G.Expr -> ST.ParserMonad (T.Type, G.BaseExpr)
-    checkIfInExpected l r = do
-      -- l and r have here the same type so it doesn't matter what we choose
-      t <- getType l
-      let exp = G.Op2 op l r
-      if t `elem` expectedForOperands then
-
-        -- the final type depends on the operator
-        let finalType = if op `elem` G.comparableOp2 then T.TrileanT else t in
-        return (finalType, exp)
-      else do
-        logSemError (T.typeMismatchMessage tk) tk
-        return (T.TypeError, exp)
-
-checkSize :: G.Expr -> T.Token -> ST.ParserMonad T.Type
-checkSize expr tk = do
-  t <- getType expr
-  if T.isSizeableType t then return T.BigIntT
-  else if t == T.TypeError then return T.TypeError
-  else do
-    logSemError "`size` expects a sizeable collection type" tk
-    return T.TypeError
-
-checkStructAssignment :: (TypeCheckable a) => a -> G.Expr -> T.Token -> ST.ParserMonad ()
-checkStructAssignment lval (G.Expr {G.expAst = (G.StructLit structProps)}) tk = do
-  lvalType <- getType lval
-  checkStructAssignment' lvalType
-  where
-    checkStructAssignment' :: T.Type -> ST.ParserMonad ()
-    checkStructAssignment' lvalType = case lvalType of
-      T.RecordT scope properties -> do
-        let propL = length properties
-        let structPropsL = length structProps
-        if structPropsL /= propL then do
-          let mismatch = propL - structPropsL
-          let errDetails = if mismatch > 0 then "(missing " ++ show mismatch ++ " properties)" else "(assigning " ++ show (-mismatch) ++ " additional properties)"
-          logSemError ("Bezel literal must assign exactly one value to each valid property " ++ errDetails) tk
-        else do
-          let propNames = map (\(T.PropType (s, _)) -> s) properties
-          let structPropNames = map (\( (G.Id (T.Token {T.cleanedString=spName}) _) , _) -> spName) structProps
-          if propNames /= structPropNames then do
-            let invalidNames = filter (\x -> not $ x `elem` propNames) structPropNames
-            let firstInvalidName = head invalidNames
-            logSemError ("Invalid property name " ++ firstInvalidName ++ " for bezel literal assignment") tk
-          else do
-            let propTypes = map (\(T.PropType (s, t)) -> t) properties
-            let structPropVals = map snd structProps
-            checkRecordTypes propNames propTypes structPropVals
-
-      T.UnionT scope properties -> do
-        let structPropsL = length structProps
-        if structPropsL /= 1 then logSemError ("Link literal must assign exactly one valid property") tk
-        else do
-          let propNames = map (\(T.PropType (s, _)) -> s) properties
-          let (G.Id (T.Token {T.cleanedString = structPropName}) _, structPropVal) = head structProps
-          if not (structPropName `elem` propNames) then logSemError ("Invalid property name " ++ structPropName ++ " for link literal assignment") tk
-          else do
-            let T.PropType (_, propType) = head $ filter (\(T.PropType (n, _)) -> n == structPropName) properties
-            structPropValT <- getType structPropVal
-            if structPropValT `T.canBeConvertedTo` propType then return ()
-            else do
-              let errDetails = "(expected " ++ show propType ++ ", received " ++ show structPropValT ++ ")"
-              logSemError ("Type mismach on link literal assignment " ++ errDetails) tk
-
-      tA@(T.AliasT _) -> do
-        newT <- makeStructFromAlias tA
-        if newT == T.TypeError then logNonStructType (show tA)
-        else checkStructAssignment' newT
-
-      T.TypeError -> return ()
-
-      _ -> logNonStructType (show lvalType)
-    checkRecordTypes :: [String] -> [T.Type] -> [G.Expr] -> ST.ParserMonad ()
-    checkRecordTypes [] [] [] = return ()
-    checkRecordTypes (n:names) (t:types) (v:vals) = do
-      vT <- getType v
-      if vT `T.canBeConvertedTo` t then checkRecordTypes names types vals
-      else do
-        logSemError ("Type mismatch on bezel assignment: property " ++ n ++ " required " ++ show t ++ ", received " ++ show vT) tk
-        -- Not stopping the propagation 'cause it's useful to know all the type mismatches
-        checkRecordTypes names types vals
-
-    logNonStructType :: String -> ST.ParserMonad ()
-    logNonStructType bT = logSemError ("Type mismatch on struct assignment (" ++ bT ++ " is not a struct type)") tk
-checkStructAssignment _ _ _ = error $ "checkStructAssignment function called with a non-struct literal or expression"
-
-checkTypeOfAssignment :: (TypeCheckable a, TypeCheckable b) => a -> b -> T.Token -> ST.ParserMonad ()
-checkTypeOfAssignment lval rval tk = do
-  lvalType <- getType lval
-  rvalType <- getType rval
-  if rvalType `T.canBeConvertedTo` lvalType
-  then return ()
-  else do
-    let errorDetails = "(couldn't convert " ++ (show rvalType) ++ " to " ++ (show lvalType) ++ ")"
-    -- don't propagate type errors further
-    if T.TypeError `elem` [lvalType, rvalType]
-    then return ()
-    else logSemError ("Type mismatch on assignment " ++ errorDetails) tk
-
-minBigInt :: Int
-minBigInt = - 2147483648
-
-maxBigInt :: Int
-maxBigInt = 2147483647
-
-minSmallInt :: Int
-minSmallInt = - 32768
-
-maxSmallInt :: Int
-maxSmallInt = 32767
-
-buildTypeForNonCasterExprs :: ST.ParserMonad T.Type -> G.BaseExpr -> ST.ParserMonad (T.Type, G.BaseExpr)
-buildTypeForNonCasterExprs tt bExpr = tt >>= \t -> return (t, bExpr)
-
-buildType :: G.BaseExpr -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
-buildType bExpr tk = case bExpr of
-  -- Language literals, their types can be (almost everytime) infered
-  G.TrueLit -> return (T.TrileanT, bExpr)
-  G.FalseLit -> return (T.TrileanT, bExpr)
-  G.UndiscoveredLit -> return (T.TrileanT, bExpr)
-  G.NullLit -> return (T.PointerT T.Any, bExpr)
-
-  -- A literal of an integer is valid if it is on the correct range
-  G.IntLit n ->
-    if minSmallInt <= n && n <= maxSmallInt
-    then return (T.SmallIntT, bExpr)
-    else if minBigInt <= n && n <= maxBigInt
-    then return (T.BigIntT, bExpr)
-    else logRTError "TODO: check for the int size, modify grammar to carry token position"
-  G.FloatLit _ -> return (T.FloatT, bExpr)
-  G.CharLit _ -> return (T.CharT, bExpr)
-  G.StringLit _ -> return (T.StringT, bExpr)
-  G.StructLit props -> return (T.StructLitT, bExpr)
-
-  G.ArrayLit exprs -> containerCheck exprs T.ArrayT G.ArrayLit tk
-  G.SetLit exprs -> containerCheck exprs T.SetT G.SetLit tk
-
-  G.Op1 op a -> unaryOpCheck a op tk
-
-  G.Op2 op a b -> binaryOpCheck a b op tk
-
-  G.IdExpr i -> checkIdType i
-  G.IndexAccess e i -> buildTypeForNonCasterExprs (checkIndexAccess e i tk) bExpr
-  G.EvalFunc i params -> functionsCheck i params tk
-  G.MemAccess e -> buildTypeForNonCasterExprs (memAccessCheck e tk) bExpr
-  G.IsActive e -> buildTypeForNonCasterExprs (checkIsActive e tk) bExpr
-  G.AsciiOf e -> buildTypeForNonCasterExprs (checkAsciiOf e tk) bExpr
-  G.Access e i -> checkAccess e i tk
-  G.Size e -> buildTypeForNonCasterExprs (checkSize e tk) bExpr
-
-checkIdType :: G.Id -> ST.ParserMonad (T.Type, G.BaseExpr)
-checkIdType gId@(G.Id tk _) = do
-  idEntry <- checkIdAvailability gId
-  case idEntry of
-    Nothing -> return (T.TypeError, G.IdExpr gId)
-    Just entry -> do
-      t <- getType gId
-      return (t, G.IdExpr $ G.Id tk $ ST.scope entry)
-
-instance TypeCheckable G.Id where
-  getType gId = do
-    idEntry <- checkIdAvailability gId
-    case idEntry of
-      Nothing -> return T.TypeError
-      Just entry -> getType entry
-
-instance TypeCheckable G.Expr where
-  getType = return . G.expType
-
-instance TypeCheckable ST.DictionaryEntry where
-  getType entry@ST.DictionaryEntry{ST.entryType=Just _, ST.category = cat, ST.extra = extras}
-    | cat `elem` [ST.Function, ST.Procedure] = do
-      range <- (case cat of
-        ST.Procedure -> return T.VoidT
-        ST.Function -> getType entry{ST.category=ST.Variable}) -- cheating
-      domain <- do
-          let fields = head $ filter ST.isFieldsExtra extras
-          (T.TypeList list) <- getType fields
-          return list
-      case range of
-        -- The range is returned as a one-type typelist, we return the actual type
-        T.TypeList (r:_) -> return $ T.FunctionT domain r
-        _ -> return $ T.FunctionT domain range
-
-    | cat `elem` [
-        ST.Variable, ST.Constant,
-        ST.RecordItem, ST.UnionItem,
-        ST.RefParam, ST.ValueParam, ST.Type] = getType $ ST.extractTypeFromExtra extras
-
-    | otherwise = logRTError "error on getType for expected dict entries"
-
-  getType _ = logRTError "error on getType for unexpected dict entries"
-
-instance TypeCheckable ST.Extra where
-  getType (ST.Recursive s extra) = do
-      t <- getType extra
-      if s == ST.arrow then return $ T.PointerT t
-      else if s == ST.armor then return $ T.SetT t
-      else return T.TypeError -- This should not happen, but life is hard
-
-  -- For the moment, ST.Compound only corresponds to string
-  getType (ST.Compound s _) = return $ T.StringT
-
-  -- For the moment, ST.CompoundRect only corresponds to array
-  getType (ST.CompoundRec s _ extra) = getType extra >>= \t -> return $ T.ArrayT t
-
-  getType (ST.Fields ST.Callable scope) = do
-    ST.SymTable {ST.stDict=dict} <- RWS.get
-    let isArg entry = ST.category entry `elem` [ST.ValueParam, ST.RefParam]
-    let args = filter isArg $ ST.findAllInScope scope dict
-    types <- mapM getType $ ST.sortByArgPosition args
-    return $ T.TypeList types
-
-  getType (ST.Fields b scope) = buildStruct b scope
-
-  getType (ST.Simple s)
-      | s == ST.smallHumanity = return T.SmallIntT
-      | s == ST.humanity = return T.BigIntT
-      | s == ST.hollow = return T.FloatT
-      | s == ST.sign = return T.CharT
-      | s == ST.bonfire = return T.TrileanT
-      | s == ST.void = return T.VoidT
-      | otherwise = do
-        maybeEntry <- ST.dictLookup s
-        case maybeEntry of
-          Nothing -> return T.TypeError
-          Just e -> getType e
-  getType _ = logRTError "error on getType for SymTable extra"
-
-buildStruct :: ST.TypeFields -> Int -> ST.ParserMonad (T.Type)
-buildStruct t scope = do
-  ST.SymTable {ST.stDict=dict} <- RWS.get
-  let entries = ST.findAllInScope scope dict
-  ST.pushScope scope
-  let entryNames = map ST.name entries
-  types <- mapM getType entries
-  ST.exitScope
-  case t of
-    ST.Record -> return $ T.RecordT scope $ map T.PropType $ zip entryNames types
-    ST.Union -> return $ T.UnionT scope $ map T.PropType $ zip entryNames types
-    _ -> logRTError "wrong data type for Fields extra"
-
 logSemError :: String -> T.Token -> ST.ParserMonad ()
 logSemError msg tk = RWS.tell [Error msg (T.position tk)]
-
-rtMessage :: String -> String
-rtMessage msg =
-  let header = "Firelink Internal Runtime Error:\t" ++ msg ++ "\n"
-      mid = "\tPlease, open a new issue on Github attaching the .souls file you just used\n"
-      end = "\tGithub Issue Tracker: https://github.com/aitorres/firelink/issues"
-      fullMsg = header ++ mid ++ end
-  in fullMsg
-
-logRTError :: String -> ST.ParserMonad (a)
-logRTError msg = error $ rtMessage msg
 
 }
