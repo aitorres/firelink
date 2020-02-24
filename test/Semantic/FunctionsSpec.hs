@@ -16,7 +16,7 @@ varEntry = ST.DictionaryEntry
 
 spec :: Spec
 spec = do
-    describe "Functions declarations" $ do
+    describe "Function declarations" $ do
         it "allows to declare functions with no arguments" $ do
             let p = "hello ashen one\n\
 
@@ -221,7 +221,7 @@ spec = do
                 , ST.name = "fun2"
                 , ST.entryType = Just "sign"
                 } U.extractFieldsFromExtra (const True)
-    describe "Functions calls" $ do
+    describe "Function calls" $ do
         it "allows to call declared functions with no parameters" $
             U.shouldNotError "hello ashen one\n\
 
@@ -290,31 +290,31 @@ spec = do
             \   with orange saponite say summon fun\n\
             \ you died \
             \ farewell ashen one"
-        -- it "allows corecursion" $ do
-        --     let p = "hello ashen one\n\
+        it "allows corecursion" $ do
+            let p = "hello ashen one\n\
 
-        --     \invocation fun\n\
-        --     \with skill of type humanity\n\
+            \invocation fun\n\
+            \with skill of type humanity\n\
 
-        --     \traveling somewhere\n\
-        --     \   go back with summon fun1\n\
-        --     \you died\n\
+            \traveling somewhere\n\
+            \   go back with summon fun1\n\
+            \you died\n\
 
-        --     \after this return to your world\n\
+            \after this return to your world\n\
 
-        --     \invocation fun1\n\
-        --     \with skill of type humanity\n\
+            \invocation fun1\n\
+            \with skill of type humanity\n\
 
-        --     \traveling somewhere\n\
-        --     \   go back with summon fun\n\
-        --     \you died\n\
+            \traveling somewhere\n\
+            \   go back with summon fun\n\
+            \you died\n\
 
-        --     \after this return to your world\n\
+            \after this return to your world\n\
 
 
-        --     \ traveling somewhere\n\
-        --     \   with orange saponite say summon fun\n\
-        --     \ you died \
-        --     \ farewell ashen one"
-        --     errors <- U.extractErrors p
-        --     errors `shouldSatisfy` null
+            \ traveling somewhere\n\
+            \   with orange saponite say summon fun\n\
+            \ you died \
+            \ farewell ashen one"
+            errors <- U.extractErrors p
+            errors `shouldSatisfy` null
