@@ -175,21 +175,15 @@ import           FireLink.Utils
 %%
 
 PROGRAM :: { G.Program }
-  : programBegin ALIASES METHODS NON_OPENER_CODEBLOCK PROGRAMEND        {% do
-                                                                             checkRecoverableError $1 $5
-                                                                             return $ G.Program $4 }
+  : programBegin ALIASES METHODS NON_OPENER_CODEBLOCK PROGRAMEND        { G.Program $4 }
 
 PROGRAMEND :: { Maybe G.RecoverableError }
   : programEnd                                                          { Nothing }
   | error                                                               { Just G.MissingProgramEnd }
 
 NON_OPENER_CODEBLOCK :: { G.CodeBlock }
-  : instructionsBegin DECLARS INSTRL NON_OPENER_INSTEND                 {% do
-                                                                             checkRecoverableError $1 $4
-                                                                             return $ G.CodeBlock $ $2 ++ reverse $3 }
-  | instructionsBegin INSTRL NON_OPENER_INSTEND                         {% do
-                                                                             checkRecoverableError $1 $3
-                                                                             return $ G.CodeBlock $ reverse $2 }
+  : instructionsBegin DECLARS INSTRL NON_OPENER_INSTEND                 { G.CodeBlock $ $2 ++ reverse $3 }
+  | instructionsBegin INSTRL NON_OPENER_INSTEND                         { G.CodeBlock $ reverse $2 }
 
 NON_OPENER_INSTEND :: { Maybe G.RecoverableError }
   : instructionsEnd                                                     { Nothing }
@@ -197,7 +191,6 @@ NON_OPENER_INSTEND :: { Maybe G.RecoverableError }
 
 ALIASES :: { () }
   : ALIASLISTBEGIN ALIASL ALIASLISTEND                                  {% do
-                                                                            checkRecoverableError $1 $3
                                                                             st <- RWS.get
                                                                             ST.popOffset
                                                                             RWS.put st{ST.stScopeStack=[1, 0]} }
@@ -243,9 +236,7 @@ EXPR :: { G.Expr }
   | nullLit                                                             {% buildAndCheckExpr $1 G.NullLit }
   | arrOpen EXPRL arrClose                                              {% buildAndCheckExpr $1 $ G.ArrayLit $ reverse $2 }
   | setOpen EXPRL setClose                                              {% buildAndCheckExpr $1 $ G.SetLit $ reverse $2 }
-  | parensOpen EXPR PARENSCLOSE                                         {% do
-                                                                            checkRecoverableError $1 $3
-                                                                            return $ $2{G.expTok=$1} }
+  | parensOpen EXPR PARENSCLOSE                                         {  $2{G.expTok=$1} }
   | minus EXPR                                                          {% buildAndCheckExpr $1 $ G.Op1 G.Negate $2 }
   | not EXPR                                                            {% buildAndCheckExpr $1 $ G.Op1 G.Not $2 }
   | asciiOf EXPR                                                        {% buildAndCheckExpr $1 $ G.AsciiOf $2 }
@@ -279,13 +270,11 @@ EXPR :: { G.Expr }
   | memAccessor EXPR                                                    {% buildAndCheckExpr $1 $ G.MemAccess $2 }
 
 STRUCTLIT :: { (T.Token, [(G.Id, G.Expr)]) }
-  : brOpen PROPLIST BRCLOSE                                             {% do
-                                                                            checkRecoverableError $1 $3
-                                                                            return ($1, $2) }
+  : brOpen PROPLIST BRCLOSE                                             {  ($1, $2) }
 
 PROPLIST :: { [(G.Id, G.Expr)]}
   : PROP                                                                { [$1] }
-  | PROPLIST comma PROP                                                  { $3:$1 }
+  | PROPLIST comma PROP                                                 { $3:$1 }
 
 PROP :: { (G.Id, G.Expr) }
   : ID asig EXPR                                                        { ($1, $3) }
@@ -407,7 +396,6 @@ TYPE :: { ST.Extra }
                                                                               [ ST.Recursive (T.cleanedString $1) $2
                                                                               , ST.Width ST.wordSize ] }
   | RECORD_OPEN  brOpen STRUCTITS BRCLOSE                               {% do
-                                                                            checkRecoverableError $2 $4
                                                                             currScope <- ST.getCurrentScope
                                                                             nextOffset <- ST.getNextOffset
                                                                             ST.exitScope
@@ -416,7 +404,6 @@ TYPE :: { ST.Extra }
                                                                               ST.Fields ST.Record currScope, ST.Width nextOffset]
                                                                             return ret }
   | UNION_OPEN brOpen UNIONITS BRCLOSE                                  {% do
-                                                                             checkRecoverableError $2 $4
                                                                              currScope <- ST.getCurrentScope
                                                                              ST.exitScope
                                                                              ST.popUnion
@@ -468,12 +455,8 @@ ID :: { G.Id }
                                                                             return $ G.Id $1 currScope }
 
 CODEBLOCK :: { G.CodeBlock }
-  : INSTBEGIN DECLARS INSTRL INSTEND                                    {% do
-                                                                             checkRecoverableError $1 $4
-                                                                             return $ G.CodeBlock $ $2 ++ reverse $3 }
-  | INSTBEGIN INSTRL INSTEND                                            {% do
-                                                                             checkRecoverableError $1 $3
-                                                                             return $ G.CodeBlock $ reverse $2 }
+  : INSTBEGIN DECLARS INSTRL INSTEND                                    { G.CodeBlock $ $2 ++ reverse $3 }
+  | INSTBEGIN INSTRL INSTEND                                            { G.CodeBlock $ reverse $2 }
 
 INSTBEGIN :: { T.Token }
 INSTBEGIN : instructionsBegin                                           {% do
@@ -493,7 +476,6 @@ INSTEND :: { Maybe G.RecoverableError }
 DECLARS :: { [G.Instruction] }
   : with DECLARSL DECLAREND                                             {% do
                                                                             let instrlist = catMaybes (reverse $2)
-                                                                            checkRecoverableError $1 $3
                                                                             return instrlist }
 
 DECLAREND :: { Maybe G.RecoverableError }
@@ -530,15 +512,10 @@ INSTRL :: { G.Instructions }
 
 INSTR :: { G.Instruction }
   : EXPR asig EXPR                                                      {% do
-                                                                          checkLvalue $1
                                                                           checkAssignment $1 $2 $3 False
                                                                           return $ G.InstAsig $1 $3 }
-  | malloc EXPR                                                         {% do
-                                                                          checkPointerVariable $2
-                                                                          return $ G.InstMalloc $2 }
-  | free EXPR                                                           {% do
-                                                                          checkPointerVariable $2
-                                                                          return $G.InstFreeMem $2 }
+  | malloc EXPR                                                         { G.InstMalloc $2 }
+  | free EXPR                                                           { G.InstFreeMem $2 }
   | cast ID PROCARGS                                                    {% do
                                                                           checkIdAvailability $2
                                                                           (_, params) <- methodsCheck $2 $3 $1
@@ -546,43 +523,25 @@ INSTR :: { G.Instruction }
   | FUNCALL                                                             {% let (tk, i, params) = $1 in do
                                                                           buildAndCheckExpr tk $ G.EvalFunc i params
                                                                           return $ G.InstCallFunc i params }
-  | return                                                              {% checkReturnScope $1 }
-  | returnWith EXPR                                                     {% do
-                                                                          retExpr <- checkReturnType $2 $1
-                                                                          return $ G.InstReturnWith retExpr }
-  | print EXPR                                                          {% do
-                                                                            checkIOTypes $2 $1
-                                                                            return $ G.InstPrint $2 }
-  | read EXPR                                                           {% do
-                                                                            validLvalue <- checkLvalue $2
-                                                                            RWS.when validLvalue $ checkIOTypes $2 $1
-                                                                            return $ G.InstRead $2 }
-  | whileBegin EXPR covenantIsActive COLON CODEBLOCK WHILEEND           {% do
-                                                                            checkRecoverableError $1 $4
-                                                                            checkRecoverableError $1 $6
-                                                                            checkBooleanGuard $2
-                                                                            return $ G.InstWhile $2 $5 }
+  | return                                                              { G.InstReturn }
+  | returnWith EXPR                                                     { G.InstReturnWith $2 }
+  | print EXPR                                                          { G.InstPrint $2 }
+  | read EXPR                                                           { G.InstRead $2 }
+  | whileBegin EXPR covenantIsActive COLON CODEBLOCK WHILEEND           { G.InstWhile $2 $5 }
   | ifBegin IFCASES ELSECASE IFEND                                      {% do
-                                                                          checkRecoverableError $1 $4
                                                                           return $ G.InstIf (reverse ($3 : $2)) }
   | ifBegin IFCASES IFEND                                               {% do
-                                                                          checkRecoverableError $1 $3
                                                                           return $ G.InstIf (reverse $2) }
   | SWITCHBEGIN COLON SWITCHCASES DEFAULTCASE SWITCHEND                 {% do
                                                                           let (switchTk, switchExpr) = $1
-                                                                          checkRecoverableError switchTk $2
-                                                                          checkRecoverableError switchTk $5
                                                                           ST.popSwitchType
                                                                           return $ G.InstSwitch switchExpr (reverse ($4 : $3)) }
   | SWITCHBEGIN COLON SWITCHCASES SWITCHEND                             {% do
                                                                           let (switchTk, switchExpr) = $1
-                                                                          checkRecoverableError switchTk $2
-                                                                          checkRecoverableError switchTk $4
                                                                           ST.popSwitchType
                                                                           return $ G.InstSwitch switchExpr (reverse $3) }
   | FORBEGIN CODEBLOCK FOREND                                           {% do
                                                                           let (fstTk, iterVar, shouldPopIterVar, startExpr, stopExpr) = $1
-                                                                          checkRecoverableError fstTk $3
                                                                           if shouldPopIterVar
                                                                           then do
                                                                             ST.popIteratorVariable
@@ -590,7 +549,6 @@ INSTR :: { G.Instruction }
                                                                           return $ G.InstFor iterVar startExpr stopExpr $2 }
   | FOREACHBEGIN CODEBLOCK FOREACHEND                                   {% do
                                                                           let (fstTk, iterVar, shouldPopIterVar, shouldPopIterableVar, iteredExpr) = $1
-                                                                          checkRecoverableError fstTk $3
                                                                           RWS.when shouldPopIterVar ST.popIteratorVariable
                                                                           RWS.when shouldPopIterableVar ST.popIterableVariable
                                                                           return $ G.InstForEach iterVar iteredExpr $2 }
@@ -602,17 +560,9 @@ SWITCHBEGIN :: { (T.Token, G.Expr) }
 
 FORBEGIN :: { (T.Token, G.Id, Bool, G.Expr, G.Expr) }
   : forBegin ID with EXPR souls untilLevel EXPR                         {% do
-                                                                          t1 <- getType $4
-                                                                          RWS.when (not $ isIntegerType t1) $
-                                                                            logSemError "Step should be an integer" $ G.expTok $4
-                                                                          t2 <- getType $7
-                                                                          RWS.when (not $ isIntegerType t2) $
-                                                                            logSemError "Stop should be an integer" $ G.expTok $7
-
                                                                           mid <- checkIdAvailability $2
                                                                           case mid of
                                                                             Just ST.DictionaryEntry {ST.name=varName} -> do
-                                                                              checkIterVarType $2
                                                                               ST.addIteratorVariable varName
                                                                               return ($1, $2, True, $4, $7)
                                                                             Nothing -> return ($1, $2, False, $4, $7) }
@@ -630,25 +580,8 @@ FOREACHBEGIN :: { (T.Token, G.Id, Bool, Bool, G.Expr) }
                                                                                                         _ -> False)
                                                                           let ret = ($1, $2, iteratorType /= T.TypeError, containerType /= T.TypeError && isContainerAVariable, $4)
                                                                           if iteratorType == T.TypeError then do
-                                                                            if containerType == T.TypeError then return ()
-                                                                            else
-                                                                              case T.getTypeFromContainer containerType of
-                                                                                Nothing -> do
-                                                                                  logSemError "Iterable expression is not a container" $ G.expTok $4
-                                                                                _ -> do
-                                                                                  return ()
-                                                                          else do
-                                                                            checkIterVarType $2
-                                                                            ST.addIteratorVariable $ G.extractIdName $2
-                                                                            if containerType == T.TypeError then return ()
-                                                                            else
-                                                                              case T.getTypeFromContainer containerType of
-                                                                                Nothing -> do
-                                                                                  logSemError "Iterable expression is not a container" $ G.expTok $4
-                                                                                Just t -> do
-                                                                                  let (G.Id tk _) = $2
-                                                                                  RWS.when (T.TypeError /= t && iteratorType /= t) $
-                                                                                    logSemError "Iterator variable is not of the type of contained elements" tk
+                                                                            return ()
+                                                                          else ST.addIteratorVariable $ G.extractIdName $2
                                                                           if containerType /= T.TypeError && isContainerAVariable then do
                                                                             let (G.IdExpr (G.Id tk _)) = G.expAst $4
                                                                             ST.addIterableVariable (T.cleanedString tk)
@@ -676,14 +609,10 @@ IFCASES :: { G.IfCases }
   | IFCASE                                                              { [$1] }
 
 IFCASE :: { G.IfCase }
-  : EXPR COLON CODEBLOCK                                                {% do
-                                                                            checkRecoverableError (G.expTok $1) $2
-                                                                            checkBooleanGuard $1
-                                                                            return $ G.GuardedCase $1 $3 }
+  : EXPR COLON CODEBLOCK                                                { G.GuardedCase $1 $3 }
 
 ELSECASE :: { G.IfCase }
   : else COLON CODEBLOCK                                                {% do
-                                                                            checkRecoverableError $1 $2
                                                                             return $ G.GuardedCase (G.Expr
                                                                                                     { G.expAst = G.TrueLit
                                                                                                     , G.expType = T.TrileanT
@@ -702,24 +631,17 @@ SWITCHCASES :: { G.SwitchCases }
   | SWITCHCASE                                                          { [$1] }
 
 SWITCHCASE :: { G.SwitchCase }
-  : EXPR COLON CODEBLOCK                                                {% do
-                                                                            checkRecoverableError (G.expTok $1) $2
-                                                                            expr <- checkSwitchCaseType $1
-                                                                            return $ G.Case expr $3 }
+  : EXPR COLON CODEBLOCK                                                { G.Case $1 $3 }
 
 SWITCHEND :: { Maybe G.RecoverableError }
   : switchEnd                                                           { Nothing }
   | error                                                               { Just G.MissingSwitchEnd }
 
 DEFAULTCASE :: { G.SwitchCase }
-  : switchDefault COLON CODEBLOCK                                       {% do
-                                                                            checkRecoverableError $1 $2
-                                                                            return $ G.DefaultCase $3 }
+  : switchDefault COLON CODEBLOCK                                       { G.DefaultCase $3 }
 
 FUNCPARS :: { G.Params }
-  : granting PARSLIST TOTHEKNIGHT                                       {% do
-                                                                             checkRecoverableError $1 $3
-                                                                             return $ reverse $2 }
+  : granting PARSLIST TOTHEKNIGHT                                       { reverse $2 }
   | {- empty -}                                                         { [] }
 
 TOTHEKNIGHT :: { Maybe G.RecoverableError }
@@ -727,9 +649,7 @@ TOTHEKNIGHT :: { Maybe G.RecoverableError }
   | error                                                               { Just G.MissingFunCallEnd }
 
 PROCARGS :: { G.Params }
-  : offering PARSLIST TOTHEESTUSFLASK                                   {% do
-                                                                             checkRecoverableError $1 $3
-                                                                             return $ reverse $2 }
+  : offering PARSLIST TOTHEESTUSFLASK                                   { reverse $2 }
   | {- empty -}                                                         { [] }
 
 TOTHEESTUSFLASK :: { Maybe G.RecoverableError }
@@ -783,7 +703,6 @@ addIdToSymTable d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idName
   maybeIdEntry <- ST.dictLookup idName
   let typeEntry = getTypeNameForSymTable $ head $ filter ST.isExtraAType t
   currScope <- ST.getCurrentScope
-  ST.SymTable {ST.stIterationVars=iterVars} <- RWS.get
   case maybeIdEntry of
     -- The name doesn't exists on the table, we just add it
     Nothing ->
@@ -807,8 +726,6 @@ addIdToSymTable d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idName
       then logSemError ("Name " ++ show tk ++ " conflicts with a function") tk
       else if category == ST.RefParam || category == ST.ValueParam
       then logSemError ("Name " ++ show tk ++ " conflicts with a formal param") tk
-      else if (T.cleanedString tk) `elem` iterVars
-      then logSemError ("Name " ++ show tk ++ " conflicts or shadows an iteration variable") tk
       else if currScope /= scope
       then assignOffsetAndInsert ST.DictionaryEntry
         { ST.name = idName
@@ -826,7 +743,6 @@ addIdToSymTable d@(c, gId@(G.Id tk@(T.Token {T.aToken=at, T.cleanedString=idName
     getTypeNameForSymTable (ST.CompoundRec s _ _) = s
     getTypeNameForSymTable (ST.Fields ST.Record _) = ST.bezel
     getTypeNameForSymTable (ST.Fields ST.Union _) = ST.link
-
 
 assignOffsetAndInsert :: ST.DictionaryEntry -> ST.ParserMonad ()
 assignOffsetAndInsert entry = do
@@ -864,158 +780,11 @@ assignOffsetAndInsert entry = do
     requiresOffset :: Bool
     requiresOffset = category `elem` categoriesThatRequireOffset
 
-checkConstantReassignment :: G.Expr -> ST.ParserMonad ()
-checkConstantReassignment e = case G.expAst e of
-  G.IdExpr (G.Id tk@(T.Token {T.cleanedString=idName}) _) -> do
-    maybeEntry <- ST.dictLookup idName
-    case maybeEntry of
-      Nothing -> do
-        return ()
-      Just e ->
-        case (ST.category e) of
-          ST.Constant -> do
-            logSemError ("Name " ++ idName ++ " is a constant and must not be reassigned") tk
-            return ()
-          _ ->
-            return ()
-  G.IndexAccess gId _ -> checkConstantReassignment gId
-  _ -> return ()
-
-checkPointerVariable :: G.Expr -> ST.ParserMonad ()
-checkPointerVariable G.Expr {G.expType=(T.PointerT _)} = return ()
-checkPointerVariable exp@G.Expr {G.expType=(T.AliasT alias)} = do
-  t <- getTypeFromAliasName alias
-  case t of
-    T.PointerT _ -> return ()
-    _ -> checkPointerVariable exp {G.expType=T.TypeError}
-checkPointerVariable G.Expr {G.expTok=tk} =
-  logSemError ("Expresion " ++ show tk ++ " must be a valid pointer") tk
-
-checkReturnScope :: T.Token -> ST.ParserMonad (G.Instruction)
-checkReturnScope tk = do
-  ST.SymTable {ST.stVisitedMethod=vMethod} <- RWS.get
-  case vMethod of
-    Nothing -> return (G.InstReturn)
-    Just methodName -> do
-      currMethod <- ST.dictLookup $ methodName
-      case currMethod of
-        Just (ST.DictionaryEntry {ST.category=cat}) -> do
-          case cat of
-            ST.Function -> do
-              logSemError ("Returning without an expression is not allowed inside functions") tk
-              return (G.InstReturn)
-            _ -> return (G.InstReturn)
-        _ -> return (G.InstReturn)
-
-checkReturnType :: G.Expr -> T.Token -> ST.ParserMonad (G.Expr)
-checkReturnType e tk = do
-  let eType = G.expType e
-  ST.SymTable {ST.stVisitedMethod=vMethod} <- RWS.get
-  case vMethod of
-    Nothing -> do
-      logSemError ("Returning with an expression outside of a function not allowed") tk
-      return e
-    Just methodName -> do
-      currMethod <- ST.dictLookup $ methodName
-      case currMethod of
-        Nothing -> do
-          logSemError ("Returning with an expression outside of a function not allowed") tk
-          return e
-        Just method -> do
-          let ST.DictionaryEntry {ST.category=cat} = method
-          mType <- getType method
-          case cat of
-            ST.Function -> do
-              let T.FunctionT _ fType = mType
-              -- If they're equal, or compatible through casting, this raises no error
-              if eType `T.canBeConvertedTo` fType
-              then let [castedExpr] = addCastToExprs [(e, fType)] in
-                return (castedExpr)
-              else do
-                logSemError ("Return expression type " ++ show eType ++ " incompatible with function return type " ++ show fType) tk
-                return e
-            _ -> do
-              logSemError ("Returning with an expression outside of a function not allowed") tk
-              return e
-
-checkIterVariables :: G.Expr -> ST.ParserMonad ()
-checkIterVariables e = case G.expAst e of
-  G.IdExpr (G.Id tk@(T.Token {T.cleanedString=idName}) _) -> do
-    ST.SymTable {ST.stIterationVars=iterVars} <- RWS.get
-    let matchesIterVar = idName `elem` iterVars
-    if matchesIterVar
-    then logSemError ("Iteration variable " ++ show tk ++ " must not be reassigned") tk
-    else return ()
-  _ -> return ()
-
-checkIterableVariables :: G.Expr -> ST.ParserMonad ()
-checkIterableVariables e = case G.expAst e of
-  G.IdExpr (G.Id tk@(T.Token {T.cleanedString=idName}) _) -> do
-    ST.SymTable {ST.stIterableVars=iterableVars} <- RWS.get
-    let matchesIterVar = idName `elem` iterableVars
-    if matchesIterVar
-    then logSemError ("Iterable container " ++ show tk ++ " must not be reassigned") tk
-    else return ()
-  _ -> return ()
-
 checkIdAvailability :: G.Id -> ST.ParserMonad (Maybe ST.DictionaryEntry)
-checkIdAvailability (G.Id tk@(T.Token {T.cleanedString=idName}) _) = do
-  maybeEntry <- ST.dictLookup idName
-  case maybeEntry of
-    Nothing -> do
-      logSemError ("Name " ++ show tk ++ " is not available on this scope") tk
-      return Nothing
-    Just e -> return $ Just e
-
-checkIterVarType :: G.Id -> ST.ParserMonad ()
-checkIterVarType (G.Id tk@(T.Token {T.cleanedString=idName}) _) = do
-  maybeEntry <- ST.dictLookup idName
-  case maybeEntry of
-    Nothing -> return ()
-    Just (ST.DictionaryEntry {ST.category=varCat}) -> do
-      if varCat == ST.Constant
-      then do
-        logSemError ("Constant " ++ show tk ++ " can not be used as an iteration variable") tk
-      else return ()
-
-checkSwitchCaseType :: G.Expr -> ST.ParserMonad (G.Expr)
-checkSwitchCaseType expr = do
-  ST.SymTable {ST.stSwitchTypes=swTypes} <- RWS.get
-  if swTypes == [] then return (expr)
-  else do
-    let swType = head swTypes
-    case swType of
-      T.TypeError -> return (expr)
-      tp -> do
-        let exprType = G.expType expr
-        if exprType `T.canBeConvertedTo` tp
-        then let [castedExpr] = addCastToExprs [(expr, tp)] in
-          return (castedExpr)
-        else do
-          let tk = G.expTok expr
-          RWS.tell [Error ("Expresion type " ++ show exprType ++ " conflicts with switch type (expected: " ++ show tp ++ ")") (T.position tk)]
-          return (expr)
-
-checkRecoverableError :: T.Token -> Maybe G.RecoverableError -> ST.ParserMonad ()
-checkRecoverableError openTk maybeErr = do
-  case maybeErr of
-    Nothing -> return ()
-    Just err -> do
-      let errorName = show err
-      logSemError (errorName ++ " (recovered from to continue parsing)") openTk
-
-checkIOTypes :: G.Expr -> T.Token -> ST.ParserMonad ()
-checkIOTypes expr tk = do
-  t <- getType expr
-  if t `elem` T.ioTypes then return ()
-  else logSemError (show t ++ " is not an I/O valid type") tk
+checkIdAvailability (G.Id tk@(T.Token {T.cleanedString=idName}) _) = ST.dictLookup idName >>= return
 
 checkAssignment :: G.Expr -> T.Token -> G.Expr -> Bool -> ST.ParserMonad G.Instruction
 checkAssignment lvalue token rvalue isInit = do
-  RWS.unless isInit $ do
-    checkConstantReassignment lvalue
-    checkIterVariables lvalue
-    checkIterableVariables lvalue
   t <- getType rvalue
   if t == T.StructLitT
   then checkStructAssignment lvalue rvalue token
@@ -1416,13 +1185,6 @@ checkTypeOfAssignment lval rval tk = do
     then return ()
     else logSemError ("Type mismatch on assignment " ++ errorDetails) tk
 
-checkLvalue :: G.Expr -> ST.ParserMonad (Bool)
-checkLvalue expr =
-  if G.isValidLvalue expr then return True
-  else do
-    logSemError "This expression is not a valid LVAL expression (expected: id, memory access, property access or pointer deref)" (G.expTok expr)
-    return False
-
 minBigInt :: Int
 minBigInt = - 2147483648
 
@@ -1437,15 +1199,6 @@ maxSmallInt = 32767
 
 buildTypeForNonCasterExprs :: ST.ParserMonad T.Type -> G.BaseExpr -> ST.ParserMonad (T.Type, G.BaseExpr)
 buildTypeForNonCasterExprs tt bExpr = tt >>= \t -> return (t, bExpr)
-
-checkBooleanGuard :: G.Expr -> ST.ParserMonad ()
-checkBooleanGuard expr = do
-  t <- getType expr
-  RWS.when (t /= T.TrileanT) $ do
-    -- Avoid propagating the error if it has been raised somewhere else already
-    if t == T.TypeError
-    then return ()
-    else logSemError "Guard should be of trilean data type" $ G.expTok expr
 
 buildType :: G.BaseExpr -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
 buildType bExpr tk = case bExpr of
