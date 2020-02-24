@@ -372,10 +372,6 @@ PARTYPE :: { ST.Category }
 TYPE :: { ST.Extra }
   : ID                                                                  {% do
                                                                           let G.Id t _ = $1
-                                                                          maybeEntry <- ST.dictLookup (T.cleanedString t)
-                                                                          case maybeEntry of
-                                                                            Just _ -> return ()
-                                                                            _ -> logSemError ("Type " ++ show t ++ " not found") t
                                                                           return $ ST.Simple (T.cleanedString t) }
   | bigInt                                                              { ST.Simple ST.humanity }
   | smallInt                                                            { ST.Simple ST.smallHumanity }
