@@ -215,9 +215,7 @@ ALIASL :: { () }
   | ALIASADD                                                            { () }
 
 ALIASADD :: { () }
-  : ALIAS                                                               {% do
-                                                                            addIdToSymTable $1
-                                                                            return () }
+  : ALIAS                                                               { }
 
 ALIAS :: { NameDeclaration }
   : alias ID TYPE                                                       {% do
@@ -328,10 +326,10 @@ FUNCPREFIX :: { Maybe (ST.Scope, G.Id) }
                                                                           currScope <- ST.getCurrentScope
                                                                           ST.exitScope
                                                                           let extras = [ $4, ST.Fields ST.Callable currScope ]
-                                                                          ret <- addFunction (ST.Function, $1, extras)
+                                                                          ST.addVisitedMethod $ G.extractIdName $1
                                                                           ST.pushScope currScope
 
-                                                                          return ret }
+                                                                          return $ Just (currScope, $1)  }
 
 FUNCNAME :: { G.Id }
 FUNCNAME : functionBegin ID                                             {% ST.enterScope >> ST.pushOffset 0 >> return $2 }
@@ -350,9 +348,9 @@ PROCPREFIX :: { Maybe (ST.Scope, G.Id) }
                                                                             let extras = [ ST.Simple ST.void, ST.Fields ST.Callable currScope ]
                                                                             st <- RWS.get >>= return . ST.stDict
 
-                                                                            ret <- addFunction (ST.Procedure, $1, extras)
+                                                                            ST.addVisitedMethod $ G.extractIdName $1
                                                                             ST.pushScope currScope
-                                                                            return ret }
+                                                                            return $ Just (currScope, $1) }
 
 PROCNAME :: { G.Id }
 PROCNAME : procedureBegin ID                                            {% ST.enterScope >> ST.pushOffset 0 >> return $2 }
@@ -370,10 +368,7 @@ PARS :: { Int }
   | PAR                                                                 { 1 }
 
 PAR :: { () }
-  : PARTYPE ID ofType TYPE                                              {% do
-                                                                          argPosition <- ST.genNextArgPosition
-                                                                          let extras = [$4, ST.ArgPosition argPosition]
-                                                                          addIdToSymTable ($1, $2, extras) }
+  : PARTYPE ID ofType TYPE                                              { }
 
 PARTYPE :: { ST.Category }
   : parVal                                                              { ST.ValueParam }
@@ -393,37 +388,24 @@ TYPE :: { ST.Extra }
   | float                                                               { ST.Simple ST.hollow }
   | char                                                                { ST.Simple ST.sign }
   | bool                                                                { ST.Simple ST.bonfire }
-  | ltelit EXPR array ofType TYPE                                       {% createAnonymousAlias $1 $
-                                                                              [ ST.CompoundRec (T.cleanedString $3) $2 $5
-                                                                              , ST.Width $ ST.wordSize * 2 ] }
-
-  | ltelit EXPR string                                                  {% createAnonymousAlias $1 $
-                                                                              [ ST.Compound (T.cleanedString $3) $2
-                                                                              , ST.Width $ ST.wordSize * 2 ] }
-  | set ofType TYPE                                                     {% createAnonymousAlias $1 $
-                                                                              [ ST.Recursive (T.cleanedString $1) $3
-                                                                              , ST.Width ST.wordSize ] }
-  | pointer TYPE                                                        {% createAnonymousAlias $1 $
-                                                                              [ ST.Recursive (T.cleanedString $1) $2
-                                                                              , ST.Width ST.wordSize ] }
+  | ltelit EXPR array ofType TYPE                                       {% ST.genAliasName >>= \x -> return $ ST.Simple x }
+  | ltelit EXPR string                                                  {% ST.genAliasName >>= \x -> return $ ST.Simple x }
+  | set ofType TYPE                                                     {% ST.genAliasName >>= \x -> return $ ST.Simple x }
+  | pointer TYPE                                                        {% ST.genAliasName >>= \x -> return $ ST.Simple x }
   | RECORD_OPEN  brOpen STRUCTITS BRCLOSE                               {% do
                                                                             checkRecoverableError $2 $4
                                                                             currScope <- ST.getCurrentScope
                                                                             nextOffset <- ST.getNextOffset
                                                                             ST.exitScope
                                                                             ST.popOffset
-                                                                            ret <- createAnonymousAlias $1 $ [
-                                                                              ST.Fields ST.Record currScope, ST.Width nextOffset]
-                                                                            return ret }
+                                                                            ST.genAliasName >>= \x -> return $ ST.Simple x }
   | UNION_OPEN brOpen UNIONITS BRCLOSE                                  {% do
                                                                              checkRecoverableError $2 $4
                                                                              currScope <- ST.getCurrentScope
                                                                              ST.exitScope
                                                                              ST.popUnion
                                                                              ST.popOffset
-                                                                             ret <- createAnonymousAlias $1 $ [ST.Fields ST.Union currScope,
-                                                                              ST.Width $ 4 + $3]
-                                                                             return ret }
+                                                                             ST.genAliasName >>= \x -> return $ ST.Simple x }
 
 RECORD_OPEN :: { T.Token }
 RECORD_OPEN : record                                                    {% ST.enterScope >> ST.pushOffset 0 >> return $1 }
@@ -445,8 +427,6 @@ UNIONITS :: { Int }
 
 UNIONIT :: { Int }
   : ID ofType TYPE                                                      {% do
-                                                                            unionAttrId <- fmap ST.UnionAttrId ST.genNextUnion
-                                                                            addIdToSymTable (ST.UnionItem, $1, [$3, unionAttrId])
                                                                             let ST.Simple t = $3
                                                                             maybeTypeEntry <- ST.dictLookup t
                                                                             case maybeTypeEntry of
@@ -460,7 +440,7 @@ STRUCTITS :: { () }
   | STRUCTIT                                                            { () }
 
 STRUCTIT :: { () }
-  : ID ofType TYPE                                                      {% addIdToSymTable (ST.RecordItem, $1, [$3]) }
+  : ID ofType TYPE                                                      { }
 
 ID :: { G.Id }
   : id                                                                  {% do
