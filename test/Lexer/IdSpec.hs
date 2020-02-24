@@ -3,38 +3,33 @@ module IdSpec where
 import           FireLink.FrontEnd.Lexer
 import           FireLink.FrontEnd.Tokens
 import           Test.Hspec
-import           Utils                    (getAbstractToken)
+import           Utils                    (scanToken)
 
 spec :: Spec
 spec = describe "Lexer" $ do
   it "accepts `a` as a valid id" $ do
     let x = "a"
-    let ([], toks) = scanTokens x
-    let atok = getAbstractToken $ head toks
+    let atok = scanToken x
     atok `shouldBe` TkId
 
   it "accepts `b` as a valid id" $ do
     let x = "b"
-    let ([], toks) = scanTokens x
-    let atok = getAbstractToken $ head toks
+    let atok = scanToken x
     atok `shouldBe` TkId
 
   it "accepts `testy` as a valid id" $ do
     let x = "testy"
-    let ([], toks) = scanTokens x
-    let atok = getAbstractToken $ head toks
+    let atok = scanToken x
     atok `shouldBe` TkId
 
   it "accepts `test123` as a valid id" $ do
     let x = "test123"
-    let ([], toks) = scanTokens x
-    let atok = getAbstractToken $ head toks
+    let atok = scanToken x
     atok `shouldBe` TkId
 
   it "accepts `test_123` as a valid id" $ do
     let x = "test_123"
-    let ([], toks) = scanTokens x
-    let atok = getAbstractToken $ head toks
+    let atok = scanToken x
     atok `shouldBe` TkId
 
   it "rejects `T` as a valid token" $ do
