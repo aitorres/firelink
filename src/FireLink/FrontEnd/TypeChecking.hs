@@ -96,10 +96,10 @@ getTypeFromContainer (ArrayT t) = Just t
 getTypeFromContainer _          = Nothing
 
 isSizeableType :: Type -> Bool
-isSizeableType (SetT _) = True
+isSizeableType (SetT _)   = True
 isSizeableType (ArrayT _) = True
-isSizeableType StringT = True
-isSizeableType _ = False
+isSizeableType StringT    = True
+isSizeableType _          = False
 
 booleanSingleton :: [Type]
 booleanSingleton = [TrileanT]

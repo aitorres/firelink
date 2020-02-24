@@ -1,15 +1,17 @@
 module FireLink.FrontEnd.FrontEndCompiler (frontEnd) where
 
-import           Control.Monad.RWS          (runRWST)
+import           Control.Monad.RWS           (runRWST)
+import qualified Data.Map                    as Map
 import           FireLink.FrontEnd.Errors
-import           FireLink.FrontEnd.Grammar  (Program (..))
-import           FireLink.FrontEnd.Lexer    (scanTokens)
-import           FireLink.FrontEnd.Preparser   (preparse)
-import           FireLink.FrontEnd.Parser   (parse)
-import           FireLink.FrontEnd.SymTable (SymTable (..), DictionaryEntry (..), initialState, preparsedState)
-import           FireLink.FrontEnd.Tokens   (Token (..))
-import qualified Data.Map                           as Map
-import           Text.Printf                        (printf)
+import           FireLink.FrontEnd.Grammar   (Program (..))
+import           FireLink.FrontEnd.Lexer     (scanTokens)
+import           FireLink.FrontEnd.Parser    (parse)
+import           FireLink.FrontEnd.Preparser (preparse)
+import           FireLink.FrontEnd.SymTable  (DictionaryEntry (..),
+                                              SymTable (..), initialState,
+                                              preparsedState)
+import           FireLink.FrontEnd.Tokens    (Token (..))
+import           Text.Printf                 (printf)
 
 type CompilerResult = Either (CompilerError, [Token]) (Program, SymTable, [Token])
 

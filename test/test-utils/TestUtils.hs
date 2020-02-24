@@ -1,12 +1,12 @@
 module TestUtils where
 
-import qualified Control.Monad.RWS          as RWS
+import qualified Control.Monad.RWS           as RWS
 import           FireLink.FrontEnd.Errors
-import qualified FireLink.FrontEnd.Grammar  as G
-import qualified FireLink.FrontEnd.Lexer    as L
-import           FireLink.FrontEnd.Parser (parse)
+import qualified FireLink.FrontEnd.Grammar   as G
+import qualified FireLink.FrontEnd.Lexer     as L
+import           FireLink.FrontEnd.Parser    (parse)
 import           FireLink.FrontEnd.Preparser (preparse)
-import qualified FireLink.FrontEnd.SymTable as ST
+import qualified FireLink.FrontEnd.SymTable  as ST
 import           FireLink.Utils
 import           Test.Hspec
 

@@ -65,15 +65,15 @@ data Extra
 
 isWidthExtra :: Extra -> Bool
 isWidthExtra Width{} = True
-isWidthExtra _ = False
+isWidthExtra _       = False
 
 isOffsetExtra :: Extra -> Bool
 isOffsetExtra Offset{} = True
-isOffsetExtra _ = False
+isOffsetExtra _        = False
 
 isUnionAttrId :: Extra -> Bool
 isUnionAttrId UnionAttrId{} = True
-isUnionAttrId _ = False
+isUnionAttrId _             = False
 
 isFieldsExtra :: Extra -> Bool
 isFieldsExtra (Fields _ _) = True
@@ -111,13 +111,13 @@ findFieldsExtra (Recursive _ e)     = findFieldsExtra e
 findFieldsExtra _                   = Nothing
 
 isExtraAType :: Extra -> Bool
-isExtraAType Recursive{}   = True
-isExtraAType Compound{}    = True
-isExtraAType CompoundRec{} = True
+isExtraAType Recursive{}       = True
+isExtraAType Compound{}        = True
+isExtraAType CompoundRec{}     = True
 isExtraAType (Fields Record _) = True
-isExtraAType (Fields Union _) = True
-isExtraAType Simple{}      = True
-isExtraAType _             = False
+isExtraAType (Fields Union _)  = True
+isExtraAType Simple{}          = True
+isExtraAType _                 = False
 
 extractTypeFromExtra :: [Extra] -> Extra
 extractTypeFromExtra = head . filter isExtraAType
