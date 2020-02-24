@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 3db64346e13b74013e90a80955489034e621f18bfe847f287dbd7e6bc4db67a8
+-- hash: 989fd57e3a28080415f65cb9d559e0f7ea188d5e1f234f5d8178921b98a3ab28
 
 name:           firelink
 version:        0.1.0.0
@@ -36,6 +36,7 @@ library
       FireLink.FrontEnd.Grammar
       FireLink.FrontEnd.Lexer
       FireLink.FrontEnd.Parser
+      FireLink.FrontEnd.Preparser
       FireLink.FrontEnd.SymTable
       FireLink.FrontEnd.Tokens
       FireLink.FrontEnd.TypeChecking

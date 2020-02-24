@@ -366,6 +366,9 @@ initialState = SymTable (Map.fromList l) [1, 0] 1 [] [] [] Nothing 0 0 [] []
             , (void, [DictionaryEntry void Type 0 Nothing []])
             ]
 
+preparsedState :: SymTable -> SymTable
+preparsedState SymTable { stDict=predict } = initialState { stDict=predict }
+
 tokensToEntryName :: T.Token -> String
 tokensToEntryName tk@T.Token {T.aToken=at, T.cleanedString=s} = case at of
     T.TkBigInt -> humanity
