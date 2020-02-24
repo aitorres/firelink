@@ -54,11 +54,11 @@ isValidLvalue :: Expr -> Bool
 isValidLvalue Expr {expAst=e} = isValidLvalue' e
 
 isValidLvalue' :: BaseExpr -> Bool
-isValidLvalue' Access{} = True
-isValidLvalue' MemAccess{} = True
+isValidLvalue' Access{}      = True
+isValidLvalue' MemAccess{}   = True
 isValidLvalue' IndexAccess{} = True
-isValidLvalue' IdExpr{} = True
-isValidLvalue' _ = False
+isValidLvalue' IdExpr{}      = True
+isValidLvalue' _             = False
 
 arithmeticOp1 :: [Op1]
 arithmeticOp1 = [Negate]

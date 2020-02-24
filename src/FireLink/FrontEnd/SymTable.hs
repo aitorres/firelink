@@ -65,11 +65,15 @@ data Extra
 
 isWidthExtra :: Extra -> Bool
 isWidthExtra Width{} = True
-isWidthExtra _ = False
+isWidthExtra _       = False
+
+isOffsetExtra :: Extra -> Bool
+isOffsetExtra Offset{} = True
+isOffsetExtra _        = False
 
 isUnionAttrId :: Extra -> Bool
 isUnionAttrId UnionAttrId{} = True
-isUnionAttrId _ = False
+isUnionAttrId _             = False
 
 isFieldsExtra :: Extra -> Bool
 isFieldsExtra (Fields _ _) = True
@@ -84,7 +88,6 @@ findArgPosition extras = let filtered = filter isArgPosition extras in
     if null filtered then error "findArgPosition didn't found an ArgPosition"
     else head filtered
 
-
 findWidth :: DictionaryEntry -> Extra
 findWidth entry = f $ extra entry
     where
@@ -93,6 +96,14 @@ findWidth entry = f $ extra entry
             if null widthExtras then error $ "Width extra not found for entry " ++ name entry
             else head widthExtras
 
+findOffset :: DictionaryEntry -> Extra
+findOffset entry = f $ extra entry
+    where
+        f :: [Extra] -> Extra
+        f extras = let offsetExtras = filter isOffsetExtra extras in
+            if null offsetExtras then error $ "Offset extra not found for entry " ++ name entry
+            else head offsetExtras
+
 findFieldsExtra :: Extra -> Maybe Extra
 findFieldsExtra a@Fields{}          = Just a
 findFieldsExtra (CompoundRec _ _ e) = findFieldsExtra e
@@ -100,13 +111,13 @@ findFieldsExtra (Recursive _ e)     = findFieldsExtra e
 findFieldsExtra _                   = Nothing
 
 isExtraAType :: Extra -> Bool
-isExtraAType Recursive{}   = True
-isExtraAType Compound{}    = True
-isExtraAType CompoundRec{} = True
+isExtraAType Recursive{}       = True
+isExtraAType Compound{}        = True
+isExtraAType CompoundRec{}     = True
 isExtraAType (Fields Record _) = True
-isExtraAType (Fields Union _) = True
-isExtraAType Simple{}      = True
-isExtraAType _             = False
+isExtraAType (Fields Union _)  = True
+isExtraAType Simple{}          = True
+isExtraAType _                 = False
 
 extractTypeFromExtra :: [Extra] -> Extra
 extractTypeFromExtra = head . filter isExtraAType
@@ -365,6 +376,9 @@ initialState = SymTable (Map.fromList l) [1, 0] 1 [] [] [] Nothing 0 0 [] []
             , (arrow, [DictionaryEntry arrow Constructor 0 Nothing []])
             , (void, [DictionaryEntry void Type 0 Nothing []])
             ]
+
+preparsedState :: SymTable -> SymTable
+preparsedState SymTable { stDict=predict } = initialState { stDict=predict }
 
 tokensToEntryName :: T.Token -> String
 tokensToEntryName tk@T.Token {T.aToken=at, T.cleanedString=s} = case at of
