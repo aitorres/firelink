@@ -86,4 +86,4 @@ spec = describe "ProgramStructure" $ do
         \   go back \
         \ you died \
 
-        \ farewell ashen one" (\(Program (CodeBlock [InstReturn])) -> True)
+        \ farewell ashen one" (\(Program (CodeBlock [InstAsig _ Expr{expAst=(IntLit 0)}, InstReturn])) -> True)

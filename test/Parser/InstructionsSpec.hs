@@ -38,6 +38,7 @@ spec = describe "Instructions" $ do
         \ you died \
 
         \ farewell ashen one" (\(Program (CodeBlock [
+            InstAsig _ Expr{expAst=(IntLit 0)},
             InstPrint Expr{expAst=(StringLit "hello world")},
             InstRead Expr{expAst=(IdExpr (Id Token {cleanedString="patata"} _))}])) -> True)
 
