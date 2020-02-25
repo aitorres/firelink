@@ -306,11 +306,7 @@ METHOD :: { () }
                                                                           RWS.put st{ST.stScopeStack=[1, 0]} }
 
 FUNC :: { () }
-  : FUNCPREFIX CODEBLOCK functionEnd                                    {% do
-                                                                            ST.popVisitedMethod
-                                                                            case $1 of
-                                                                              Nothing -> return ()
-                                                                              Just (s, i) -> updateCodeBlockOfFun s i $2 }
+  : FUNCPREFIX CODEBLOCK functionEnd                                    {% ST.popVisitedMethod }
 
 FUNCPREFIX :: { Maybe (ST.Scope, G.Id) }
   : FUNCNAME METHODPARS functionType TYPE                               {% do
@@ -326,11 +322,7 @@ FUNCNAME :: { G.Id }
 FUNCNAME : functionBegin ID                                             {% ST.enterScope >> ST.pushOffset 0 >> return $2 }
 
 PROC :: { () }
-  : PROCPREFIX CODEBLOCK procedureEnd                                   {% do
-                                                                            ST.popVisitedMethod
-                                                                            case $1 of
-                                                                              Nothing -> return ()
-                                                                              Just (s, i) -> updateCodeBlockOfFun s i $2 }
+  : PROCPREFIX CODEBLOCK procedureEnd                                   {% ST.popVisitedMethod }
 
 PROCPREFIX :: { Maybe (ST.Scope, G.Id) }
   : PROCNAME PROCPARS                                                   {% do
@@ -741,13 +733,6 @@ addFunction d@(_, i@(G.Id tk@(T.Token {T.cleanedString=idName}) _), _) = do
     Just entry -> do
       logSemError ("Function " ++ idName ++ " was already declared") tk
       return Nothing
-
-updateCodeBlockOfFun :: ST.Scope -> G.Id -> G.CodeBlock -> ST.ParserMonad ()
-updateCodeBlockOfFun currScope (G.Id tk@(T.Token {T.cleanedString=idName}) _) code = do
-  let f x = (if and [ST.scope x == currScope, ST.name x == idName, ST.category x `elem` [ST.Function, ST.Procedure]]
-            then let e = ST.extra x in x{ST.extra = (ST.CodeBlock code) : e}
-            else x)
-  ST.updateEntry (\ds -> Just $ map f ds) idName
 
 logSemError :: String -> T.Token -> ST.ParserMonad ()
 logSemError msg tk = RWS.tell [Error msg (T.position tk)]

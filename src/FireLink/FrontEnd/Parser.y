@@ -319,9 +319,9 @@ FUNC :: { () }
                                                                             ST.popVisitedMethod
                                                                             case $1 of
                                                                               Nothing -> return ()
-                                                                              Just (s, i) -> updateCodeBlockOfFun s i $2 }
+                                                                              Just i -> updateCodeBlockOfFun i $2 }
 
-FUNCPREFIX :: { Maybe (ST.Scope, G.Id) }
+FUNCPREFIX :: { Maybe G.Id }
   : FUNCNAME METHODPARS functionType TYPE                               {% do
                                                                           currScope <- ST.getCurrentScope
                                                                           ST.exitScope
@@ -329,7 +329,7 @@ FUNCPREFIX :: { Maybe (ST.Scope, G.Id) }
                                                                           ST.addVisitedMethod $ G.extractIdName $1
                                                                           ST.pushScope currScope
 
-                                                                          return $ Just (currScope, $1)  }
+                                                                          return $ Just $1 }
 
 FUNCNAME :: { G.Id }
 FUNCNAME : functionBegin ID                                             {% do
@@ -341,9 +341,9 @@ PROC :: { () }
                                                                             ST.popVisitedMethod
                                                                             case $1 of
                                                                               Nothing -> return ()
-                                                                              Just (s, i) -> updateCodeBlockOfFun s i $2 }
+                                                                              Just i -> updateCodeBlockOfFun i $2 }
 
-PROCPREFIX :: { Maybe (ST.Scope, G.Id) }
+PROCPREFIX :: { Maybe G.Id }
   : PROCNAME PROCPARS                                                   {% do
                                                                             currScope <- ST.getCurrentScope
                                                                             ST.exitScope
@@ -352,7 +352,7 @@ PROCPREFIX :: { Maybe (ST.Scope, G.Id) }
 
                                                                             ST.addVisitedMethod $ G.extractIdName $1
                                                                             ST.pushScope currScope
-                                                                            return $ Just (currScope, $1) }
+                                                                            return $ Just $1 }
 
 PROCNAME :: { G.Id }
 PROCNAME : procedureBegin ID                                            {% do
@@ -1048,9 +1048,9 @@ addFunction d@(_, i@(G.Id tk@(T.Token {T.cleanedString=idName}) _), _) = do
       logSemError ("Function " ++ idName ++ " was already declared") tk
       return Nothing
 
-updateCodeBlockOfFun :: ST.Scope -> G.Id -> G.CodeBlock -> ST.ParserMonad ()
-updateCodeBlockOfFun currScope (G.Id tk@(T.Token {T.cleanedString=idName}) _) code = do
-  let f x = (if and [ST.scope x == currScope, ST.name x == idName, ST.category x `elem` [ST.Function, ST.Procedure]]
+updateCodeBlockOfFun ::  G.Id -> G.CodeBlock -> ST.ParserMonad ()
+updateCodeBlockOfFun (G.Id tk@(T.Token {T.cleanedString=idName}) _) code = do
+  let f x = (if and [ST.scope x == 1, ST.name x == idName, ST.category x `elem` [ST.Function, ST.Procedure]]
             then let e = ST.extra x in x{ST.extra = (ST.CodeBlock code) : e}
             else x)
   ST.updateEntry (\ds -> Just $ map f ds) idName
