@@ -18,7 +18,7 @@ import           TACType
 
 
 instance GenerateCode CodeBlock where
-    genCode (CodeBlock instrs) = mapM_ genCode instrs
+    genCode (CodeBlock instrs maxOffset) = mapM_ genCode instrs
 
 instance GenerateCode Program where
     genCode (Program codeblock) = genCode codeblock

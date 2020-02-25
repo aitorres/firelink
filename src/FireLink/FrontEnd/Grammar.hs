@@ -175,8 +175,8 @@ data SwitchCase
   | DefaultCase CodeBlock
   deriving Show
 
-newtype CodeBlock
-  = CodeBlock Instructions
+data CodeBlock
+  = CodeBlock Instructions Int
   deriving Show
 
 data RecoverableError
