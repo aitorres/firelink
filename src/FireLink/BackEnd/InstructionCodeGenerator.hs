@@ -1,6 +1,6 @@
 module FireLink.BackEnd.InstructionCodeGenerator where
 
-import           Control.Monad.RWS                  (lift, tell, unless, when)
+import           Control.Monad.RWS                  (liftIO, tell, unless, when)
 import           FireLink.BackEnd.CodeGenerator
 import           FireLink.BackEnd.ExprCodeGenerator (genBooleanComparation,
                                                      genCode',
@@ -13,15 +13,23 @@ import           FireLink.FrontEnd.Grammar          (BaseExpr (..),
                                                      Program (..),
                                                      SwitchCase (..))
 import qualified FireLink.FrontEnd.Grammar          as G (Op2 (..))
+import           FireLink.FrontEnd.SymTable         (wordSize)
 import           FireLink.FrontEnd.TypeChecking     (Type (..))
 import           TACType
 
 
-instance GenerateCode CodeBlock where
-    genCode (CodeBlock instrs) = mapM_ genCode instrs
-
 instance GenerateCode Program where
-    genCode (Program codeblock) = genCode codeblock
+    genCode (Program codeblock@(CodeBlock _ maxOffset)) = do
+        setTempOffset alignedOffset
+        genCode codeblock
+        where
+            alignedOffset =
+                if maxOffset `mod` wordSize == 0
+                then maxOffset
+                else maxOffset +  wordSize - (maxOffset `mod` wordSize)
+
+instance GenerateCode CodeBlock where
+    genCode (CodeBlock instrs _) = mapM_ genCode instrs
 
 instance GenerateCode Instruction where
     genCode instruction = do

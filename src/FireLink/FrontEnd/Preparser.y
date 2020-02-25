@@ -182,8 +182,8 @@ PROGRAMEND :: { Maybe G.RecoverableError }
   | error                                                               { Just G.MissingProgramEnd }
 
 NON_OPENER_CODEBLOCK :: { G.CodeBlock }
-  : instructionsBegin DECLARS INSTRL NON_OPENER_INSTEND                 { G.CodeBlock $ $2 ++ reverse $3 }
-  | instructionsBegin INSTRL NON_OPENER_INSTEND                         { G.CodeBlock $ reverse $2 }
+  : instructionsBegin DECLARS INSTRL NON_OPENER_INSTEND                 { G.CodeBlock ($2 ++ reverse $3) 0 }
+  | instructionsBegin INSTRL NON_OPENER_INSTEND                         { G.CodeBlock (reverse $2) 0 }
 
 NON_OPENER_INSTEND :: { Maybe G.RecoverableError }
   : instructionsEnd                                                     { Nothing }
@@ -443,8 +443,8 @@ ID :: { G.Id }
                                                                             return $ G.Id $1 currScope }
 
 CODEBLOCK :: { G.CodeBlock }
-  : INSTBEGIN DECLARS INSTRL INSTEND                                    { G.CodeBlock $ $2 ++ reverse $3 }
-  | INSTBEGIN INSTRL INSTEND                                            { G.CodeBlock $ reverse $2 }
+  : INSTBEGIN DECLARS INSTRL INSTEND                                    { G.CodeBlock ($2 ++ reverse $3) 0 }
+  | INSTBEGIN INSTRL INSTEND                                            { G.CodeBlock (reverse $2) 0 }
 
 INSTBEGIN :: { T.Token }
 INSTBEGIN : instructionsBegin                                           {% do

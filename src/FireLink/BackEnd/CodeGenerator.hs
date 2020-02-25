@@ -2,23 +2,30 @@ module FireLink.BackEnd.CodeGenerator where
 
 import           Control.Monad.RWS              (RWST (..), get, put, tell)
 import           FireLink.FrontEnd.SymTable     (Dictionary (..),
-                                                 DictionaryEntry (..))
+                                                 DictionaryEntry (..),
+                                                 getOffset)
 import           FireLink.FrontEnd.TypeChecking
 import           TACType
 
 data CodeGenState = CodeGenState
     { cgsNextLabel :: !Int
     , cgsNextTemp :: !Int
+    , cgsCurTempOffset :: !Int
     }
 
 initialState :: CodeGenState
-initialState = CodeGenState {cgsNextTemp = 0, cgsNextLabel = 0}
+initialState = CodeGenState {cgsNextTemp = 0, cgsNextLabel = 0, cgsCurTempOffset = 0}
 
-data TACSymEntry = TACTemporal String | TACVariable DictionaryEntry
+type RelativeOffset = Int
+type Offset = Int
+
+data TACSymEntry
+    = TACTemporal String Offset
+    | TACVariable DictionaryEntry RelativeOffset
 
 instance SymEntryCompatible TACSymEntry where
-    getSymID (TACTemporal s)     = s
-    getSymID (TACVariable entry) = name entry
+    getSymID (TACTemporal s o)     = "(" ++ s ++ ")base[" ++ show o ++ "]"
+    getSymID (TACVariable entry rOffset) = "base[" ++ show (getOffset entry + rOffset) ++ "]"
 
 instance Show TACSymEntry where
     show = getSymID
@@ -30,9 +37,12 @@ type CodeGenMonad = RWST Dictionary [TAC] CodeGenState IO
 
 newtemp :: CodeGenMonad TACSymEntry
 newtemp = do
-    state@CodeGenState {cgsNextTemp = temp} <- get
-    put $ state{cgsNextTemp = temp + 1}
-    return $ TACTemporal $ "_t" ++ show temp
+    state@CodeGenState {cgsNextTemp = temp, cgsCurTempOffset = offset } <- get
+    put $ state{cgsNextTemp = temp + 1, cgsCurTempOffset = offset + 4}
+    return $ TACTemporal ("_t" ++ show temp) offset
+
+setTempOffset :: Int -> CodeGenMonad ()
+setTempOffset offset = get >>= \state -> put state { cgsCurTempOffset = offset }
 
 newLabel :: CodeGenMonad (Operand a b)
 newLabel = do
@@ -71,8 +81,6 @@ genIdAssignment lValue rValue =
         , tacRvalue1 = Just rValue
         , tacRvalue2 = Nothing
         }]
-
-
 
 class GenerateCode a where
     genCode :: a -> CodeGenMonad ()

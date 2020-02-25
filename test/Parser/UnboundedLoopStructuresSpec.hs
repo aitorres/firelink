@@ -27,5 +27,5 @@ spec = describe "Unbounded looping" $ do
             \ you died \
         \ covenant left")  (\(Program (
             CodeBlock [
-                InstWhile Expr{expAst=FalseLit} (CodeBlock _)
-                ])) -> True)
+                InstWhile Expr{expAst=FalseLit} (CodeBlock _ _)
+                ] _)) -> True)
