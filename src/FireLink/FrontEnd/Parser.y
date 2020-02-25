@@ -185,12 +185,14 @@ PROGRAMEND :: { Maybe G.RecoverableError }
 
 NON_OPENER_CODEBLOCK :: { G.CodeBlock }
   : instructionsBegin DECLARS INSTRL NON_OPENER_INSTEND                 {% do
-                                                                             let (insts, o) = $2
+                                                                             let (asigInsts, declarO) = $2
                                                                              checkRecoverableError $1 $4
-                                                                             return $ G.CodeBlock (insts ++ reverse $3) o }
+                                                                             let (blockInsts, blockO) = $3
+                                                                             return $ G.CodeBlock (asigInsts ++ reverse blockInsts) (blockO + declarO) }
   | instructionsBegin INSTRL NON_OPENER_INSTEND                         {% do
                                                                              checkRecoverableError $1 $3
-                                                                             return $ G.CodeBlock (reverse $2) 0 }
+                                                                             let (blockInsts, blockO) = $2
+                                                                             return $ G.CodeBlock (reverse blockInsts) blockO }
 
 NON_OPENER_INSTEND :: { Maybe G.RecoverableError }
   : instructionsEnd                                                     { Nothing }
@@ -454,12 +456,14 @@ ID :: { G.Id }
 
 CODEBLOCK :: { G.CodeBlock }
   : INSTBEGIN DECLARS INSTRL INSTEND                                    {% do
-                                                                             let (insts, o) = $2
+                                                                             let (asigInsts, declarO) = $2
                                                                              checkRecoverableError $1 $4
-                                                                             return $ G.CodeBlock (insts ++ reverse $3) o }
+                                                                             let (blockInsts, blockO) = $3
+                                                                             return $ G.CodeBlock (asigInsts ++ reverse blockInsts) (blockO + declarO) }
   | INSTBEGIN INSTRL INSTEND                                            {% do
                                                                              checkRecoverableError $1 $3
-                                                                             return $ G.CodeBlock (reverse $2) 0 }
+                                                                             let (blockInsts, blockO) = $2
+                                                                             return $ G.CodeBlock (reverse blockInsts) blockO }
 
 INSTBEGIN :: { T.Token }
 INSTBEGIN : instructionsBegin                                           {% do
@@ -528,9 +532,10 @@ DECLAR :: { (NameDeclaration, Maybe (T.Token, G.Expr)) }
   | var ID ofType TYPE asig EXPR                                        { ((ST.Variable, $2, [$4]), Just ($5, $6))  }
   | const ID ofType TYPE asig EXPR                                      { ((ST.Constant, $2, [$4]), Just ($5, $6)) }
 
-INSTRL :: { G.Instructions }
-  : INSTRL seq INSTR                                                    { $3 : $1 }
-  | INSTR                                                               { [$1] }
+INSTRL :: { (G.Instructions, Int) }
+  : INSTRL seq INSTR                                                    { let (prevInstrs, prevOffset) = $1 in
+                                                                          ($3 : prevInstrs, max prevOffset $ G.getInstrOffset $3) }
+  | INSTR                                                               { ([$1], G.getInstrOffset $1) }
 
 INSTR :: { G.Instruction }
   : EXPR asig EXPR                                                      {% do
