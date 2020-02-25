@@ -169,17 +169,17 @@ data Instruction
 getInstrOffset :: Instruction -> Int
 getInstrOffset i = case i of
   InstForEach _ _ (CodeBlock _ o) -> o
-  InstFor _ _ _ (CodeBlock _ o) -> o
-  InstWhile _ (CodeBlock _ o) -> o
-  InstIf cases -> foldl getOffsetFromIfCase 0 cases
-  InstSwitch _ cases -> foldl getOffsetFromSwitchCase 0 cases
-  _ -> 0
+  InstFor _ _ _ (CodeBlock _ o)   -> o
+  InstWhile _ (CodeBlock _ o)     -> o
+  InstIf cases                    -> foldl getOffsetFromIfCase 0 cases
+  InstSwitch _ cases              -> foldl getOffsetFromSwitchCase 0 cases
+  _                               -> 0
   where
     getOffsetFromIfCase :: Int -> IfCase -> Int
     getOffsetFromIfCase c (GuardedCase _ (CodeBlock _ o)) = max c o
 
     getOffsetFromSwitchCase :: Int -> SwitchCase -> Int
-    getOffsetFromSwitchCase c (Case _ (CodeBlock _ o)) = max c o
+    getOffsetFromSwitchCase c (Case _ (CodeBlock _ o))      = max c o
     getOffsetFromSwitchCase c (DefaultCase (CodeBlock _ o)) = max c o
 
 data IfCase
