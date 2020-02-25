@@ -936,9 +936,10 @@ checkReturnType e tk = do
               if eType `T.canBeConvertedTo` fType
               then let [castedExpr] = addCastToExprs [(e, fType)] in
                 return (castedExpr)
-              else do
+              else if not (T.TypeError `elem` [eType, fType]) then do
                 logSemError ("Return expression type " ++ show eType ++ " incompatible with function return type " ++ show fType) tk
                 return e
+              else return e
             _ -> do
               logSemError ("Returning with an expression outside of a function not allowed") tk
               return e
