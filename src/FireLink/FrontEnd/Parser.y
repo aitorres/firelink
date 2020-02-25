@@ -552,10 +552,10 @@ INSTR :: { G.Instruction }
   | cast ID PROCARGS                                                    {% do
                                                                           checkIdAvailability $2
                                                                           (_, params) <- methodsCheck $2 $3 $1
-                                                                          return $ G.InstCallProc $2 params }
+                                                                          return $ G.InstCall $2 params }
   | FUNCALL                                                             {% let (tk, i, params) = $1 in do
-                                                                          buildAndCheckExpr tk $ G.EvalFunc i params
-                                                                          return $ G.InstCallFunc i params }
+                                                                          (_, params) <- methodsCheck i params tk
+                                                                          return $ G.InstCall i params }
   | return                                                              {% checkReturnScope $1 }
   | returnWith EXPR                                                     {% do
                                                                           retExpr <- checkReturnType $2 $1

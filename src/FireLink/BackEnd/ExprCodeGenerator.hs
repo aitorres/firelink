@@ -9,17 +9,13 @@ import           FireLink.FrontEnd.Grammar      (BaseExpr (..), Expr (..),
                                                  booleanOp2, comparableOp2)
 import           FireLink.FrontEnd.SymTable     (Dictionary,
                                                  DictionaryEntry (..),
-                                                 findChain)
+                                                 findChain, findSymEntry)
 import           FireLink.FrontEnd.Tokens       (Token (..))
 import           FireLink.FrontEnd.TypeChecking (Type (..))
 import qualified TACType                        as TAC
 
 instance GenerateCode Expr where
     genCode = void . genCode'
-
-findSymEntry :: Int -> String -> Dictionary -> DictionaryEntry
-findSymEntry idScope idName = head . filter (\s -> scope s == idScope) . findChain idName
-
 
 genCode' :: Expr -> CodeGenMonad OperandType
 genCode' Expr {expAst=ast, expType=t} = genCodeForExpr t ast
@@ -30,9 +26,7 @@ genCodeForExpr _ (IdExpr (Id Token {cleanedString=idName} idScope)) = do
     return $ TAC.Id $ TACVariable symEntry 0
 
 genCodeForExpr _ (EvalFunc (Id Token {cleanedString=funName} funScope) params) = do
-    operands <- mapM genCode' params
-    let paramsLength = length params
-    tell $ map createParam operands
+    paramsLength <- genParams params
     ret <- TAC.Id <$> newtemp
     funEntry <- findSymEntry funScope funName <$> ask
     tell [TAC.ThreeAddressCode
@@ -42,14 +36,6 @@ genCodeForExpr _ (EvalFunc (Id Token {cleanedString=funName} funScope) params) =
             , TAC.tacRvalue2 = Just $ TAC.Constant (show paramsLength, SmallIntT)
             }]
     return ret
-    where
-        createParam :: OperandType -> TAC
-        createParam o = TAC.ThreeAddressCode
-            { TAC.tacOperand = TAC.Param
-            , TAC.tacLvalue = Nothing
-            , TAC.tacRvalue1 = Just o
-            , TAC.tacRvalue2 = Nothing
-            }
 
 genCodeForExpr TrileanT exp = do
     trueLabel <- newLabel
@@ -102,6 +88,21 @@ genCodeForExpr _ (Op1 Negate expr) = do
     return lvalue
 
 genCodeForExpr _ e = error $ "This expression hasn't been implemented " ++ show e
+
+genParams :: [Expr] -> CodeGenMonad Int
+genParams params = do
+    operands <- mapM genCode' params
+    tell $ map createParam operands
+    return $ length params
+    where
+        createParam :: OperandType -> TAC
+        createParam o = TAC.ThreeAddressCode
+            { TAC.tacOperand = TAC.Param
+            , TAC.tacLvalue = Nothing
+            , TAC.tacRvalue1 = Just o
+            , TAC.tacRvalue2 = Nothing
+            }
+
 
 genOp2Code :: TAC.Operation -> OperandType -> OperandType -> CodeGenMonad OperandType
 genOp2Code operation lId rId = do

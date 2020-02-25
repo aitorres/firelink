@@ -498,9 +498,9 @@ INSTR :: { G.Instruction }
   : EXPR asig EXPR                                                      { G.InstAsig $1 $3 }
   | malloc EXPR                                                         { G.InstMalloc $2 }
   | free EXPR                                                           { G.InstFreeMem $2 }
-  | cast ID PROCARGS                                                    { G.InstCallProc $2 $3 }
+  | cast ID PROCARGS                                                    { G.InstCall $2 $3 }
   | FUNCALL                                                             { let (tk, i, params) = $1 in
-                                                                          G.InstCallFunc i params }
+                                                                          G.InstCall i params }
   | return                                                              { G.InstReturn }
   | returnWith EXPR                                                     { G.InstReturnWith $2 }
   | print EXPR                                                          { G.InstPrint $2 }

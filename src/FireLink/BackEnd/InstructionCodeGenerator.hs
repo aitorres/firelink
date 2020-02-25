@@ -1,20 +1,21 @@
 module FireLink.BackEnd.InstructionCodeGenerator where
 
-import           Control.Monad.RWS                  (liftIO, tell, unless, when)
+import           Control.Monad.RWS                  (liftIO, tell, unless, when, ask)
 import           FireLink.BackEnd.CodeGenerator
 import           FireLink.BackEnd.ExprCodeGenerator (genBooleanComparation,
                                                      genCode',
                                                      genCodeForBooleanExpr,
-                                                     genCodeForExpr, genOp2Code)
+                                                     genCodeForExpr, genOp2Code, genParams)
 import           FireLink.FrontEnd.Grammar          (BaseExpr (..),
                                                      CodeBlock (..), Expr (..),
-                                                     Id (..), IfCase (..),
+                                                     IfCase (..),
                                                      Instruction (..),
                                                      Program (..),
                                                      SwitchCase (..))
-import qualified FireLink.FrontEnd.Grammar          as G (Op2 (..))
-import           FireLink.FrontEnd.SymTable         (wordSize)
+import qualified FireLink.FrontEnd.Grammar          as G (Op2 (..), Id (..))
+import           FireLink.FrontEnd.SymTable         (wordSize, DictionaryEntry (..), findSymEntry)
 import           FireLink.FrontEnd.TypeChecking     (Type (..))
+import FireLink.FrontEnd.Tokens (Token (..))
 import           TACType
 
 
@@ -40,6 +41,16 @@ genCodeForInstruction :: Instruction -> OperandType -> CodeGenMonad ()
 
 -- Utility instructions
 genCodeForInstruction (InstPrint expr) _ = genCode expr
+
+genCodeForInstruction (InstCall (G.Id Token {cleanedString=funName} funScope) params) _ = do
+    paramsLength <- genParams params
+    funEntry <- findSymEntry funScope funName <$> ask
+    tell [ThreeAddressCode
+            { tacOperand = Call
+            , tacLvalue = Nothing
+            , tacRvalue1 = Just $ Label $ name funEntry
+            , tacRvalue2 = Just $ Constant (show paramsLength, SmallIntT)
+            }]
 
 -- Assignments, currently only supported for id assignments
 genCodeForInstruction (InstAsig lvalue@Expr {expAst = IdExpr id} rvalue) next =

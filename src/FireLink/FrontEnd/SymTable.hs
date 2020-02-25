@@ -164,6 +164,10 @@ type ParserMonad = RWS.RWST () [Error] SymTable IO
 findAllInScope :: Scope -> Dictionary -> DictionaryEntries
 findAllInScope s dict = filter (\entry -> scope entry == s) $ concatMap snd $ Map.toList dict
 
+findSymEntry :: Int -> String -> Dictionary -> DictionaryEntry
+findSymEntry idScope idName = head . filter (\s -> scope s == idScope) . findChain idName
+
+
 sortByArgPosition :: DictionaryEntries -> DictionaryEntries
 sortByArgPosition = sortBy sortFun
     where
