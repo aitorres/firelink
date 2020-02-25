@@ -2,6 +2,7 @@ module FireLink.BackEnd.ExprCodeGenerator where
 
 import           Control.Monad                  (void)
 import           Control.Monad.RWS
+import Data.Char (ord)
 import           FireLink.BackEnd.CodeGenerator
 import           FireLink.FrontEnd.Grammar      (BaseExpr (..), Expr (..),
                                                  Id (..), Op1 (..), Op2 (..),
@@ -53,6 +54,7 @@ genCodeForExpr _ (Op2 op lexpr rexpr) = do
 
 genCodeForExpr t (IntLit n) = return $ TAC.Constant (show n, t)
 genCodeForExpr t (FloatLit n) = return $ TAC.Constant (show n, t)
+genCodeForExpr t (CharLit c) = return $ TAC.Constant (show $ ord c, t)
 
 genCodeForExpr t (Caster expr newType) = do
     tempOp <- genCode' expr
