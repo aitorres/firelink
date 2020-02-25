@@ -157,14 +157,30 @@ data Instruction
   | InstReturnWith Expr
   | InstPrint Expr
   | InstRead Expr
-  | InstIf IfCases
   | InstForEach Id Expr CodeBlock
   | InstFor Id Expr Expr CodeBlock
+  | InstIf IfCases
   | InstSwitch Expr SwitchCases
   | InstWhile Expr CodeBlock
   | InstMalloc Expr
   | InstFreeMem Expr
   deriving Show
+
+getInstrOffset :: Instruction -> Int
+getInstrOffset i = case i of
+  InstForEach _ _ (CodeBlock _ o) -> o
+  InstFor _ _ _ (CodeBlock _ o) -> o
+  InstWhile _ (CodeBlock _ o) -> o
+  InstIf cases -> foldl getOffsetFromIfCase 0 cases
+  InstSwitch _ cases -> foldl getOffsetFromSwitchCase 0 cases
+  _ -> 0
+  where
+    getOffsetFromIfCase :: Int -> IfCase -> Int
+    getOffsetFromIfCase c (GuardedCase _ (CodeBlock _ o)) = c + o
+
+    getOffsetFromSwitchCase :: Int -> SwitchCase -> Int
+    getOffsetFromSwitchCase c (Case _ (CodeBlock _ o)) = c + o
+    getOffsetFromSwitchCase c (DefaultCase (CodeBlock _ o)) = c + o
 
 data IfCase
   = GuardedCase Expr CodeBlock
