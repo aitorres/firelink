@@ -17,17 +17,39 @@ import qualified TACType                        as TAC
 instance GenerateCode Expr where
     genCode = void . genCode'
 
+findSymEntry :: Int -> String -> Dictionary -> DictionaryEntry
+findSymEntry idScope idName = head . filter (\s -> scope s == idScope) . findChain idName
+
+
 genCode' :: Expr -> CodeGenMonad OperandType
 genCode' Expr {expAst=ast, expType=t} = genCodeForExpr t ast
 
 genCodeForExpr :: Type -> BaseExpr -> CodeGenMonad OperandType
 genCodeForExpr _ (IdExpr (Id Token {cleanedString=idName} idScope)) = do
-    symEntry <- findSymEntry <$> ask
+    symEntry <- findSymEntry idScope idName <$> ask
     return $ TAC.Id $ TACVariable symEntry 0
-    where
-        findSymEntry :: Dictionary -> DictionaryEntry
-        findSymEntry = head . filter (\s -> scope s == idScope) . findChain idName
 
+genCodeForExpr _ (EvalFunc (Id Token {cleanedString=funName} funScope) params) = do
+    operands <- mapM genCode' params
+    let paramsLength = length params
+    tell $ map createParam operands
+    ret <- TAC.Id <$> newtemp
+    funEntry <- findSymEntry funScope funName <$> ask
+    tell [TAC.ThreeAddressCode
+            { TAC.tacOperand = TAC.Call
+            , TAC.tacLvalue = Just ret
+            , TAC.tacRvalue1 = Just $ TAC.Label $ name funEntry
+            , TAC.tacRvalue2 = Just $ TAC.Constant (show paramsLength, SmallIntT)
+            }]
+    return ret
+    where
+        createParam :: OperandType -> TAC
+        createParam o = TAC.ThreeAddressCode
+            { TAC.tacOperand = TAC.Param
+            , TAC.tacLvalue = Nothing
+            , TAC.tacRvalue1 = Just o
+            , TAC.tacRvalue2 = Nothing
+            }
 
 genCodeForExpr TrileanT exp = do
     trueLabel <- newLabel
