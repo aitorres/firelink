@@ -188,7 +188,8 @@ NON_OPENER_CODEBLOCK :: { G.CodeBlock }
                                                                              let (asigInsts, declarO) = $2
                                                                              checkRecoverableError $1 $4
                                                                              let (blockInsts, blockO) = $3
-                                                                             return $ G.CodeBlock (asigInsts ++ reverse blockInsts) (blockO + declarO) }
+                                                                             let o = if blockO /= 0 then blockO else declarO
+                                                                             return $ G.CodeBlock (asigInsts ++ reverse blockInsts) o }
   | instructionsBegin INSTRL NON_OPENER_INSTEND                         {% do
                                                                              checkRecoverableError $1 $3
                                                                              let (blockInsts, blockO) = $2
@@ -459,7 +460,8 @@ CODEBLOCK :: { G.CodeBlock }
                                                                              let (asigInsts, declarO) = $2
                                                                              checkRecoverableError $1 $4
                                                                              let (blockInsts, blockO) = $3
-                                                                             return $ G.CodeBlock (asigInsts ++ reverse blockInsts) (blockO + declarO) }
+                                                                             let o = if blockO /= 0 then blockO else declarO
+                                                                             return $ G.CodeBlock (asigInsts ++ reverse blockInsts) o }
   | INSTBEGIN INSTRL INSTEND                                            {% do
                                                                              checkRecoverableError $1 $3
                                                                              let (blockInsts, blockO) = $2
