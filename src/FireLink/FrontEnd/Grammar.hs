@@ -176,11 +176,11 @@ getInstrOffset i = case i of
   _ -> 0
   where
     getOffsetFromIfCase :: Int -> IfCase -> Int
-    getOffsetFromIfCase c (GuardedCase _ (CodeBlock _ o)) = c + o
+    getOffsetFromIfCase c (GuardedCase _ (CodeBlock _ o)) = max c o
 
     getOffsetFromSwitchCase :: Int -> SwitchCase -> Int
-    getOffsetFromSwitchCase c (Case _ (CodeBlock _ o)) = c + o
-    getOffsetFromSwitchCase c (DefaultCase (CodeBlock _ o)) = c + o
+    getOffsetFromSwitchCase c (Case _ (CodeBlock _ o)) = max c o
+    getOffsetFromSwitchCase c (DefaultCase (CodeBlock _ o)) = max c o
 
 data IfCase
   = GuardedCase Expr CodeBlock
