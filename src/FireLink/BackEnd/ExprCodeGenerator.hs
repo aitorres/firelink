@@ -54,8 +54,17 @@ genCodeForExpr _ (Op2 op lexpr rexpr) = do
 genCodeForExpr t (IntLit n) = return $ TAC.Constant (show n, t)
 genCodeForExpr t (FloatLit n) = return $ TAC.Constant (show n, t)
 
--- TODO: Do type casting correctly
-genCodeForExpr t (Caster expr _) = genCode' expr
+genCodeForExpr t (Caster expr newType) = do
+    tempOp <- genCode' expr
+    let oldType = expType expr
+    lvalue <- TAC.Id <$> newtemp
+    tell [TAC.ThreeAddressCode
+            { TAC.tacOperand = TAC.Cast (show oldType) (show newType)
+            , TAC.tacLvalue = Just lvalue
+            , TAC.tacRvalue1 = Just tempOp
+            , TAC.tacRvalue2 = Nothing
+            }]
+    return lvalue
 
 genCodeForExpr _ (Op1 Negate expr) = do
     rId <- genCode' expr
