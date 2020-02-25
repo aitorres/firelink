@@ -18,15 +18,15 @@ import           FireLink.FrontEnd.TypeChecking     (Type (..))
 import           TACType
 
 
-instance GenerateCode CodeBlock where
-    genCode (CodeBlock instrs maxOffset) = do
+instance GenerateCode Program where
+    genCode (Program codeblock@(CodeBlock _ maxOffset)) = do
         setTempOffset alignedOffset
-        mapM_ genCode instrs
+        genCode codeblock
         where
             alignedOffset = maxOffset +  wordSize - (maxOffset `mod` wordSize)
 
-instance GenerateCode Program where
-    genCode (Program codeblock) = genCode codeblock
+instance GenerateCode CodeBlock where
+    genCode (CodeBlock instrs _) = mapM_ genCode instrs
 
 instance GenerateCode Instruction where
     genCode instruction = do
