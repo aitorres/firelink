@@ -506,15 +506,14 @@ DECLARADD :: { (Maybe G.Instruction, Int) }
                                                                             let (declar, _) = $1
                                                                             addIdToSymTable declar
                                                                             let ((_, lvalueId, _), maybeRValue) = $1
+                                                                            let baseLvalue = G.IdExpr lvalueId
+                                                                            let (G.Id idToken _) = lvalueId
+                                                                            lvalue <- buildAndCheckExpr idToken baseLvalue
                                                                             mInstr <- case maybeRValue of
-                                                                              Nothing -> return Nothing
+                                                                              Nothing -> defaultAssignment lvalue >>= return
                                                                               Just (token, rvalue) -> do
-                                                                                let baseLvalue = G.IdExpr lvalueId
-                                                                                let (G.Id idToken _) = lvalueId
-                                                                                lvalue <- buildAndCheckExpr idToken baseLvalue
                                                                                 ST.SymTable {ST.stScopeStack = stack} <- RWS.get
-                                                                                assignment <- checkAssignment lvalue token rvalue True
-                                                                                return $ Just assignment
+                                                                                checkAssignment lvalue token rvalue True >>= return . Just
                                                                             offsetW <- do
                                                                               mEntry <- ST.dictLookup $ G.extractIdName lvalueId
                                                                               case mEntry of
@@ -1034,6 +1033,18 @@ checkIOTypes expr tk = do
   -- Avoid propagation
   else if t == T.TypeError then return ()
   else logSemError (show t ++ " is not an I/O valid type") tk
+
+defaultAssignment :: G.Expr -> ST.ParserMonad (Maybe G.Instruction)
+defaultAssignment lvalue = do
+  t <- getType lvalue
+  if t `elem` T.defaultableTypes then case t of
+    T.TrileanT -> return $ Just $ G.InstAsig lvalue $ lvalue { G.expAst = G.UndiscoveredLit }
+    T.BigIntT -> return $ Just $ G.InstAsig lvalue $ lvalue { G.expAst = G.IntLit 0 }
+    T.SmallIntT -> return $ Just $ G.InstAsig lvalue $ lvalue { G.expAst = G.IntLit 0 }
+    T.FloatT -> return $ Just $ G.InstAsig lvalue $ lvalue { G.expAst = G.FloatLit 0.0 }
+    T.CharT -> return $ Just $ G.InstAsig lvalue $ lvalue { G.expAst = G.CharLit '\0' }
+    _ -> return Nothing
+  else return Nothing
 
 checkAssignment :: G.Expr -> T.Token -> G.Expr -> Bool -> ST.ParserMonad G.Instruction
 checkAssignment lvalue token rvalue isInit = do
