@@ -203,8 +203,6 @@ Representa una cadena colección de cero, uno o varios caracteres, almacenados c
 
 Los literales de cadena de caracteres están encerrados entre el caracter `@` y sus elementos no están separados entre sí por ningún caracter.
 
-El valor por defecto de una cadena de caracteres `<n>-miracle` es la cadena consistente de n espacios (`@          @` para `n == 10`).
-
 ##### Operadores de las cadenas de caracteres
 
 Se cuenta con el siguiente operador:
@@ -226,8 +224,6 @@ Los literales de arreglo están encerrados entre el caracter de inicio `<$` y el
 
 Se puede acceder al valor en la posición `i` de un arreglo `a` con la sintaxis `a<$i$>`.
 
-El valor por defecto de un arreglo `<n>-chest of type <tipo>` es un arreglo cuyos valores están inicializados al valor por defecto del tipo dado.
-
 Además, se debe proveer el operador `>-<` que concatena dos arreglos. El tipo de dato que encierra cada arreglo debe ser el mismo, aunque no está sujeto a que ambos arreglos sean del mismo tamaño. No hay coerción de tipos con el tipo que encierra
 cada arreglo.
 
@@ -238,8 +234,6 @@ Finalmente, se debe proveer el operador unario `size` que retorna un `humanity` 
 Representa una colección de valores del msimo tipo que no admite elementos repetidos. Su declarador de tipo es `armor of type <tipo>`, donde `tipo` es un declarador de tipo escalar.
 
 Los literales de arreglo están encerrados entre el caracter de inicio `{$` y el caracter de fin `$}`, y sus elementos están separados entre sí por una coma (`,`), seguida de cero, uno o varios espacios (` `). No se admite una coma entre el último elemento y el `$}` de cierre.
-
-El valor por defecto de un conjunto `armor of type <tipo>` es el conjunto vacío `{$ $}`.
 
 Se deben proveer los siguientes operadores sobre conjuntos:
 
@@ -275,8 +269,6 @@ bezel {
 Donde `n` es la cantidad de _propiedades_ distintas del registro declarado, cada una con un nombre *único* para el mismo registro, independientemente de los tipos.
 
 El acceso a una propiedad de nombre `prop` de un registro `a` se realiza mediante la sintaxis `a~>prop`.
-
-Por defecto, todas las _propiedades_ de un registro se inicializan al valor por defecto correspondiente según el tipo.
 
 Los literales de registros (`bezel literals`) son expresiones de la siguiente forma (con indentación agregada para mayor legibilidad):
 
@@ -377,7 +369,7 @@ Representa la dirección en la que un valor de un tipo dado se encuentra almacen
 
 Todo apuntador al heap tiene los siguientes operadores:
 
-- `aim a`, que reserva cantidad de memoria suficiente para almacenar un valor del tipo del apuntador en el heap y lo inicializa a su valor por defecto.
+- `aim a`, que reserva cantidad de memoria suficiente para almacenar un valor del tipo del apuntador en el heap.
 - `throw a`, que derreferencia el valor almacenado en esa ubicación de la memoria.
 - `recover a`, que elimina la memoria reservada para un apuntador ya reservado y le asigna el valor nulo.
 
