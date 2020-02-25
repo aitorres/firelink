@@ -750,15 +750,6 @@ getMethodOffset (G.Id (T.Token {T.cleanedString=methodName}) _) = do
             let ST.Offset varOffset = ST.findOffset lastParam
             return $ typeWidth + varOffset
 
-createAnonymousAlias :: T.Token -> [ST.Extra] -> ST.ParserMonad ST.Extra
-createAnonymousAlias token extras = do
-  anonymousAlias <- ST.genAliasName
-  currentScope <- ST.getCurrentScope
-  let tk = token{T.cleanedString=anonymousAlias, T.aToken = T.TkId}
-  let declaration = (ST.Type, G.Id tk currentScope, extras)
-  addIdToSymTable declaration
-  return $ ST.Simple anonymousAlias
-
 buildAndCheckExpr :: T.Token -> G.BaseExpr -> ST.ParserMonad G.Expr
 buildAndCheckExpr tk bExpr = do
   (t, expr) <- buildType bExpr tk
