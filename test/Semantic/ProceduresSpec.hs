@@ -33,7 +33,7 @@ spec = do
             \ farewell ashen one"
             (_, ST.SymTable {ST.stDict=dict}, _) <- U.extractSymTable p
             U.testEntry dict varEntry U.extractCodeblockFromExtra
-                (\(ST.CodeBlock (G.CodeBlock [G.InstReturn])) -> True)
+                (\(ST.CodeBlock (G.CodeBlock [G.InstReturn] _)) -> True)
             U.testEntry dict varEntry U.extractFieldsFromExtra
                 (\(ST.Fields ST.Callable _) -> True)
         it "allows to declare procedures with one val argument" $ do

@@ -185,11 +185,15 @@ PROGRAMEND :: { Maybe G.RecoverableError }
 
 NON_OPENER_CODEBLOCK :: { G.CodeBlock }
   : instructionsBegin DECLARS INSTRL NON_OPENER_INSTEND                 {% do
+                                                                             let (asigInsts, declarO) = $2
                                                                              checkRecoverableError $1 $4
-                                                                             return $ G.CodeBlock $ $2 ++ reverse $3 }
+                                                                             let (blockInsts, blockO) = $3
+                                                                             let o = if blockO /= 0 then blockO else declarO
+                                                                             return $ G.CodeBlock (asigInsts ++ reverse blockInsts) o }
   | instructionsBegin INSTRL NON_OPENER_INSTEND                         {% do
                                                                              checkRecoverableError $1 $3
-                                                                             return $ G.CodeBlock $ reverse $2 }
+                                                                             let (blockInsts, blockO) = $2
+                                                                             return $ G.CodeBlock (reverse blockInsts) blockO }
 
 NON_OPENER_INSTEND :: { Maybe G.RecoverableError }
   : instructionsEnd                                                     { Nothing }
@@ -453,11 +457,15 @@ ID :: { G.Id }
 
 CODEBLOCK :: { G.CodeBlock }
   : INSTBEGIN DECLARS INSTRL INSTEND                                    {% do
+                                                                             let (asigInsts, declarO) = $2
                                                                              checkRecoverableError $1 $4
-                                                                             return $ G.CodeBlock $ $2 ++ reverse $3 }
+                                                                             let (blockInsts, blockO) = $3
+                                                                             let o = if blockO /= 0 then blockO else declarO
+                                                                             return $ G.CodeBlock (asigInsts ++ reverse blockInsts) o }
   | INSTBEGIN INSTRL INSTEND                                            {% do
                                                                              checkRecoverableError $1 $3
-                                                                             return $ G.CodeBlock $ reverse $2 }
+                                                                             let (blockInsts, blockO) = $2
+                                                                             return $ G.CodeBlock (reverse blockInsts) blockO }
 
 INSTBEGIN :: { T.Token }
 INSTBEGIN : instructionsBegin                                           {% do
@@ -474,27 +482,31 @@ INSTEND :: { Maybe G.RecoverableError }
                                                                              return Nothing }
   | error                                                               { Just G.MissingInstructionListEnd }
 
-DECLARS :: { [G.Instruction] }
+DECLARS :: { ([G.Instruction], Int) }
   : with DECLARSL DECLAREND                                             {% do
-                                                                            let instrlist = catMaybes (reverse $2)
+                                                                            let (insts, o) = $2
+                                                                            let instrlist = catMaybes (reverse insts)
                                                                             checkRecoverableError $1 $3
-                                                                            return instrlist }
+                                                                            return (instrlist, o) }
 
 DECLAREND :: { Maybe G.RecoverableError }
   : declarend                                                           { Nothing }
   | error                                                               { Just G.MissingDeclarationListEnd }
 
-DECLARSL :: { [Maybe G.Instruction] }
-  : DECLARSL comma DECLARADD                                            { $3:$1 }
-  | DECLARADD                                                           { [$1] }
+DECLARSL :: { ([Maybe G.Instruction], Int) }
+  : DECLARSL comma DECLARADD                                            {% do
+                                                                            let (mints, _) = $1
+                                                                            let (mint, o) = $3
+                                                                            return (mint : mints, o) }
+  | DECLARADD                                                           { (\(i, o) -> ([i], o) )$1 }
 
-DECLARADD :: { Maybe G.Instruction }
+DECLARADD :: { (Maybe G.Instruction, Int) }
   : DECLAR                                                              {% do
                                                                             -- Adds a declaration to the ST as soon as it's parsed
                                                                             let (declar, _) = $1
                                                                             addIdToSymTable declar
                                                                             let ((_, lvalueId, _), maybeRValue) = $1
-                                                                            case maybeRValue of
+                                                                            mInstr <- case maybeRValue of
                                                                               Nothing -> return Nothing
                                                                               Just (token, rvalue) -> do
                                                                                 let baseLvalue = G.IdExpr lvalueId
@@ -502,16 +514,30 @@ DECLARADD :: { Maybe G.Instruction }
                                                                                 lvalue <- buildAndCheckExpr idToken baseLvalue
                                                                                 ST.SymTable {ST.stScopeStack = stack} <- RWS.get
                                                                                 assignment <- checkAssignment lvalue token rvalue True
-                                                                                return $ Just assignment }
+                                                                                return $ Just assignment
+                                                                            offsetW <- do
+                                                                              mEntry <- ST.dictLookup $ G.extractIdName lvalueId
+                                                                              case mEntry of
+                                                                                Nothing -> return 0
+                                                                                Just entry@(ST.DictionaryEntry {ST.entryType = Just t}) -> do
+                                                                                  mTypeEntry <- ST.dictLookup t
+                                                                                  case mTypeEntry of
+                                                                                    Nothing -> return 0
+                                                                                    Just tEntry -> do
+                                                                                      let ST.Offset o = ST.findOffset entry
+                                                                                      let ST.Width w = ST.findWidth tEntry
+                                                                                      return $ o + w
+                                                                            return (mInstr, offsetW) }
 
 DECLAR :: { (NameDeclaration, Maybe (T.Token, G.Expr)) }
   : var ID ofType TYPE                                                  { ((ST.Variable, $2, [$4]), Nothing) }
   | var ID ofType TYPE asig EXPR                                        { ((ST.Variable, $2, [$4]), Just ($5, $6))  }
   | const ID ofType TYPE asig EXPR                                      { ((ST.Constant, $2, [$4]), Just ($5, $6)) }
 
-INSTRL :: { G.Instructions }
-  : INSTRL seq INSTR                                                    { $3 : $1 }
-  | INSTR                                                               { [$1] }
+INSTRL :: { (G.Instructions, Int) }
+  : INSTRL seq INSTR                                                    { let (prevInstrs, prevOffset) = $1 in
+                                                                          ($3 : prevInstrs, max prevOffset $ G.getInstrOffset $3) }
+  | INSTR                                                               { ([$1], G.getInstrOffset $1) }
 
 INSTR :: { G.Instruction }
   : EXPR asig EXPR                                                      {% do

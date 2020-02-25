@@ -119,6 +119,9 @@ isExtraAType (Fields Union _)  = True
 isExtraAType Simple{}          = True
 isExtraAType _                 = False
 
+getOffset :: DictionaryEntry -> Int
+getOffset entry = let (Offset n) = findOffset entry in n
+
 extractTypeFromExtra :: [Extra] -> Extra
 extractTypeFromExtra = head . filter isExtraAType
 
