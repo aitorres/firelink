@@ -1,0 +1,19 @@
+hello ashen one
+
+traveling somewhere
+with
+    var a of type hollow,
+    var b of type hollow <<= 2.31
+in your inventory
+    a <<= b \
+    b <<= a + 1 \
+    a <<= 13.5 + 24.12 \
+    b <<= b + 2 \
+    a <<= b - a \
+    a <<= 1 - 2 * 3.4 / 13.5 - 1 + 0 + 0.0 \
+    a <<= b + 1 \
+    b <<= 2*b \
+    b <<= 2.0*a
+you died
+
+farewell ashen one
