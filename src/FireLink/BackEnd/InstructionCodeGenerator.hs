@@ -23,7 +23,10 @@ instance GenerateCode Program where
         setTempOffset alignedOffset
         genCode codeblock
         where
-            alignedOffset = maxOffset +  wordSize - (maxOffset `mod` wordSize)
+            alignedOffset =
+                if maxOffset `mod` wordSize == 0
+                then maxOffset
+                else maxOffset +  wordSize - (maxOffset `mod` wordSize)
 
 instance GenerateCode CodeBlock where
     genCode (CodeBlock instrs _) = mapM_ genCode instrs
