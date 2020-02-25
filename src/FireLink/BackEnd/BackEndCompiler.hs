@@ -13,7 +13,22 @@ import           TACType
 backend :: Program -> Dictionary -> IO [TAC]
 backend program dictionary = do
     (_, _, code) <- runRWST (genCode program) dictionary initialState
-    return $ removeUnusedLabels code
+    return $ (removeDuplicateGotos . removeUnusedLabels) code
+
+removeDuplicateGotos :: [TAC] -> [TAC]
+removeDuplicateGotos = foldr removeDuplicateGoto []
+    where
+        isGoTo :: TAC -> Bool
+        isGoTo (ThreeAddressCode tac _ _ _) = tac == GoTo
+
+        isSameInstruction :: TAC -> TAC -> Bool
+        isSameInstruction (ThreeAddressCode tac1 _ _ _) (ThreeAddressCode tac2 _ _ _) = tac1 == tac2
+
+        removeDuplicateGoto :: TAC -> [TAC] -> [TAC]
+        removeDuplicateGoto x [] = [x]
+        removeDuplicateGoto x seen =
+            let mostRecentTAC = head seen in
+                if isSameInstruction mostRecentTAC x && isGoTo x then seen else x:seen
 
 removeUnusedLabels :: [TAC] -> [TAC]
 removeUnusedLabels tacs = filter removeLabel tacs
