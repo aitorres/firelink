@@ -90,6 +90,9 @@ instance Eq PropType where
 instance Ord PropType where
   PropType (s, _) <= PropType (s', _) = s <= s'
 
+defaultableTypes :: [Type]
+defaultableTypes = [TrileanT, BigIntT, SmallIntT, FloatT, CharT]
+
 getTypeFromContainer :: Type -> Maybe Type
 getTypeFromContainer (SetT t)   = Just t
 getTypeFromContainer (ArrayT t) = Just t
