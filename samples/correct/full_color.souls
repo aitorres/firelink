@@ -1,7 +1,9 @@
 hello ashen one
 
 requiring help of
-  knight onion <10>-chest of type <5>-chest of type <15>-miracle
+  knight onion <10>-chest of type <5>-chest of type <15>-miracle,
+  knight myCustomType humanity,
+  knight bezy bezel { prop of type sign }
 help received
 
 invocation fibonacci
@@ -41,24 +43,28 @@ with
   var n of type humanity,
   var f of type humanity,
   var a of type hollow,
-  var b of type sign,
+  var b of type sign <<= |b|,
   var c of type <123>-miracle,
   var d of type <12>-chest of type big humanity,
-  const e of type bezel {
+  var e of type bezel {
     x of type humanity,
     y of type bezel {
       e of type bonfire
     }
   },
-  var ff of type armor of type bezel { prop of type sign },
+  const ee of type humanity <<= 1,
+  const eee of type hollow <<= 14.5,
+  var ff of type armor of type bezy,
   var j of type myCustomType,
   var g of type link { x of type humanity },
-  var pp of type arrow to sign
+  var pp of type arrow to sign,
+  var i of type humanity <<= 1,
+  var ii of type bezy
 in your inventory
   aim a pp \
   throw a pp <<= |a| \
   recover a pp \
-  a <<= |p| \
+  a <<= 5 \
   transpose into n \
   f <<= summon fibonacci
     granting n to the knight \
@@ -107,9 +113,9 @@ in your inventory
     you died
   max level reached \
 
-  repairing i with titanite from ff
+  repairing ii with titanite from ff
     traveling somewhere
-      with orange saponite say i ~> prop
+      with orange saponite say ii ~> prop
     you died
   weaponry repaired \
 
@@ -124,7 +130,6 @@ in your inventory
   with orange saponite say |\|| \
   with orange saponite say ascii_of |a| \
   c <<= @hellow @ >-< @world@ \
-  with orange saponite say <$1, 2, 3, 4, 5$> \
   with orange saponite say d<$n$> \
   n <<= size d \
   ff <<= {$ $} \
