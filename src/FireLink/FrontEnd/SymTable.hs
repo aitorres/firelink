@@ -67,6 +67,10 @@ isWidthExtra :: Extra -> Bool
 isWidthExtra Width{} = True
 isWidthExtra _       = False
 
+isCodeBlockExtra :: Extra -> Bool
+isCodeBlockExtra CodeBlock{} = True
+isCodeBlockExtra _ = False
+
 isOffsetExtra :: Extra -> Bool
 isOffsetExtra Offset{} = True
 isOffsetExtra _        = False
@@ -104,6 +108,14 @@ findOffset entry = f $ extra entry
             if null offsetExtras then error $ "Offset extra not found for entry " ++ name entry
             else head offsetExtras
 
+findCodeBlock :: DictionaryEntry -> Extra
+findCodeBlock entry = f $ extra entry
+    where
+        f :: [Extra] -> Extra
+        f extras = let offsetExtras = filter isCodeBlockExtra extras in
+            if null offsetExtras then error $ "CodeBlock extra not found for entry " ++ name entry
+            else head offsetExtras
+
 findFieldsExtra :: Extra -> Maybe Extra
 findFieldsExtra a@Fields{}          = Just a
 findFieldsExtra (CompoundRec _ _ e) = findFieldsExtra e
@@ -121,6 +133,9 @@ isExtraAType _                 = False
 
 getOffset :: DictionaryEntry -> Int
 getOffset entry = let (Offset n) = findOffset entry in n
+
+getCodeBlock :: DictionaryEntry -> G.CodeBlock
+getCodeBlock entry = let (CodeBlock codeblock) = findCodeBlock entry in codeblock
 
 extractTypeFromExtra :: [Extra] -> Extra
 extractTypeFromExtra = head . filter isExtraAType
@@ -167,6 +182,11 @@ findAllInScope s dict = filter (\entry -> scope entry == s) $ concatMap snd $ Ma
 findSymEntry :: Int -> String -> Dictionary -> DictionaryEntry
 findSymEntry idScope idName = head . filter (\s -> scope s == idScope) . findChain idName
 
+findAllFunctionsAndProcedures :: Dictionary -> DictionaryEntries
+findAllFunctionsAndProcedures = filter isFunction . concat . Map.elems
+    where
+        isFunction :: DictionaryEntry -> Bool
+        isFunction = flip elem [Procedure, Function] . category
 
 sortByArgPosition :: DictionaryEntries -> DictionaryEntries
 sortByArgPosition = sortBy sortFun
