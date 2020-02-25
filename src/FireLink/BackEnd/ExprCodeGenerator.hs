@@ -8,7 +8,7 @@ import           FireLink.FrontEnd.Grammar      (BaseExpr (..), Expr (..),
                                                  booleanOp2, comparableOp2)
 import           FireLink.FrontEnd.SymTable     (Dictionary,
                                                  DictionaryEntry (..),
-                                                 findChain)
+                                                 findChain, getOffset)
 import           FireLink.FrontEnd.Tokens       (Token (..))
 import           FireLink.FrontEnd.TypeChecking (Type (..))
 import qualified TACType                        as TAC
@@ -22,7 +22,7 @@ genCode' Expr {expAst=ast, expType=t} = genCodeForExpr t ast
 genCodeForExpr :: Type -> BaseExpr -> CodeGenMonad OperandType
 genCodeForExpr _ (IdExpr (Id Token {cleanedString=idName} idScope)) = do
     symEntry <- findSymEntry <$> ask
-    return $ TAC.Id $ TACVariable symEntry 0
+    return $ TAC.Id $ TACVariable symEntry $ getOffset symEntry
     where
         findSymEntry :: Dictionary -> DictionaryEntry
         findSymEntry = head . filter (\s -> scope s == idScope) . findChain idName
