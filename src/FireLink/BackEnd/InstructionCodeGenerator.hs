@@ -14,8 +14,7 @@ import           FireLink.FrontEnd.Grammar          (BaseExpr (..),
                                                      SwitchCase (..))
 import qualified FireLink.FrontEnd.Grammar          as G (Id (..), Op2 (..))
 import           FireLink.FrontEnd.SymTable         (wordSize, Dictionary, findSymEntryById,
-                                                    DictionaryEntry (..), getUnionAttrId,
-                                                    findSymEntry, findAllFunctionsAndProcedures, getCodeBlock)
+                                                    DictionaryEntry (..), getUnionAttrId, findAllFunctionsAndProcedures, getCodeBlock)
 import           FireLink.FrontEnd.TypeChecking     (Type (..))
 import FireLink.FrontEnd.Tokens (Token (..))
 import           TACType
@@ -95,9 +94,9 @@ genCodeForInstruction (InstReturnWith expr) _ = do
 For functions/procedures calls we only generate the code for each parameter and call the function
 as it was a label
 -}
-genCodeForInstruction (InstCall (G.Id Token {cleanedString=funName} funScope) params) _ = do
+genCodeForInstruction (InstCall fId params) _ = do
     paramsLength <- genParams params
-    funEntry <- findSymEntry funScope funName <$> ask
+    funEntry <- findSymEntryById fId <$> ask
     tell [ThreeAddressCode
             { tacOperand = Call
             , tacLvalue = Nothing

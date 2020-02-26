@@ -9,7 +9,7 @@ import           FireLink.FrontEnd.Grammar      (BaseExpr (..), Expr (..),
                                                  booleanOp2, comparableOp2)
 import           FireLink.FrontEnd.SymTable     (Dictionary, findSymEntryById,
                                                  DictionaryEntry (..),
-                                                 getOffset, getUnionAttrId, findSymEntry)
+                                                 getOffset, getUnionAttrId)
 import           FireLink.FrontEnd.Tokens       (Token (..))
 import           FireLink.FrontEnd.TypeChecking (Type (..))
 import qualified TACType                        as TAC
@@ -35,10 +35,10 @@ genCodeForExpr t (Access expr propId) = do
     let propOffset = getOffset propSymEntry
     return $ TAC.Id $ TACVariable propSymEntry $ propOffset + rO
 
-genCodeForExpr _ (EvalFunc (Id Token {cleanedString=funName} funScope) params) = do
+genCodeForExpr _ (EvalFunc fId params) = do
     paramsLength <- genParams params
     ret <- TAC.Id <$> newtemp
-    funEntry <- findSymEntry funScope funName <$> ask
+    funEntry <- findSymEntryById fId <$> ask
     tell [TAC.ThreeAddressCode
             { TAC.tacOperand = TAC.Call
             , TAC.tacLvalue = Just ret
@@ -200,12 +200,12 @@ genCodeForBooleanExpr expr trueLabel falseLabel = case expr of
         resultOperand <- genCodeForExpr TrileanT expr
         genBooleanComparison resultOperand (TAC.Constant ("true", TrileanT)) trueLabel falseLabel Eq
 
-    IsActive Expr { expAst = Access unionExpr (Id Token {cleanedString=idName} idScope) } -> do
+    IsActive Expr { expAst = Access unionExpr propId } -> do
         -- Get union's base direction (where real is_active is stored)
         realArgOperand <- genCode' unionExpr
 
         -- Get received argument's attr number for comparison
-        propSymEntry <- findSymEntry idScope idName <$> ask
+        propSymEntry <- findSymEntryById propId <$> ask
         let propArgPos = getUnionAttrId propSymEntry
 
         -- Assign received argument's attr number to a new temp
