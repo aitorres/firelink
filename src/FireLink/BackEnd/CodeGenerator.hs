@@ -25,7 +25,7 @@ data TACSymEntry
 
 instance SymEntryCompatible TACSymEntry where
     getSymID (TACTemporal s o)     = "(" ++ s ++ ")base[" ++ show o ++ "]"
-    getSymID (TACVariable entry rOffset) = "base[" ++ show (getOffset entry + rOffset) ++ "]"
+    getSymID (TACVariable entry rOffset) = "(" ++ name entry ++ ")" ++ "base[" ++ show (getOffset entry + rOffset) ++ "]"
 
 instance Show TACSymEntry where
     show = getSymID

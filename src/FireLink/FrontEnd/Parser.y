@@ -465,7 +465,9 @@ CODEBLOCK :: { G.CodeBlock }
   | INSTBEGIN INSTRL INSTEND                                            {% do
                                                                              checkRecoverableError $1 $3
                                                                              let (blockInsts, blockO) = $2
-                                                                             return $ G.CodeBlock (reverse blockInsts) blockO }
+                                                                             nextOffset <- ST.getNextOffset
+                                                                             let o = if blockO /= 0 then blockO else nextOffset
+                                                                             return $ G.CodeBlock (reverse blockInsts) o }
 
 INSTBEGIN :: { T.Token }
 INSTBEGIN : instructionsBegin                                           {% do
@@ -551,11 +553,11 @@ INSTR :: { G.Instruction }
                                                                           return $G.InstFreeMem $2 }
   | cast ID PROCARGS                                                    {% do
                                                                           checkIdAvailability $2
-                                                                          (_, params) <- methodsCheck $2 $3 $1
-                                                                          return $ G.InstCallProc $2 params }
+                                                                          (gId, _, params) <- methodsCheck $2 $3 $1
+                                                                          return $ G.InstCall gId params }
   | FUNCALL                                                             {% let (tk, i, params) = $1 in do
-                                                                          buildAndCheckExpr tk $ G.EvalFunc i params
-                                                                          return $ G.InstCallFunc i params }
+                                                                          (gId, _, params) <- methodsCheck i params tk
+                                                                          return $ G.InstCall gId params }
   | return                                                              {% checkReturnScope $1 }
   | returnWith EXPR                                                     {% do
                                                                           retExpr <- checkReturnType $2 $1
@@ -1196,29 +1198,30 @@ domainCallCheck methodId domain exprs tk = do
       then findInvalid xs (i + 1)
       else Just i
 
-methodsCheck :: G.Id -> [G.Expr] -> T.Token -> ST.ParserMonad (T.Type, [G.Expr])
-methodsCheck methodId exprs tk = do
+methodsCheck :: G.Id -> [G.Expr] -> T.Token -> ST.ParserMonad (G.Id, T.Type, [G.Expr])
+methodsCheck methodId@(G.Id idTk@(T.Token {T.cleanedString=methodName}) _) exprs tk = do
   procType <- getType methodId
+  gId <- G.Id idTk . ST.scope . fromJust <$> ST.dictLookup methodName
   case procType of
     T.ProcedureT domain -> do
       mParams <- domainCallCheck methodId domain exprs tk
       case mParams of
-        Nothing -> return (T.VoidT, exprs)
-        Just params -> return (T.VoidT, params)
+        Nothing -> return (gId, T.TypeError, exprs)
+        Just params -> return (gId, T.VoidT, params)
     T.FunctionT domain range -> do
       mParams <- domainCallCheck methodId domain exprs tk
       case mParams of
-        Nothing -> return (T.TypeError, exprs)
-        Just params -> return (range, params)
-    T.TypeError -> return (T.TypeError, exprs)
+        Nothing -> return (gId, T.TypeError, exprs)
+        Just params -> return (gId, range, params)
+    T.TypeError -> return (methodId, T.TypeError, exprs)
     _ -> do
       logSemError "You're trying to call a non-callable expression" tk
-      return (T.TypeError, exprs)
+      return (methodId, T.TypeError, exprs)
 
 functionsCheck :: G.Id -> [G.Expr] -> T.Token -> ST.ParserMonad (T.Type, G.BaseExpr)
 functionsCheck i params tk = do
-  (t, ps) <- methodsCheck i params tk
-  return (t, G.EvalFunc i ps)
+  (gId, t, ps) <- methodsCheck i params tk
+  return (t, G.EvalFunc gId ps)
 
 memAccessCheck :: G.Expr -> T.Token -> ST.ParserMonad T.Type
 memAccessCheck expr tk = do

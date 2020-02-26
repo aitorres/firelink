@@ -1,32 +1,64 @@
 module FireLink.BackEnd.InstructionCodeGenerator where
 
-import           Control.Monad.RWS                  (liftIO, tell, unless, when)
+import           Control.Monad.RWS                  (liftIO, tell, unless, when, ask)
 import           FireLink.BackEnd.CodeGenerator
 import           FireLink.BackEnd.ExprCodeGenerator (genBooleanComparation,
                                                      genCode',
                                                      genCodeForBooleanExpr,
-                                                     genCodeForExpr, genOp2Code)
+                                                     genCodeForExpr, genOp2Code, genParams)
 import           FireLink.FrontEnd.Grammar          (BaseExpr (..),
                                                      CodeBlock (..), Expr (..),
-                                                     Id (..), IfCase (..),
+                                                     IfCase (..),
                                                      Instruction (..),
                                                      Program (..),
                                                      SwitchCase (..))
-import qualified FireLink.FrontEnd.Grammar          as G (Op2 (..))
-import           FireLink.FrontEnd.SymTable         (wordSize)
+import qualified FireLink.FrontEnd.Grammar          as G (Op2 (..), Id (..))
+import           FireLink.FrontEnd.SymTable         (wordSize, Dictionary,
+                                                    DictionaryEntry (..),
+                                                    findSymEntry, findAllFunctionsAndProcedures, getCodeBlock)
 import           FireLink.FrontEnd.TypeChecking     (Type (..))
+import FireLink.FrontEnd.Tokens (Token (..))
 import           TACType
 
 
+{-
+For a whole program to work, we need to generate for each function its respective
+code.
+
+The main codeblock is treated as a function, so the first instruction in our code
+is to call the `main` function. That way, the `return` statement on it can behave
+like procedure without any additional treatment.
+-}
 instance GenerateCode Program where
     genCode (Program codeblock@(CodeBlock _ maxOffset)) = do
-        setTempOffset alignedOffset
-        genCode codeblock
+        functions <- getFunctions <$> ask
+        let allFunctions = ("_main", codeblock) : functions
+        tell [ThreeAddressCode
+            { tacOperand = Call
+            , tacLvalue = Nothing
+            , tacRvalue1 = Just $ Label "_main"
+            , tacRvalue2 = Just $ Constant ("0", SmallIntT)
+            }]
+
+        mapM_ genBlock allFunctions
         where
-            alignedOffset =
+            alignedOffset :: Int -> Int
+            alignedOffset maxOffset =
                 if maxOffset `mod` wordSize == 0
                 then maxOffset
                 else maxOffset +  wordSize - (maxOffset `mod` wordSize)
+
+            getFunctions :: Dictionary -> [(String, CodeBlock)]
+            getFunctions = map mapDictionaryToTuple . findAllFunctionsAndProcedures
+
+            mapDictionaryToTuple :: DictionaryEntry -> (String, CodeBlock)
+            mapDictionaryToTuple entry = (name entry, getCodeBlock entry)
+
+            genBlock :: (String, CodeBlock) -> CodeGenMonad ()
+            genBlock (funName, codeblock@(CodeBlock _ maxOffset)) = do
+                setTempOffset $ alignedOffset maxOffset
+                genLabel $ Label funName
+                genCode codeblock
 
 instance GenerateCode CodeBlock where
     genCode (CodeBlock instrs _) = mapM_ genCode instrs
@@ -39,7 +71,39 @@ instance GenerateCode Instruction where
 genCodeForInstruction :: Instruction -> OperandType -> CodeGenMonad ()
 
 -- Utility instructions
-genCodeForInstruction (InstPrint expr) _ = genCode expr
+genCodeForInstruction (InstPrint expr) _ = return () --genCode expr
+genCodeForInstruction (InstRead _) _ = return () --genCode expr
+
+genCodeForInstruction InstReturn _ =
+    tell [ThreeAddressCode
+            { tacOperand = Return
+            , tacLvalue = Nothing
+            , tacRvalue1 = Nothing
+            , tacRvalue2 = Nothing
+            }]
+
+genCodeForInstruction (InstReturnWith expr) _ = do
+    operand <- genCode' expr
+    tell [ThreeAddressCode
+            { tacOperand = Return
+            , tacLvalue = Nothing
+            , tacRvalue1 = Just operand
+            , tacRvalue2 = Nothing
+            }]
+
+{-
+For functions/procedures calls we only generate the code for each parameter and call the function
+as it was a label
+-}
+genCodeForInstruction (InstCall (G.Id Token {cleanedString=funName} funScope) params) _ = do
+    paramsLength <- genParams params
+    funEntry <- findSymEntry funScope funName <$> ask
+    tell [ThreeAddressCode
+            { tacOperand = Call
+            , tacLvalue = Nothing
+            , tacRvalue1 = Just $ Label $ name funEntry
+            , tacRvalue2 = Just $ Constant (show paramsLength, SmallIntT)
+            }]
 
 -- Assignments, currently only supported for id assignments
 genCodeForInstruction (InstAsig lvalue@Expr {expAst = IdExpr id} rvalue) next =
