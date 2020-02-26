@@ -69,7 +69,7 @@ isWidthExtra _       = False
 
 isCodeBlockExtra :: Extra -> Bool
 isCodeBlockExtra CodeBlock{} = True
-isCodeBlockExtra _ = False
+isCodeBlockExtra _           = False
 
 isOffsetExtra :: Extra -> Bool
 isOffsetExtra Offset{} = True
@@ -108,6 +108,14 @@ findOffset entry = f $ extra entry
             if null offsetExtras then error $ "Offset extra not found for entry " ++ name entry
             else head offsetExtras
 
+findUnionAttrId :: DictionaryEntry -> Extra
+findUnionAttrId entry = f $ extra entry
+    where
+        f :: [Extra] -> Extra
+        f extras = let unionAttrIds = filter isUnionAttrId extras in
+            if null unionAttrIds then error $ "UnionAttrId extra not found for entry " ++ name entry
+            else head unionAttrIds
+
 findCodeBlock :: DictionaryEntry -> Extra
 findCodeBlock entry = f $ extra entry
     where
@@ -133,6 +141,9 @@ isExtraAType _                 = False
 
 getOffset :: DictionaryEntry -> Int
 getOffset entry = let (Offset n) = findOffset entry in n
+
+getUnionAttrId :: DictionaryEntry -> Int
+getUnionAttrId entry = let (UnionAttrId n) = findUnionAttrId entry in n
 
 getCodeBlock :: DictionaryEntry -> G.CodeBlock
 getCodeBlock entry = let (CodeBlock codeblock) = findCodeBlock entry in codeblock
@@ -178,6 +189,9 @@ type ParserMonad = RWS.RWST () [Error] SymTable IO
 
 findAllInScope :: Scope -> Dictionary -> DictionaryEntries
 findAllInScope s dict = filter (\entry -> scope entry == s) $ concatMap snd $ Map.toList dict
+
+findSymEntryById :: G.Id -> Dictionary -> DictionaryEntry
+findSymEntryById (G.Id T.Token {T.cleanedString=idName} idScope) = findSymEntry idScope idName
 
 findSymEntry :: Int -> String -> Dictionary -> DictionaryEntry
 findSymEntry idScope idName = head . filter (\s -> scope s == idScope) . findChain idName

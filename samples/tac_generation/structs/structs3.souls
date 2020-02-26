@@ -1,0 +1,14 @@
+hello ashen one
+
+traveling somewhere
+with
+    var n of type link { n of type humanity, c of type sign },
+    var b of type bezel { n of type humanity, a of type hollow }
+in your inventory
+    n~>n <<= 1 \
+    n~>c <<= |a| \
+    b~>n <<= 5 \
+    b~>a <<= 4.4
+you died
+
+farewell ashen one
