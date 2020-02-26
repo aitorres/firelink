@@ -1,0 +1,16 @@
+hello ashen one
+
+traveling somewhere
+with
+    var n of type link { n of type humanity, c of type sign },
+    var b of type bezel { x of type humanity, y of type hollow },
+    var p of type bonfire
+in your inventory
+    n <<= { n <<= 1} \
+    n <<= { c <<= |a| } \
+    b <<= { x <<= 1, y <<= 45.3 } \
+    p <<= is_active n~>n \
+    p <<= is_active n~>c
+you died
+
+farewell ashen one

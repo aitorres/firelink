@@ -1,0 +1,39 @@
+hello ashen one
+
+invocation f
+requesting
+    val x of type bonfire,
+    val y of type bonfire
+with skill of type bonfire
+traveling somewhere
+    trust your inventory
+        x and y:
+        traveling somewhere
+            go back with summon f granting lit, (summon f granting x or y, x eq y to the knight) to the knight
+        you died
+        x:
+        traveling somewhere
+            go back with summon f granting x neq y, x lt y to the knight
+        you died
+        liar!:
+        traveling somewhere
+            go back with lit
+        you died
+    inventory closed \
+    go back with unlit
+you died
+after this return to your world
+
+
+traveling somewhere
+with
+    var n of type humanity
+in your inventory
+    while the lit covenant is active:
+    traveling somewhere
+        summon f granting lit, unlit to the knight
+    you died
+    covenant left
+you died
+
+farewell ashen one

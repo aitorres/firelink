@@ -1,32 +1,68 @@
 module FireLink.BackEnd.InstructionCodeGenerator where
 
-import           Control.Monad.RWS                  (liftIO, tell, unless, when)
+import           Control.Monad.RWS                  (ask, tell, unless, when)
 import           FireLink.BackEnd.CodeGenerator
-import           FireLink.BackEnd.ExprCodeGenerator (genBooleanComparation,
+import           FireLink.BackEnd.ExprCodeGenerator (genBooleanComparison,
                                                      genCode',
                                                      genCodeForBooleanExpr,
-                                                     genCodeForExpr, genOp2Code)
+                                                     genCodeForExpr, genOp2Code,
+                                                     genParams)
 import           FireLink.FrontEnd.Grammar          (BaseExpr (..),
                                                      CodeBlock (..), Expr (..),
-                                                     Id (..), IfCase (..),
+                                                     IfCase (..),
                                                      Instruction (..),
                                                      Program (..),
                                                      SwitchCase (..))
-import qualified FireLink.FrontEnd.Grammar          as G (Op2 (..))
-import           FireLink.FrontEnd.SymTable         (wordSize)
+import qualified FireLink.FrontEnd.Grammar          as G (Id (..), Op2 (..))
+import           FireLink.FrontEnd.SymTable         (Dictionary,
+                                                     DictionaryEntry (..),
+                                                     findAllFunctionsAndProcedures,
+                                                     findSymEntryById,
+                                                     getCodeBlock,
+                                                     getUnionAttrId, wordSize)
+import           FireLink.FrontEnd.Tokens           (Token (..))
 import           FireLink.FrontEnd.TypeChecking     (Type (..))
 import           TACType
 
 
+{-
+For a whole program to work, we need to generate for each function its respective
+code.
+
+The main codeblock is treated as a function, so the first instruction in our code
+is to call the `main` function. That way, the `return` statement on it can behave
+like procedure without any additional treatment.
+-}
 instance GenerateCode Program where
     genCode (Program codeblock@(CodeBlock _ maxOffset)) = do
-        setTempOffset alignedOffset
-        genCode codeblock
+        functions <- getFunctions <$> ask
+        let allFunctions = ("_main", codeblock) : functions
+        tell [ThreeAddressCode
+            { tacOperand = Call
+            , tacLvalue = Nothing
+            , tacRvalue1 = Just $ Label "_main"
+            , tacRvalue2 = Just $ Constant ("0", SmallIntT)
+            }]
+
+        mapM_ genBlock allFunctions
         where
-            alignedOffset =
+            alignedOffset :: Int -> Int
+            alignedOffset maxOffset =
                 if maxOffset `mod` wordSize == 0
                 then maxOffset
                 else maxOffset +  wordSize - (maxOffset `mod` wordSize)
+
+            getFunctions :: Dictionary -> [(String, CodeBlock)]
+            getFunctions = map mapDictionaryToTuple . findAllFunctionsAndProcedures
+
+            mapDictionaryToTuple :: DictionaryEntry -> (String, CodeBlock)
+            mapDictionaryToTuple entry = (name entry, getCodeBlock entry)
+
+            genBlock :: (String, CodeBlock) -> CodeGenMonad ()
+            genBlock (funName, codeblock@(CodeBlock _ maxOffset)) = do
+                setTempOffset $ alignedOffset maxOffset
+                genLabel $ Label funName
+                genCode codeblock
 
 instance GenerateCode CodeBlock where
     genCode (CodeBlock instrs _) = mapM_ genCode instrs
@@ -39,26 +75,105 @@ instance GenerateCode Instruction where
 genCodeForInstruction :: Instruction -> OperandType -> CodeGenMonad ()
 
 -- Utility instructions
-genCodeForInstruction (InstPrint expr) _ = genCode expr
+-- TODO: Use TAC instructions, change
+genCodeForInstruction (InstPrint expr) _ = return () --genCode expr
+genCodeForInstruction (InstRead _) _ = return () --genCode expr
 
--- Assignments, currently only supported for id assignments
-genCodeForInstruction (InstAsig lvalue@Expr {expAst = IdExpr id} rvalue) next =
-    if expType rvalue /= TrileanT then do
-        operand <- genCode' lvalue
-        rValueAddress <- genCode' rvalue
-        genIdAssignment operand rValueAddress
-    else do
-        trueLabel <- newLabel
-        falseLabel <- newLabel
-        genCodeForBooleanExpr (expAst rvalue) trueLabel falseLabel
-        operand <- genCode' lvalue
-        genLabel trueLabel
-        genIdAssignment operand $ Constant ("true", TrileanT)
-        genGoTo next
-        genLabel falseLabel
-        genIdAssignment operand $ Constant ("false", TrileanT)
-        genLabel next
+genCodeForInstruction InstReturn _ =
+    tell [ThreeAddressCode
+            { tacOperand = Return
+            , tacLvalue = Nothing
+            , tacRvalue1 = Nothing
+            , tacRvalue2 = Nothing
+            }]
 
+genCodeForInstruction (InstReturnWith expr) _ = do
+    operand <- genCode' expr
+    tell [ThreeAddressCode
+            { tacOperand = Return
+            , tacLvalue = Nothing
+            , tacRvalue1 = Just operand
+            , tacRvalue2 = Nothing
+            }]
+
+{-
+For functions/procedures calls we only generate the code for each parameter and call the function
+as it was a label
+-}
+genCodeForInstruction (InstCall fId params) _ = do
+    paramsLength <- genParams params
+    funEntry <- findSymEntryById fId <$> ask
+    tell [ThreeAddressCode
+            { tacOperand = Call
+            , tacLvalue = Nothing
+            , tacRvalue1 = Just $ Label $ name funEntry
+            , tacRvalue2 = Just $ Constant (show paramsLength, SmallIntT)
+            }]
+
+-- Assignments, currently supported for id assignments, structs & unions
+genCodeForInstruction (InstAsig lvalue rvalue) next =
+    if supportedLvalue lvalue then do
+        if expType rvalue == StructLitT then assignStructLiteral lvalue rvalue
+        else if expType rvalue /= TrileanT then do
+            operand <- genCode' lvalue
+            rValueAddress <- genCode' rvalue
+            genIdAssignment operand rValueAddress
+        else do
+            operand <- genCode' lvalue
+            trueLabel <- newLabel
+            falseLabel <- newLabel
+            genCodeForBooleanExpr (expAst rvalue) trueLabel falseLabel
+            genLabel trueLabel
+            genIdAssignment operand $ Constant ("true", TrileanT)
+            genGoTo next
+            genLabel falseLabel
+            genIdAssignment operand $ Constant ("false", TrileanT)
+            genLabel next
+
+        -- The following code takes care of the isActive attribute for unions on property assignments
+        when (isUnionBExpr $ expAst lvalue) $ do
+            let Expr { expAst = (Access unionExpr propId) } = lvalue
+            markActiveAttrForUnion unionExpr propId
+
+    else error $ "Lvalue currently not supported for assignments: " ++ show lvalue
+    where
+        supportedLvalue :: Expr -> Bool
+        supportedLvalue Expr {expAst = IdExpr _ }  = True
+        supportedLvalue Expr {expAst = Access _ _} = True
+        supportedLvalue _                          = False
+
+        isUnionBExpr :: BaseExpr -> Bool
+        isUnionBExpr (Access Expr { expType = UnionT _ _ } _) = True
+        isUnionBExpr _                                        = False
+
+        isUnionT :: Type -> Bool
+        isUnionT (UnionT _ _) = True
+        isUnionT _            = False
+
+        markActiveAttrForUnion :: Expr -> G.Id -> CodeGenMonad ()
+        markActiveAttrForUnion unionExpr propId = do
+            propertySymEntry <- findSymEntryById propId <$> ask
+            let argPos = getUnionAttrId propertySymEntry
+            unionExprOp <- genCode' unionExpr
+            genIdAssignment unionExprOp $ Constant (show argPos, BigIntT)
+
+        assignStructLiteral :: Expr -> Expr -> CodeGenMonad ()
+        assignStructLiteral lvalue Expr { expAst = StructLit propAssignments } = do
+            fieldsScope <- case expType lvalue of
+                UnionT fieldsScope _  -> return fieldsScope
+                RecordT fieldsScope _ -> return fieldsScope
+            mapM_ (assignPropertyValue fieldsScope lvalue) propAssignments
+
+            -- The following code takes care of the isActive attribute for unions on literal assignments
+            when (isUnionT $ expType lvalue) $ do
+                let [(G.Id tk _, _)] = propAssignments
+                markActiveAttrForUnion lvalue (G.Id tk fieldsScope)
+
+        assignPropertyValue :: Int -> Expr -> (G.Id, Expr) -> CodeGenMonad ()
+        assignPropertyValue scope lvalue (G.Id tk _, e@Expr { expType = eT }) = do
+            lOperand <- genCodeForExpr eT (Access lvalue (G.Id tk scope))
+            rOperand <- genCode' e
+            genIdAssignment lOperand rOperand
 
 {-
 Conditional selection statement
@@ -130,7 +245,7 @@ genCodeForInstruction (InstFor id step bound codeblock) next = do
     idOperand <- genCodeForExpr BigIntT idAst
     boundOperand <- genCode' bound
     genLabel begin
-    genBooleanComparation idOperand boundOperand trueLabel falseLabel G.Lt
+    genBooleanComparison idOperand boundOperand trueLabel falseLabel G.Lt
     genLabel trueLabel
     genCode codeblock
     incOperand <- genIncrement idOperand step
@@ -178,6 +293,8 @@ genCodeForInstruction (InstPrint expr) next = do
             }]
     genLabel next
 
+genCodeForInstruction i _ = error $ "This instruction hasn't been implemented " ++ show i
+
 -- Aux function for iterations
 setUpIteration :: OperandType -> CodeGenMonad (OperandType, OperandType, OperandType)
 setUpIteration next = do
@@ -202,11 +319,11 @@ genCodeForSwitchCase next bExprOperand isLast sCase = do
     case sCase of
         Case expr codeblock -> do
             caseExprOperand <- genCode' expr
-            genBooleanComparation bExprOperand caseExprOperand trueLabel falseLabel G.Eq
+            genBooleanComparison bExprOperand caseExprOperand trueLabel falseLabel G.Eq
             unless isLast $ genLabel trueLabel
             genCode codeblock
         DefaultCase codeblock -> do
-            genBooleanComparation bExprOperand bExprOperand trueLabel falseLabel G.Eq
+            genBooleanComparison bExprOperand bExprOperand trueLabel falseLabel G.Eq
             unless isLast $ genLabel trueLabel
             genCode codeblock
     unless isLast $ genGoTo next
