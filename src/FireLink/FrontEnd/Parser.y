@@ -465,7 +465,9 @@ CODEBLOCK :: { G.CodeBlock }
   | INSTBEGIN INSTRL INSTEND                                            {% do
                                                                              checkRecoverableError $1 $3
                                                                              let (blockInsts, blockO) = $2
-                                                                             return $ G.CodeBlock (reverse blockInsts) blockO }
+                                                                             nextOffset <- ST.getNextOffset
+                                                                             let o = if blockO /= 0 then blockO else nextOffset
+                                                                             return $ G.CodeBlock (reverse blockInsts) o }
 
 INSTBEGIN :: { T.Token }
 INSTBEGIN : instructionsBegin                                           {% do
