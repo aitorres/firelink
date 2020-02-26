@@ -41,24 +41,29 @@ genCodeForInstruction :: Instruction -> OperandType -> CodeGenMonad ()
 -- Utility instructions
 genCodeForInstruction (InstPrint expr) _ = genCode expr
 
--- Assignments, currently only supported for id assignments
-genCodeForInstruction (InstAsig lvalue@Expr {expAst = IdExpr id} rvalue) next =
-    if expType rvalue /= TrileanT then do
+-- Assignments, currently supported for id assignments, structs & unions
+genCodeForInstruction (InstAsig lvalue rvalue) next =
+    if supportedLvalue lvalue then do
         operand <- genCode' lvalue
-        rValueAddress <- genCode' rvalue
-        genIdAssignment operand rValueAddress
-    else do
-        trueLabel <- newLabel
-        falseLabel <- newLabel
-        genCodeForBooleanExpr (expAst rvalue) trueLabel falseLabel
-        operand <- genCode' lvalue
-        genLabel trueLabel
-        genIdAssignment operand $ Constant ("true", TrileanT)
-        genGoTo next
-        genLabel falseLabel
-        genIdAssignment operand $ Constant ("false", TrileanT)
-        genLabel next
-
+        if expType rvalue /= TrileanT then do
+            rValueAddress <- genCode' rvalue
+            genIdAssignment operand rValueAddress
+        else do
+            trueLabel <- newLabel
+            falseLabel <- newLabel
+            genCodeForBooleanExpr (expAst rvalue) trueLabel falseLabel
+            genLabel trueLabel
+            genIdAssignment operand $ Constant ("true", TrileanT)
+            genGoTo next
+            genLabel falseLabel
+            genIdAssignment operand $ Constant ("false", TrileanT)
+            genLabel next
+    else error $ "Lvalue currently not supported for assignments: " ++ show lvalue
+    where
+        supportedLvalue :: Expr -> Bool
+        supportedLvalue Expr {expAst = IdExpr _ } = True
+        supportedLvalue Expr {expAst = Access _ _} = True
+        supportedLvalue _                         = False
 
 {-
 Conditional selection statement
@@ -142,6 +147,8 @@ genCodeForInstruction (InstFor id step bound codeblock) next = do
             genIncrement idOp step = do
                 stepOp <- genCode' step
                 genOp2Code Add idOp stepOp
+
+genCodeForInstruction i _ = error $ "This instruction hasn't been implemented " ++ show i
 
 -- Aux function for iterations
 setUpIteration :: OperandType -> CodeGenMonad (OperandType, OperandType, OperandType)
