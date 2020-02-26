@@ -46,7 +46,7 @@ removeUnusedLabels tacs = filter removeLabel tacs
         getLabelValue (ThreeAddressCode _ _ _ (Just (Label label))) = label
 
         itJumps :: TAC -> Bool
-        itJumps (ThreeAddressCode tac _ _ _) = tac `elem` [GoTo, Eq, Neq, Lt, Lte, Gt, Gte]
+        itJumps (ThreeAddressCode tac _ _ _) = tac `elem` [GoTo, Eq, Neq, Lt, Lte, Gt, Gte, Call]
 
         removeLabel :: TAC -> Bool
         removeLabel (ThreeAddressCode NewLabel _ (Just (Label b)) _) = b `elem` usedLabels
