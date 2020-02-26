@@ -89,3 +89,20 @@ genIdAssignment lValue rValue =
 
 class GenerateCode a where
     genCode :: a -> CodeGenMonad ()
+
+raiseRunTimeError :: String -> CodeGenMonad ()
+raiseRunTimeError msg = do
+    let msgOperand = Constant (msg, StringT)
+    tell [
+        ThreeAddressCode
+        { tacOperand = Print
+        , tacLvalue = Nothing
+        , tacRvalue1 = Just msgOperand
+        , tacRvalue2 = Nothing
+        },
+        ThreeAddressCode
+        { tacOperand = Abort
+        , tacLvalue = Nothing
+        , tacRvalue1 = Nothing
+        , tacRvalue2 = Nothing
+        }]
