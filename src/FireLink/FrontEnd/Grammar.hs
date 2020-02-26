@@ -14,6 +14,9 @@ data Id
   = Id Token Int
   deriving Eq
 
+instance Ord Id where
+  Id Token {cleanedString=t1} _ <= Id Token {cleanedString=t2} _ = t1 <= t2
+
 extractIdName :: Id -> String
 extractIdName (Id Token {cleanedString=s} _) = s
 
@@ -122,7 +125,7 @@ instance Show BaseExpr where
   show (CharLit a) = [a]
   show (StringLit s) = s
   show (ArrayLit exprs) = "<$" ++ U.joinWithCommas exprs ++ "$>"
-  show (StructLit props) = "{ ++ " ++ joinProps props ++ " }"
+  show (StructLit props) = "{ " ++ joinProps props ++ " }"
   show (SetLit exprs) = "{$" ++ U.joinWithCommas exprs ++ "$}"
   show (Op1 o e) = show o ++ " " ++ show e
   show (Op2 o e e') = show e ++ " " ++ show o ++ " " ++ show e'
