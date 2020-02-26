@@ -315,6 +315,8 @@ Los literales de uniones (`link literals`) son expresiones de la siguiente forma
 
 Donde `nombre` corresponde a _alguno_ de los nombres válidos del tipo unión al cuál pertenece, y valor es una expresión cuyo tipo equivale al tipo asociado con el nombre en el tipo unión. No se considerarán válidos literales de uniones que tengan más de un par nombre/valor, que tengan un nombre que no exista en el tipo unión, o cuya expresión pertenezca a un tipo incompatible con el tipo asociado al nombre declarado.
 
+Note que intentar acceder al valor de un atributo inactivo de una unión (es decir: un atributo que no es el último inicializado, o cualquier atributo en el caso de una unión que no ha sido inicializada nunca) genera un error a tiempo de ejecución.
+
 ##### Funciones de las uniones
 
 Se debe implementar la siguiente función especial en el preludio de **FireLink**.
