@@ -87,6 +87,11 @@ genCodeForExpr _ (Op1 Negate expr) = do
             }]
     return lvalue
 
+{-
+This implementation works because in TAC and in MIPS characters are just numbers
+-}
+genCodeForExpr _ (AsciiOf expr) = genCode' expr
+
 genCodeForExpr _ e = error $ "This expression hasn't been implemented " ++ show e
 
 genParams :: [Expr] -> CodeGenMonad Int
