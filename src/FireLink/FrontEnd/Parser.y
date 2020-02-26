@@ -396,17 +396,17 @@ TYPE :: { ST.Extra }
   | float                                                               { ST.Simple ST.hollow }
   | char                                                                { ST.Simple ST.sign }
   | bool                                                                { ST.Simple ST.bonfire }
-  | ltelit EXPR array ofType TYPE                                       {% ST.genAliasName >>= \x -> return $ ST.Simple x }
-  | ltelit EXPR string                                                  {% ST.genAliasName >>= \x -> return $ ST.Simple x }
-  | set ofType TYPE                                                     {% ST.genAliasName >>= \x -> return $ ST.Simple x }
-  | pointer TYPE                                                        {% ST.genAliasName >>= \x -> return $ ST.Simple x }
+  | ltelit EXPR array ofType TYPE                                       {% fmap ST.Simple ST.genAliasName }
+  | ltelit EXPR string                                                  {% fmap ST.Simple ST.genAliasName }
+  | set ofType TYPE                                                     {% fmap ST.Simple ST.genAliasName }
+  | pointer TYPE                                                        {% fmap ST.Simple ST.genAliasName }
   | RECORD_OPEN  brOpen STRUCTITS BRCLOSE                               {% do
                                                                             checkRecoverableError $2 $4
                                                                             currScope <- ST.getCurrentScope
                                                                             nextOffset <- ST.getNextOffset
                                                                             ST.exitScope
                                                                             ST.popOffset
-                                                                            ST.genAliasName >>= \x -> return $ ST.Simple x }
+                                                                            fmap ST.Simple ST.genAliasName }
   | UNION_OPEN brOpen UNIONITS BRCLOSE                                  {% do
                                                                              checkRecoverableError $2 $4
                                                                              currScope <- ST.getCurrentScope
