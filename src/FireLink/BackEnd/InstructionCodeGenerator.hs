@@ -41,9 +41,6 @@ instance GenerateCode Program where
             }]
 
         mapM_ genBlock allFunctions
-        -- liftIO $ print functions
-        -- genLabel $ Label "_main"
-        -- genCode codeblock
         where
             alignedOffset :: Int -> Int
             alignedOffset maxOffset =
@@ -59,6 +56,7 @@ instance GenerateCode Program where
 
             genBlock :: (String, CodeBlock) -> CodeGenMonad ()
             genBlock (funName, codeblock@(CodeBlock _ maxOffset)) = do
+                liftIO $ print maxOffset
                 setTempOffset $ alignedOffset maxOffset
                 genLabel $ Label funName
                 genCode codeblock
