@@ -1,0 +1,28 @@
+hello ashen one
+
+invocation f
+requesting
+    val x of type humanity
+with skill of type humanity
+traveling somewhere
+    trust your inventory
+        x eq 1:
+        traveling somewhere
+            go back with ascii_of |a|
+        you died
+    inventory closed
+you died
+after this return to your world
+
+traveling somewhere
+with
+    var n of type humanity
+in your inventory
+    while the lit covenant is active:
+    traveling somewhere
+        summon f granting (summon f granting 1 to the knight) to the knight
+    you died
+    covenant left
+you died
+
+farewell ashen one
