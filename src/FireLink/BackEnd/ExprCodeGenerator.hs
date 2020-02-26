@@ -30,14 +30,12 @@ genCodeForExpr _ (IdExpr (Id Token {cleanedString=idName} idScope)) = do
 
 -- | Property access
 genCodeForExpr t (Access expr (Id Token {cleanedString=propIdName} propIdScope)) = do
+    let Expr { expAst = eAst, expType = eT } = expr
+    TAC.Id x <- genCodeForExpr eT eAst
+    let rO = getTACSymEntryOffset x
     propSymEntry <- findSymEntry propIdName propIdScope <$> ask
     let propOffset = getOffset propSymEntry
-    case expAst expr of
-        IdExpr (Id Token {cleanedString=idName} idScope) -> do
-            symEntry <- findSymEntry idName idScope <$> ask
-            let symEntryOffset = getOffset symEntry
-            return $ TAC.Id $ TACVariable propSymEntry $ symEntryOffset + propOffset
-        _ -> error $ "Unsupported expr as record-like structure: " ++ show expr
+    return $ TAC.Id $ TACVariable propSymEntry $ propOffset + rO
 
 genCodeForExpr TrileanT exp = do
     trueLabel <- newLabel
