@@ -44,6 +44,7 @@ removeUnusedLabels tacs = filter removeLabel tacs
 
         getLabelValue :: TAC -> String
         getLabelValue (ThreeAddressCode _ _ _ (Just (Label label))) = label
+        getLabelValue (ThreeAddressCode _ _ (Just (Label label)) _) = label
 
         itJumps :: TAC -> Bool
         itJumps (ThreeAddressCode tac _ _ _) = tac `elem` [GoTo, Eq, Neq, Lt, Lte, Gt, Gte, Call]
