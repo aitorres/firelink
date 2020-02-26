@@ -174,43 +174,41 @@ import           FireLink.Utils
   free                                                                  { T.Token {T.aToken=T.TkFreeMemory} }
 %%
 
-PROGRAM :: { G.Program }
-  : programBegin ALIASES METHODS NON_OPENER_CODEBLOCK PROGRAMEND        { G.Program $4 }
+PROGRAM :: { }
+  : programBegin ALIASES METHODS NON_OPENER_CODEBLOCK PROGRAMEND        {  }
 
-PROGRAMEND :: { Maybe G.RecoverableError }
-  : programEnd                                                          { Nothing }
-  | error                                                               { Just G.MissingProgramEnd }
+PROGRAMEND :: { }
+  : programEnd                                                          { }
+  | error                                                               { }
 
-NON_OPENER_CODEBLOCK :: { G.CodeBlock }
-  : instructionsBegin DECLARS INSTRL NON_OPENER_INSTEND                 { G.CodeBlock ($2 ++ reverse $3) 0 }
-  | instructionsBegin INSTRL NON_OPENER_INSTEND                         { G.CodeBlock (reverse $2) 0 }
+NON_OPENER_CODEBLOCK :: { }
+  : instructionsBegin DECLARS INSTRL NON_OPENER_INSTEND                 { }
+  | instructionsBegin INSTRL NON_OPENER_INSTEND                         { }
 
-NON_OPENER_INSTEND :: { Maybe G.RecoverableError }
-  : instructionsEnd                                                     { Nothing }
-  | error                                                               { Just G.MissingInstructionListEnd }
+NON_OPENER_INSTEND :: { }
+  : instructionsEnd                                                     { }
+  | error                                                               { }
 
-ALIASES :: { () }
+ALIASES :: { }
   : ALIASLISTBEGIN ALIASL ALIASLISTEND                                  {% do
                                                                             st <- RWS.get
                                                                             ST.popOffset
                                                                             RWS.put st{ST.stScopeStack=[1, 0]} }
   | {- empty -}                                                         { () }
 
-ALIASLISTBEGIN :: { T.Token }
-ALIASLISTBEGIN : aliasListBegin                                         {% ST.pushOffset 0 >> return $1 }
+ALIASLISTBEGIN :: { }
+ALIASLISTBEGIN : aliasListBegin                                         {% ST.pushOffset 0 }
 
-ALIASLISTEND :: { Maybe G.RecoverableError }
- : aliasListEnd                                                         { Nothing }
- | error                                                                { Just G.MissingAliasListEnd }
+ALIASLISTEND :: { }
+ : aliasListEnd                                                         { }
+ | error                                                                { }
 
 ALIASL :: { () }
-  : ALIASL comma ALIASADD                                               { () }
-  | ALIASADD                                                            { () }
+  : ALIASL comma ALIASADD                                               { }
+  | ALIASADD                                                            { }
 
 ALIASADD :: { () }
-  : ALIAS                                                               {% do
-                                                                            addIdToSymTable $1
-                                                                            return () }
+  : ALIAS                                                               {% addIdToSymTable $1 }
 
 ALIAS :: { NameDeclaration }
   : alias ID TYPE                                                       {% do
@@ -406,13 +404,13 @@ RECORD_OPEN : record                                                    {% ST.en
 UNION_OPEN :: { T.Token }
 UNION_OPEN : unionStruct                                                {% ST.enterScope >> ST.pushOffset 0 >> ST.newUnion >> return $1 }
 
-BRCLOSE :: { Maybe G.RecoverableError }
-  : brClose                                                             { Nothing }
-  | error                                                               { Just G.MissingClosingBrace }
+BRCLOSE :: { }
+  : brClose                                                             { }
+  | error                                                               { }
 
-PARENSCLOSE :: { Maybe G.RecoverableError }
-  : parensClose                                                         { Nothing }
-  | error                                                               { Just G.MissingClosingParens }
+PARENSCLOSE :: { }
+  : parensClose                                                         { }
+  | error                                                               { }
 
 UNIONITS :: { Int }
   : UNIONITS comma UNIONIT                                             { max $1 $3 }
@@ -430,11 +428,11 @@ UNIONIT :: { Int }
                                                                                 let ST.Width w = ST.findWidth entry
                                                                                 return w }
 
-STRUCTITS :: { () }
-  : STRUCTITS comma STRUCTIT                                            { () }
-  | STRUCTIT                                                            { () }
+STRUCTITS :: { }
+  : STRUCTITS comma STRUCTIT                                            { }
+  | STRUCTIT                                                            { }
 
-STRUCTIT :: { () }
+STRUCTIT :: { }
   : ID ofType TYPE                                                      {% addIdToSymTable (ST.RecordItem, $1, [$3]) }
 
 ID :: { G.Id }
@@ -442,35 +440,32 @@ ID :: { G.Id }
                                                                             currScope <- ST.getCurrentScope
                                                                             return $ G.Id $1 currScope }
 
-CODEBLOCK :: { G.CodeBlock }
-  : INSTBEGIN DECLARS INSTRL INSTEND                                    { G.CodeBlock ($2 ++ reverse $3) 0 }
-  | INSTBEGIN INSTRL INSTEND                                            { G.CodeBlock (reverse $2) 0 }
+CODEBLOCK :: { }
+  : INSTBEGIN DECLARS INSTRL INSTEND                                    { }
+  | INSTBEGIN INSTRL INSTEND                                            { }
 
-INSTBEGIN :: { T.Token }
+INSTBEGIN :: { }
 INSTBEGIN : instructionsBegin                                           {% do
                                                                             ST.enterScope
                                                                             nextOffset <- ST.getNextOffset
-                                                                            ST.pushOffset nextOffset
-                                                                            st <- RWS.get
-                                                                            return $1 }
+                                                                            ST.pushOffset nextOffset }
 
-INSTEND :: { Maybe G.RecoverableError }
+INSTEND :: { }
   : instructionsEnd                                                     {% do
                                                                              ST.exitScope
-                                                                             ST.popOffset
-                                                                             return Nothing }
-  | error                                                               { Just G.MissingInstructionListEnd }
+                                                                             ST.popOffset }
+  | error                                                               { }
 
-DECLARS :: { [G.Instruction] }
-  : with DECLARSL DECLAREND                                             { catMaybes (reverse $2) }
+DECLARS :: { }
+  : with DECLARSL DECLAREND                                             { }
 
-DECLAREND :: { Maybe G.RecoverableError }
-  : declarend                                                           { Nothing }
-  | error                                                               { Just G.MissingDeclarationListEnd }
+DECLAREND :: { }
+  : declarend                                                           { }
+  | error                                                               { }
 
-DECLARSL :: { [Maybe G.Instruction] }
-  : DECLARSL comma DECLARADD                                            { $3:$1 }
-  | DECLARADD                                                           { [$1] }
+DECLARSL :: { }
+  : DECLARSL comma DECLARADD                                            { }
+  | DECLARADD                                                           { }
 
 DECLARADD :: { Maybe G.Instruction }
   : DECLAR                                                              {% do
@@ -490,113 +485,99 @@ DECLAR :: { (NameDeclaration, Maybe (T.Token, G.Expr)) }
   | var ID ofType TYPE asig EXPR                                        { ((ST.Variable, $2, [$4]), Just ($5, $6))  }
   | const ID ofType TYPE asig EXPR                                      { ((ST.Constant, $2, [$4]), Just ($5, $6)) }
 
-INSTRL :: { G.Instructions }
-  : INSTRL seq INSTR                                                    { $3 : $1 }
-  | INSTR                                                               { [$1] }
+INSTRL :: { }
+  : INSTRL seq INSTR                                                    { }
+  | INSTR                                                               { }
 
-INSTR :: { G.Instruction }
-  : EXPR asig EXPR                                                      { G.InstAsig $1 $3 }
-  | malloc EXPR                                                         { G.InstMalloc $2 }
-  | free EXPR                                                           { G.InstFreeMem $2 }
-  | cast ID PROCARGS                                                    { G.InstCall $2 $3 }
-  | FUNCALL                                                             { let (tk, i, params) = $1 in
-                                                                          G.InstCall i params }
-  | return                                                              { G.InstReturn }
-  | returnWith EXPR                                                     { G.InstReturnWith $2 }
-  | print EXPR                                                          { G.InstPrint $2 }
-  | read EXPR                                                           { G.InstRead $2 }
-  | whileBegin EXPR covenantIsActive COLON CODEBLOCK WHILEEND           { G.InstWhile $2 $5 }
-  | ifBegin IFCASES ELSECASE IFEND                                      {% do
-                                                                          return $ G.InstIf (reverse ($3 : $2)) }
-  | ifBegin IFCASES IFEND                                               {% do
-                                                                          return $ G.InstIf (reverse $2) }
-  | SWITCHBEGIN COLON SWITCHCASES DEFAULTCASE SWITCHEND                 { let (switchTk, switchExpr) = $1 in
-                                                                          G.InstSwitch switchExpr (reverse ($4 : $3)) }
-  | SWITCHBEGIN COLON SWITCHCASES SWITCHEND                             { let (switchTk, switchExpr) = $1 in
-                                                                          G.InstSwitch switchExpr (reverse $3) }
-  | FORBEGIN CODEBLOCK FOREND                                           { let (fstTk, iterVar, _, startExpr, stopExpr) = $1 in
-                                                                          G.InstFor iterVar startExpr stopExpr $2 }
-  | FOREACHBEGIN CODEBLOCK FOREACHEND                                   { let (fstTk, iterVar, _, _, iteredExpr) = $1 in
-                                                                          G.InstForEach iterVar iteredExpr $2 }
+INSTR :: { }
+  : EXPR asig EXPR                                                      { }
+  | malloc EXPR                                                         { }
+  | free EXPR                                                           { }
+  | cast ID PROCARGS                                                    { }
+  | FUNCALL                                                             { }
+  | return                                                              { }
+  | returnWith EXPR                                                     { }
+  | print EXPR                                                          { }
+  | read EXPR                                                           { }
+  | whileBegin EXPR covenantIsActive COLON CODEBLOCK WHILEEND           { }
+  | ifBegin IFCASES ELSECASE IFEND                                      { }
+  | ifBegin IFCASES IFEND                                               { }
+  | SWITCHBEGIN COLON SWITCHCASES DEFAULTCASE SWITCHEND                 { }
+  | SWITCHBEGIN COLON SWITCHCASES SWITCHEND                             { }
+  | FORBEGIN CODEBLOCK FOREND                                           { }
+  | FOREACHBEGIN CODEBLOCK FOREACHEND                                   { }
 
-SWITCHBEGIN :: { (T.Token, G.Expr) }
-  : switchBegin EXPR                                                    { ($1, $2) }
+SWITCHBEGIN :: { }
+  : switchBegin EXPR                                                    { }
 
-FORBEGIN :: { (T.Token, G.Id, Bool, G.Expr, G.Expr) }
-  : forBegin ID with EXPR souls untilLevel EXPR                         { ($1, $2, False, $4, $7) }
+FORBEGIN :: { }
+  : forBegin ID with EXPR souls untilLevel EXPR                         { }
 
-FOREND :: { Maybe G.RecoverableError }
-  : forEnd                                                              { Nothing }
-  | error                                                               { Just G.MissingForEnd }
+FOREND :: { }
+  : forEnd                                                              { }
+  | error                                                               { }
 
-FOREACHBEGIN :: { (T.Token, G.Id, Bool, Bool, G.Expr) }
-  : forEachBegin ID withTitaniteFrom EXPR                               { ($1, $2, False, False, $4) }
+FOREACHBEGIN :: { }
+  : forEachBegin ID withTitaniteFrom EXPR                               { }
 
-FOREACHEND :: { Maybe G.RecoverableError }
-  : forEachEnd                                                          { Nothing }
-  | error                                                               { Just G.MissingForEachEnd }
+FOREACHEND :: { }
+  : forEachEnd                                                          { }
+  | error                                                               { }
 
-WHILEEND :: { Maybe G.RecoverableError }
-  : whileEnd                                                            { Nothing }
-  | error                                                               { Just G.MissingWhileEnd }
+WHILEEND :: { }
+  : whileEnd                                                            { }
+  | error                                                               { }
 
-COLON :: { Maybe G.RecoverableError }
-  : colon                                                               { Nothing }
-  | error                                                               { Just G.MissingColon }
+COLON :: { }
+  : colon                                                               { }
+  | error                                                               { }
 
 FUNCALL :: { (T.Token, G.Id, G.Params) }
   : summon ID FUNCPARS                                                  { ($1, $2, $3) }
 
-IFCASES :: { G.IfCases }
-  : IFCASES IFCASE                                                      { $2 : $1 }
-  | IFCASE                                                              { [$1] }
+IFCASES :: { }
+  : IFCASES IFCASE                                                      { }
+  | IFCASE                                                              { }
 
-IFCASE :: { G.IfCase }
-  : EXPR COLON CODEBLOCK                                                { G.GuardedCase $1 $3 }
+IFCASE :: { }
+  : EXPR COLON CODEBLOCK                                                { }
 
-ELSECASE :: { G.IfCase }
-  : else COLON CODEBLOCK                                                { G.GuardedCase (G.Expr
-                                                                                          { G.expAst = G.TrueLit
-                                                                                          , G.expType = T.TrileanT
-                                                                                          , G.expTok = (T.Token
-                                                                                                          { T.aToken = T.TkLit
-                                                                                                          , T.capturedString = "lit"
-                                                                                                          , T.cleanedString = "lit"})
-                                                                                          }) $3 }
+ELSECASE :: { }
+  : else COLON CODEBLOCK                                                { }
 
-IFEND :: { Maybe G.RecoverableError }
-  : ifEnd                                                               { Nothing }
-  | error                                                               { Just G.MissingIfEnd }
+IFEND :: { }
+  : ifEnd                                                               { }
+  | error                                                               { }
 
-SWITCHCASES :: { G.SwitchCases }
-  : SWITCHCASES SWITCHCASE                                              { $2 : $1 }
-  | SWITCHCASE                                                          { [$1] }
+SWITCHCASES :: { }
+  : SWITCHCASES SWITCHCASE                                              { }
+  | SWITCHCASE                                                          { }
 
-SWITCHCASE :: { G.SwitchCase }
-  : EXPR COLON CODEBLOCK                                                { G.Case $1 $3 }
+SWITCHCASE :: { }
+  : EXPR COLON CODEBLOCK                                                { }
 
-SWITCHEND :: { Maybe G.RecoverableError }
-  : switchEnd                                                           { Nothing }
-  | error                                                               { Just G.MissingSwitchEnd }
+SWITCHEND :: { }
+  : switchEnd                                                           { }
+  | error                                                               { }
 
-DEFAULTCASE :: { G.SwitchCase }
-  : switchDefault COLON CODEBLOCK                                       { G.DefaultCase $3 }
+DEFAULTCASE :: { }
+  : switchDefault COLON CODEBLOCK                                       { }
 
 FUNCPARS :: { G.Params }
   : granting PARSLIST TOTHEKNIGHT                                       { reverse $2 }
   | {- empty -}                                                         { [] }
 
-TOTHEKNIGHT :: { Maybe G.RecoverableError }
-  : toTheKnight                                                         { Nothing }
-  | error                                                               { Just G.MissingFunCallEnd }
+TOTHEKNIGHT :: { }
+  : toTheKnight                                                         { }
+  | error                                                               { }
 
 PROCARGS :: { G.Params }
   : offering PARSLIST TOTHEESTUSFLASK                                   { reverse $2 }
   | {- empty -}                                                         { [] }
 
-TOTHEESTUSFLASK :: { Maybe G.RecoverableError }
-  : toTheEstusFlask                                                     { Nothing }
-  | error                                                               { Just G.MissingProcCallEnd }
+TOTHEESTUSFLASK :: { }
+  : toTheEstusFlask                                                     { }
+  | error                                                               { }
 
 PARSLIST :: { G.Params }
   : PARSLIST comma EXPR                                                 { $3 : $1 }
@@ -717,9 +698,6 @@ assignOffsetAndInsert entry = do
 
     requiresOffset :: Bool
     requiresOffset = category `elem` categoriesThatRequireOffset
-
-checkIdAvailability :: G.Id -> ST.ParserMonad (Maybe ST.DictionaryEntry)
-checkIdAvailability (G.Id tk@(T.Token {T.cleanedString=idName}) _) = ST.dictLookup idName >>= return
 
 addFunction :: NameDeclaration -> ST.ParserMonad (Maybe (ST.Scope, G.Id))
 addFunction d@(_, i@(G.Id tk@(T.Token {T.cleanedString=idName}) _), _) = do
