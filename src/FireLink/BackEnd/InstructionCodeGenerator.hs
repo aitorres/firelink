@@ -71,7 +71,8 @@ instance GenerateCode Instruction where
 genCodeForInstruction :: Instruction -> OperandType -> CodeGenMonad ()
 
 -- Utility instructions
-genCodeForInstruction (InstPrint expr) _ = genCode expr
+genCodeForInstruction (InstPrint expr) _ = return () --genCode expr
+genCodeForInstruction (InstRead _) _ = return () --genCode expr
 
 genCodeForInstruction InstReturn _ =
     tell [ThreeAddressCode

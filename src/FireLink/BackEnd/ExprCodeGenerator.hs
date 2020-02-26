@@ -186,6 +186,10 @@ genCodeForBooleanExpr expr trueLabel falseLabel = case expr of
             genCodeForBooleanExpr (expAst lhs) lhsTrueLabel lhsFalseLabel
             genCodeForBooleanExpr (expAst rhs) rhsTrueLabel rhsFalseLabel
             when (isFall falseLabel) (genLabel lhsFalseLabel)
+    (EvalFunc _ _) -> do
+        resultOperand <- genCodeForExpr TrileanT expr
+        genBooleanComparation resultOperand (TAC.Constant ("true", TrileanT)) trueLabel falseLabel Eq
+    o -> error $ "No pattern on genCodeForBooleanExpr for " ++ show o
 
 -- Used in boolean expr generation as well as switch case generation
 genBooleanComparation :: OperandType -> OperandType -> OperandType -> OperandType -> Op2 -> CodeGenMonad ()
