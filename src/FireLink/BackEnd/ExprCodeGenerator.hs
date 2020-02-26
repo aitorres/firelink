@@ -19,14 +19,25 @@ instance GenerateCode Expr where
 genCode' :: Expr -> CodeGenMonad OperandType
 genCode' Expr {expAst=ast, expType=t} = genCodeForExpr t ast
 
-genCodeForExpr :: Type -> BaseExpr -> CodeGenMonad OperandType
-genCodeForExpr _ (IdExpr (Id Token {cleanedString=idName} idScope)) = do
-    symEntry <- findSymEntry <$> ask
-    return $ TAC.Id $ TACVariable symEntry $ getOffset symEntry
-    where
-        findSymEntry :: Dictionary -> DictionaryEntry
-        findSymEntry = head . filter (\s -> scope s == idScope) . findChain idName
+findSymEntry :: String -> Int -> Dictionary -> DictionaryEntry
+findSymEntry i idScope = head . filter (\s -> scope s == idScope) . findChain i
 
+genCodeForExpr :: Type -> BaseExpr -> CodeGenMonad OperandType
+-- | Ids
+genCodeForExpr _ (IdExpr (Id Token {cleanedString=idName} idScope)) = do
+    symEntry <- findSymEntry idName idScope <$> ask
+    return $ TAC.Id $ TACVariable symEntry $ getOffset symEntry
+
+-- | Property access
+genCodeForExpr t (Access expr (Id Token {cleanedString=propIdName} propIdScope)) = do
+    propSymEntry <- findSymEntry propIdName propIdScope <$> ask
+    let propOffset = getOffset propSymEntry
+    case expAst expr of
+        IdExpr (Id Token {cleanedString=idName} idScope) -> do
+            symEntry <- findSymEntry idName idScope <$> ask
+            let symEntryOffset = getOffset symEntry
+            return $ TAC.Id $ TACVariable propSymEntry $ symEntryOffset + propOffset
+        _ -> error $ "Unsupported expr as record-like structure: " ++ show expr
 
 genCodeForExpr TrileanT exp = do
     trueLabel <- newLabel
