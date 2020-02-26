@@ -663,7 +663,7 @@ La llamada a la función NO evalúa a ninguna expresión.
 Para imprimir una expresión a la salida estándar, se puede usar el siguiente procedimiento:
 
 ```firelink
-with orange saponite say <expresion>
+with orange saponite say <expresión>
 ```
 
 Únicamente se pueden imprimir expresiones de los siguientes tipos:
@@ -679,10 +679,10 @@ with orange saponite say <expresion>
 Para leer una expresión y almacenarla en una variable, se puede usar el siguiente procedimiento:
 
 ```firelink
-transpose into <identificador>
+transpose into <expresión>
 ```
 
-El identificador debe corresponder con una variable ya declarada de los siguientes tipos:
+La expresión debe evaluar a un LVALUE adecuado (id, elementos de contenedores o estructuras, o referencias a través de apuntadores) y debe corresponder con una variable ya declarada de los siguientes tipos:
 
 - Big / Small humanity
 - Bonfire

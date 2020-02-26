@@ -75,10 +75,6 @@ instance GenerateCode Instruction where
 genCodeForInstruction :: Instruction -> OperandType -> CodeGenMonad ()
 
 -- Utility instructions
--- TODO: Use TAC instructions, change
-genCodeForInstruction (InstPrint expr) _ = return () --genCode expr
-genCodeForInstruction (InstRead _) _ = return () --genCode expr
-
 genCodeForInstruction InstReturn _ =
     tell [ThreeAddressCode
             { tacOperand = Return
@@ -257,6 +253,41 @@ genCodeForInstruction (InstFor id step bound codeblock) next = do
             genIncrement idOp step = do
                 stepOp <- genCode' step
                 genOp2Code Add idOp stepOp
+
+{-
+Read statement
+
+Given that we can only read values for scalar types + strings, we simply
+transform the Read statement into the TAC instruction.
+
+?NOTE: Given that we include trilean support, we might have to modify this
+? in order to read trileans as strings and then parse the received value.
+-}
+genCodeForInstruction (InstRead expr) next = do
+    readOperand <- genCode' expr
+    tell [ThreeAddressCode
+            { tacOperand = Read
+            , tacLvalue = Nothing
+            , tacRvalue1 = Just readOperand
+            , tacRvalue2 = Nothing
+            }]
+    genLabel next
+
+{-
+Print statement
+
+Given that we can only print values for scalar types + strings, we simply
+transform the print statement into the TAC instruction.
+-}
+genCodeForInstruction (InstPrint expr) next = do
+    printOperand <- genCode' expr
+    tell [ThreeAddressCode
+            { tacOperand = Print
+            , tacLvalue = Nothing
+            , tacRvalue1 = Just printOperand
+            , tacRvalue2 = Nothing
+            }]
+    genLabel next
 
 genCodeForInstruction i _ = error $ "This instruction hasn't been implemented " ++ show i
 
