@@ -1,6 +1,6 @@
 module FireLink.BackEnd.InstructionCodeGenerator where
 
-import           Control.Monad.RWS                  (ask, unless, when)
+import           Control.Monad.RWS                  (ask, unless, when, lift)
 import           FireLink.BackEnd.CodeGenerator
 import           FireLink.BackEnd.ExprCodeGenerator (genBooleanComparison,
                                                      genCode',
@@ -17,9 +17,10 @@ import qualified FireLink.FrontEnd.Grammar          as G (Id (..), Op2 (..))
 import           FireLink.FrontEnd.SymTable         (Dictionary,
                                                      DictionaryEntry (..),
                                                      findAllFunctionsAndProcedures,
-                                                     findSymEntryById,
-                                                     getCodeBlock,
+                                                     findSymEntryById, findSymEntryByName,
+                                                     getCodeBlock, extractTypeFromExtra,
                                                      getUnionAttrId, wordSize)
+import qualified FireLink.FrontEnd.SymTable         as ST (Extra (..))
 import           FireLink.FrontEnd.Tokens           (Token (..))
 import           FireLink.FrontEnd.TypeChecking     (Type (..))
 import           TACType
@@ -68,6 +69,7 @@ instance GenerateCode Program where
                 setTempOffset $ alignedOffset maxOffset
                 genLabel $ Label funName
                 t <- newtemp
+                putArrayOffsetVar t
                 genIdAssignment (Id t) $ Constant ("TO_REPLACE", BigIntT)
                 genCode codeblock
                 offset <- getTempOffset
@@ -82,6 +84,17 @@ instance GenerateCode Instruction where
         genCodeForInstruction instruction next
 
 genCodeForInstruction :: Instruction -> OperandType -> CodeGenMonad ()
+
+genCodeForInstruction (InstInitArray arrayId@(G.Id _ s)) _ = do
+    entry <- findSymEntryById arrayId <$> ask
+    let (ST.Simple t) = extractTypeFromExtra $ extra entry
+    tt <- findSymEntryByName t <$> ask
+    lift $ do
+        print tt
+        print arrayId
+        print s
+        print entry
+    return ()
 
 -- Utility instructions
 genCodeForInstruction InstReturn _ =
