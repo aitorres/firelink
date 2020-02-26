@@ -1,6 +1,6 @@
 module FireLink.BackEnd.InstructionCodeGenerator where
 
-import           Control.Monad.RWS                  (liftIO, tell, unless, when)
+import           Control.Monad.RWS                  (ask, tell, unless, when)
 import           FireLink.BackEnd.CodeGenerator
 import           FireLink.BackEnd.ExprCodeGenerator (genBooleanComparation,
                                                      genCode',
@@ -12,8 +12,9 @@ import           FireLink.FrontEnd.Grammar          (BaseExpr (..),
                                                      Instruction (..),
                                                      Program (..),
                                                      SwitchCase (..))
-import qualified FireLink.FrontEnd.Grammar          as G (Op2 (..))
-import           FireLink.FrontEnd.SymTable         (wordSize)
+import qualified FireLink.FrontEnd.Grammar          as G (Id (..), Op2 (..))
+import           FireLink.FrontEnd.SymTable         (getUnionAttrId, wordSize)
+import           FireLink.FrontEnd.Tokens           as T (Token (..))
 import           FireLink.FrontEnd.TypeChecking     (Type (..))
 import           TACType
 
@@ -58,12 +59,30 @@ genCodeForInstruction (InstAsig lvalue rvalue) next =
             genLabel falseLabel
             genIdAssignment operand $ Constant ("false", TrileanT)
             genLabel next
+
+        -- The following code takes care of the isActive attribute for unions
+        when (isUnionT $ expAst lvalue) $ do
+            let Expr { expAst = (Access unionExpr (G.Id Token {T.cleanedString=idName} idScope)) } = lvalue
+            propertySymEntry <- findSymEntry idName idScope <$> ask
+            let argPos = getUnionAttrId propertySymEntry
+            unionExprOp <- genCode' unionExpr
+            tell [ThreeAddressCode
+                { tacOperand = Assign
+                , tacLvalue = Just unionExprOp
+                , tacRvalue1 = Just $ Constant (show argPos, BigIntT)
+                , tacRvalue2 = Nothing
+                }]
+
     else error $ "Lvalue currently not supported for assignments: " ++ show lvalue
     where
         supportedLvalue :: Expr -> Bool
-        supportedLvalue Expr {expAst = IdExpr _ } = True
+        supportedLvalue Expr {expAst = IdExpr _ }  = True
         supportedLvalue Expr {expAst = Access _ _} = True
-        supportedLvalue _                         = False
+        supportedLvalue _                          = False
+
+        isUnionT :: BaseExpr -> Bool
+        isUnionT (Access Expr { expType = UnionT _ _ } _) = True
+        isUnionT _                                        = False
 
 {-
 Conditional selection statement
