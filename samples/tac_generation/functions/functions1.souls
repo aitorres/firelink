@@ -10,7 +10,8 @@ traveling somewhere
         traveling somewhere
             go back with ascii_of |a|
         you died
-    inventory closed
+    inventory closed \
+    go back with 123
 you died
 after this return to your world
 
