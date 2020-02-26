@@ -543,8 +543,7 @@ INSTRL :: { (G.Instructions, Int) }
 INSTR :: { G.Instruction }
   : EXPR asig EXPR                                                      {% do
                                                                           checkLvalue $1
-                                                                          checkAssignment $1 $2 $3 False
-                                                                          return $ G.InstAsig $1 $3 }
+                                                                          checkAssignment $1 $2 $3 False >>= return }
   | malloc EXPR                                                         {% do
                                                                           checkPointerVariable $2
                                                                           return $ G.InstMalloc $2 }
@@ -1056,10 +1055,10 @@ checkAssignment lvalue token rvalue isInit = do
     checkIterVariables lvalue
     checkIterableVariables lvalue
   t <- getType rvalue
-  if t == T.StructLitT
-  then checkStructAssignment lvalue rvalue token
-  else checkTypeOfAssignment lvalue rvalue token
-  return $ G.InstAsig lvalue rvalue
+  asigRvalue <-
+    if t == T.StructLitT then checkStructAssignment lvalue rvalue token
+    else checkTypeOfAssignment lvalue rvalue token >> return rvalue
+  return $ G.InstAsig lvalue asigRvalue
 
 extractFieldsFromExtra :: [ST.Extra] -> ST.Extra
 extractFieldsFromExtra [] = logRTErrorNonMonadic "The `extra` array doesn't have any `Fields` item"
@@ -1380,20 +1379,21 @@ checkSize expr tk = do
     logSemError "`size` expects a sizeable collection type" tk
     return T.TypeError
 
-checkStructAssignment :: (TypeCheckable a) => a -> G.Expr -> T.Token -> ST.ParserMonad ()
-checkStructAssignment lval (G.Expr {G.expAst = (G.StructLit structProps)}) tk = do
+checkStructAssignment :: (TypeCheckable a) => a -> G.Expr -> T.Token -> ST.ParserMonad G.Expr
+checkStructAssignment lval e@(G.Expr {G.expAst = (G.StructLit structProps)}) tk = do
   lvalType <- getType lval
   checkStructAssignment' lvalType
   where
-    checkStructAssignment' :: T.Type -> ST.ParserMonad ()
+    checkStructAssignment' :: T.Type -> ST.ParserMonad G.Expr
     checkStructAssignment' lvalType = case lvalType of
-      T.RecordT _ properties -> do
+      T.RecordT scope properties -> do
         let propL = length properties
         let structPropsL = length structProps
         if structPropsL /= propL then do
           let mismatch = propL - structPropsL
           let errDetails = if mismatch > 0 then "(missing " ++ show mismatch ++ " properties)" else "(assigning " ++ show (-mismatch) ++ " additional properties)"
           logSemError ("Bezel literal must assign exactly one value to each valid property " ++ errDetails) tk
+          return e
         else do
           let propNames = map (\(T.PropType (s, _)) -> s) properties
           let structPropNames = map (\( (G.Id (T.Token {T.cleanedString=spName}) _) , _) -> spName) structProps
@@ -1401,34 +1401,44 @@ checkStructAssignment lval (G.Expr {G.expAst = (G.StructLit structProps)}) tk = 
             let invalidNames = filter (\x -> not $ x `elem` propNames) structPropNames
             let firstInvalidName = head invalidNames
             logSemError ("Invalid property name " ++ firstInvalidName ++ " for bezel literal assignment") tk
+            return e
           else do
             let propTypes = map (\(T.PropType (s, t)) -> t) properties
             let structPropVals = map snd structProps
             checkRecordTypes propNames propTypes structPropVals
+            fixIdScopes scope e
 
-      T.UnionT _ properties -> do
+      T.UnionT scope properties -> do
         let structPropsL = length structProps
-        if structPropsL /= 1 then logSemError ("Link literal must assign exactly one valid property") tk
+        if structPropsL /= 1 then logSemError ("Link literal must assign exactly one valid property") tk >> return e
         else do
           let propNames = map (\(T.PropType (s, _)) -> s) properties
           let (G.Id (T.Token {T.cleanedString = structPropName}) _, structPropVal) = head structProps
-          if not (structPropName `elem` propNames) then logSemError ("Invalid property name " ++ structPropName ++ " for link literal assignment") tk
+          if not (structPropName `elem` propNames) then do
+            logSemError ("Invalid property name " ++ structPropName ++ " for link literal assignment") tk
+            return e
           else do
             let T.PropType (_, propType) = head $ filter (\(T.PropType (n, _)) -> n == structPropName) properties
             structPropValT <- getType structPropVal
-            if structPropValT `T.canBeConvertedTo` propType then return ()
+            if structPropValT `T.canBeConvertedTo` propType then fixIdScopes scope e
             else do
               let errDetails = "(expected " ++ show propType ++ ", received " ++ show structPropValT ++ ")"
-              logSemError ("Type mismach on link literal assignment " ++ errDetails) tk
+              logSemError ("Type mismach on link literal assignment " ++ errDetails) tk >> return e
 
       tA@(T.AliasT _) -> do
         newT <- makeStructFromAlias tA
         if newT == T.TypeError then logNonStructType (show tA)
         else checkStructAssignment' newT
 
-      T.TypeError -> return ()
+      T.TypeError -> return e
 
       _ -> logNonStructType (show lvalType)
+
+    fixIdScopes :: Int -> G.Expr -> ST.ParserMonad G.Expr
+    fixIdScopes scope e@(G.Expr {G.expAst = ast@(G.StructLit structProps)}) = do
+      let newProps = map (\(G.Id tk _, e) -> (G.Id tk scope, e)) structProps
+      return e { G.expAst = G.StructLit newProps}
+
     checkRecordTypes :: [String] -> [T.Type] -> [G.Expr] -> ST.ParserMonad ()
     checkRecordTypes [] [] [] = return ()
     checkRecordTypes (n:names) (t:types) (v:vals) = do
@@ -1439,8 +1449,8 @@ checkStructAssignment lval (G.Expr {G.expAst = (G.StructLit structProps)}) tk = 
         -- Not stopping the propagation 'cause it's useful to know all the type mismatches
         checkRecordTypes names types vals
 
-    logNonStructType :: String -> ST.ParserMonad ()
-    logNonStructType bT = logSemError ("Type mismatch on struct assignment (" ++ bT ++ " is not a struct type)") tk
+    logNonStructType :: String -> ST.ParserMonad G.Expr
+    logNonStructType bT = logSemError ("Type mismatch on struct assignment (" ++ bT ++ " is not a struct type)") tk >> return e
 checkStructAssignment _ _ _ = logRTError "checkStructAssignment function called with a non-struct literal or expression"
 
 checkTypeOfAssignment :: (TypeCheckable a, TypeCheckable b) => a -> b -> T.Token -> ST.ParserMonad ()
