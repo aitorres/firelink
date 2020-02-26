@@ -75,6 +75,7 @@ instance GenerateCode Instruction where
 genCodeForInstruction :: Instruction -> OperandType -> CodeGenMonad ()
 
 -- Utility instructions
+-- TODO: Use TAC instructions, change
 genCodeForInstruction (InstPrint expr) _ = return () --genCode expr
 genCodeForInstruction (InstRead _) _ = return () --genCode expr
 
@@ -129,7 +130,7 @@ genCodeForInstruction (InstAsig lvalue rvalue) next =
             genIdAssignment operand $ Constant ("false", TrileanT)
             genLabel next
 
-        -- The following code takes care of the isActive attribute for unions
+        -- The following code takes care of the isActive attribute for unions on property assignments
         when (isUnionBExpr $ expAst lvalue) $ do
             let Expr { expAst = (Access unionExpr propId) } = lvalue
             markActiveAttrForUnion unionExpr propId
@@ -163,6 +164,7 @@ genCodeForInstruction (InstAsig lvalue rvalue) next =
                 RecordT fieldsScope _ -> return fieldsScope
             mapM_ (assignPropertyValue fieldsScope lvalue) propAssignments
 
+            -- The following code takes care of the isActive attribute for unions on literal assignments
             when (isUnionT $ expType lvalue) $ do
                 let [(G.Id tk _, _)] = propAssignments
                 markActiveAttrForUnion lvalue (G.Id tk fieldsScope)
