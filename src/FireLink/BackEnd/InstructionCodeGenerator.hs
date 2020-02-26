@@ -1,6 +1,6 @@
 module FireLink.BackEnd.InstructionCodeGenerator where
 
-import           Control.Monad.RWS                  (ask, tell, unless, when)
+import           Control.Monad.RWS                  (ask, unless, when)
 import           FireLink.BackEnd.CodeGenerator
 import           FireLink.BackEnd.ExprCodeGenerator (genBooleanComparison,
                                                      genCode',
@@ -37,7 +37,7 @@ instance GenerateCode Program where
     genCode (Program codeblock@(CodeBlock _ maxOffset)) = do
         functions <- getFunctions <$> ask
         let allFunctions = ("_main", codeblock) : functions
-        tell [ThreeAddressCode
+        gen [ThreeAddressCode
             { tacOperand = Call
             , tacLvalue = Nothing
             , tacRvalue1 = Just $ Label "_main"
@@ -81,7 +81,7 @@ genCodeForInstruction :: Instruction -> OperandType -> CodeGenMonad ()
 
 -- Utility instructions
 genCodeForInstruction InstReturn _ =
-    tell [ThreeAddressCode
+    gen [ThreeAddressCode
             { tacOperand = Return
             , tacLvalue = Nothing
             , tacRvalue1 = Nothing
@@ -90,7 +90,7 @@ genCodeForInstruction InstReturn _ =
 
 genCodeForInstruction (InstReturnWith expr) _ = do
     operand <- genCode' expr
-    tell [ThreeAddressCode
+    gen [ThreeAddressCode
             { tacOperand = Return
             , tacLvalue = Nothing
             , tacRvalue1 = Just operand
@@ -104,7 +104,7 @@ as it was a label
 genCodeForInstruction (InstCall fId params) _ = do
     paramsLength <- genParams params
     funEntry <- findSymEntryById fId <$> ask
-    tell [ThreeAddressCode
+    gen [ThreeAddressCode
             { tacOperand = Call
             , tacLvalue = Nothing
             , tacRvalue1 = Just $ Label $ name funEntry
@@ -284,7 +284,7 @@ transform the Read statement into the TAC instruction.
 -}
 genCodeForInstruction (InstRead expr) next = do
     readOperand <- genCode' expr
-    tell [ThreeAddressCode
+    gen [ThreeAddressCode
             { tacOperand = Read
             , tacLvalue = Nothing
             , tacRvalue1 = Just readOperand
@@ -300,7 +300,7 @@ transform the print statement into the TAC instruction.
 -}
 genCodeForInstruction (InstPrint expr) next = do
     printOperand <- genCode' expr
-    tell [ThreeAddressCode
+    gen [ThreeAddressCode
             { tacOperand = Print
             , tacLvalue = Nothing
             , tacRvalue1 = Just printOperand

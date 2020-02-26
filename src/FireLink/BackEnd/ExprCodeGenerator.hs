@@ -56,7 +56,7 @@ genCodeForExpr _ (EvalFunc fId params) = do
     paramsLength <- genParams params
     ret <- TAC.Id <$> newtemp
     funEntry <- findSymEntryById fId <$> ask
-    tell [TAC.ThreeAddressCode
+    gen [TAC.ThreeAddressCode
             { TAC.tacOperand = TAC.Call
             , TAC.tacLvalue = Just ret
             , TAC.tacRvalue1 = Just $ TAC.Label $ name funEntry
@@ -94,7 +94,7 @@ genCodeForExpr t (Caster expr newType) = do
     tempOp <- genCode' expr
     let oldType = expType expr
     lvalue <- TAC.Id <$> newtemp
-    tell [TAC.ThreeAddressCode
+    gen [TAC.ThreeAddressCode
             { TAC.tacOperand = TAC.Cast (show oldType) (show newType)
             , TAC.tacLvalue = Just lvalue
             , TAC.tacRvalue1 = Just tempOp
@@ -105,7 +105,7 @@ genCodeForExpr t (Caster expr newType) = do
 genCodeForExpr _ (Op1 Negate expr) = do
     rId <- genCode' expr
     lvalue <- TAC.Id <$> newtemp
-    tell [TAC.ThreeAddressCode
+    gen [TAC.ThreeAddressCode
             { TAC.tacOperand = TAC.Minus
             , TAC.tacLvalue = Just lvalue
             , TAC.tacRvalue1 = Just rId
@@ -123,7 +123,7 @@ genCodeForExpr _ e = error $ "This expression hasn't been implemented " ++ show 
 genParams :: [Expr] -> CodeGenMonad Int
 genParams params = do
     operands <- mapM genCode' params
-    tell $ map createParam operands
+    gen $ map createParam operands
     return $ length params
     where
         createParam :: OperandType -> TAC
@@ -161,7 +161,7 @@ genCodeForBooleanExpr expr trueLabel falseLabel = case expr of
         let isTrueNotFall = not $ isFall trueLabel
         let isFalseNotFall = not $ isFall falseLabel
         if isTrueNotFall && isFalseNotFall then do
-            tell [TAC.ThreeAddressCode
+            gen [TAC.ThreeAddressCode
                     { TAC.tacOperand = TAC.Eq
                     , TAC.tacLvalue = Just symEntry
                     , TAC.tacRvalue1 = Just $ TAC.Constant ("true", TrileanT)
@@ -169,13 +169,13 @@ genCodeForBooleanExpr expr trueLabel falseLabel = case expr of
                     }]
             genGoTo falseLabel
         else if isTrueNotFall then
-            tell [TAC.ThreeAddressCode
+            gen [TAC.ThreeAddressCode
                     { TAC.tacOperand = TAC.Eq
                     , TAC.tacLvalue = Just symEntry
                     , TAC.tacRvalue1 = Just $ TAC.Constant ("true", TrileanT)
                     , TAC.tacRvalue2 = Just trueLabel
                     }]
-        else when isFalseNotFall (tell [TAC.ThreeAddressCode
+        else when isFalseNotFall (gen [TAC.ThreeAddressCode
                     { TAC.tacOperand = TAC.Eq
                     , TAC.tacLvalue = Just symEntry
                     , TAC.tacRvalue1 = Just $ TAC.Constant ("false", TrileanT)
@@ -238,7 +238,7 @@ genBooleanComparison leftExprId rightExprId trueLabel falseLabel op = do
     let isTrueNotFall = not $ isFall trueLabel
     let isFalseNotFall = not $ isFall falseLabel
     if isTrueNotFall && isFalseNotFall then do
-        tell [TAC.ThreeAddressCode
+        gen [TAC.ThreeAddressCode
                 { TAC.tacOperand = mapOp2ToTacOperation op
                 , TAC.tacLvalue = Just leftExprId
                 , TAC.tacRvalue1 = Just rightExprId
@@ -246,13 +246,13 @@ genBooleanComparison leftExprId rightExprId trueLabel falseLabel op = do
                 }]
         genGoTo falseLabel
     else if isTrueNotFall then
-        tell [TAC.ThreeAddressCode
+        gen [TAC.ThreeAddressCode
                 { TAC.tacOperand = mapOp2ToTacOperation op
                 , TAC.tacLvalue = Just leftExprId
                 , TAC.tacRvalue1 = Just rightExprId
                 , TAC.tacRvalue2 = Just trueLabel
                 }]
-    else when isFalseNotFall (tell [TAC.ThreeAddressCode
+    else when isFalseNotFall (gen [TAC.ThreeAddressCode
                 { TAC.tacOperand = complement $ mapOp2ToTacOperation op
                 , TAC.tacLvalue = Just leftExprId
                 , TAC.tacRvalue1 = Just rightExprId

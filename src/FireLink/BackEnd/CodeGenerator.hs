@@ -57,7 +57,7 @@ newLabel = do
     return $ Label $ show label
 
 genGoTo :: OperandType -> CodeGenMonad ()
-genGoTo label = tell [ThreeAddressCode
+genGoTo label = gen [ThreeAddressCode
             { tacOperand = GoTo
             , tacLvalue = Nothing
             , tacRvalue1 = Nothing
@@ -65,7 +65,7 @@ genGoTo label = tell [ThreeAddressCode
             }]
 
 genLabel :: OperandType -> CodeGenMonad ()
-genLabel label = tell [ThreeAddressCode
+genLabel label = gen [ThreeAddressCode
                             { tacOperand = NewLabel
                             , tacLvalue = Nothing
                             , tacRvalue1 = Just label
@@ -81,7 +81,7 @@ isFall _         = error "calling isFall with non-label"
 
 genIdAssignment :: OperandType -> OperandType -> CodeGenMonad ()
 genIdAssignment lValue rValue =
-    tell [ThreeAddressCode
+    gen [ThreeAddressCode
         { tacOperand = Assign
         , tacLvalue = Just lValue
         , tacRvalue1 = Just rValue
@@ -94,7 +94,7 @@ class GenerateCode a where
 raiseRunTimeError :: String -> CodeGenMonad ()
 raiseRunTimeError msg = do
     let msgOperand = Constant (msg, StringT)
-    tell [
+    gen [
         ThreeAddressCode
         { tacOperand = Print
         , tacLvalue = Nothing
@@ -107,3 +107,6 @@ raiseRunTimeError msg = do
         , tacRvalue1 = Nothing
         , tacRvalue2 = Nothing
         }]
+
+gen :: [TAC] -> CodeGenMonad ()
+gen = tell
