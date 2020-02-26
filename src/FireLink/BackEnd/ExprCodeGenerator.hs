@@ -212,12 +212,7 @@ genCodeForBooleanExpr expr trueLabel falseLabel = case expr of
         -- Assign received argument's attr number to a new temp
         propArgPosNewId <- newtemp
         let propArgOperand = TAC.Id propArgPosNewId
-        tell [TAC.ThreeAddressCode
-            { TAC.tacOperand = TAC.Assign
-            , TAC.tacLvalue = Just propArgOperand
-            , TAC.tacRvalue1 = Just $ TAC.Constant (show propArgPos, BigIntT)
-            , TAC.tacRvalue2 = Nothing
-            }]
+        genIdAssignment propArgOperand $ TAC.Constant (show propArgPos, BigIntT)
 
         -- Gen boolean comparison
         genBooleanComparison propArgOperand realArgOperand trueLabel falseLabel Eq
