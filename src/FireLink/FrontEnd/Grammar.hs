@@ -166,6 +166,7 @@ data Instruction
   | InstWhile Expr CodeBlock
   | InstMalloc Expr
   | InstFreeMem Expr
+  | InstInitArray Id
   deriving (Eq, Show)
 
 getInstrOffset :: Instruction -> Int

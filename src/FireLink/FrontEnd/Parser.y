@@ -487,22 +487,21 @@ INSTEND :: { Maybe G.RecoverableError }
 DECLARS :: { ([G.Instruction], Int) }
   : with DECLARSL DECLAREND                                             {% do
                                                                             let (insts, o) = $2
-                                                                            let instrlist = catMaybes (reverse insts)
                                                                             checkRecoverableError $1 $3
-                                                                            return (instrlist, o) }
+                                                                            return (insts, o) }
 
 DECLAREND :: { Maybe G.RecoverableError }
   : declarend                                                           { Nothing }
   | error                                                               { Just G.MissingDeclarationListEnd }
 
-DECLARSL :: { ([Maybe G.Instruction], Int) }
+DECLARSL :: { ([G.Instruction], Int) }
   : DECLARSL comma DECLARADD                                            {% do
                                                                             let (mints, _) = $1
                                                                             let (mint, o) = $3
-                                                                            return (mint : mints, o) }
-  | DECLARADD                                                           { (\(i, o) -> ([i], o) )$1 }
+                                                                            return (mints ++ mint, o) }
+  | DECLARADD                                                           { $1 }
 
-DECLARADD :: { (Maybe G.Instruction, Int) }
+DECLARADD :: { ([G.Instruction], Int) }
   : DECLAR                                                              {% do
                                                                             -- Adds a declaration to the ST as soon as it's parsed
                                                                             let (declar, _) = $1
@@ -512,10 +511,15 @@ DECLARADD :: { (Maybe G.Instruction, Int) }
                                                                             let (G.Id idToken _) = lvalueId
                                                                             lvalue <- buildAndCheckExpr idToken baseLvalue
                                                                             mInstr <- case maybeRValue of
-                                                                              Nothing -> defaultAssignment lvalue >>= return
+                                                                              Nothing -> do
+                                                                                assignment <- defaultAssignment lvalue
+                                                                                case assignment of
+                                                                                  Nothing -> return []
+                                                                                  Just asig -> return [asig]
                                                                               Just (token, rvalue) -> do
                                                                                 ST.SymTable {ST.stScopeStack = stack} <- RWS.get
-                                                                                checkAssignment lvalue token rvalue True >>= return . Just
+                                                                                asig <- checkAssignment lvalue token rvalue True
+                                                                                return [asig]
                                                                             offsetW <- do
                                                                               mEntry <- ST.dictLookup $ G.extractIdName lvalueId
                                                                               case mEntry of
@@ -528,7 +532,12 @@ DECLARADD :: { (Maybe G.Instruction, Int) }
                                                                                       let ST.Offset o = ST.findOffset entry
                                                                                       let ST.Width w = ST.findWidth tEntry
                                                                                       return $ o + w
-                                                                            return (mInstr, offsetW) }
+                                                                            t <- getType lvalue
+                                                                            RWS.lift $ print t
+                                                                            let instInit = (case t of
+                                                                                              T.ArrayT _ -> let (G.IdExpr i) = G.expAst lvalue in [G.InstInitArray i]
+                                                                                              _ -> [])
+                                                                            return (instInit ++ mInstr, offsetW) }
 
 DECLAR :: { (NameDeclaration, Maybe (T.Token, G.Expr)) }
   : var ID ofType TYPE                                                  { ((ST.Variable, $2, [$4]), Nothing) }
