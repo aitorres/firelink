@@ -75,10 +75,6 @@ instance GenerateCode Instruction where
 genCodeForInstruction :: Instruction -> OperandType -> CodeGenMonad ()
 
 -- Utility instructions
--- TODO: Use TAC instructions, change
-genCodeForInstruction (InstPrint expr) _ = return () --genCode expr
-genCodeForInstruction (InstRead _) _ = return () --genCode expr
-
 genCodeForInstruction InstReturn _ =
     tell [ThreeAddressCode
             { tacOperand = Return
@@ -269,11 +265,11 @@ transform the Read statement into the TAC instruction.
 -}
 genCodeForInstruction (InstRead expr) next = do
     readOperand <- genCode' expr
-    tell [TAC.ThreeAddressCode
-            { TAC.tacOperand = TAC.Read
-            , TAC.tacLvalue = Nothing
-            , TAC.tacRvalue1 = Just readOperand
-            , TAC.tacRvalue2 = Nothing
+    tell [ThreeAddressCode
+            { tacOperand = Read
+            , tacLvalue = Nothing
+            , tacRvalue1 = Just readOperand
+            , tacRvalue2 = Nothing
             }]
     genLabel next
 
@@ -285,11 +281,11 @@ transform the print statement into the TAC instruction.
 -}
 genCodeForInstruction (InstPrint expr) next = do
     printOperand <- genCode' expr
-    tell [TAC.ThreeAddressCode
-            { TAC.tacOperand = TAC.Print
-            , TAC.tacLvalue = Nothing
-            , TAC.tacRvalue1 = Just printOperand
-            , TAC.tacRvalue2 = Nothing
+    tell [ThreeAddressCode
+            { tacOperand = Print
+            , tacLvalue = Nothing
+            , tacRvalue1 = Just printOperand
+            , tacRvalue2 = Nothing
             }]
     genLabel next
 
