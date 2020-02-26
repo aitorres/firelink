@@ -8,7 +8,7 @@ import           FireLink.FrontEnd.Grammar      (BaseExpr (..), Expr (..),
                                                  booleanOp2, comparableOp2)
 import           FireLink.FrontEnd.SymTable     (Dictionary,
                                                  DictionaryEntry (..),
-                                                 getOffset)
+                                                 getOffset, getUnionAttrId)
 import           FireLink.FrontEnd.Tokens       (Token (..))
 import           FireLink.FrontEnd.TypeChecking (Type (..))
 import qualified TACType                        as TAC
@@ -162,6 +162,29 @@ genCodeForBooleanExpr expr trueLabel falseLabel = case expr of
             genCodeForBooleanExpr (expAst lhs) lhsTrueLabel lhsFalseLabel
             genCodeForBooleanExpr (expAst rhs) rhsTrueLabel rhsFalseLabel
             when (isFall falseLabel) (genLabel lhsFalseLabel)
+
+    IsActive Expr { expAst = Access unionExpr (Id Token {cleanedString=idName} idScope) } -> do
+        -- Get union's base direction (where real is_active is stored)
+        realArgOperand <- genCode' unionExpr
+
+        -- Get received argument's attr number for comparison
+        propSymEntry <- findSymEntry idName idScope <$> ask
+        let propArgPos = getUnionAttrId propSymEntry
+
+        -- Assign received argument's attr number to a new temp
+        propArgPosNewId <- newtemp
+        let propArgOperand = TAC.Id propArgPosNewId
+        tell [TAC.ThreeAddressCode
+            { TAC.tacOperand = TAC.Assign
+            , TAC.tacLvalue = Just propArgOperand
+            , TAC.tacRvalue1 = Just $ TAC.Constant (show propArgPos, BigIntT)
+            , TAC.tacRvalue2 = Nothing
+            }]
+
+        -- Gen boolean comparison
+        genBooleanComparison propArgOperand realArgOperand trueLabel falseLabel Eq
+
+    e -> error $ "Unexpected boolean expression: " ++ show e
 
 -- Used in boolean expr generation as well as switch case generation
 genBooleanComparison :: OperandType -> OperandType -> OperandType -> OperandType -> Op2 -> CodeGenMonad ()
