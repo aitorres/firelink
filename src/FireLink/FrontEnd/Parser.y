@@ -1038,7 +1038,8 @@ defaultAssignment :: G.Expr -> ST.ParserMonad (Maybe G.Instruction)
 defaultAssignment lvalue = do
   t <- getType lvalue
   if t `elem` T.defaultableTypes then case t of
-    T.TrileanT -> return $ Just $ G.InstAsig lvalue $ lvalue { G.expAst = G.UndiscoveredLit }
+    -- TODO: Change default type of Trileans to Undiscovered (currently Lit due to undiscovered not supported)
+    T.TrileanT -> return $ Just $ G.InstAsig lvalue $ lvalue { G.expAst = G.TrueLit }
     T.BigIntT -> return $ Just $ G.InstAsig lvalue $ lvalue { G.expAst = G.IntLit 0 }
     T.SmallIntT -> return $ Just $ G.InstAsig lvalue $ lvalue { G.expAst = G.IntLit 0 }
     T.FloatT -> return $ Just $ G.InstAsig lvalue $ lvalue { G.expAst = G.FloatLit 0.0 }
