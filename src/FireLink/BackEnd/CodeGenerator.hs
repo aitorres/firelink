@@ -13,6 +13,7 @@ data CodeGenState = CodeGenState
     { cgsNextLabel :: !Int
     , cgsNextTemp :: !Int
     , cgsCurTempOffset :: !Int
+    , cgsArrayOffsetVar :: !TACSymEntry -- This variable holds the current offset for arrays
     , cgsTemporalsToReplace :: ![(TACSymEntry, Int)]
     }
     deriving Show
@@ -22,6 +23,7 @@ initialState = CodeGenState
     { cgsNextTemp = 0
     , cgsNextLabel = 0
     , cgsCurTempOffset = 0
+    , cgsArrayOffsetVar = TACTemporal "" (-1)
     , cgsTemporalsToReplace = []
     }
 
@@ -53,6 +55,9 @@ newtemp = do
     state@CodeGenState {cgsNextTemp = temp, cgsCurTempOffset = offset } <- get
     put $ state{cgsNextTemp = temp + 1, cgsCurTempOffset = offset + 4}
     return $ TACTemporal ("_t" ++ show temp) offset
+
+putArrayOffsetVar :: TACSymEntry -> CodeGenMonad ()
+putArrayOffsetVar e = get >>= \state -> put state { cgsArrayOffsetVar = e }
 
 setTempOffset :: Int -> CodeGenMonad ()
 setTempOffset offset = get >>= \state -> put state { cgsCurTempOffset = offset }
