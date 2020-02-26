@@ -49,7 +49,12 @@ instance GenerateCode Program where
             , tacRvalue1 = Nothing
             , tacRvalue2 = Nothing
             }]
-
+        gen [ThreeAddressCode
+            { tacOperand = Exit
+            , tacLvalue = Nothing
+            , tacRvalue1 = Nothing
+            , tacRvalue2 = Nothing
+            }]
         mapM_ genBlock allFunctions
         where
             alignedOffset :: Int -> Int
