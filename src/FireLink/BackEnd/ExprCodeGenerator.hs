@@ -19,6 +19,35 @@ instance GenerateCode Expr where
     genCode = void . genCode'
 
 genCode' :: Expr -> CodeGenMonad OperandType
+genCode' e@Expr {expAst=ast@(Access struct _), expType=t} = do
+    ret <- genCodeForExpr t ast
+
+    when (isUnionT $ expType struct ) $ do
+        trueLabel <- newLabel
+        falseLabel <- newLabel
+        let activeExpr = IsActive e
+        genCodeForBooleanExpr activeExpr trueLabel falseLabel
+        genLabel falseLabel
+        let msgOperand = TAC.Constant ("RUNTIME ERROR: Trying to access inactive property of Union", StringT)
+        tell [
+            TAC.ThreeAddressCode
+            { TAC.tacOperand = TAC.Print
+            , TAC.tacLvalue = Nothing
+            , TAC.tacRvalue1 = Just msgOperand
+            , TAC.tacRvalue2 = Nothing
+            },
+            TAC.ThreeAddressCode
+            { TAC.tacOperand = TAC.Abort
+            , TAC.tacLvalue = Nothing
+            , TAC.tacRvalue1 = Nothing
+            , TAC.tacRvalue2 = Nothing
+            }]
+        genLabel trueLabel
+    return ret
+    where
+        isUnionT :: Type -> Bool
+        isUnionT (UnionT _ _) = True
+        isUnionT _          = False
 genCode' Expr {expAst=ast, expType=t} = genCodeForExpr t ast
 
 genCodeForExpr :: Type -> BaseExpr -> CodeGenMonad OperandType
