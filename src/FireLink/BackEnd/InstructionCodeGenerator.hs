@@ -155,19 +155,15 @@ genCodeForInstruction (InstAsig lvalue rvalue) next =
 
         assignStructLiteral :: Expr -> Expr -> CodeGenMonad ()
         assignStructLiteral lvalue Expr { expAst = StructLit propAssignments } = do
-            fieldsScope <- case expType lvalue of
-                UnionT fieldsScope _  -> return fieldsScope
-                RecordT fieldsScope _ -> return fieldsScope
-            mapM_ (assignPropertyValue fieldsScope lvalue) propAssignments
+            mapM_ (assignPropertyValue lvalue) propAssignments
 
             -- The following code takes care of the isActive attribute for unions on literal assignments
-            when (isUnionT $ expType lvalue) $ do
-                let [(G.Id tk _, _)] = propAssignments
-                markActiveAttrForUnion lvalue (G.Id tk fieldsScope)
+            when (isUnionT $ expType lvalue) $
+                let [(propId, _)] = propAssignments in markActiveAttrForUnion lvalue propId
 
-        assignPropertyValue :: Int -> Expr -> (G.Id, Expr) -> CodeGenMonad ()
-        assignPropertyValue scope lvalue (G.Id tk _, e@Expr { expType = eT }) = do
-            lOperand <- genCodeForExpr eT (Access lvalue (G.Id tk scope))
+        assignPropertyValue :: Expr -> (G.Id, Expr) -> CodeGenMonad ()
+        assignPropertyValue lvalue (propId, e@Expr { expType = eT }) = do
+            lOperand <- genCodeForExpr eT (Access lvalue propId)
             rOperand <- genCode' e
             genIdAssignment lOperand rOperand
 
