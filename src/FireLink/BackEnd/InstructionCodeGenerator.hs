@@ -45,11 +45,13 @@ genCodeForInstruction (InstPrint expr) _ = genCode expr
 -- Assignments, currently supported for id assignments, structs & unions
 genCodeForInstruction (InstAsig lvalue rvalue) next =
     if supportedLvalue lvalue then do
-        operand <- genCode' lvalue
-        if expType rvalue /= TrileanT then do
+        if expType rvalue == StructLitT then assignStructLiteral lvalue rvalue
+        else if expType rvalue /= TrileanT then do
+            operand <- genCode' lvalue
             rValueAddress <- genCode' rvalue
             genIdAssignment operand rValueAddress
         else do
+            operand <- genCode' lvalue
             trueLabel <- newLabel
             falseLabel <- newLabel
             genCodeForBooleanExpr (expAst rvalue) trueLabel falseLabel
@@ -61,12 +63,9 @@ genCodeForInstruction (InstAsig lvalue rvalue) next =
             genLabel next
 
         -- The following code takes care of the isActive attribute for unions
-        when (isUnionT $ expAst lvalue) $ do
+        when (isUnionBExpr $ expAst lvalue) $ do
             let Expr { expAst = (Access unionExpr propId) } = lvalue
-            propertySymEntry <- findSymEntryById propId <$> ask
-            let argPos = getUnionAttrId propertySymEntry
-            unionExprOp <- genCode' unionExpr
-            genIdAssignment unionExprOp $ Constant (show argPos, BigIntT)
+            markActiveAttrForUnion unionExpr propId
 
     else error $ "Lvalue currently not supported for assignments: " ++ show lvalue
     where
@@ -75,9 +74,37 @@ genCodeForInstruction (InstAsig lvalue rvalue) next =
         supportedLvalue Expr {expAst = Access _ _} = True
         supportedLvalue _                          = False
 
-        isUnionT :: BaseExpr -> Bool
-        isUnionT (Access Expr { expType = UnionT _ _ } _) = True
-        isUnionT _                                        = False
+        isUnionBExpr :: BaseExpr -> Bool
+        isUnionBExpr (Access Expr { expType = UnionT _ _ } _) = True
+        isUnionBExpr _                                        = False
+
+        isUnionT :: Type -> Bool
+        isUnionT (UnionT _ _) = True
+        isUnionT _            = False
+
+        markActiveAttrForUnion :: Expr -> G.Id -> CodeGenMonad ()
+        markActiveAttrForUnion unionExpr propId = do
+            propertySymEntry <- findSymEntryById propId <$> ask
+            let argPos = getUnionAttrId propertySymEntry
+            unionExprOp <- genCode' unionExpr
+            genIdAssignment unionExprOp $ Constant (show argPos, BigIntT)
+
+        assignStructLiteral :: Expr -> Expr -> CodeGenMonad ()
+        assignStructLiteral lvalue Expr { expAst = StructLit propAssignments } = do
+            fieldsScope <- case expType lvalue of
+                UnionT fieldsScope _  -> return fieldsScope
+                RecordT fieldsScope _ -> return fieldsScope
+            mapM_ (assignPropertyValue fieldsScope lvalue) propAssignments
+
+            when (isUnionT $ expType lvalue) $ do
+                let [(G.Id tk _, _)] = propAssignments
+                markActiveAttrForUnion lvalue (G.Id tk fieldsScope)
+
+        assignPropertyValue :: Int -> Expr -> (G.Id, Expr) -> CodeGenMonad ()
+        assignPropertyValue scope lvalue (G.Id tk _, e@Expr { expType = eT }) = do
+            lOperand <- genCodeForExpr eT (Access lvalue (G.Id tk scope))
+            rOperand <- genCode' e
+            genIdAssignment lOperand rOperand
 
 {-
 Conditional selection statement
