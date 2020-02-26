@@ -67,7 +67,11 @@ instance GenerateCode Program where
             genBlock (funName, codeblock@(CodeBlock _ maxOffset)) = do
                 setTempOffset $ alignedOffset maxOffset
                 genLabel $ Label funName
+                t <- newtemp
+                genIdAssignment (Id t) $ Constant ("TO_REPLACE", BigIntT)
                 genCode codeblock
+                offset <- getTempOffset
+                addTemp t offset
 
 instance GenerateCode CodeBlock where
     genCode (CodeBlock instrs _) = mapM_ genCode instrs

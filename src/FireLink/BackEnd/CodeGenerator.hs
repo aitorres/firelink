@@ -13,10 +13,17 @@ data CodeGenState = CodeGenState
     { cgsNextLabel :: !Int
     , cgsNextTemp :: !Int
     , cgsCurTempOffset :: !Int
+    , cgsTemporalsToReplace :: ![(TACSymEntry, Int)]
     }
+    deriving Show
 
 initialState :: CodeGenState
-initialState = CodeGenState {cgsNextTemp = 0, cgsNextLabel = 0, cgsCurTempOffset = 0}
+initialState = CodeGenState
+    { cgsNextTemp = 0
+    , cgsNextLabel = 0
+    , cgsCurTempOffset = 0
+    , cgsTemporalsToReplace = []
+    }
 
 type Offset = Int
 
@@ -49,6 +56,17 @@ newtemp = do
 
 setTempOffset :: Int -> CodeGenMonad ()
 setTempOffset offset = get >>= \state -> put state { cgsCurTempOffset = offset }
+
+getTempOffset :: CodeGenMonad Int
+getTempOffset = cgsCurTempOffset <$> get
+
+getTemporalsToReplace :: CodeGenMonad [(TACSymEntry, Int)]
+getTemporalsToReplace = cgsTemporalsToReplace <$> get
+
+addTemp :: TACSymEntry -> Int -> CodeGenMonad ()
+addTemp entry n = do
+    state@CodeGenState {cgsTemporalsToReplace = temps} <- get
+    put state{cgsTemporalsToReplace = (entry, n) : temps}
 
 newLabel :: CodeGenMonad (Operand a b)
 newLabel = do
