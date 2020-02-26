@@ -2,7 +2,8 @@ module FireLink.BackEnd.CodeGenerator where
 
 import           Control.Monad.RWS              (RWST (..), get, put, tell)
 import           FireLink.FrontEnd.SymTable     (Dictionary (..),
-                                                 DictionaryEntry (..))
+                                                 DictionaryEntry (..),
+                                                 findChain)
 import           FireLink.FrontEnd.TypeChecking
 import           TACType
 
@@ -86,3 +87,6 @@ genIdAssignment lValue rValue =
 
 class GenerateCode a where
     genCode :: a -> CodeGenMonad ()
+
+findSymEntry :: String -> Int -> Dictionary -> DictionaryEntry
+findSymEntry i idScope = head . filter (\s -> scope s == idScope) . findChain i
