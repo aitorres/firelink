@@ -196,6 +196,9 @@ findSymEntryById (G.Id T.Token {T.cleanedString=idName} idScope) = findSymEntry 
 findSymEntry :: Int -> String -> Dictionary -> DictionaryEntry
 findSymEntry idScope idName = head . filter (\s -> scope s == idScope) . findChain idName
 
+findSymEntryByName :: String -> Dictionary -> DictionaryEntry
+findSymEntryByName idName = head . findChain idName
+
 findAllFunctionsAndProcedures :: Dictionary -> DictionaryEntries
 findAllFunctionsAndProcedures = filter isFunction . concat . Map.elems
     where
