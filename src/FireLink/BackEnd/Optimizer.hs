@@ -16,7 +16,23 @@ optimize = foldr (.) id optimizations
 
 -- | A list with all currently valid optimizations.
 optimizations :: [Optimization]
-optimizations = [removeDuplicateGotos, removeUnusedLabels]
+optimizations = [removeRedundantJumps, removeDuplicateGotos, removeUnusedLabels]
+
+-- | 'Optimization' that removes redundant jumps, that is: a jump that goes to a
+-- | label that is defined in the very next line.
+removeRedundantJumps :: Optimization
+removeRedundantJumps = foldr removeRedundantJump []
+    where
+        isRedundantJump :: TAC -> TAC -> Bool
+        isRedundantJump (ThreeAddressCode GoTo _ _ (Just destiny)) (ThreeAddressCode NewLabel _ (Just jump) _) =
+            show destiny == show jump
+        isRedundantJump _ _ = False
+
+        removeRedundantJump :: TAC -> [TAC] -> [TAC]
+        removeRedundantJump x [] = [x]
+        removeRedundantJump x seen =
+            let nextTAC = head seen in
+                if isRedundantJump x nextTAC then seen else x:seen
 
 -- | 'Optimization' that removes duplicated go-to instructions that are
 -- | listed one next to the other, pointing to the same label.
@@ -32,8 +48,8 @@ removeDuplicateGotos = foldr removeDuplicateGoto []
         removeDuplicateGoto :: TAC -> [TAC] -> [TAC]
         removeDuplicateGoto x [] = [x]
         removeDuplicateGoto x seen =
-            let mostRecentTAC = head seen in
-                if isSameInstruction mostRecentTAC x && isGoTo x then seen else x:seen
+            let nextTAC = head seen in
+                if isSameInstruction nextTAC x && isGoTo x then seen else x:seen
 
 -- | 'Optimization' that removes labels that are not pointed-to anywhere in the code.
 removeUnusedLabels :: Optimization
