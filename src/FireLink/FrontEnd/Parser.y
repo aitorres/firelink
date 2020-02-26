@@ -396,8 +396,14 @@ TYPE :: { ST.Extra }
   | float                                                               { ST.Simple ST.hollow }
   | char                                                                { ST.Simple ST.sign }
   | bool                                                                { ST.Simple ST.bonfire }
-  | ltelit EXPR array ofType TYPE                                       {% fmap ST.Simple ST.genAliasName }
-  | ltelit EXPR string                                                  {% fmap ST.Simple ST.genAliasName }
+  | ltelit EXPR array ofType TYPE                                       {% do
+                                                                          aliasName <- ST.genAliasName
+                                                                          updateExprSizeForEntry aliasName $2
+                                                                          return $ ST.Simple aliasName }
+  | ltelit EXPR string                                                  {% do
+                                                                          aliasName <- ST.genAliasName
+                                                                          updateExprSizeForEntry aliasName $2
+                                                                          return $ ST.Simple aliasName }
   | set ofType TYPE                                                     {% fmap ST.Simple ST.genAliasName }
   | pointer TYPE                                                        {% fmap ST.Simple ST.genAliasName }
   | RECORD_OPEN  brOpen STRUCTITS BRCLOSE                               {% do
@@ -793,6 +799,27 @@ buildAndCheckExpr tk bExpr = do
       G.expType = t,
       G.expTok = tk
     }
+
+-- | Only used by array types
+updateExprSizeForEntry :: String -> G.Expr -> ST.ParserMonad ()
+updateExprSizeForEntry typeName expr = do
+  mEntry <- ST.dictLookup typeName
+  case mEntry of
+    Nothing -> return ()
+    Just entry -> do
+      let t = ST.extractTypeFromExtra $ ST.extra entry
+      let restExtras = filter (not . ST.isExtraAType) $ ST.extra entry
+      case t of
+        ST.CompoundRec s _ ex -> updateExtras entry $ (ST.CompoundRec s expr ex) : restExtras
+        ST.Compound s _ -> updateExtras entry $ (ST.Compound s expr) : restExtras
+      RWS.lift $ print t
+  where
+    updateExtras :: ST.DictionaryEntry -> [ST.Extra] -> ST.ParserMonad ()
+    updateExtras entry extras =
+        let f x = (if and [ST.scope x == ST.scope entry, ST.name x == ST.name entry]
+            then x{ST.extra = extras}
+            else x) in ST.updateEntry (\ds -> Just $ map f ds) $ ST.name entry
+
 
 parseErrors :: [T.Token] -> ST.ParserMonad a
 parseErrors errors =
