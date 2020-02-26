@@ -2,13 +2,14 @@ module FireLink.BackEnd.ExprCodeGenerator where
 
 import           Control.Monad                  (void)
 import           Control.Monad.RWS
+import Data.Char (ord)
 import           FireLink.BackEnd.CodeGenerator
 import           FireLink.FrontEnd.Grammar      (BaseExpr (..), Expr (..),
                                                  Id (..), Op1 (..), Op2 (..),
                                                  booleanOp2, comparableOp2)
-import           FireLink.FrontEnd.SymTable     (Dictionary,
+import           FireLink.FrontEnd.SymTable     (Dictionary, findSymEntryById,
                                                  DictionaryEntry (..),
-                                                 getOffset, getUnionAttrId)
+                                                 getOffset, getUnionAttrId, findSymEntry)
 import           FireLink.FrontEnd.Tokens       (Token (..))
 import           FireLink.FrontEnd.TypeChecking (Type (..))
 import qualified TACType                        as TAC
@@ -33,6 +34,18 @@ genCodeForExpr t (Access expr propId) = do
     propSymEntry <- findSymEntryById propId <$> ask
     let propOffset = getOffset propSymEntry
     return $ TAC.Id $ TACVariable propSymEntry $ propOffset + rO
+
+genCodeForExpr _ (EvalFunc (Id Token {cleanedString=funName} funScope) params) = do
+    paramsLength <- genParams params
+    ret <- TAC.Id <$> newtemp
+    funEntry <- findSymEntry funScope funName <$> ask
+    tell [TAC.ThreeAddressCode
+            { TAC.tacOperand = TAC.Call
+            , TAC.tacLvalue = Just ret
+            , TAC.tacRvalue1 = Just $ TAC.Label $ name funEntry
+            , TAC.tacRvalue2 = Just $ TAC.Constant (show paramsLength, SmallIntT)
+            }]
+    return ret
 
 genCodeForExpr TrileanT exp = do
     trueLabel <- newLabel
@@ -59,6 +72,7 @@ genCodeForExpr _ (Op2 op lexpr rexpr) = do
 
 genCodeForExpr t (IntLit n) = return $ TAC.Constant (show n, t)
 genCodeForExpr t (FloatLit n) = return $ TAC.Constant (show n, t)
+genCodeForExpr t (CharLit c) = return $ TAC.Constant (show $ ord c, t)
 
 genCodeForExpr t (Caster expr newType) = do
     tempOp <- genCode' expr
@@ -83,7 +97,27 @@ genCodeForExpr _ (Op1 Negate expr) = do
             }]
     return lvalue
 
+{-
+This implementation works because in TAC and in MIPS characters are just numbers
+-}
+genCodeForExpr _ (AsciiOf expr) = genCode' expr
+
 genCodeForExpr _ e = error $ "This expression hasn't been implemented " ++ show e
+
+genParams :: [Expr] -> CodeGenMonad Int
+genParams params = do
+    operands <- mapM genCode' params
+    tell $ map createParam operands
+    return $ length params
+    where
+        createParam :: OperandType -> TAC
+        createParam o = TAC.ThreeAddressCode
+            { TAC.tacOperand = TAC.Param
+            , TAC.tacLvalue = Nothing
+            , TAC.tacRvalue1 = Just o
+            , TAC.tacRvalue2 = Nothing
+            }
+
 
 genOp2Code :: TAC.Operation -> OperandType -> OperandType -> CodeGenMonad OperandType
 genOp2Code operation lId rId = do
@@ -162,13 +196,16 @@ genCodeForBooleanExpr expr trueLabel falseLabel = case expr of
             genCodeForBooleanExpr (expAst lhs) lhsTrueLabel lhsFalseLabel
             genCodeForBooleanExpr (expAst rhs) rhsTrueLabel rhsFalseLabel
             when (isFall falseLabel) (genLabel lhsFalseLabel)
+    (EvalFunc _ _) -> do
+        resultOperand <- genCodeForExpr TrileanT expr
+        genBooleanComparison resultOperand (TAC.Constant ("true", TrileanT)) trueLabel falseLabel Eq
 
     IsActive Expr { expAst = Access unionExpr (Id Token {cleanedString=idName} idScope) } -> do
         -- Get union's base direction (where real is_active is stored)
         realArgOperand <- genCode' unionExpr
 
         -- Get received argument's attr number for comparison
-        propSymEntry <- findSymEntry idName idScope <$> ask
+        propSymEntry <- findSymEntry idScope idName <$> ask
         let propArgPos = getUnionAttrId propSymEntry
 
         -- Assign received argument's attr number to a new temp
@@ -184,7 +221,7 @@ genCodeForBooleanExpr expr trueLabel falseLabel = case expr of
         -- Gen boolean comparison
         genBooleanComparison propArgOperand realArgOperand trueLabel falseLabel Eq
 
-    e -> error $ "Unexpected boolean expression: " ++ show e
+    e -> error $ "Unexpected boolean expression: No pattern on genCodeForBooleanExpr for  " ++ show e
 
 -- Used in boolean expr generation as well as switch case generation
 genBooleanComparison :: OperandType -> OperandType -> OperandType -> OperandType -> Op2 -> CodeGenMonad ()

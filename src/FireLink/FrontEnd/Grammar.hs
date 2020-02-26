@@ -154,8 +154,7 @@ newtype Program
 
 data Instruction
   = InstAsig Expr Expr
-  | InstCallProc Id Params
-  | InstCallFunc Id Params
+  | InstCall Id Params
   | InstReturn
   | InstReturnWith Expr
   | InstPrint Expr

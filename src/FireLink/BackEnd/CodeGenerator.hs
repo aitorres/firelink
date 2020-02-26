@@ -89,9 +89,3 @@ genIdAssignment lValue rValue =
 
 class GenerateCode a where
     genCode :: a -> CodeGenMonad ()
-
-findSymEntry :: String -> Int -> Dictionary -> DictionaryEntry
-findSymEntry i idScope = head . filter (\s -> scope s == idScope) . findChain i
-
-findSymEntryById :: G.Id -> Dictionary -> DictionaryEntry
-findSymEntryById (G.Id Token {cleanedString=idName} idScope) = findSymEntry idName idScope
