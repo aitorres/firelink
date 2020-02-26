@@ -2,7 +2,7 @@ module FireLink.BackEnd.InstructionCodeGenerator where
 
 import           Control.Monad.RWS                  (ask, tell, unless, when)
 import           FireLink.BackEnd.CodeGenerator
-import           FireLink.BackEnd.ExprCodeGenerator (genBooleanComparation,
+import           FireLink.BackEnd.ExprCodeGenerator (genBooleanComparison,
                                                      genCode',
                                                      genCodeForBooleanExpr,
                                                      genCodeForExpr, genOp2Code)
@@ -154,7 +154,7 @@ genCodeForInstruction (InstFor id step bound codeblock) next = do
     idOperand <- genCodeForExpr BigIntT idAst
     boundOperand <- genCode' bound
     genLabel begin
-    genBooleanComparation idOperand boundOperand trueLabel falseLabel G.Lt
+    genBooleanComparison idOperand boundOperand trueLabel falseLabel G.Lt
     genLabel trueLabel
     genCode codeblock
     incOperand <- genIncrement idOperand step
@@ -193,11 +193,11 @@ genCodeForSwitchCase next bExprOperand isLast sCase = do
     case sCase of
         Case expr codeblock -> do
             caseExprOperand <- genCode' expr
-            genBooleanComparation bExprOperand caseExprOperand trueLabel falseLabel G.Eq
+            genBooleanComparison bExprOperand caseExprOperand trueLabel falseLabel G.Eq
             unless isLast $ genLabel trueLabel
             genCode codeblock
         DefaultCase codeblock -> do
-            genBooleanComparation bExprOperand bExprOperand trueLabel falseLabel G.Eq
+            genBooleanComparison bExprOperand bExprOperand trueLabel falseLabel G.Eq
             unless isLast $ genLabel trueLabel
             genCode codeblock
     unless isLast $ genGoTo next

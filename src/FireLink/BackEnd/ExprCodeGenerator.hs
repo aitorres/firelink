@@ -136,7 +136,7 @@ genCodeForBooleanExpr expr trueLabel falseLabel = case expr of
     Op2 op lhs rhs | op `elem` comparableOp2 -> do
         leftExprId <- genCode' lhs
         rightExprId <- genCode' rhs
-        genBooleanComparation leftExprId rightExprId trueLabel falseLabel op
+        genBooleanComparison leftExprId rightExprId trueLabel falseLabel op
 
     -- Conjunction and disjunction
     Op2 op lhs rhs | op `elem` booleanOp2 -> do
@@ -164,8 +164,8 @@ genCodeForBooleanExpr expr trueLabel falseLabel = case expr of
             when (isFall falseLabel) (genLabel lhsFalseLabel)
 
 -- Used in boolean expr generation as well as switch case generation
-genBooleanComparation :: OperandType -> OperandType -> OperandType -> OperandType -> Op2 -> CodeGenMonad ()
-genBooleanComparation leftExprId rightExprId trueLabel falseLabel op = do
+genBooleanComparison :: OperandType -> OperandType -> OperandType -> OperandType -> Op2 -> CodeGenMonad ()
+genBooleanComparison leftExprId rightExprId trueLabel falseLabel op = do
     let isTrueNotFall = not $ isFall trueLabel
     let isFalseNotFall = not $ isFall falseLabel
     if isTrueNotFall && isFalseNotFall then do
