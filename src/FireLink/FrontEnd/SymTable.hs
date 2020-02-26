@@ -104,6 +104,14 @@ findOffset entry = f $ extra entry
             if null offsetExtras then error $ "Offset extra not found for entry " ++ name entry
             else head offsetExtras
 
+findUnionAttrId :: DictionaryEntry -> Extra
+findUnionAttrId entry = f $ extra entry
+    where
+        f :: [Extra] -> Extra
+        f extras = let unionAttrIds = filter isUnionAttrId extras in
+            if null unionAttrIds then error $ "UnionAttrId extra not found for entry " ++ name entry
+            else head unionAttrIds
+
 findFieldsExtra :: Extra -> Maybe Extra
 findFieldsExtra a@Fields{}          = Just a
 findFieldsExtra (CompoundRec _ _ e) = findFieldsExtra e
@@ -121,6 +129,9 @@ isExtraAType _                 = False
 
 getOffset :: DictionaryEntry -> Int
 getOffset entry = let (Offset n) = findOffset entry in n
+
+getUnionAttrId :: DictionaryEntry -> Int
+getUnionAttrId entry = let (UnionAttrId n) = findUnionAttrId entry in n
 
 extractTypeFromExtra :: [Extra] -> Extra
 extractTypeFromExtra = head . filter isExtraAType
