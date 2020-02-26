@@ -1,9 +1,11 @@
 module FireLink.BackEnd.CodeGenerator where
 
 import           Control.Monad.RWS              (RWST (..), get, put, tell)
+import qualified FireLink.FrontEnd.Grammar      as G (Id (..))
 import           FireLink.FrontEnd.SymTable     (Dictionary (..),
                                                  DictionaryEntry (..),
                                                  findChain)
+import           FireLink.FrontEnd.Tokens       (Token (..))
 import           FireLink.FrontEnd.TypeChecking
 import           TACType
 
@@ -90,3 +92,6 @@ class GenerateCode a where
 
 findSymEntry :: String -> Int -> Dictionary -> DictionaryEntry
 findSymEntry i idScope = head . filter (\s -> scope s == idScope) . findChain i
+
+findSymEntryById :: G.Id -> Dictionary -> DictionaryEntry
+findSymEntryById (G.Id Token {cleanedString=idName} idScope) = findSymEntry idName idScope

@@ -62,16 +62,11 @@ genCodeForInstruction (InstAsig lvalue rvalue) next =
 
         -- The following code takes care of the isActive attribute for unions
         when (isUnionT $ expAst lvalue) $ do
-            let Expr { expAst = (Access unionExpr (G.Id Token {T.cleanedString=idName} idScope)) } = lvalue
-            propertySymEntry <- findSymEntry idName idScope <$> ask
+            let Expr { expAst = (Access unionExpr propId) } = lvalue
+            propertySymEntry <- findSymEntryById propId <$> ask
             let argPos = getUnionAttrId propertySymEntry
             unionExprOp <- genCode' unionExpr
-            tell [ThreeAddressCode
-                { tacOperand = Assign
-                , tacLvalue = Just unionExprOp
-                , tacRvalue1 = Just $ Constant (show argPos, BigIntT)
-                , tacRvalue2 = Nothing
-                }]
+            genIdAssignment unionExprOp $ Constant (show argPos, BigIntT)
 
     else error $ "Lvalue currently not supported for assignments: " ++ show lvalue
     where

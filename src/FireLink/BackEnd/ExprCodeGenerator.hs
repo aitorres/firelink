@@ -21,16 +21,16 @@ genCode' Expr {expAst=ast, expType=t} = genCodeForExpr t ast
 
 genCodeForExpr :: Type -> BaseExpr -> CodeGenMonad OperandType
 -- | Ids
-genCodeForExpr _ (IdExpr (Id Token {cleanedString=idName} idScope)) = do
-    symEntry <- findSymEntry idName idScope <$> ask
+genCodeForExpr _ (IdExpr exprId) = do
+    symEntry <- findSymEntryById exprId <$> ask
     return $ TAC.Id $ TACVariable symEntry $ getOffset symEntry
 
 -- | Property access
-genCodeForExpr t (Access expr (Id Token {cleanedString=propIdName} propIdScope)) = do
+genCodeForExpr t (Access expr propId) = do
     let Expr { expAst = eAst, expType = eT } = expr
     TAC.Id x <- genCodeForExpr eT eAst
     let rO = getTACSymEntryOffset x
-    propSymEntry <- findSymEntry propIdName propIdScope <$> ask
+    propSymEntry <- findSymEntryById propId <$> ask
     let propOffset = getOffset propSymEntry
     return $ TAC.Id $ TACVariable propSymEntry $ propOffset + rO
 
