@@ -69,7 +69,7 @@ isWidthExtra _       = False
 
 isCodeBlockExtra :: Extra -> Bool
 isCodeBlockExtra CodeBlock{} = True
-isCodeBlockExtra _ = False
+isCodeBlockExtra _           = False
 
 isOffsetExtra :: Extra -> Bool
 isOffsetExtra Offset{} = True

@@ -5,7 +5,8 @@ import           FireLink.BackEnd.CodeGenerator
 import           FireLink.BackEnd.ExprCodeGenerator (genBooleanComparison,
                                                      genCode',
                                                      genCodeForBooleanExpr,
-                                                     genCodeForExpr, genOp2Code, genParams)
+                                                     genCodeForExpr, genOp2Code,
+                                                     genParams)
 import           FireLink.FrontEnd.Grammar          (BaseExpr (..),
                                                      CodeBlock (..), Expr (..),
                                                      IfCase (..),
@@ -13,10 +14,14 @@ import           FireLink.FrontEnd.Grammar          (BaseExpr (..),
                                                      Program (..),
                                                      SwitchCase (..))
 import qualified FireLink.FrontEnd.Grammar          as G (Id (..), Op2 (..))
-import           FireLink.FrontEnd.SymTable         (wordSize, Dictionary, findSymEntryById,
-                                                    DictionaryEntry (..), getUnionAttrId, findAllFunctionsAndProcedures, getCodeBlock)
+import           FireLink.FrontEnd.SymTable         (Dictionary,
+                                                     DictionaryEntry (..),
+                                                     findAllFunctionsAndProcedures,
+                                                     findSymEntryById,
+                                                     getCodeBlock,
+                                                     getUnionAttrId, wordSize)
+import           FireLink.FrontEnd.Tokens           (Token (..))
 import           FireLink.FrontEnd.TypeChecking     (Type (..))
-import FireLink.FrontEnd.Tokens (Token (..))
 import           TACType
 
 

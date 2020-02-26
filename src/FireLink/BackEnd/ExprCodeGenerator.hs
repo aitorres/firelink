@@ -2,14 +2,15 @@ module FireLink.BackEnd.ExprCodeGenerator where
 
 import           Control.Monad                  (void)
 import           Control.Monad.RWS
-import Data.Char (ord)
+import           Data.Char                      (ord)
 import           FireLink.BackEnd.CodeGenerator
 import           FireLink.FrontEnd.Grammar      (BaseExpr (..), Expr (..),
                                                  Id (..), Op1 (..), Op2 (..),
                                                  booleanOp2, comparableOp2)
-import           FireLink.FrontEnd.SymTable     (Dictionary, findSymEntryById,
+import           FireLink.FrontEnd.SymTable     (Dictionary,
                                                  DictionaryEntry (..),
-                                                 getOffset, getUnionAttrId)
+                                                 findSymEntryById, getOffset,
+                                                 getUnionAttrId)
 import           FireLink.FrontEnd.Tokens       (Token (..))
 import           FireLink.FrontEnd.TypeChecking (Type (..))
 import qualified TACType                        as TAC
