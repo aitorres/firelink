@@ -16,7 +16,7 @@ optimize = foldr (.) id optimizations
 
 -- | A list with all currently valid optimizations.
 optimizations :: [Optimization]
-optimizations = [removeRedundantJumps, removeDuplicateGotos, removeUnusedLabels]
+optimizations = [removeUnusedLabels, removeRedundantJumps, removeDuplicateGotos]
 
 -- | 'Optimization' that removes redundant jumps, that is: a jump that goes to a
 -- | label that is defined in the very next line.
