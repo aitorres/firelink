@@ -8,6 +8,7 @@ import           FireLink.FrontEnd.SymTable     (Dictionary (..),
 import           FireLink.FrontEnd.Tokens       (Token (..))
 import           FireLink.FrontEnd.TypeChecking
 import           TACType
+import           Data.Map.Strict as Map
 
 data CodeGenState = CodeGenState
     { cgsNextLabel :: !Int
@@ -15,6 +16,10 @@ data CodeGenState = CodeGenState
     , cgsCurTempOffset :: !Int
     , cgsArrayOffsetVar :: !TACSymEntry -- This variable holds the current offset for arrays
     , cgsTemporalsToReplace :: ![(TACSymEntry, Int)]
+
+    -- ^ To save array intermediate sizes we associate the _alias generated
+    -- with a TACSymEntry that contains its size
+    , cgsArrayWidthMap :: !(Map.Map String OperandType)
     }
     deriving Show
 
@@ -25,6 +30,7 @@ initialState = CodeGenState
     , cgsCurTempOffset = 0
     , cgsArrayOffsetVar = TACTemporal "" (-1)
     , cgsTemporalsToReplace = []
+    , cgsArrayWidthMap = Map.empty
     }
 
 type Offset = Int
@@ -94,6 +100,14 @@ genLabel label = gen [ThreeAddressCode
                             , tacRvalue1 = Just label
                             , tacRvalue2 = Nothing
                             }]
+
+putArrayEntrySize :: String -> OperandType -> CodeGenMonad ()
+putArrayEntrySize a o = do
+    state@CodeGenState{cgsArrayWidthMap=m} <- get
+    put state{cgsArrayWidthMap = Map.insert a o m}
+
+getArrayMap :: CodeGenMonad (Map.Map String OperandType)
+getArrayMap = cgsArrayWidthMap <$> get
 
 fall :: OperandType
 fall = Label "-1"

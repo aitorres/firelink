@@ -539,7 +539,6 @@ DECLARADD :: { ([G.Instruction], Int) }
                                                                                       let ST.Width w = ST.findWidth tEntry
                                                                                       return $ o + w
                                                                             t <- getType lvalue
-                                                                            RWS.lift $ print t
                                                                             let instInit = (case t of
                                                                                               T.ArrayT _ -> let (G.IdExpr i) = G.expAst lvalue in [G.InstInitArray i]
                                                                                               _ -> [])
@@ -807,15 +806,14 @@ updateExprSizeForEntry typeName expr = do
   case mEntry of
     Nothing -> return ()
     Just entry -> do
-      let t = ST.extractTypeFromExtra $ ST.extra entry
+      let t = ST.extractTypeFromExtra entry
       let restExtras = filter (not . ST.isExtraAType) $ ST.extra entry
       case t of
         ST.CompoundRec s _ ex -> updateExtras entry $ (ST.CompoundRec s expr ex) : restExtras
         ST.Compound s _ -> updateExtras entry $ (ST.Compound s expr) : restExtras
-      RWS.lift $ print t
   where
     updateExtras :: ST.DictionaryEntry -> [ST.Extra] -> ST.ParserMonad ()
-    updateExtras entry extras =
+    updateExtras entry extras = do
         let f x = (if and [ST.scope x == ST.scope entry, ST.name x == ST.name entry]
             then x{ST.extra = extras}
             else x) in ST.updateEntry (\ds -> Just $ map f ds) $ ST.name entry
@@ -891,7 +889,7 @@ assignOffsetAndInsert entry = do
   let extras = ST.extra entry
   finalExtras <-
     if requiresOffset then do
-      let (ST.Simple t) = ST.extractTypeFromExtra extras
+      let (ST.Simple t) = ST.extractTypeFromExtra entry
       maybeTypeEntry <- ST.dictLookup t
       case maybeTypeEntry of
         Nothing -> return extras
@@ -1606,7 +1604,7 @@ instance TypeCheckable ST.DictionaryEntry where
     | cat `elem` [
         ST.Variable, ST.Constant,
         ST.RecordItem, ST.UnionItem,
-        ST.RefParam, ST.ValueParam, ST.Type] = getType $ ST.extractTypeFromExtra extras
+        ST.RefParam, ST.ValueParam, ST.Type] = getType $ ST.extractTypeFromExtra entry
 
     | otherwise = logRTError "error on getType for expected dict entries"
 

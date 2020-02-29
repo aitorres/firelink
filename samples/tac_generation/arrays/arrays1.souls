@@ -2,7 +2,10 @@ hello ashen one
 
 traveling somewhere
 with
-    var x of type <4>-chest of type humanity
+    var n of type humanity <<= 555,
+    var m of type humanity <<= 10,
+    var x of type <n>-chest of type <n + m>-chest of type humanity,
+    var a of type <55>-chest of type sign
 in your inventory
     go back
 you died

@@ -1,6 +1,5 @@
 module FireLink.BackEnd.InstructionCodeGenerator where
 
-import           Control.Monad.RWS                  (ask, unless, when, lift)
 import           FireLink.BackEnd.CodeGenerator
 import           FireLink.BackEnd.ExprCodeGenerator (genBooleanComparison,
                                                      genCode',
@@ -20,7 +19,7 @@ import           FireLink.FrontEnd.SymTable         (Dictionary,
                                                      findSymEntryById, findSymEntryByName,
                                                      getCodeBlock, extractTypeFromExtra,
                                                      getUnionAttrId, wordSize)
-import qualified FireLink.FrontEnd.SymTable         as ST (Extra (..))
+import qualified FireLink.FrontEnd.SymTable         as ST (Extra (..), definedTypes)
 import           FireLink.FrontEnd.Tokens           (Token (..))
 import           FireLink.FrontEnd.TypeChecking     (Type (..))
 import           TACType
@@ -92,14 +91,30 @@ genCodeForInstruction :: Instruction -> OperandType -> CodeGenMonad ()
 
 genCodeForInstruction (InstInitArray arrayId@(G.Id _ s)) _ = do
     entry <- findSymEntryById arrayId <$> ask
-    let (ST.Simple t) = extractTypeFromExtra $ extra entry
-    tt <- findSymEntryByName t <$> ask
-    lift $ do
-        print tt
-        print arrayId
-        print s
-        print entry
+    let e@(ST.Simple t) = extractTypeFromExtra entry
+    buildFromType (t, e)
+    m <- getArrayMap
     return ()
+    where
+        getTypeFromString :: String -> CodeGenMonad ST.Extra
+        getTypeFromString t = extractTypeFromExtra . findSymEntryByName t <$> ask
+
+        buildFromType :: (String, ST.Extra) -> CodeGenMonad ()
+        buildFromType s@(_, ST.Simple t)
+            | t `elem` ST.definedTypes = return ()
+            | otherwise = do
+                t' <- getTypeFromString t
+                buildFromType (t, t')
+
+        buildFromType s@(typeName, ST.CompoundRec _ expr t'@(ST.Simple t)) = do
+            operand <- genCode' expr
+            temp <- Id <$> newtemp
+            genIdAssignment temp operand
+            putArrayEntrySize typeName temp
+            buildFromType (t, t')
+
+        associateAliasWithSize :: String -> OperandType -> CodeGenMonad ()
+        associateAliasWithSize s o =
 
 -- Utility instructions
 genCodeForInstruction InstReturn _ =
