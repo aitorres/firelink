@@ -1,5 +1,6 @@
 module FireLink.BackEnd.InstructionCodeGenerator where
 
+import Control.Monad.RWS (unless, when, ask)
 import           FireLink.BackEnd.CodeGenerator
 import           FireLink.BackEnd.ExprCodeGenerator (genBooleanComparison,
                                                      genCode',
@@ -112,9 +113,6 @@ genCodeForInstruction (InstInitArray arrayId@(G.Id _ s)) _ = do
             genIdAssignment temp operand
             putArrayEntrySize typeName temp
             buildFromType (t, t')
-
-        associateAliasWithSize :: String -> OperandType -> CodeGenMonad ()
-        associateAliasWithSize s o =
 
 -- Utility instructions
 genCodeForInstruction InstReturn _ =
