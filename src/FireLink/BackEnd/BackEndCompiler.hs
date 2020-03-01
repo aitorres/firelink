@@ -22,7 +22,7 @@ backend program dictionary = do
 
         patchTac :: [(TACSymEntry, Int)] -> TAC -> TAC
         patchTac tempsToReplace tac = case tac of
-            ThreeAddressCode Assign (Just (Id x)) _ _ ->
+            ThreeAddressCode Assign (Just (Id x)) (Just (Constant ("TO_REPLACE", _))) _ ->
                 let l = filter (matchTemps x . fst) tempsToReplace in
                     if null l then tac
                     else let t = head l in

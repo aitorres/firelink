@@ -65,6 +65,9 @@ newtemp = do
 putArrayOffsetVar :: TACSymEntry -> CodeGenMonad ()
 putArrayOffsetVar e = get >>= \state -> put state { cgsArrayOffsetVar = e }
 
+getArrayOffsetVar :: CodeGenMonad TACSymEntry
+getArrayOffsetVar = cgsArrayOffsetVar <$> get
+
 setTempOffset :: Int -> CodeGenMonad ()
 setTempOffset offset = get >>= \state -> put state { cgsCurTempOffset = offset }
 

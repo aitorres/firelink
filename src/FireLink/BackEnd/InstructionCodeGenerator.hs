@@ -19,7 +19,7 @@ import           FireLink.FrontEnd.SymTable         (Dictionary,
                                                      findAllFunctionsAndProcedures,
                                                      findSymEntryById, findSymEntryByName,
                                                      getCodeBlock, extractTypeFromExtra,
-                                                     getUnionAttrId, wordSize)
+                                                     getUnionAttrId, wordSize, getOffset, findWidth)
 import qualified FireLink.FrontEnd.SymTable         as ST (Extra (..), definedTypes)
 import           FireLink.FrontEnd.Tokens           (Token (..))
 import           FireLink.FrontEnd.TypeChecking     (Type (..))
@@ -93,16 +93,28 @@ genCodeForInstruction :: Instruction -> OperandType -> CodeGenMonad ()
 genCodeForInstruction (InstInitArray arrayId@(G.Id _ s)) _ = do
     entry <- findSymEntryById arrayId <$> ask
     let e@(ST.Simple t) = extractTypeFromExtra entry
-    buildFromType (t, e)
+    allocatedSize <- buildFromType (t, e)
     m <- getArrayMap
-    return ()
+    offsetVar <- Id <$> getArrayOffsetVar
+    genIdAssignment (Id $ TACVariable entry (getOffset entry)) offsetVar
+    gen [ThreeAddressCode
+                { tacOperand = Add
+                , tacLvalue = Just offsetVar
+                , tacRvalue1 = Just offsetVar
+                , tacRvalue2 = Just allocatedSize
+                }]
     where
         getTypeFromString :: String -> CodeGenMonad ST.Extra
         getTypeFromString t = extractTypeFromExtra . findSymEntryByName t <$> ask
 
-        buildFromType :: (String, ST.Extra) -> CodeGenMonad ()
+        buildFromType :: (String, ST.Extra) -> CodeGenMonad OperandType
         buildFromType s@(_, ST.Simple t)
-            | t `elem` ST.definedTypes = return ()
+            | t `elem` ST.definedTypes = do
+                t' <- findSymEntryByName t <$> ask
+                let (ST.Width w) = findWidth t'
+                temp <- Id <$> newtemp
+                genIdAssignment temp $ Constant (show w, BigIntT)
+                return temp
             | otherwise = do
                 t' <- getTypeFromString t
                 buildFromType (t, t')
@@ -112,7 +124,15 @@ genCodeForInstruction (InstInitArray arrayId@(G.Id _ s)) _ = do
             temp <- Id <$> newtemp
             genIdAssignment temp operand
             putArrayEntrySize typeName temp
-            buildFromType (t, t')
+            allocatedSize <- buildFromType (t, t')
+            finalAllocatedSize <- Id <$> newtemp
+            gen [ThreeAddressCode
+                { tacOperand = Mult
+                , tacLvalue = Just finalAllocatedSize
+                , tacRvalue1 = Just allocatedSize
+                , tacRvalue2 = Just operand
+                }]
+            return finalAllocatedSize
 
 -- Utility instructions
 genCodeForInstruction InstReturn _ =
