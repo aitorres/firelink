@@ -16,12 +16,13 @@ findBasicBlocks :: [TAC] -> [TAC] -> [[TAC]]
 findBasicBlocks code leaders = findBasicBlocks' code leaders []
     where
         findBasicBlocks' :: [TAC] -> [TAC] -> [TAC] -> [[TAC]]
-        findBasicBlocks' code@(c:cs) [l] prevCode
-            | c == l = [prevCode ++ code]
-            | otherwise = findBasicBlocks' cs [l] (prevCode ++ [c])
+        -- If I only have one remaining leader, then all remaining code is just one basic block
+        findBasicBlocks' code [_] [] = [code]
         findBasicBlocks' code@(c:cs) leaders@(l:ls) prevCode
-            | c == l = if null prevCode then findBasicBlocks' code ls [] else prevCode : findBasicBlocks' code ls []
+            | c == l = if null prevCode then nextBasicBlock else prevCode : nextBasicBlock
             | otherwise = findBasicBlocks' cs leaders (prevCode ++ [c])
+            where
+                nextBasicBlock = findBasicBlocks' code ls []
 
 -- | Given a list of TAC instructions, finds and returns
 -- | a list of block leaders:
