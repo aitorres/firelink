@@ -4,7 +4,7 @@ traveling somewhere
 with
     var n of type humanity <<= 0,
     var s of type humanity <<= 20,
-    var s2 of type humanity <<= 40
+    var s2 of type humanity <<= 40,
     var i of type humanity
 in your inventory
 
