@@ -22,7 +22,7 @@ optimize' = foldr (.) id optimizations
 
 -- | A list with all currently valid optimizations.
 optimizations :: [Optimization]
-optimizations = [removeUnusedLabels, removeRedundantJumps, removeDuplicateGotos, removeRedundantAssignments, removeUnreachableInstructions]
+optimizations = [removeUnusedLabels, removeRedundantJumps, removeIdempotencies, removeRedundantAssignments, removeUnreachableInstructions]
 
 -- | 'Optimization' that removes redundant jumps, that is: a jump that goes to a
 -- | label that is defined in the very next line.
@@ -75,22 +75,23 @@ removeRedundantAssignments = foldr removeRedundantAssignment []
             let nextTAC@(ThreeAddressCode _ a _ _) = head seen in
                 if isRedundantAssignment x nextTAC then ThreeAddressCode op a b c : tail seen else x : seen
 
--- | 'Optimization' that removes duplicated go-to instructions that are
--- | listed one next to the other, pointing to the same label.
-removeDuplicateGotos :: Optimization
-removeDuplicateGotos = foldr removeDuplicateGoto []
+-- | 'Optimization' that removes certain duplicated instructions that are
+-- | idempotent, such as two sequential jumps to the same label,
+-- | or two sequential returns (with the very same expression)
+removeIdempotencies :: Optimization
+removeIdempotencies = foldr removeIdempotency []
     where
-        isGoTo :: TAC -> Bool
-        isGoTo (ThreeAddressCode tac _ _ _) = tac == GoTo
 
-        isSameInstruction :: TAC -> TAC -> Bool
-        isSameInstruction (ThreeAddressCode tac1 _ _ _) (ThreeAddressCode tac2 _ _ _) = tac1 == tac2
+        isIdempotentInstruction :: TAC -> TAC -> Bool
+        isIdempotentInstruction (ThreeAddressCode GoTo _ _ a) (ThreeAddressCode GoTo _ _ b) = a == b
+        isIdempotentInstruction (ThreeAddressCode Return _ a _) (ThreeAddressCode Return _ b _) = a == b
+        isIdempotentInstruction _ _ = False
 
-        removeDuplicateGoto :: TAC -> [TAC] -> [TAC]
-        removeDuplicateGoto x [] = [x]
-        removeDuplicateGoto x seen =
+        removeIdempotency :: TAC -> [TAC] -> [TAC]
+        removeIdempotency x [] = [x]
+        removeIdempotency x seen =
             let nextTAC = head seen in
-                if isSameInstruction nextTAC x && isGoTo x then seen else x:seen
+                if isIdempotentInstruction x nextTAC then seen else x:seen
 
 -- | 'Optimization' that removes labels that are not pointed-to anywhere in the code.
 removeUnusedLabels :: Optimization
