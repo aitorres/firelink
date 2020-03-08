@@ -9,10 +9,16 @@ import           TACType
 -- | returns a (hopefully optimized) list of TAC.
 type Optimization = [TAC] -> [TAC]
 
+-- | Applies optimizations iteratively to the TAC list until
+-- | stability is reached (i.e. until it converges)
+-- | (src: https://stackoverflow.com/a/23924238)
+optimize :: Optimization
+optimize = until =<< ((==) =<<) $ optimize'
+
 -- | Composes all valid optimizations into one function to be applied
 -- | to a generated three-address code list.
-optimize :: Optimization
-optimize = foldr (.) id optimizations
+optimize' :: Optimization
+optimize' = foldr (.) id optimizations
 
 -- | A list with all currently valid optimizations.
 optimizations :: [Optimization]
