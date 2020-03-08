@@ -189,11 +189,11 @@ NON_OPENER_CODEBLOCK :: { G.CodeBlock }
                                                                              checkRecoverableError $1 $4
                                                                              let (blockInsts, blockO) = $3
                                                                              let o = if blockO /= 0 then blockO else declarO
-                                                                             return $ G.CodeBlock (asigInsts ++ reverse blockInsts) o }
+                                                                             return $ G.CodeBlock (asigInsts ++ reverse blockInsts ++ [G.InstReturn]) o }
   | instructionsBegin INSTRL NON_OPENER_INSTEND                         {% do
                                                                              checkRecoverableError $1 $3
                                                                              let (blockInsts, blockO) = $2
-                                                                             return $ G.CodeBlock (reverse blockInsts) blockO }
+                                                                             return $ G.CodeBlock (reverse blockInsts ++ [G.InstReturn]) blockO }
 
 NON_OPENER_INSTEND :: { Maybe G.RecoverableError }
   : instructionsEnd                                                     { Nothing }
