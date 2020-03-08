@@ -1,0 +1,21 @@
+hello ashen one
+
+traveling somewhere
+with
+    var n of type humanity <<= 0,
+    var s of type humanity <<= 20,
+    var s2 of type humanity <<= 40
+    var i of type humanity
+in your inventory
+
+    upgrading n with s souls until level s2
+        traveling somewhere
+            i <<= 1 \
+            s <<= s + 1 \
+            s2 <<= s2 - 1
+        you died
+    max level reached
+
+you died
+
+farewell ashen one
