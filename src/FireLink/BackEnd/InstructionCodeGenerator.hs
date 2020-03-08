@@ -1,6 +1,6 @@
 module FireLink.BackEnd.InstructionCodeGenerator where
 
-import           Control.Monad.RWS                  (ask, tell, unless, when)
+import           Control.Monad.RWS                  (ask, tell, unless, when, liftIO)
 import           FireLink.BackEnd.CodeGenerator
 import           FireLink.BackEnd.ExprCodeGenerator (genBooleanComparison,
                                                      genCode',
@@ -111,7 +111,8 @@ genCodeForInstruction (InstAsig lvalue rvalue) next =
     if supportedLvalue lvalue then do
         if expType rvalue == StructLitT then assignStructLiteral lvalue rvalue
         else if expType rvalue /= TrileanT then do
-            operand <- genCode' lvalue
+            let Expr { expType = lvalT, expAst = lvalAst } = lvalue
+            operand <- genCodeForExpr lvalT lvalAst
             rValueAddress <- genCode' rvalue
             genIdAssignment operand rValueAddress
         else do
