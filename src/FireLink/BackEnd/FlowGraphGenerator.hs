@@ -7,8 +7,18 @@ import           TACType
 
 -- | Generates and returns the flow graph
 -- | that correspond to a given list of TAC instructions.
-generateFlowGraph :: [TAC] -> [[TAC]]
-generateFlowGraph code = let leaders = findBlockLeaders code in findBasicBlocks code leaders
+generateFlowGraph :: [TAC] -> [(Int, [TAC])]
+generateFlowGraph code =
+    let leaders = findBlockLeaders code
+        basicBlocks = findBasicBlocks code leaders
+        numberedBlocks = numberBasicBlocks basicBlocks
+    in  numberedBlocks
+
+-- | Given a list of basic blocks, returns a list of pairs in which
+-- | each first component is an unique integer, and each second
+-- | component is a (now uniquely identified) basic block
+numberBasicBlocks :: [[TAC]] -> [(Int, [TAC])]
+numberBasicBlocks = zip [0..]
 
 -- | Given a list of TAC instructions, and the previously found leaders
 -- | of said list, return a list with the basic blocks of the TAC instructions
