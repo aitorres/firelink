@@ -22,7 +22,7 @@ optimize' = foldr (.) id optimizations
 
 -- | A list with all currently valid optimizations.
 optimizations :: [Optimization]
-optimizations = [removeUnusedLabels, removeRedundantJumps, removeDuplicateGotos, removeRedundantAssignments]
+optimizations = [removeUnusedLabels, removeRedundantJumps, removeDuplicateGotos, removeRedundantAssignments, removeUnreachableInstructions]
 
 -- | 'Optimization' that removes redundant jumps, that is: a jump that goes to a
 -- | label that is defined in the very next line.
@@ -40,6 +40,28 @@ removeRedundantJumps = foldr removeRedundantJump []
             let nextTAC = head seen in
                 if isRedundantJump x nextTAC then seen else x:seen
 
+-- | 'Optimization' that removes unreachable instructions between a goto
+-- | and the jumped label
+removeUnreachableInstructions :: Optimization
+removeUnreachableInstructions = foldr removeUnreachableInstruction []
+    where
+        isUnreachableInstruction :: TAC -> TAC -> TAC -> Bool
+        isUnreachableInstruction (ThreeAddressCode GoTo _ _ (Just destiny)) _ (ThreeAddressCode NewLabel _ (Just jump) _) =
+            show destiny == show jump
+        isUnreachableInstruction _ _ _ = False
+
+        removeUnreachableInstruction :: TAC -> [TAC] -> [TAC]
+        removeUnreachableInstruction x [] = [x]
+        removeUnreachableInstruction x [y] = [x, y]
+        removeUnreachableInstruction x seen =
+            let middleTAC = head seen
+                lastTAC = head $ tail seen in
+                if isUnreachableInstruction x middleTAC lastTAC then x : tail seen else x:seen
+
+-- | 'Optimization' that removes redundant assignments, that is, a pair
+-- | of instructions in which the first performs an operation to var A, and
+-- | the second stores the content of var A to var B (instead of storing directly
+-- | to var B)
 removeRedundantAssignments :: Optimization
 removeRedundantAssignments = foldr removeRedundantAssignment []
     where
