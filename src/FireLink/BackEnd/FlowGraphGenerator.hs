@@ -2,6 +2,7 @@ module FireLink.BackEnd.FlowGraphGenerator (
     generateFlowGraph
 ) where
 
+import           Data.Graph
 import           FireLink.BackEnd.CodeGenerator (TAC (..))
 import           TACType
 
@@ -40,7 +41,7 @@ findBasicBlocks code leaders = findBasicBlocks' code leaders []
 -- |   2. The destiny of each jump (workaround: since we only leave reachable labels, those are added)
 -- |   3. The next instruction after each jump/goto
 findBlockLeaders ::[TAC] -> [TAC]
-findBlockLeaders = foldl isBlockLeader []
+findBlockLeaders = foldr isBlockLeader []
     where
         isJumpDestiny :: TAC -> Bool
         isJumpDestiny (ThreeAddressCode NewLabel _ (Just _) _) = True
@@ -50,12 +51,12 @@ findBlockLeaders = foldl isBlockLeader []
         isGoTo (ThreeAddressCode GoTo _ _ _) = True
         isGoTo _                             = False
 
-        isBlockLeader :: [TAC] -> TAC -> [TAC]
-        isBlockLeader [] x = [x] -- Handles the first instruction which is always a leader (1)
-        isBlockLeader leaders x
-            | isJumpDestiny x = leaders ++ [x] -- Reached jump destinies (2)
-            | isGoTo x = leaders ++ [x] -- Workaround to find actual instructions after jumps (see next line)
-            | isGoTo lastInstr = init leaders ++ [x] -- Instructions immediately after a jump (3)
+        isBlockLeader :: TAC -> [TAC] -> [TAC]
+        isBlockLeader x [] = [x] -- Handles the first instruction which is always a leader (1)
+        isBlockLeader x leaders
+            | isJumpDestiny x = x : leaders -- Reached jump destinies (2)
+            | isGoTo x = x : leaders -- Workaround to find actual instructions after jumps (see next line)
+            | isGoTo lastInstr = x : tail leaders -- Instructions immediately after a jump (3)
             | otherwise = leaders
             where
-                lastInstr = last leaders
+                lastInstr = head leaders
