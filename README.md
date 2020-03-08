@@ -27,6 +27,7 @@ Donde:
 - `flag`: es una opción de configuración válida, entre las que se encuentran:
   - `-s` o `--symtable`: imprime la tabla de símbolos, si el archivo contiene un programa válido
   - `-p` o `--program`: imprime el programa parseado, si el archivo contiene un programa válido
+  - `-f` o `--frontend`: imprime ambas opciones superiores: la tabla de símbolos y el programa parseado, si el archivo contiene un programa válido
   - `-t` o `--tac`: imprime la representación intermedia en código de tres direcciones (TAC) del programa, si el archivo contiene un programa válido
 
 Si no se pasa ningún _flag_, el compilador imprime todo lo génerado: tabla de símbolos, programa y código intermedio.
