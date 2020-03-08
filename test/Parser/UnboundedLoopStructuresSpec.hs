@@ -28,4 +28,4 @@ spec = describe "Unbounded looping" $ do
         \ covenant left")  (\(Program (
             CodeBlock [
                 InstWhile Expr{expAst=FalseLit} (CodeBlock _ _)
-                ] _)) -> True)
+                , InstReturn] _)) -> True)

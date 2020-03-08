@@ -374,9 +374,10 @@ spec = do
                             G.Expr{G.expAst=(G.IdExpr (G.Id T.Token {T.cleanedString="x"} _))}
                             G.Expr{G.expAst=(G.IntLit 1)}
                         , G.InstPrint G.Expr{G.expAst=(G.StringLit "oh yes")}
+                        , G.InstReturn
                         ] _)) -> True)
 
-        it "Prependes assignment in correct order" $ do
+        it "Prepends assignment in correct order" $ do
             let p = "hello ashen one\n\
 
             \ traveling somewhere\n\
@@ -401,4 +402,5 @@ spec = do
                             G.Expr{G.expAst=(G.IdExpr (G.Id T.Token {T.cleanedString="y"} 1))}
                             G.Expr{G.expAst=(G.IntLit 22)}
                         , G.InstPrint G.Expr{G.expAst=(G.StringLit "oh yes")}
+                        , G.InstReturn
                         ] _)) -> True)
