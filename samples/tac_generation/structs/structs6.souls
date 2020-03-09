@@ -1,0 +1,11 @@
+hello ashen one
+
+traveling somewhere
+with
+    var n of type link { j of type humanity }
+in your inventory
+    n~>j <<= 1 \
+    n~> j <<= n~>j + 1
+you died
+
+farewell ashen one
