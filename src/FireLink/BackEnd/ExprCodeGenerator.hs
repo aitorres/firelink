@@ -68,8 +68,7 @@ genCodeForExpr TrileanT exp = do
     trueLabel <- newLabel
     falseLabel <- newLabel
     next <- newLabel
-    newId <- newtemp
-    let lvalue = TAC.Id newId
+    lvalue <- TAC.Id <$> newtemp
     genCodeForBooleanExpr exp trueLabel falseLabel
     genLabel trueLabel
     genIdAssignment lvalue $ TAC.Constant ("true", TrileanT)
@@ -138,8 +137,7 @@ genParams params = do
 
 genOp2Code :: TAC.Operation -> OperandType -> OperandType -> CodeGenMonad OperandType
 genOp2Code operation lId rId = do
-    newId <- newtemp
-    let lvalue = TAC.Id newId
+    lvalue <- TAC.Id <$> newtemp
     tell [TAC.ThreeAddressCode
             { TAC.tacOperand = operation
             , TAC.tacLvalue = Just lvalue
@@ -226,8 +224,7 @@ genCodeForBooleanExpr expr trueLabel falseLabel = case expr of
         let propArgPos = getUnionAttrId propSymEntry
 
         -- Assign received argument's attr number to a new temp
-        propArgPosNewId <- newtemp
-        let propArgOperand = TAC.Id propArgPosNewId
+        propArgOperand <- TAC.Id <$> newtemp
         genIdAssignment propArgOperand $ TAC.Constant (show propArgPos, BigIntT)
 
         -- Gen boolean comparison

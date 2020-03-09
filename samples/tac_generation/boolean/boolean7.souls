@@ -1,0 +1,17 @@
+hello ashen one
+
+invocation f
+with skill of type bonfire
+    traveling somewhere
+        go back with lit
+    you died
+after this return to your world
+
+traveling somewhere
+with
+    var n of type bonfire
+in your inventory
+    n <<= summon f
+you died
+
+farewell ashen one

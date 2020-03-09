@@ -42,6 +42,11 @@ instance GenerateCode Program where
             , tacLvalue = Nothing
             , tacRvalue1 = Just $ Label "_main"
             , tacRvalue2 = Just $ Constant ("0", SmallIntT)
+            }, ThreeAddressCode
+            { tacOperand = Exit
+            , tacLvalue = Nothing
+            , tacRvalue1 = Nothing
+            , tacRvalue2 = Nothing
             }]
 
         mapM_ genBlock allFunctions
@@ -110,7 +115,7 @@ genCodeForInstruction (InstCall fId params) _ = do
 genCodeForInstruction (InstAsig lvalue rvalue) next =
     if supportedLvalue lvalue then do
         if expType rvalue == StructLitT then assignStructLiteral lvalue rvalue
-        else if expType rvalue /= TrileanT then do
+        else if expType rvalue /= TrileanT || (isIdExpr lvalue && isFunCallExpr rvalue) then do
             let Expr { expType = lvalT, expAst = lvalAst } = lvalue
             operand <- genCodeForExpr lvalT lvalAst
             rValueAddress <- genCode' rvalue
@@ -138,6 +143,14 @@ genCodeForInstruction (InstAsig lvalue rvalue) next =
         supportedLvalue Expr {expAst = IdExpr _ }  = True
         supportedLvalue Expr {expAst = Access _ _} = True
         supportedLvalue _                          = False
+
+        isIdExpr :: Expr -> Bool
+        isIdExpr Expr { expAst = IdExpr _ } = True
+        isIdExpr _ = False
+
+        isFunCallExpr :: Expr -> Bool
+        isFunCallExpr Expr { expAst = EvalFunc _ _ } = True
+        isFunCallExpr _ = False
 
         isUnionBExpr :: BaseExpr -> Bool
         isUnionBExpr (Access Expr { expType = UnionT _ _ } _) = True
@@ -234,22 +247,31 @@ after every iteration.
 -}
 genCodeForInstruction (InstFor id step bound codeblock) next = do
     (begin, trueLabel, falseLabel) <- setUpIteration next
-    let idAst = IdExpr id
-    idOperand <- genCodeForExpr BigIntT idAst
-    boundOperand <- genCode' bound
+
+    -- Copying original value of step & bound
+    stepOperand <- copyOriginalValue step
+    boundOperand <- copyOriginalValue bound
+
+    -- Loop generation
     genLabel begin
+    idOperand <- genCodeForExpr BigIntT (IdExpr id)
     genBooleanComparison idOperand boundOperand trueLabel falseLabel G.Lt
     genLabel trueLabel
     genCode codeblock
-    incOperand <- genIncrement idOperand step
+
+    -- Increment added after the codeblock
+    incOperand <- genOp2Code Add idOperand stepOperand
     genIdAssignment idOperand incOperand
+
     genGoTo begin
     genLabel next
     where
-            genIncrement :: OperandType -> Expr -> CodeGenMonad OperandType
-            genIncrement idOp step = do
-                stepOp <- genCode' step
-                genOp2Code Add idOp stepOp
+        copyOriginalValue :: Expr -> CodeGenMonad OperandType
+        copyOriginalValue expr = do
+            originalValue <- genCode' expr
+            copyOp <- Id <$> newtemp
+            genIdAssignment copyOp originalValue
+            return copyOp
 
 {-
 Read statement

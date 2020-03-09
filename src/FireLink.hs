@@ -202,7 +202,8 @@ compile program compileFlag = do
                     putStrLn "\nFireLink: Printing Intermediate Representation in Three-Address Code"
                     backend ast (ST.stDict symTable) >>= printTacCode
                 Just flag ->
-                    if flag `elem` ["-s", "--symtable"] then prettyPrintSymTable symTable
+                    if flag `elem` ["-f", "--frontend"] then prettyPrintSymTable symTable >> printProgram tokens
+                    else if flag `elem` ["-s", "--symtable"] then prettyPrintSymTable symTable
                     else if flag `elem` ["-p", "--program"] then printProgram tokens
                     else if flag `elem` ["-t", "--tac"] then backend ast (ST.stDict symTable) >>= printTacCode
                     else failByUnknownFlag

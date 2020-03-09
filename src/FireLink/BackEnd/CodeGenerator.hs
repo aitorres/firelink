@@ -23,6 +23,7 @@ type Offset = Int
 data TACSymEntry
     = TACTemporal String Offset
     | TACVariable DictionaryEntry Offset
+    deriving Eq
 
 getTACSymEntryOffset :: TACSymEntry -> Int
 getTACSymEntryOffset (TACTemporal _ o) = o

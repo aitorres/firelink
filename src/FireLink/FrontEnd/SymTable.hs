@@ -61,7 +61,7 @@ data Extra
 
     -- Unique identifier for each union-attribute
     | UnionAttrId Int
-    deriving Show
+    deriving (Eq, Show)
 
 isWidthExtra :: Extra -> Bool
 isWidthExtra Width{} = True
@@ -163,7 +163,7 @@ data DictionaryEntry = DictionaryEntry
     , scope :: !Scope -- ^ Current scope at entry insertion
     , entryType :: !(Maybe String) -- (pointer to another) entry
     , extra :: ![Extra] -- extra data semantic to the real dictionary
-    } deriving Show
+    } deriving (Eq, Show)
 
 type DictionaryEntries = [DictionaryEntry]
 
