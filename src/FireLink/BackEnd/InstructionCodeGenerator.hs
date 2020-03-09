@@ -246,22 +246,31 @@ after every iteration.
 -}
 genCodeForInstruction (InstFor id step bound codeblock) next = do
     (begin, trueLabel, falseLabel) <- setUpIteration next
-    let idAst = IdExpr id
-    idOperand <- genCodeForExpr BigIntT idAst
-    boundOperand <- genCode' bound
+
+    -- Copying original value of step & bound
+    stepOperand <- copyOriginalValue step
+    boundOperand <- copyOriginalValue bound
+
+    -- Loop generation
     genLabel begin
+    idOperand <- genCodeForExpr BigIntT (IdExpr id)
     genBooleanComparison idOperand boundOperand trueLabel falseLabel G.Lt
     genLabel trueLabel
     genCode codeblock
-    incOperand <- genIncrement idOperand step
+
+    -- Increment added after the codeblock
+    incOperand <- genOp2Code Add idOperand stepOperand
     genIdAssignment idOperand incOperand
+
     genGoTo begin
     genLabel next
     where
-            genIncrement :: OperandType -> Expr -> CodeGenMonad OperandType
-            genIncrement idOp step = do
-                stepOp <- genCode' step
-                genOp2Code Add idOp stepOp
+        copyOriginalValue :: Expr -> CodeGenMonad OperandType
+        copyOriginalValue expr = do
+            originalValue <- genCode' expr
+            copyOp <- Id <$> newtemp
+            genIdAssignment copyOp originalValue
+            return copyOp
 
 {-
 Read statement
