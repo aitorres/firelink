@@ -42,6 +42,11 @@ instance GenerateCode Program where
             , tacLvalue = Nothing
             , tacRvalue1 = Just $ Label "_main"
             , tacRvalue2 = Just $ Constant ("0", SmallIntT)
+            }, ThreeAddressCode
+            { tacOperand = Exit
+            , tacLvalue = Nothing
+            , tacRvalue1 = Nothing
+            , tacRvalue2 = Nothing
             }]
 
         mapM_ genBlock allFunctions

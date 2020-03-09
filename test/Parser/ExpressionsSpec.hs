@@ -25,43 +25,43 @@ spec = describe "Expressions" $ do
             CodeBlock
                 [InstReturnWith Expr{expAst=(
                     Op2 Add Expr{expAst=(IntLit 1)} Expr{expAst=(IntLit 2)}
-                    )}] _)) -> True)
+                    )}, InstReturn] _)) -> True)
     it "accepts `1 + 2 + 3` as an expression and associates to the left" $
         runTestForExpr "1 + 2 + 3" (\(Program (
             CodeBlock
                 [InstReturnWith Expr{expAst=(
                     Op2 Add Expr{expAst=(Op2 Add Expr{expAst=(IntLit 1)} Expr{expAst=(IntLit 2)})} Expr{expAst=(IntLit 3)}
-                    )}] _)) -> True)
+                    )}, InstReturn] _)) -> True)
     it "accepts `1 - 2` as an expression" $
         runTestForExpr "1 - 2" (\(Program (
             CodeBlock
-                [InstReturnWith Expr{expAst=(Op2 Substract Expr{expAst=(IntLit 1)} Expr{expAst=(IntLit 2)})}] _)) -> True)
+                [InstReturnWith Expr{expAst=(Op2 Substract Expr{expAst=(IntLit 1)} Expr{expAst=(IntLit 2)})}, InstReturn] _)) -> True)
     it "accepts `1 - 2 - 3` as an expression and associates to the left" $
         runTestForExpr "1 - 2 - 3" (\(Program (
             CodeBlock
                 [InstReturnWith Expr{expAst=(
                     Op2 Substract
                         Expr{expAst=(Op2 Substract Expr{expAst=(IntLit 1)} Expr{expAst=(IntLit 2)})}
-                        Expr{expAst=(IntLit 3)})}] _)) -> True)
+                        Expr{expAst=(IntLit 3)})}, InstReturn] _)) -> True)
     it "accepts `1 - 2 + 3` as an expression and associates to the left (1 - 2) + 3" $
         runTestForExpr "1 - 2 + 3" (\(Program (
             CodeBlock
                 [InstReturnWith Expr{expAst=(
                     Op2 Add
                         Expr{expAst=(Op2 Substract Expr{expAst=(IntLit 1)} Expr{expAst=(IntLit 2)})}
-                        Expr{expAst=(IntLit 3)})}] _)) -> True)
+                        Expr{expAst=(IntLit 3)})}, InstReturn] _)) -> True)
     it "accepts `1 + 2 - 3` as an expression and associates to the left (1 + 2) - 3" $
         runTestForExpr "1 + 2 - 3" (\(Program (
             CodeBlock
                 [InstReturnWith Expr{expAst=(
                     Op2 Substract
                         Expr{expAst=(Op2 Add Expr{expAst=(IntLit 1)} Expr{expAst=(IntLit 2)})}
-                        Expr{expAst=(IntLit 3)})}] _)) -> True)
+                        Expr{expAst=(IntLit 3)})}, InstReturn] _)) -> True)
     it "accepts `1 * 2` as an expression" $
         runTestForExpr "1 * 2" (\(Program (
             CodeBlock
                 [InstReturnWith Expr{expAst=(
-                    Op2 Multiply Expr{expAst=(IntLit 1)} Expr{expAst=(IntLit 2)})}] _)) -> True)
+                    Op2 Multiply Expr{expAst=(IntLit 1)} Expr{expAst=(IntLit 2)})}, InstReturn] _)) -> True)
     it "accepts `1 * 2 * 3` as an expression and associates to the left" $
         runTestForExpr "1 * 2 * 3" (\(Program (
             CodeBlock
@@ -73,7 +73,7 @@ spec = describe "Expressions" $ do
                             )}
                         Expr{expAst=(IntLit 3)}
                     )}
-                ] _)) -> True)
+                , InstReturn] _)) -> True)
     it "accepts `1 * 2 + 3` as an expression and associates to the left" $
         runTestForExpr "1 * 2 + 3" (\(Program (
             CodeBlock
@@ -82,7 +82,7 @@ spec = describe "Expressions" $ do
                         Expr{expAst=(Op2 Multiply Expr{expAst=(IntLit 1)} Expr{expAst=(IntLit 2)})}
                         Expr{expAst=(IntLit 3)}
                     )}
-                ] _)) -> True)
+                , InstReturn] _)) -> True)
     it "accepts `1 + 2 * 3` as an expression and associates to the left" $
         runTestForExpr "1 + 2 * 3" (\(Program (
             CodeBlock
@@ -91,7 +91,7 @@ spec = describe "Expressions" $ do
                         Expr{expAst=(IntLit 1)}
                         Expr{expAst=(Op2 Multiply Expr{expAst=(IntLit 2)} Expr{expAst=(IntLit 3)})}
                     )}
-                ] _)) -> True)
+                , InstReturn] _)) -> True)
     it "accepts `1 / 2` as an expression" $
         runTestForExpr "1 / 2" (\(Program (
             CodeBlock
@@ -100,7 +100,7 @@ spec = describe "Expressions" $ do
                         Expr{expAst=(IntLit 1)}
                         Expr{expAst=(IntLit 2)}
                     )}
-                ] _)) -> True)
+                , InstReturn] _)) -> True)
     it "accepts `1 / 2 / 3` as an expression and associates to the left" $
         runTestForExpr "1 / 2 / 3" (\(Program (
             CodeBlock
@@ -109,7 +109,7 @@ spec = describe "Expressions" $ do
                         Expr{expAst=(Op2 Divide Expr{expAst=(IntLit 1)} Expr{expAst=(IntLit 2)})}
                         Expr{expAst=(IntLit 3)}
                     )}
-                ] _)) -> True)
+                , InstReturn] _)) -> True)
     it "accepts `1 / 2 + 3` as an expression and associates to the left" $
         runTestForExpr "1 / 2 + 3" (\(Program (
             CodeBlock
@@ -120,7 +120,7 @@ spec = describe "Expressions" $ do
                             Expr{expAst=(IntLit 2)})}
                         Expr{expAst=(IntLit 3)}
                     )}
-                ] _)) -> True)
+                , InstReturn] _)) -> True)
     it "accepts `1 + 2 / 3` as an expression and associates to the left" $
         runTestForExpr "1 + 2 / 3" (\(Program (
             CodeBlock
@@ -131,7 +131,7 @@ spec = describe "Expressions" $ do
                             Expr{expAst=(IntLit 2)}
                             Expr{expAst=(IntLit 3)})}
                     )}
-                ] _)) -> True)
+                , InstReturn] _)) -> True)
     it "accepts `1 % 2` as an expression" $
         runTestForExpr "1 % 2" (\(Program (
             CodeBlock
@@ -140,7 +140,7 @@ spec = describe "Expressions" $ do
                         Expr{expAst=(IntLit 1)}
                         Expr{expAst=(IntLit 2)}
                     )}
-                ] _)) -> True)
+                , InstReturn] _)) -> True)
     it "accepts `1 % 2 % 3` as an expression and associates to the left" $
         runTestForExpr "1 % 2 % 3" (\(Program (
             CodeBlock
@@ -149,7 +149,7 @@ spec = describe "Expressions" $ do
                         Expr{expAst=(Op2 Mod Expr{expAst=(IntLit 1)} Expr{expAst=(IntLit 2)})}
                         Expr{expAst=(IntLit 3)}
                     )}
-                ] _)) -> True)
+                , InstReturn] _)) -> True)
     it "accepts `1 % 2 + 3` as an expression and associates to the left" $
         runTestForExpr "1 % 2 + 3" (\(Program (
             CodeBlock
@@ -158,7 +158,7 @@ spec = describe "Expressions" $ do
                         Expr{expAst=(Op2 Mod Expr{expAst=(IntLit 1)} Expr{expAst=(IntLit 2)})}
                         Expr{expAst=(IntLit 3)}
                     )}
-                ] _)) -> True)
+                , InstReturn] _)) -> True)
     it "accepts `1 + 2 % 3` as an expression and parse % as more precedent" $
         runTestForExpr "1 + 2 % 3" (\(Program (
             CodeBlock
@@ -166,12 +166,12 @@ spec = describe "Expressions" $ do
                     Op2 Add
                         Expr{expAst=(IntLit 1)}
                         Expr{expAst=(Op2 Mod Expr{expAst=(IntLit 2)} Expr{expAst=(IntLit 3)})}
-                        )}] _)) -> True)
+                        )}, InstReturn] _)) -> True)
     it "accepts `- 1` as an expression and associates to the left" $
         runTestForExpr "- 1" (\(Program (
             CodeBlock
                 [InstReturnWith Expr{expAst=(
-                    Op1 Negate Expr{expAst=(IntLit 1)})}] _)) -> True)
+                    Op1 Negate Expr{expAst=(IntLit 1)})}, InstReturn] _)) -> True)
     it "rejects `- - 1` as an expression and associates to the left" $
         runTestForExpr "- - 1" (\(Program (
             CodeBlock
@@ -180,7 +180,7 @@ spec = describe "Expressions" $ do
                         Op1 Negate Expr{expAst=(IntLit 1)}
                         )}
                     )}
-                ] _)) -> True)
+                , InstReturn] _)) -> True)
     it "accepts `1 lt 2` as an expression and associates to the left" $
         runTestForExpr "1 lt 2" (\(Program (
             CodeBlock
@@ -189,7 +189,7 @@ spec = describe "Expressions" $ do
                         Expr{expAst=(IntLit 1)}
                         Expr{expAst=(IntLit 2)}
                     )}
-                ] _)) -> True)
+                , InstReturn] _)) -> True)
     it "accepts `1 lt 2 + 3` as an expression and associates to the right (1 lt (2 + 3))" $
         runTestForExpr "1 lt 2 + 3" (\(Program (
             CodeBlock
@@ -201,7 +201,7 @@ spec = describe "Expressions" $ do
                             Expr{expAst=(IntLit 3)}
                             )}
                         )}
-                    ] _)) -> True)
+                    , InstReturn] _)) -> True)
     it "accepts `1 lte 2` as an expression and associates to the left" $
         runTestForExpr "1 lte 2" (\(Program (
             CodeBlock
@@ -210,7 +210,7 @@ spec = describe "Expressions" $ do
                         Expr{expAst=(IntLit 1)}
                         Expr{expAst=(IntLit 2)}
                     )}
-                ] _)) -> True)
+                , InstReturn] _)) -> True)
     it "accepts `1 lte 2 + 3` as an expression and associates to the right (1 lte (2 + 3))" $
         runTestForExpr "1 lte 2 + 3" (\(Program (
             CodeBlock
@@ -222,7 +222,7 @@ spec = describe "Expressions" $ do
                             Expr{expAst=(IntLit 3)}
                             )}
                     )}
-                ] _)) -> True)
+                , InstReturn] _)) -> True)
     it "accepts `1 gt 2` as an expression and associates to the left" $
         runTestForExpr "1 gt 2" (\(Program (
             CodeBlock
@@ -231,7 +231,7 @@ spec = describe "Expressions" $ do
                         Expr{expAst=(IntLit 1)}
                         Expr{expAst=(IntLit 2)}
                         )}
-                    ] _)) -> True)
+                    , InstReturn] _)) -> True)
     it "accepts `1 gt 2 + 3` as an expression and associates to the right (1 gt (2 + 3))" $
         runTestForExpr "1 gt 2 + 3" (\(Program (
             CodeBlock
@@ -242,7 +242,7 @@ spec = describe "Expressions" $ do
                             Expr{expAst=(IntLit 2)}
                             Expr{expAst=(IntLit 3)}
                             )}
-                        )}] _)) -> True)
+                        )}, InstReturn] _)) -> True)
     it "accepts `1 gte 2` as an expression and associates to the left" $
         runTestForExpr "1 gte 2" (\(Program (
             CodeBlock
@@ -250,7 +250,7 @@ spec = describe "Expressions" $ do
                     Op2 Gte
                         Expr{expAst=(IntLit 1)}
                         Expr{expAst=(IntLit 2)}
-                        )}] _)) -> True)
+                        )}, InstReturn] _)) -> True)
     it "accepts `1 gte 2 + 3` as an expression and associates to the right (1 gte (2 + 3))" $
         runTestForExpr "1 gte 2 + 3" (\(Program (
             CodeBlock
@@ -258,7 +258,7 @@ spec = describe "Expressions" $ do
                     Op2 Gte
                         Expr{expAst=(IntLit 1)}
                         Expr{expAst=(Op2 Add Expr{expAst=(IntLit 2)} Expr{expAst=(IntLit 3)})}
-                        )}] _)) -> True)
+                        )}, InstReturn] _)) -> True)
     it "accepts `1 eq 2` as an expression and associates to the left" $
         runTestForExpr "1 eq 2" (\(Program (
             CodeBlock
@@ -267,7 +267,7 @@ spec = describe "Expressions" $ do
                         Expr{expAst=(IntLit 1)}
                         Expr{expAst=(IntLit 2)}
                         )}
-                    ] _)) -> True)
+                    , InstReturn] _)) -> True)
     it "accepts `1 eq 2 + 3` as an expression and associates to the right (1 eq (2 + 3))" $
         runTestForExpr "1 eq 2 + 3" (\(Program (
             CodeBlock
@@ -276,7 +276,7 @@ spec = describe "Expressions" $ do
                         Expr{expAst=(IntLit 1)}
                         Expr{expAst=(Op2 Add Expr{expAst=(IntLit 2)} Expr{expAst=(IntLit 3)})}
                     )}
-                ] _)) -> True)
+                , InstReturn] _)) -> True)
     it "accepts `1 eq 2 eq 3 as an expression and associates to the left (1 eq 2) eq 3" $
         runTestForExpr "1 eq 2 eq 3" (\(Program (
             CodeBlock
@@ -287,7 +287,7 @@ spec = describe "Expressions" $ do
                             Expr{expAst=(IntLit 2)})}
                         Expr{expAst=(IntLit 3)}
                     )}
-                ] _)) -> True)
+                , InstReturn] _)) -> True)
     it "accepts `1 neq 2` as an expression and associates to the left" $
         runTestForExpr "1 neq 2" (\(Program (
             CodeBlock
@@ -295,7 +295,7 @@ spec = describe "Expressions" $ do
                     Op2 Neq
                         Expr{expAst=(IntLit 1)}
                         Expr{expAst=(IntLit 2)}
-                    )}] _)) -> True)
+                    )}, InstReturn] _)) -> True)
     it "accepts `1 neq 2 + 3` as an expression and associates to the right (1 neq (2 + 3))" $
         runTestForExpr "1 neq 2 + 3" (\(Program (
             CodeBlock
@@ -304,7 +304,7 @@ spec = describe "Expressions" $ do
                         Expr{expAst=(IntLit 1)}
                         Expr{expAst=(Op2 Add Expr{expAst=(IntLit 2)} Expr{expAst=(IntLit 3)})}
                         )}
-                    ] _)) -> True)
+                    , InstReturn] _)) -> True)
     it "accepts `1 neq 2 neq 3 as an expression and associates to the left (1 neq 2) neq 3" $
         runTestForExpr "1 neq 2 neq 3" (\(Program (
             CodeBlock
@@ -314,7 +314,7 @@ spec = describe "Expressions" $ do
                             Expr{expAst=(IntLit 1)}
                             Expr{expAst=(IntLit 2)})}
                         Expr{expAst=(IntLit 3)}
-                    )}] _)) -> True)
+                    )}, InstReturn] _)) -> True)
     it "accepts `1 eq 2 neq 3 as an expression and associates to the left (1 eq 2) neq 3" $
         runTestForExpr "1 eq 2 neq 3" (\(Program (
             CodeBlock
@@ -326,7 +326,7 @@ spec = describe "Expressions" $ do
                             )}
                         Expr{expAst=(IntLit 3)}
                     )}
-                ] _)) -> True)
+                , InstReturn] _)) -> True)
 
     it "accepts `lit and unlit` as an expression" $
         runTestForExpr "lit and unlit" (\(Program (
@@ -336,7 +336,7 @@ spec = describe "Expressions" $ do
                         Expr{expAst=TrueLit}
                         Expr{expAst=FalseLit}
                     )}
-                ] _)) -> True)
+                , InstReturn] _)) -> True)
     it "accepts `lit or unlit` as an expression" $
         runTestForExpr "lit or unlit" (\(Program (
             CodeBlock
@@ -345,13 +345,13 @@ spec = describe "Expressions" $ do
                         Expr{expAst=TrueLit}
                         Expr{expAst=FalseLit}
                     )}
-                ] _)) -> True)
+                , InstReturn] _)) -> True)
     it "accepts `not unlit` as an expression" $
         runTestForExpr "not unlit" (\(Program (
             CodeBlock
                 [InstReturnWith Expr{expAst=(
                     Op1 Not Expr{expAst=FalseLit})
-                    }]
+                    }, InstReturn]
                  _)) -> True)
     it "accepts `lit and unlit and undiscovered` as an expression associating to the left `(lit and unlit) and undiscovered`" $
         runTestForExpr "lit and unlit and undiscovered" (\(Program (
@@ -360,7 +360,7 @@ spec = describe "Expressions" $ do
                     Op2 And
                         Expr{expAst=(Op2 And Expr{expAst=TrueLit} Expr{expAst=FalseLit})}
                         Expr{expAst=UndiscoveredLit})
-                    }]
+                    }, InstReturn]
                  _)) -> True)
     it "accepts `not lit and unlit` as an expression and `not` has more precedence" $
         runTestForExpr "not lit and unlit" (\(Program (
@@ -369,7 +369,7 @@ spec = describe "Expressions" $ do
                     Op2 And
                         Expr{expAst=(Op1 Not Expr{expAst=TrueLit})}
                         Expr{expAst=FalseLit}
-                    )}] _)) -> True)
+                    )}, InstReturn] _)) -> True)
 
     it "accepts `ascii_of |n|` as an expression" $
         runTestForExpr "ascii_of |n|" (\(Program (
@@ -378,7 +378,7 @@ spec = describe "Expressions" $ do
                     AsciiOf
                         Expr{expAst=(CharLit 'n')}
                     )}
-                ] _)) -> True)
+                , InstReturn] _)) -> True)
 
     it "accepts `ascii_of |n| + ascii_of |f|` as an expression and parses it as `(ascii_of |n|) + (ascii_of |f|)" $
         runTestForExpr "ascii_of |n| + ascii_of |f|" (\(Program (
@@ -388,7 +388,7 @@ spec = describe "Expressions" $ do
                         Expr{expAst=(AsciiOf Expr{expAst=(CharLit 'n')})}
                         Expr{expAst=(AsciiOf Expr{expAst=(CharLit 'f')})}
                     )}
-                ] _)) -> True)
+                , InstReturn] _)) -> True)
 
     it "accepts `<$$> >-< @@` as an expression" $
         runTestForExpr "<$$> >-< @@" (\(Program (
@@ -397,7 +397,7 @@ spec = describe "Expressions" $ do
                     Op2 ColConcat
                         Expr{expAst=(ArrayLit [])}
                         Expr{expAst=(StringLit "")}
-                    )}]
+                    )}, InstReturn]
                  _)) -> True)
     it "accepts `<$$> >-< @@ >-< {$$}` as an expression and should associate to the left `(<$$> >-< @@) >-< {$$}`" $
         runTestForExpr "<$$> >-< @@ >-< {$$}" (\(Program (
@@ -409,33 +409,33 @@ spec = describe "Expressions" $ do
                             Expr{expAst=(StringLit "")})}
                         Expr{expAst=(SetLit [])}
                         )}
-                ] _)) -> True)
+                , InstReturn] _)) -> True)
     it "accepts `lit union lit` as an expression" $
         runTestForExpr "lit union lit" (\(Program (
             CodeBlock
                 [InstReturnWith Expr{expAst=(
                     Op2 SetUnion
                         Expr{expAst=TrueLit}
-                        Expr{expAst=TrueLit})}] _)) -> True)
+                        Expr{expAst=TrueLit})}, InstReturn] _)) -> True)
     it "accepts `lit intersect lit` as an expression" $
         runTestForExpr "lit intersect lit" (\(Program (
             CodeBlock
                 [InstReturnWith Expr{expAst=(
                     Op2 SetIntersect
                         Expr{expAst=TrueLit}
-                        Expr{expAst=TrueLit})}] _)) -> True)
+                        Expr{expAst=TrueLit})}, InstReturn] _)) -> True)
     it "accepts `lit diff lit` as an expression" $
         runTestForExpr "lit diff lit" (\(Program (
             CodeBlock
                 [InstReturnWith Expr{expAst=(
                     Op2 SetDifference
                         Expr{expAst=TrueLit}
-                        Expr{expAst=TrueLit})}] _)) -> True)
+                        Expr{expAst=TrueLit})}, InstReturn] _)) -> True)
     it "accepts `size lit` as an expression" $
         runTestForExpr "size lit" (\(Program (
             CodeBlock
                 [InstReturnWith Expr{expAst=(
-                    Size Expr{expAst=TrueLit})}] _)) -> True)
+                    Size Expr{expAst=TrueLit})}, InstReturn] _)) -> True)
 
     it "accepts `lit union lit union lit` as an expression and associates to the left" $
         runTestForExpr "lit union lit union lit" (\(Program (
@@ -446,7 +446,7 @@ spec = describe "Expressions" $ do
                             Expr{expAst=TrueLit}
                             Expr{expAst=TrueLit})}
                         Expr{expAst=TrueLit}
-                        )}]
+                        )}, InstReturn]
                      _)) -> True)
     it "accepts `lit intersect lit intersect lit` as an expression and associates to the left" $
         runTestForExpr "lit intersect lit intersect lit" (\(Program (
@@ -457,7 +457,7 @@ spec = describe "Expressions" $ do
                             Expr{expAst=TrueLit}
                             Expr{expAst=TrueLit})}
                         Expr{expAst=TrueLit}
-                        )}]
+                        )}, InstReturn]
                      _)) -> True)
     it "accepts `lit diff lit diff lit` as an expression" $
         runTestForExpr "lit diff lit diff lit" (\(Program (
@@ -468,7 +468,7 @@ spec = describe "Expressions" $ do
                             Expr{expAst=TrueLit}
                             Expr{expAst=TrueLit})}
                         Expr{expAst=TrueLit}
-                    )}]
+                    )}, InstReturn]
                  _)) -> True)
     it "accepts `lit diff lit union lit` as an expression" $
         runTestForExpr "lit diff lit union lit" (\(Program (
@@ -477,7 +477,7 @@ spec = describe "Expressions" $ do
                     Op2 SetDifference
                         Expr{expAst=TrueLit}
                         Expr{expAst=(Op2 SetUnion Expr{expAst=TrueLit} Expr{expAst=TrueLit})}
-                        )}] _)) -> True)
+                        )}, InstReturn] _)) -> True)
 
     it "accepts `lit union lit intersect lit` as an expression and associates to the left" $
         runTestForExpr "lit union lit intersect lit" (\(Program (
@@ -486,14 +486,14 @@ spec = describe "Expressions" $ do
                     Op2 SetIntersect
                         Expr{expAst=(Op2 SetUnion Expr{expAst=TrueLit} Expr{expAst=TrueLit})}
                         Expr{expAst=TrueLit}
-                        )}] _)) -> True)
+                        )}, InstReturn] _)) -> True)
     it "accepts `lit intersect lit union lit` as an expression and associates to the left" $
         runTestForExpr "lit intersect lit union lit" (\(Program (
             CodeBlock
                 [InstReturnWith Expr{expAst=(
                     Op2 SetUnion
                         Expr{expAst=(Op2 SetIntersect Expr{expAst=TrueLit} Expr{expAst=TrueLit})}
-                        Expr{expAst=TrueLit})}] _)) -> True)
+                        Expr{expAst=TrueLit})}, InstReturn] _)) -> True)
 
     it "accepts `a ~> b` as an expression" $
         runTestForExpr "a ~> b" (\(Program (
@@ -503,7 +503,7 @@ spec = describe "Expressions" $ do
                         Expr{expAst=(IdExpr (Id Token {cleanedString="a"} _))}
                         (Id Token {cleanedString="b"} _)
                     )}
-                ] _)) -> True)
+                , InstReturn] _)) -> True)
     it "accepts `a ~> b ~> c` as an expression" $
         runTestForExpr "a ~> b ~> c" (\(Program (
             CodeBlock
@@ -512,7 +512,7 @@ spec = describe "Expressions" $ do
                         Expr{expAst=(Access
                             Expr{expAst=(IdExpr (Id Token {cleanedString="a"} _))}
                             (Id Token {cleanedString="b"} _))}
-                        (Id Token {cleanedString="c"} _))}] _)) -> True)
+                        (Id Token {cleanedString="c"} _))}, InstReturn] _)) -> True)
     it "accepts `a + b ~> c` as an expression" $
         runTestForExpr "a + b ~> c" (\(Program (
             CodeBlock
@@ -521,12 +521,12 @@ spec = describe "Expressions" $ do
                         Expr{expAst=(IdExpr (Id Token {cleanedString="a"} _))}
                         Expr{expAst=(Access
                             Expr{expAst=(IdExpr (Id Token {cleanedString="b"} _))}
-                            (Id Token {cleanedString="c"} _))})}] _)) -> True)
+                            (Id Token {cleanedString="c"} _))})}, InstReturn] _)) -> True)
 
     it "accepts `(a)` as an expression" $
         runTestForExpr "(a)" (\(Program (
             CodeBlock
-                [InstReturnWith Expr{expAst=(IdExpr (Id Token {cleanedString="a"} _))}] _)) -> True)
+                [InstReturnWith Expr{expAst=(IdExpr (Id Token {cleanedString="a"} _))}, InstReturn] _)) -> True)
 
     it "accepts `a<$i$>` as an expression" $
         runTestForExpr "a<$i$>" (\(Program (
@@ -534,7 +534,7 @@ spec = describe "Expressions" $ do
                 [InstReturnWith Expr{expAst=(
                     IndexAccess
                         Expr{expAst=(IdExpr (Id Token {cleanedString="a"} _))}
-                        Expr{expAst=(IdExpr (Id Token {cleanedString="i"} _))})}] _)) -> True)
+                        Expr{expAst=(IdExpr (Id Token {cleanedString="i"} _))})}, InstReturn] _)) -> True)
     it "accepts `a+b<$i$>` as an expression" $
         runTestForExpr "a+b<$i$>" (\(Program (
             CodeBlock
@@ -545,21 +545,21 @@ spec = describe "Expressions" $ do
                             Expr{expAst=(IdExpr (Id Token {cleanedString="b"} _))}
                             Expr{expAst=(IdExpr (Id Token {cleanedString="i"} _))})
                         }
-                    }] _)) -> True)
+                    }, InstReturn] _)) -> True)
     it "rejects `a<$$>` as an expression" $
         runTestForInvalidProgram "a<$$>"
 
     it "accepts `abyss` as an expression" $
         runTestForExpr "abyss" (\(Program (
             CodeBlock
-                [InstReturnWith Expr{expAst=NullLit}] _)) -> True)
+                [InstReturnWith Expr{expAst=NullLit}, InstReturn] _)) -> True)
     it "accepts `throw a a` as an expression" $
         runTestForExpr "throw a a" (\(Program (
             CodeBlock
                 [InstReturnWith Expr {
                     expAst=MemAccess Expr {
                         expAst=IdExpr (Id Token {cleanedString="a"} _)
-                    }}] _)) -> True)
+                    }}, InstReturn] _)) -> True)
     it "rejects `aim a a` as an expression" $
         runTestForInvalidProgram "aim a a"
     it "rejects `recover a a` as an expresion" $
@@ -568,4 +568,4 @@ spec = describe "Expressions" $ do
     it "accepts `summon f` a an expression" $
         runTestForExpr "summon f" (\(Program (
             CodeBlock
-                [InstReturnWith Expr{expAst=EvalFunc (Id Token {cleanedString="f"} _) []}] _)) -> True)
+                [InstReturnWith Expr{expAst=EvalFunc (Id Token {cleanedString="f"} _) []}, InstReturn] _)) -> True)
