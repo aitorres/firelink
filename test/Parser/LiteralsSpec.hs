@@ -19,64 +19,64 @@ spec = describe "Literal Values" $ do
     it "accepts `abyss` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "abyss")
         (\(Program (
-            CodeBlock [InstReturnWith Expr{expAst=NullLit}] _)) -> True)
+            CodeBlock [InstReturnWith Expr{expAst=NullLit}, InstReturn] _)) -> True)
     it "accepts `123` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "123")
         (\(Program (
-            CodeBlock [InstReturnWith Expr{expAst=(IntLit 123)}] _)) -> True)
+            CodeBlock [InstReturnWith Expr{expAst=(IntLit 123)}, InstReturn] _)) -> True)
     it "accepts `lit` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "lit")
         (\(Program (
-            CodeBlock [InstReturnWith Expr{expAst=TrueLit}] _)) -> True)
+            CodeBlock [InstReturnWith Expr{expAst=TrueLit}, InstReturn] _)) -> True)
     it "accepts `unlit` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "unlit")
         (\(Program (
-            CodeBlock [InstReturnWith Expr{expAst=FalseLit}] _)) -> True)
+            CodeBlock [InstReturnWith Expr{expAst=FalseLit}, InstReturn] _)) -> True)
     it "accepts `undiscovered` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "undiscovered")
         (\(Program (
-            CodeBlock [InstReturnWith Expr{expAst=UndiscoveredLit}] _)) -> True)
+            CodeBlock [InstReturnWith Expr{expAst=UndiscoveredLit}, InstReturn] _)) -> True)
 
     it "accepts `|a|` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "|a|")
         (\(Program (
-            CodeBlock [InstReturnWith Expr{expAst=(CharLit 'a')}] _)) -> True)
+            CodeBlock [InstReturnWith Expr{expAst=(CharLit 'a')}, InstReturn] _)) -> True)
 
     it "accepts `|\\n|` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "|\\n|")
         (\(Program (
-            CodeBlock [InstReturnWith Expr{expAst=(CharLit '\n')}] _)) -> True)
+            CodeBlock [InstReturnWith Expr{expAst=(CharLit '\n')}, InstReturn] _)) -> True)
     it "accepts `@@` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "@@")
         (\(Program (
-            CodeBlock [InstReturnWith Expr{expAst=(StringLit "")}] _)) -> True)
+            CodeBlock [InstReturnWith Expr{expAst=(StringLit "")}, InstReturn] _)) -> True)
     it "accepts `@hello@` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "@hello@")
         (\(Program (
-            CodeBlock [InstReturnWith Expr{expAst=(StringLit "hello")}] _)) -> True)
+            CodeBlock [InstReturnWith Expr{expAst=(StringLit "hello")}, InstReturn] _)) -> True)
     it "accepts `@\\@@` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "@\\@@")
         (\(Program (
-            CodeBlock [InstReturnWith Expr{expAst=(StringLit "@")}] _)) -> True)
+            CodeBlock [InstReturnWith Expr{expAst=(StringLit "@")}, InstReturn] _)) -> True)
     it "accepts `1.123` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "1.123")
         (\(Program (
-            CodeBlock [InstReturnWith Expr{expAst=(FloatLit 1.123)}] _)) -> True)
+            CodeBlock [InstReturnWith Expr{expAst=(FloatLit 1.123)}, InstReturn] _)) -> True)
     it "accepts `0.0` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "0.0")
         (\(Program (
-            CodeBlock [InstReturnWith Expr{expAst=(FloatLit 0)}] _)) -> True)
+            CodeBlock [InstReturnWith Expr{expAst=(FloatLit 0)}, InstReturn] _)) -> True)
 
     -- array literals
     it "accepts `<$$>` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "<$$>")
         (\(Program (
-            CodeBlock [InstReturnWith Expr{expAst=(ArrayLit [])}] _)) -> True)
+            CodeBlock [InstReturnWith Expr{expAst=(ArrayLit [])}, InstReturn] _)) -> True)
     it "accepts `<$1$>` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "<$1$>")
         (\(Program (
             CodeBlock [InstReturnWith Expr{expAst=(ArrayLit [
-                Expr{expAst=IntLit 1}])}] _)) -> True)
+                Expr{expAst=IntLit 1}])}, InstReturn] _)) -> True)
     it "rejects `<$1,$>` as a literal" $
         runTestForInvalidProgram (buildProgramWithLiteral "<$1,$>")
     it "rejects `<$,1$>` as a literal" $
@@ -86,23 +86,23 @@ spec = describe "Literal Values" $ do
         (\(Program (
             CodeBlock [InstReturnWith Expr{expAst=(ArrayLit [
                 Expr{expAst=IntLit 1},
-                Expr{expAst=IntLit 2}])}] _)) -> True)
+                Expr{expAst=IntLit 2}])}, InstReturn] _)) -> True)
     it "accepts `<$<$$>$>` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "<$<$$>$>")
         (\(Program (
             CodeBlock [InstReturnWith Expr{expAst=(ArrayLit [
-                Expr{expAst=ArrayLit []}])}] _)) -> True)
+                Expr{expAst=ArrayLit []}])}, InstReturn] _)) -> True)
 
     -- set literals
     it "accepts `{$$}` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "{$$}")
         (\(Program (
-            CodeBlock [InstReturnWith Expr{expAst=SetLit []}] _)) -> True)
+            CodeBlock [InstReturnWith Expr{expAst=SetLit []}, InstReturn] _)) -> True)
     it "accepts `{$1$}` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "{$1$}")
         (\(Program (
             CodeBlock [InstReturnWith Expr{expAst=(SetLit [
-                Expr{expAst=IntLit  1}])}] _)) -> True)
+                Expr{expAst=IntLit  1}])}, InstReturn] _)) -> True)
     it "rejects `{$1,$}` as a literal" $
         runTestForInvalidProgram (buildProgramWithLiteral "{$1,$}")
     it "rejects `{$,1$}` as a literal" $
@@ -112,10 +112,10 @@ spec = describe "Literal Values" $ do
         (\(Program (
             CodeBlock [InstReturnWith Expr{expAst=(SetLit [
                 Expr{expAst=IntLit 1},
-                Expr{expAst=IntLit 2}])}] _)) -> True)
+                Expr{expAst=IntLit 2}])}, InstReturn] _)) -> True)
     it "accepts `{${$$}$}` as a literal" $
         runTestForValidProgram (buildProgramWithLiteral "{${$$}$}")
         (\(Program (
             CodeBlock [InstReturnWith Expr{expAst=(SetLit [
                 Expr{expAst=SetLit []}
-                ])}] _)) -> True)
+                ])}, InstReturn] _)) -> True)

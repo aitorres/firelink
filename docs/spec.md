@@ -761,6 +761,8 @@ Dentro del bloque de instrucciones, no se permitirá modificar directamente la v
 
 Es importante resaltar que intentar declarar una variable nueva con el mismo nombre de una variable de iteración que esté viva se considerará un error semántico; es decir: no se puede oscurecer (_shadow_) una variable de iteración bajo ninguna circunstancia.
 
+Adicionalmente, justo antes de la primera iteración se hace una copia dura tanto de la cota superior como del incremento, de modo que cualquier modificación a estas expresiones **no** será tomada en cuenta durante las iteraciones (permitiendo que sean _realmente_ iteraciones acotadas).
+
 Al terminar la iteración, la variable de iteración correspondiente tendrá el valor resultante de la última comparación con la guardia al romper el ciclo (en el caso del ejemplo, `i <<= 20`.)
 
 ### Iteraciones por estructuras
