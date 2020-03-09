@@ -116,7 +116,8 @@ genCodeForInstruction (InstAsig lvalue rvalue) next =
     if supportedLvalue lvalue then do
         if expType rvalue == StructLitT then assignStructLiteral lvalue rvalue
         else if expType rvalue /= TrileanT || (isIdExpr lvalue && isFunCallExpr rvalue) then do
-            operand <- genCode' lvalue
+            let Expr { expType = lvalT, expAst = lvalAst } = lvalue
+            operand <- genCodeForExpr lvalT lvalAst
             rValueAddress <- genCode' rvalue
             genIdAssignment operand rValueAddress
         else do
