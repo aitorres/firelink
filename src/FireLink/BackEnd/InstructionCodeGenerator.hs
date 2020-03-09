@@ -1,6 +1,6 @@
 module FireLink.BackEnd.InstructionCodeGenerator where
 
-import           Control.Monad.RWS                  (ask, tell, unless, when, liftIO)
+import           Control.Monad.RWS                  (ask, tell, unless, when)
 import           FireLink.BackEnd.CodeGenerator
 import           FireLink.BackEnd.ExprCodeGenerator (genBooleanComparison,
                                                      genCode',
@@ -146,11 +146,11 @@ genCodeForInstruction (InstAsig lvalue rvalue) next =
 
         isIdExpr :: Expr -> Bool
         isIdExpr Expr { expAst = IdExpr _ } = True
-        isIdExpr _ = False
+        isIdExpr _                          = False
 
         isFunCallExpr :: Expr -> Bool
         isFunCallExpr Expr { expAst = EvalFunc _ _ } = True
-        isFunCallExpr _ = False
+        isFunCallExpr _                              = False
 
         isUnionBExpr :: BaseExpr -> Bool
         isUnionBExpr (Access Expr { expType = UnionT _ _ } _) = True

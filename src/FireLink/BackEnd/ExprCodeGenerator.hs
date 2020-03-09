@@ -34,7 +34,7 @@ genCode' e@Expr {expAst=ast@(Access struct _), expType=t} = do
     where
         isUnionT :: Type -> Bool
         isUnionT (UnionT _ _) = True
-        isUnionT _          = False
+        isUnionT _            = False
 genCode' Expr {expAst=ast, expType=t} = genCodeForExpr t ast
 
 genCodeForExpr :: Type -> BaseExpr -> CodeGenMonad OperandType
