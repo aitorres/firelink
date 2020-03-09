@@ -1,5 +1,5 @@
 module FireLink.BackEnd.FlowGraphGenerator (
-    generateFlowGraph
+    generateFlowGraph, findBasicBlocks
 ) where
 
 import           Data.Graph
@@ -10,8 +10,7 @@ import           TACType
 -- | that correspond to a given list of TAC instructions.
 generateFlowGraph :: [TAC] -> [(Int, [TAC])]
 generateFlowGraph code =
-    let leaders = findBlockLeaders code
-        basicBlocks = findBasicBlocks code leaders
+    let basicBlocks = findBasicBlocks code
         numberedBlocks = numberBasicBlocks basicBlocks
     in  numberedBlocks
 
@@ -21,10 +20,15 @@ generateFlowGraph code =
 numberBasicBlocks :: [[TAC]] -> [(Int, [TAC])]
 numberBasicBlocks = zip [0..]
 
+-- | Given a list of TAC instructions, returns a list with
+-- | their basic blocks
+findBasicBlocks :: [TAC] -> [[TAC]]
+findBasicBlocks t = findBasicBlocks' t $ findBlockLeaders t
+
 -- | Given a list of TAC instructions, and the previously found leaders
 -- | of said list, return a list with the basic blocks of the TAC instructions
-findBasicBlocks :: [TAC] -> [TAC] -> [[TAC]]
-findBasicBlocks code leaders = findBasicBlocks' code leaders []
+findBasicBlocks' :: [TAC] -> [TAC] -> [[TAC]]
+findBasicBlocks' code leaders = findBasicBlocks' code leaders []
     where
         findBasicBlocks' :: [TAC] -> [TAC] -> [TAC] -> [[TAC]]
         -- If I only have one remaining leader, then all remaining code is just one basic block
