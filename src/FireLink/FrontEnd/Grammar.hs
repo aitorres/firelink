@@ -150,7 +150,7 @@ instance Show Expr where
 
 newtype Program
   = Program CodeBlock
-  deriving Show
+  deriving (Eq, Show)
 
 data Instruction
   = InstAsig Expr Expr
@@ -166,7 +166,7 @@ data Instruction
   | InstWhile Expr CodeBlock
   | InstMalloc Expr
   | InstFreeMem Expr
-  deriving Show
+  deriving (Eq, Show)
 
 getInstrOffset :: Instruction -> Int
 getInstrOffset i = case i of
@@ -186,16 +186,16 @@ getInstrOffset i = case i of
 
 data IfCase
   = GuardedCase Expr CodeBlock
-  deriving Show
+  deriving (Eq, Show)
 
 data SwitchCase
   = Case Expr CodeBlock
   | DefaultCase CodeBlock
-  deriving Show
+  deriving (Eq, Show)
 
 data CodeBlock
   = CodeBlock Instructions Int
-  deriving Show
+  deriving (Eq, Show)
 
 data RecoverableError
   = MissingProgramEnd

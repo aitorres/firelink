@@ -1,6 +1,6 @@
 module FireLink.BackEnd.InstructionCodeGenerator where
 
-import           Control.Monad.RWS                  (ask, tell, unless, when)
+import           Control.Monad.RWS                  (ask, tell, unless, when, liftIO)
 import           FireLink.BackEnd.CodeGenerator
 import           FireLink.BackEnd.ExprCodeGenerator (genBooleanComparison,
                                                      genCode',
@@ -110,7 +110,7 @@ genCodeForInstruction (InstCall fId params) _ = do
 genCodeForInstruction (InstAsig lvalue rvalue) next =
     if supportedLvalue lvalue then do
         if expType rvalue == StructLitT then assignStructLiteral lvalue rvalue
-        else if expType rvalue /= TrileanT then do
+        else if expType rvalue /= TrileanT || (isIdExpr lvalue && isFunCallExpr rvalue) then do
             operand <- genCode' lvalue
             rValueAddress <- genCode' rvalue
             genIdAssignment operand rValueAddress
@@ -137,6 +137,14 @@ genCodeForInstruction (InstAsig lvalue rvalue) next =
         supportedLvalue Expr {expAst = IdExpr _ }  = True
         supportedLvalue Expr {expAst = Access _ _} = True
         supportedLvalue _                          = False
+
+        isIdExpr :: Expr -> Bool
+        isIdExpr Expr { expAst = IdExpr _ } = True
+        isIdExpr _ = False
+
+        isFunCallExpr :: Expr -> Bool
+        isFunCallExpr Expr { expAst = EvalFunc _ _ } = True
+        isFunCallExpr _ = False
 
         isUnionBExpr :: BaseExpr -> Bool
         isUnionBExpr (Access Expr { expType = UnionT _ _ } _) = True
