@@ -57,11 +57,6 @@ instance GenerateCode Program where
             }]
         mapM_ genBlock allFunctions
         where
-            alignedOffset :: Int -> Int
-            alignedOffset maxOffset =
-                if maxOffset `mod` wordSize == 0
-                then maxOffset
-                else maxOffset +  wordSize - (maxOffset `mod` wordSize)
 
             getFunctions :: Dictionary -> [(String, CodeBlock)]
             getFunctions = map mapDictionaryToTuple . findAllFunctionsAndProcedures
@@ -113,9 +108,7 @@ genCodeForInstruction (InstInitArray arrayId@(G.Id _ s)) _ = do
             | t `elem` ST.definedTypes = do
                 t' <- findSymEntryByName t <$> ask
                 let (ST.Width w) = findWidth t'
-                temp <- Id <$> newtemp
-                genIdAssignment temp $ Constant (show w, BigIntT)
-                return temp
+                return $ Constant (show w, BigIntT)
             | otherwise = do
                 t' <- getTypeFromString t
                 buildFromType (t, t')
@@ -134,6 +127,13 @@ genCodeForInstruction (InstInitArray arrayId@(G.Id _ s)) _ = do
                 , tacRvalue2 = Just operand
                 }]
             return finalAllocatedSize
+
+        buildFromType (typeName, ST.Fields _ _) = do
+            entry <- findSymEntryByName typeName <$> ask
+            let (ST.Width w) = findWidth entry
+            let w' = alignedOffset w
+            return $ Constant (show w', BigIntT)
+        buildFromType o = error $ "Error processing " ++ show o
 
 -- Utility instructions
 genCodeForInstruction InstReturn _ =

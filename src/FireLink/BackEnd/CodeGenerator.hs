@@ -4,7 +4,7 @@ import           Control.Monad.RWS              (RWST (..), get, put, tell)
 import qualified FireLink.FrontEnd.Grammar      as G (Id (..))
 import           FireLink.FrontEnd.SymTable     (Dictionary (..),
                                                  DictionaryEntry (..),
-                                                 findChain)
+                                                 findChain, wordSize)
 import           FireLink.FrontEnd.Tokens       (Token (..))
 import           FireLink.FrontEnd.TypeChecking
 import           TACType
@@ -150,3 +150,9 @@ raiseRunTimeError msg = do
 
 gen :: [TAC] -> CodeGenMonad ()
 gen = tell
+
+alignedOffset :: Int -> Int
+alignedOffset maxOffset =
+    if maxOffset `mod` wordSize == 0
+    then maxOffset
+    else maxOffset +  wordSize - (maxOffset `mod` wordSize)

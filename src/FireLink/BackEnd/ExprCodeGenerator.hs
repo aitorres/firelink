@@ -154,11 +154,12 @@ genIndexAccess array index = do
 
 
         contents' :: ST.Extra -> CodeGenMonad OperandType
-        contents' (ST.CompoundRec _ _ (ST.Simple contentsType))
-            | contentsType `elem` definedTypes = do
-                t' <- findSymEntryByName contentsType <$> ask
-                let (ST.Width w) = findWidth t'
-                return $ TAC.Constant (show w, BigIntT)
+        contents' (ST.CompoundRec _ _ (ST.Simple contentsType)) = do
+            t' <- findSymEntryByName contentsType <$> ask
+            let (ST.Width w) = findWidth t'
+            let w' = alignedOffset w
+            return $ TAC.Constant (show w', BigIntT)
+
         -- Since this function is only used with arrays, this call should never have as an argument a definedType
         contents' (ST.Simple t) =
             ST.extractTypeFromExtra . findSymEntryByName t <$> ask >>= contents'
