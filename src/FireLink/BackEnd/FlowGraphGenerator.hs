@@ -16,7 +16,7 @@ type NumberedTAC = (Int, TAC)
 type NumberedTACs = [(Int, TAC)]
 
 -- | A numbered TAC block (the number being a unique identifier within some context)
-type NumberedBlock = (Int, NumberedTACs)
+type NumberedBlock = (Int, [TAC])
 
 -- | Semantic shortcut for a list of numbered blocks
 type NumberedBlocks = [NumberedBlock]
@@ -46,13 +46,13 @@ getDirectEdges (x:ys@(y:_)) = case hasDirectEdge x y of
     where
         hasDirectEdge :: NumberedBlock -> NumberedBlock -> Maybe Edge
         hasDirectEdge (i1, t1) (i2, _) =
-            let (_, (ThreeAddressCode op _ _ _)) = last t1
+            let ThreeAddressCode op _ _ _ = last t1
             in  if isInconditionalJump op then Nothing else Just (i1, i2)
 
 -- | Given a list of numbered TAC instructions, returns a list with
 -- | their basic blocks
-findBasicBlocks :: NumberedTACs -> [NumberedTACs]
-findBasicBlocks t = let leaders = findBlockLeaders t in findBasicBlocks' t leaders
+findBasicBlocks :: NumberedTACs -> [[TAC]]
+findBasicBlocks t = let leaders = findBlockLeaders t in removeLineTags $ findBasicBlocks' t leaders
     where
         findBasicBlocks' :: NumberedTACs -> NumberedTACs -> [NumberedTACs]
         findBasicBlocks' code leaders = groupBasicBlocks code (tail leaders) []
@@ -63,6 +63,9 @@ findBasicBlocks t = let leaders = findBlockLeaders t in findBasicBlocks' t leade
         groupBasicBlocks code@(c:cs) leaders@(l:ls) prevCode
             | c == l = prevCode : groupBasicBlocks code ls []
             | otherwise = groupBasicBlocks cs leaders (prevCode ++ [c])
+
+        removeLineTags :: [NumberedTACs] -> [[TAC]]
+        removeLineTags = map (map snd)
 
 -- | Given a list of numbered TAC instructions, finds and returns
 -- | a list of block leaders:
@@ -90,7 +93,7 @@ numberTACs :: [TAC] -> NumberedTACs
 numberTACs = numberList
 
 -- | Type-binding application of numberList for a list of code blocks
-numberBlocks :: [NumberedTACs] -> NumberedBlocks
+numberBlocks :: [[TAC]] -> NumberedBlocks
 numberBlocks = numberList
 
 -- | Given a list, returns a list of pairs in which
