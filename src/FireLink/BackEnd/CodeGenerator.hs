@@ -112,6 +112,9 @@ putArrayEntrySize a o = do
 getArrayMap :: CodeGenMonad (Map.Map String OperandType)
 getArrayMap = cgsArrayWidthMap <$> get
 
+lookupArrayMap :: String -> CodeGenMonad (Maybe OperandType)
+lookupArrayMap s = Map.lookup s <$> getArrayMap
+
 fall :: OperandType
 fall = Label "-1"
 
