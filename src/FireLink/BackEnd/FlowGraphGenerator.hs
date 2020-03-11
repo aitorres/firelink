@@ -3,9 +3,10 @@ module FireLink.BackEnd.FlowGraphGenerator (
 ) where
 
 import           Data.Graph
-import           Data.List (nub)
+import           Data.List                      (nub)
 import           Data.Maybe
-import           FireLink.BackEnd.CodeGenerator (TAC (..), isInconditionalJump)
+import           FireLink.BackEnd.CodeGenerator (TAC (..), isInconditionalJump,
+                                                 isJump)
 import           TACType
 
 type NumberedBlock = (Int, [TAC])
@@ -73,10 +74,10 @@ findBlockLeaders ts = nub $ head ts : findBlockLeaders' ts
         findBlockLeaders' :: [TAC] -> [TAC]
         findBlockLeaders' [] = []
         findBlockLeaders' [x] = []
-        findBlockLeaders' (x:ys@(y:_)) = [y | isInconditionalJumpTac x] ++ [x | isJumpDestiny x] ++ findBlockLeaders' ys
+        findBlockLeaders' (x:ys@(y:_)) = [y | isJumpTac x] ++ [x | isJumpDestiny x] ++ findBlockLeaders' ys
 
-        isInconditionalJumpTac :: TAC -> Bool
-        isInconditionalJumpTac (ThreeAddressCode op _ _ _) = isInconditionalJump op
+        isJumpTac :: TAC -> Bool
+        isJumpTac (ThreeAddressCode op _ _ _) = isJump op
 
         isJumpDestiny :: TAC -> Bool
         isJumpDestiny (ThreeAddressCode NewLabel _ (Just _) _) = True

@@ -82,6 +82,12 @@ isFall _         = error "calling isFall with non-label"
 isInconditionalJump :: Operation -> Bool
 isInconditionalJump op = op `elem` [GoTo, Exit, Abort, Call, Return]
 
+isConditionalJump :: Operation -> Bool
+isConditionalJump op = op `elem` [If, Eq, Neq, Gt, Lt, Gte, Lte]
+
+isJump :: Operation -> Bool
+isJump op = isInconditionalJump op || isConditionalJump op
+
 genIdAssignment :: OperandType -> OperandType -> CodeGenMonad ()
 genIdAssignment lValue rValue =
     tell [ThreeAddressCode
