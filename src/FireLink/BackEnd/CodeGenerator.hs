@@ -79,14 +79,17 @@ isFall :: OperandType -> Bool
 isFall (Label l) = l == "-1"
 isFall _         = error "calling isFall with non-label"
 
+isProgramEnd :: Operation -> Bool
+isProgramEnd = flip elem [Exit, Abort]
+
 isInconditionalJump :: Operation -> Bool
-isInconditionalJump op = op `elem` [GoTo, Exit, Abort, Call, Return]
+isInconditionalJump = flip elem [GoTo, Call, Return]
 
 isConditionalJump :: Operation -> Bool
-isConditionalJump op = op `elem` [If, Eq, Neq, Gt, Lt, Gte, Lte]
+isConditionalJump = flip elem [If, Eq, Neq, Gt, Lt, Gte, Lte]
 
 isJump :: Operation -> Bool
-isJump op = isInconditionalJump op || isConditionalJump op
+isJump op = isInconditionalJump op || isConditionalJump op || isProgramEnd op
 
 genIdAssignment :: OperandType -> OperandType -> CodeGenMonad ()
 genIdAssignment lValue rValue =
