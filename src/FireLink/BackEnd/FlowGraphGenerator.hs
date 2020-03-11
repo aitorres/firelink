@@ -13,10 +13,16 @@ import           TACType
 type NumberedTAC = (Int, TAC)
 
 -- | Semantic shortcut for a list of numbered instructions
-type NumberedTACs = [(Int, TAC)]
+type NumberedTACs = [NumberedTAC]
+
+-- | A group of TAC within a basic context
+type BasicBlock = [TAC]
+
+-- | Semantic shortcut for a list of basic blocks
+type BasicBlocks = [BasicBlock]
 
 -- | A numbered TAC block (the number being a unique identifier within some context)
-type NumberedBlock = (Int, [TAC])
+type NumberedBlock = (Int, BasicBlock)
 
 -- | Semantic shortcut for a list of numbered blocks
 type NumberedBlocks = [NumberedBlock]
@@ -51,7 +57,7 @@ getDirectEdges (x:ys@(y:_)) = case hasDirectEdge x y of
 
 -- | Given a list of numbered TAC instructions, returns a list with
 -- | their basic blocks
-findBasicBlocks :: NumberedTACs -> [[TAC]]
+findBasicBlocks :: NumberedTACs -> BasicBlocks
 findBasicBlocks t = let leaders = findBlockLeaders t in removeLineTags $ findBasicBlocks' t leaders
     where
         findBasicBlocks' :: NumberedTACs -> NumberedTACs -> [NumberedTACs]
@@ -64,7 +70,7 @@ findBasicBlocks t = let leaders = findBlockLeaders t in removeLineTags $ findBas
             | c == l = prevCode : groupBasicBlocks code ls []
             | otherwise = groupBasicBlocks cs leaders (prevCode ++ [c])
 
-        removeLineTags :: [NumberedTACs] -> [[TAC]]
+        removeLineTags :: [NumberedTACs] -> BasicBlocks
         removeLineTags = map (map snd)
 
 -- | Given a list of numbered TAC instructions, finds and returns
@@ -93,7 +99,7 @@ numberTACs :: [TAC] -> NumberedTACs
 numberTACs = numberList
 
 -- | Type-binding application of numberList for a list of code blocks
-numberBlocks :: [[TAC]] -> NumberedBlocks
+numberBlocks :: BasicBlocks -> NumberedBlocks
 numberBlocks = numberList
 
 -- | Given a list, returns a list of pairs in which
