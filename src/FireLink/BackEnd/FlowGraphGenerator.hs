@@ -15,6 +15,8 @@ type Edges = [Edge]
 
 -- | Generates and returns the flow graph
 -- | that correspond to a given list of TAC instructions.
+-- | TODO: While finding leaders and basic blocks, number each instruction in order to distinguish
+-- | leaders that might belong to the same instructions, or a same instruction being both leader and not leader
 generateFlowGraph :: [TAC] -> Graph
 generateFlowGraph code =
     let basicBlocks = findBasicBlocks code
@@ -46,21 +48,19 @@ numberBasicBlocks = zip [0..]
 -- | Given a list of TAC instructions, returns a list with
 -- | their basic blocks
 findBasicBlocks :: [TAC] -> [[TAC]]
-findBasicBlocks t = findBasicBlocks' t $ findBlockLeaders t
+findBasicBlocks t = let leaders = findBlockLeaders t in findBasicBlocks' t leaders
 
 -- | Given a list of TAC instructions, and the previously found leaders
 -- | of said list, return a list with the basic blocks of the TAC instructions
 findBasicBlocks' :: [TAC] -> [TAC] -> [[TAC]]
-findBasicBlocks' code leaders = findBasicBlocks' code leaders []
+findBasicBlocks' code leaders = findBasicBlocks'' code (tail leaders) []
     where
-        findBasicBlocks' :: [TAC] -> [TAC] -> [TAC] -> [[TAC]]
-        -- If I only have one remaining leader, then all remaining code is just one basic block
-        findBasicBlocks' code [_] [] = [code]
-        findBasicBlocks' code@(c:cs) leaders@(l:ls) prevCode
-            | c == l = if null prevCode then nextBasicBlock else prevCode : nextBasicBlock
-            | otherwise = findBasicBlocks' cs leaders (prevCode ++ [c])
-            where
-                nextBasicBlock = findBasicBlocks' code ls []
+        findBasicBlocks'' :: [TAC] -> [TAC] -> [TAC] -> [[TAC]]
+        -- If I already recognized the last leader, then all remaining code is just one basic block
+        findBasicBlocks'' code [] [] = [code]
+        findBasicBlocks'' code@(c:cs) leaders@(l:ls) prevCode
+            | c == l = prevCode : findBasicBlocks'' code ls []
+            | otherwise = findBasicBlocks'' cs leaders (prevCode ++ [c])
 
 -- | Given a list of TAC instructions, finds and returns
 -- | a list of block leaders:
