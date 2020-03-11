@@ -1,9 +1,10 @@
 module FireLink.BackEnd.InstructionCodeGenerator where
 
-import Control.Monad.RWS (unless, when, ask)
+import Control.Monad.RWS (unless, when, ask, lift)
 import           FireLink.BackEnd.CodeGenerator
 import           FireLink.BackEnd.ExprCodeGenerator (genBooleanComparison,
                                                      genCode',
+                                                     genIndexAccess,
                                                      genCodeForBooleanExpr,
                                                      genCodeForExpr, genOp2Code,
                                                      genParams)
@@ -171,6 +172,12 @@ genCodeForInstruction (InstCall fId params) _ = do
 genCodeForInstruction (InstAsig lvalue rvalue) next =
     if supportedLvalue lvalue then do
         if expType rvalue == StructLitT then assignStructLiteral lvalue rvalue
+        else if isIndexExpr lvalue then do
+            lift $ print "pasé por aquí"
+            let IndexAccess array index = expAst lvalue
+            (arrayRefOperand, _, base) <- genIndexAccess array index
+            operand <- genCode' rvalue
+            genSetAssignment base arrayRefOperand operand
         else if expType rvalue /= TrileanT || (isIdExpr lvalue && isFunCallExpr rvalue) then do
             let Expr { expType = lvalT, expAst = lvalAst } = lvalue
             operand <- genCodeForExpr lvalT lvalAst
@@ -198,11 +205,16 @@ genCodeForInstruction (InstAsig lvalue rvalue) next =
         supportedLvalue :: Expr -> Bool
         supportedLvalue Expr {expAst = IdExpr _ }  = True
         supportedLvalue Expr {expAst = Access _ _} = True
+        supportedLvalue Expr {expAst = IndexAccess _ _} = True
         supportedLvalue _                          = False
 
         isIdExpr :: Expr -> Bool
         isIdExpr Expr { expAst = IdExpr _ } = True
         isIdExpr _                          = False
+        
+        isIndexExpr :: Expr -> Bool
+        isIndexExpr Expr { expAst = IndexAccess _ _ } = True
+        isIndexExpr _ = False
 
         isFunCallExpr :: Expr -> Bool
         isFunCallExpr Expr { expAst = EvalFunc _ _ } = True

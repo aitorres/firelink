@@ -7,7 +7,8 @@ with
     var x of type <n>-chest of type <n + m>-chest of type humanity,
     var a of type <55>-chest of type sign
 in your inventory
-    n <<= x<$22$><$9$>
+    a<$0$> <<= |a| \
+    x<$1$><$2$> <<= n
 you died
 
 farewell ashen one

@@ -131,6 +131,15 @@ genIdAssignment lValue rValue =
         , tacRvalue2 = Nothing
         }]
 
+genSetAssignment :: OperandType -> OperandType -> OperandType -> CodeGenMonad ()
+genSetAssignment base offset value =
+    gen [ThreeAddressCode
+        { tacOperand = Set
+        , tacLvalue = Just base
+        , tacRvalue1 = Just offset
+        , tacRvalue2 = Just value
+        }]
+
 class GenerateCode a where
     genCode :: a -> CodeGenMonad ()
 
