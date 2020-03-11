@@ -228,7 +228,7 @@ compile program compileFlag = do
     case compilerResult of
         Left e -> uncurry handleCompileError e >> exitFailure
         Right (ast, symTable, tokens) -> do
-            (tacCode, basicBlocks, flowGraph) <- backend ast (ST.stDict symTable)
+            (tacCode, basicBlocks, flowGraph, allocatedTac) <- backend ast (ST.stDict symTable)
             case compileFlag of
                 Nothing -> do
                     -- Default behavior: print everything
@@ -242,6 +242,8 @@ compile program compileFlag = do
                     printBasicBlocks basicBlocks
                     putStrLn "\nFireLink: Printing flow graph (with special nodes ENTRY at -1, EXIT as the last one)"
                     printFlowGraph flowGraph
+                    putStrLn "\nFireLink: Printing mockup of naive register allocation"
+                    putStrLn allocatedTac
                 Just flag ->
                     if flag `elem` ["-f", "--frontend"] then prettyPrintSymTable symTable >> printProgram tokens
                     else if flag `elem` ["-s", "--symtable"] then prettyPrintSymTable symTable
