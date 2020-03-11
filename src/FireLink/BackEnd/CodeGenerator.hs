@@ -1,10 +1,11 @@
 module FireLink.BackEnd.CodeGenerator where
 
-import           Control.Monad.RWS              (RWST (..), get, put, tell)
+import           Control.Monad.RWS              (RWST (..), get, put, tell, ask)
 import qualified FireLink.FrontEnd.Grammar      as G (Id (..))
 import           FireLink.FrontEnd.SymTable     (Dictionary (..),
                                                  DictionaryEntry (..),
-                                                 findChain, wordSize)
+                                                 Extra(..), findWidth,
+                                                 findChain, wordSize, findSymEntryByName)
 import           FireLink.FrontEnd.Tokens       (Token (..))
 import           FireLink.FrontEnd.TypeChecking
 import           TACType
@@ -168,3 +169,17 @@ alignedOffset maxOffset =
     if maxOffset `mod` wordSize == 0
     then maxOffset
     else maxOffset +  wordSize - (maxOffset `mod` wordSize)
+
+typeWidth :: String -> CodeGenMonad OperandType
+typeWidth t = do
+    resultLookup <- lookupArrayMap t
+    case resultLookup of
+        -- It is an array and its size is known at compile time
+        Just o -> return o
+
+        -- The width is on symtable
+        _ -> do
+            t' <- findSymEntryByName t <$> ask
+            let (Width w) = findWidth t'
+            let w' = alignedOffset w
+            return $ Constant (show w', BigIntT)

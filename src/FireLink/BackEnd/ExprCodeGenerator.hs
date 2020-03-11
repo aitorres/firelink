@@ -119,7 +119,7 @@ This implementation works because in TAC and in MIPS characters are just numbers
 -}
 genCodeForExpr _ (AsciiOf expr) = genCode' expr
 
-genCodeForExpr _ e@(IndexAccess array index) = do
+genCodeForExpr _ (IndexAccess array index) = do
     (arrayRefOperand, _, base) <- genIndexAccess array index
     operand <- TAC.Id <$> newtemp
     gen [TAC.ThreeAddressCode
@@ -130,8 +130,17 @@ genCodeForExpr _ e@(IndexAccess array index) = do
         }]
     return operand
 
+genCodeForExpr _ (Size container) = genCodeForSize container
 
 genCodeForExpr _ e = error $ "This expression hasn't been implemented " ++ show e
+
+-- Generates code to calculate size of a collection
+genCodeForSize :: Expr -> CodeGenMonad OperandType
+genCodeForSize exp = case expAst exp of
+    IdExpr i -> do
+        idEntry <- findSymEntryById i <$> ask
+        let ST.Simple entryType = ST.extractTypeFromExtra idEntry
+        typeWidth entryType
 
 -- Return type is (offset, contents, base)
 genIndexAccess :: Expr -> Expr -> CodeGenMonad (OperandType, String, OperandType)
@@ -144,7 +153,7 @@ genIndexAccess array index = do
             lift $ putStr "idEntry value "
             lift $ print idEntry
             contents <- getContents $ ST.extractTypeFromExtra idEntry
-            width <- contentsWidth contents
+            width <- typeWidth contents
             resultAddress <- TAC.Id <$> newtemp
             gen [TAC.ThreeAddressCode
                     { TAC.tacOperand = TAC.Mult
@@ -157,7 +166,7 @@ genIndexAccess array index = do
         IndexAccess array' index' -> do
             (offset, contents', base) <- genIndexAccess array' index'
             contents <- getContents $ ST.Simple contents'
-            width <- contentsWidth contents
+            width <- typeWidth contents
             t <- TAC.Id <$> newtemp
             gen [TAC.ThreeAddressCode
                     { TAC.tacOperand = TAC.Add
@@ -174,21 +183,6 @@ genIndexAccess array index = do
                     }]
             return (resultAddress, contents, base)
     where
-        contentsWidth :: String -> CodeGenMonad OperandType
-        contentsWidth t = do
-            resultLookup <- lookupArrayMap t
-            case resultLookup of
-                -- It is an array and its size is known at compile time
-                Just o -> return o
-
-                -- The width is on symtable
-                _ -> do
-                    t' <- findSymEntryByName t <$> ask
-                    let (ST.Width w) = findWidth t'
-                    let w' = alignedOffset w
-                    return $ TAC.Constant (show w', BigIntT)
-
-
         getContents :: ST.Extra -> CodeGenMonad String
         getContents (ST.CompoundRec _ _ s@(ST.Simple contentsType)) = return contentsType
 
