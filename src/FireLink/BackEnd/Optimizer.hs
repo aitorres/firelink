@@ -22,7 +22,7 @@ optimize' = foldr (.) id optimizations
 
 -- | A list with all currently valid optimizations.
 optimizations :: [Optimization]
-optimizations = [removeUnusedLabels, removeRedundantJumps, removeIdempotencies, removeRedundantAssignments, removeUnreachableInstructions]
+optimizations = [removeUnusedLabels, removeRedundantJumps, removeIdempotencies, removeUnreachableInstructions]
 
 -- | 'Optimization' that removes redundant jumps, that is: a jump that goes to a
 -- | label that is defined in the very next line.
@@ -57,23 +57,6 @@ removeUnreachableInstructions = foldr removeUnreachableInstruction []
             let middleTAC = head seen
                 lastTAC = head $ tail seen in
                 if isUnreachableInstruction x middleTAC lastTAC then x : tail seen else x:seen
-
--- | 'Optimization' that removes redundant assignments, that is, a pair
--- | of instructions in which the first performs an operation to var A, and
--- | the second stores the content of var A to var B (instead of storing directly
--- | to var B)
-removeRedundantAssignments :: Optimization
-removeRedundantAssignments = foldr removeRedundantAssignment []
-    where
-        isRedundantAssignment :: TAC -> TAC -> Bool
-        isRedundantAssignment (ThreeAddressCode _ (Just c) _ _) (ThreeAddressCode Assign (Just a) (Just b) Nothing) = b == c
-        isRedundantAssignment _ _ = False
-
-        removeRedundantAssignment :: TAC -> [TAC] -> [TAC]
-        removeRedundantAssignment x [] = [x]
-        removeRedundantAssignment x@(ThreeAddressCode op _ b c) seen =
-            let nextTAC@(ThreeAddressCode _ a _ _) = head seen in
-                if isRedundantAssignment x nextTAC then ThreeAddressCode op a b c : tail seen else x : seen
 
 -- | 'Optimization' that removes certain duplicated instructions that are
 -- | idempotent, such as two sequential jumps to the same label,
