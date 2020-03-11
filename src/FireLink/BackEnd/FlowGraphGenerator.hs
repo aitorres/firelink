@@ -43,8 +43,7 @@ generateFlowGraph code =
         entryEdge = (-1, 0) -- ENTRY
         exitEdges = getExitEdges (length numberedBlocks) numberedBlocks
         jumpEdges = getJumpEdges numberedBlocks
-        returnEdges = getReturnEdges numberedBlocks
-        edges = entryEdge : directEdges ++ jumpEdges ++ returnEdges ++ exitEdges
+        edges = entryEdge : directEdges ++ jumpEdges ++ exitEdges
         graph = buildG (-1, length numberedBlocks) edges
     in  graph
 
@@ -78,25 +77,14 @@ getJumpEdges code = foldr findAllJumpEdges [] code
                 else if op == Call then
                     let (j, _) = findDestinyBlock dC code
                     in (i, j) : es
+                else if op == Return then
+                    let (_, fcb) = findPrevFuncBlock i code
+                        ThreeAddressCode _ _ l _ = head fcb
+                    in  es ++ (map (\x -> (i, x)) (getCallsToLabel l code))
                 else es
 
         findDestinyBlock :: Maybe OperandType -> NumberedBlocks -> NumberedBlock
         findDestinyBlock d = head . filter (\(_, b) -> head b == ThreeAddressCode NewLabel Nothing d Nothing)
-
--- | !TODO: This goes from the label to the first return, it should go backwards:
--- | go from the return to the first label (in case a function has multiple returns)
-getReturnEdges :: NumberedBlocks -> Edges
-getReturnEdges code = foldr findAllReturnEdges [] code
-    where
-        findAllReturnEdges :: NumberedBlock -> Edges -> Edges
-        findAllReturnEdges (i, cb) es =
-            let lastInstr = last cb
-                ThreeAddressCode op _ _ _ = lastInstr
-                (_, fcb) = findPrevFuncBlock i code
-                ThreeAddressCode _ _ l _ = head fcb
-            in  if isReturn op
-                then es ++ (map (\x -> (i, x)) (getCallsToLabel l code))
-                else es
 
         findPrevFuncBlock :: Vertex -> NumberedBlocks -> NumberedBlock
         findPrevFuncBlock i = head . filter (\(i', cb) -> i' <= i && (isFuncLabel . head) cb)
@@ -109,9 +97,6 @@ getReturnEdges code = foldr findAllReturnEdges [] code
         getLabelName :: TAC -> String
         getLabelName (ThreeAddressCode NewLabel _ (Just (Label s)) _) = s
         getLabelName _ = error $ "Trying to fetch label of non-label instr"
-
-        isReturn :: Operation -> Bool
-        isReturn op = op == Return
 
         getCallsToLabel :: Maybe OperandType -> NumberedBlocks -> [Vertex]
         getCallsToLabel Nothing _ = []
@@ -127,6 +112,10 @@ getReturnEdges code = foldr findAllReturnEdges [] code
         isCallToLabel (ThreeAddressCode Call _ (Just l) _) l' = l == l'
         isCallToLabel _  _ = False
 
+-- | Given a list of numbered blocks, finds all direct edges, that is,
+-- | edges from a block to its following block (fall-through edges)
+-- | where applicable (that is, if there are no inconditional jumps
+-- | at the end of the first block)
 getDirectEdges :: NumberedBlocks -> Edges
 getDirectEdges [] = []
 getDirectEdges [x] = []
