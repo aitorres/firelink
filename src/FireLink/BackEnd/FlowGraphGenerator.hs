@@ -43,8 +43,8 @@ generateFlowGraph code =
         entryEdge = (-1, 0) -- ENTRY
         exitEdges = getExitEdges (length numberedBlocks) numberedBlocks
         jumpEdges = getJumpEdges numberedBlocks
-        -- ADD RETURN EDGES
-        edges = entryEdge : directEdges ++ jumpEdges ++ exitEdges
+        returnEdges = getReturnEdges numberedBlocks
+        edges = entryEdge : directEdges ++ jumpEdges ++ returnEdges ++ exitEdges
         graph = buildG (-1, length numberedBlocks) edges
     in  graph
 
@@ -63,6 +63,8 @@ getExitEdges vExit = foldr addExitEdges []
         isExitOp :: Operation -> Bool
         isExitOp = flip elem [Exit, Abort]
 
+-- | Given a list of numbered blocks, returns a list of edges
+-- | from blocks that end up in jumps to their jumped blocks
 getJumpEdges :: NumberedBlocks -> Edges
 getJumpEdges code = foldr findAllJumpEdges [] code
     where
@@ -71,15 +73,53 @@ getJumpEdges code = foldr findAllJumpEdges [] code
             let lastInstr = last cb
                 ThreeAddressCode op _ dC dJ = lastInstr
             in  if isConditionalJump op || op == GoTo
-                then let (d, _) = findDestinyBlock dJ code
-                    in  (i, d) : es
+                then let (j, _) = findDestinyBlock dJ code
+                    in  (i, j) : es
                 else if op == Call then
-                    let (d, _) = findDestinyBlock dC code
-                    in (i, d) : es
+                    let (j, _) = findDestinyBlock dC code
+                    in (i, j) : es
                 else es
 
         findDestinyBlock :: Maybe OperandType -> NumberedBlocks -> NumberedBlock
         findDestinyBlock d = head . filter (\(_, b) -> head b == ThreeAddressCode NewLabel Nothing d Nothing)
+
+-- | !TODO: This goes from the label to the first return, it should go backwards:
+-- | go from the return to the first label (in case a function has multiple returns)
+getReturnEdges :: NumberedBlocks -> Edges
+getReturnEdges code = foldr findAllReturnEdges [] code
+    where
+        findAllReturnEdges :: NumberedBlock -> Edges -> Edges
+        findAllReturnEdges (i, cb) es =
+            let firstInstr = head cb
+                ThreeAddressCode op _ l _ = firstInstr
+                (i', _) = findNextReturn i code
+            in  if isLabel op
+                then es ++ (map (\x -> (i', x)) (getReturnsToLabel l code))
+                else es
+
+        findNextReturn :: Vertex -> NumberedBlocks -> NumberedBlock
+        findNextReturn i = head . filter (\(i', cb) -> i' >= i && (isReturnTac . last) cb)
+
+        isReturnTac :: TAC -> Bool
+        isReturnTac (ThreeAddressCode op _ _ _) = op == Return
+
+        isLabel :: Operation -> Bool
+        isLabel NewLabel = True
+        isLabel _        = False
+
+        getReturnsToLabel :: Maybe OperandType -> NumberedBlocks -> [Vertex]
+        getReturnsToLabel Nothing _ = []
+        getReturnsToLabel (Just l) code =
+            let returningBlocks = filter (endsWithCallToLabel l) code
+            -- We add 1 because we should return to the block immediately following this one
+            in  map ((+1) . fst) returningBlocks
+
+        endsWithCallToLabel :: OperandType -> NumberedBlock -> Bool
+        endsWithCallToLabel l (_, tacs) = let lastInstr = last tacs in isCallToLabel lastInstr l
+
+        isCallToLabel :: TAC -> OperandType -> Bool
+        isCallToLabel (ThreeAddressCode Call _ (Just l) _) l' = l == l'
+        isCallToLabel _  _ = False
 
 getDirectEdges :: NumberedBlocks -> Edges
 getDirectEdges [] = []
