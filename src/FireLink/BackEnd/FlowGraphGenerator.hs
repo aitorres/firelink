@@ -3,6 +3,7 @@ module FireLink.BackEnd.FlowGraphGenerator (
 ) where
 
 import           Data.Graph
+import           Data.List (nub)
 import           Data.Maybe
 import           FireLink.BackEnd.CodeGenerator (TAC (..), isInconditionalJump)
 import           TACType
@@ -62,26 +63,21 @@ findBasicBlocks' code leaders = findBasicBlocks' code leaders []
 
 -- | Given a list of TAC instructions, finds and returns
 -- | a list of block leaders:
--- |   1. The first instruction (base case for the folded function)
+-- |   1. The first instruction (appended to the result of the aux function)
 -- |   2. The destiny of each jump (workaround: since we only leave reachable labels, those are added)
 -- |   3. The next instruction after each jump/goto
-findBlockLeaders ::[TAC] -> [TAC]
-findBlockLeaders = foldr isBlockLeader []
+-- | Conditions (2) and (3) are handled in the recursive, aux function
+findBlockLeaders :: [TAC] -> [TAC]
+findBlockLeaders ts = nub $ head ts : findBlockLeaders' ts
     where
+        findBlockLeaders' :: [TAC] -> [TAC]
+        findBlockLeaders' [] = []
+        findBlockLeaders' [x] = []
+        findBlockLeaders' (x:ys@(y:_)) = [y | isInconditionalJumpTac x] ++ [x | isJumpDestiny x] ++ findBlockLeaders' ys
+
+        isInconditionalJumpTac :: TAC -> Bool
+        isInconditionalJumpTac (ThreeAddressCode op _ _ _) = isInconditionalJump op
+
         isJumpDestiny :: TAC -> Bool
         isJumpDestiny (ThreeAddressCode NewLabel _ (Just _) _) = True
         isJumpDestiny _                                        = False
-
-        isGoTo :: TAC -> Bool
-        isGoTo (ThreeAddressCode GoTo _ _ _) = True
-        isGoTo _                             = False
-
-        isBlockLeader :: TAC -> [TAC] -> [TAC]
-        isBlockLeader x [] = [x] -- Handles the first instruction which is always a leader (1)
-        isBlockLeader x leaders
-            | isJumpDestiny x = x : leaders -- Reached jump destinies (2)
-            | isGoTo x = x : leaders -- Workaround to find actual instructions after jumps (see next line)
-            | isGoTo lastInstr = x : tail leaders -- Instructions immediately after a jump (3)
-            | otherwise = leaders
-            where
-                lastInstr = head leaders
