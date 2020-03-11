@@ -2,6 +2,7 @@ module FireLink.BackEnd.FlowGraphGenerator (
     generateFlowGraph, findBasicBlocks, numberTACs
 ) where
 
+import           Data.Char                      (isDigit)
 import           Data.Graph
 import           Data.List                      (nub)
 import           Data.Maybe
@@ -75,10 +76,10 @@ getJumpEdges code vExit = foldr findAllJumpEdges [] code
         findDestinyBlock d = head . filter (\(_, b) -> head b == ThreeAddressCode NewLabel Nothing d Nothing)
 
         findFunctionDefBlock :: Vertex -> NumberedBlocks -> NumberedBlock
-        findFunctionDefBlock i = head . filter (\(i', cb) -> i' <= i && (isFuncLabel . head) cb)
+        findFunctionDefBlock i = last . filter (\(i', cb) -> i' <= i && (isFuncLabel . head) cb)
 
         isFuncLabel :: TAC -> Bool
-        isFuncLabel (ThreeAddressCode NewLabel _ (Just (Label s)) _) = head s == '_'
+        isFuncLabel (ThreeAddressCode NewLabel _ (Just (Label s)) _) = let sc = head s in (not . isDigit) sc
         isFuncLabel _ = False
 
         getCallsToLabel :: Maybe OperandType -> NumberedBlocks -> [Vertex]
