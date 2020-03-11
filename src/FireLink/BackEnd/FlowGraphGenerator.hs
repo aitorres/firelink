@@ -7,7 +7,7 @@ import           Data.List                      (nub)
 import           Data.Maybe
 import           FireLink.BackEnd.CodeGenerator (OperandType (..), TAC (..),
                                                  isConditionalJump,
-                                                 isInconditionalJump, isJump,
+                                                 isUnconditionalJump, isJump,
                                                  isProgramEnd)
 import           TACType
 
@@ -114,7 +114,7 @@ getJumpEdges code = foldr findAllJumpEdges [] code
 
 -- | Given a list of numbered blocks, finds all direct edges, that is,
 -- | edges from a block to its following block (fall-through edges)
--- | where applicable (that is, if there are no inconditional jumps
+-- | where applicable (that is, if there are no unconditional jumps
 -- | at the end of the first block)
 getDirectEdges :: NumberedBlocks -> Edges
 getDirectEdges [] = []
@@ -126,7 +126,7 @@ getDirectEdges (x:ys@(y:_)) = case hasDirectEdge x y of
         hasDirectEdge :: NumberedBlock -> NumberedBlock -> Maybe Edge
         hasDirectEdge (i1, t1) (i2, _) =
             let ThreeAddressCode op _ _ _ = last t1
-            in  if isInconditionalJump op || isProgramEnd op then Nothing else Just (i1, i2)
+            in  if isUnconditionalJump op || isProgramEnd op then Nothing else Just (i1, i2)
 
 -- | Given a list of numbered TAC instructions, returns a list with
 -- | their basic blocks
