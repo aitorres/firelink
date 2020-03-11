@@ -6,9 +6,9 @@ import           Data.Graph
 import           Data.List                      (nub)
 import           Data.Maybe
 import           FireLink.BackEnd.CodeGenerator (OperandType (..), TAC (..),
-                                                 isConditionalJump,
-                                                 isUnconditionalJump, isJump,
-                                                 isProgramEnd)
+                                                 isConditionalJump, isJump,
+                                                 isProgramEnd,
+                                                 isUnconditionalJump)
 import           TACType
 
 -- | A numbered instruction (the number being a unique identifier within some context)
@@ -78,39 +78,34 @@ getJumpEdges code = foldr findAllJumpEdges [] code
                     let (j, _) = findDestinyBlock dC code
                     in (i, j) : es
                 else if op == Return then
-                    let (_, fcb) = findPrevFuncBlock i code
-                        ThreeAddressCode _ _ l _ = head fcb
-                    in  es ++ (map (\x -> (i, x)) (getCallsToLabel l code))
+                    let (_, fcb) = findFunctionDefBlock i code
+                        ThreeAddressCode _ _ mL _ = head fcb
+                    in  es ++ (map (\x -> (i, x)) (getCallsToLabel mL code))
                 else es
 
         findDestinyBlock :: Maybe OperandType -> NumberedBlocks -> NumberedBlock
         findDestinyBlock d = head . filter (\(_, b) -> head b == ThreeAddressCode NewLabel Nothing d Nothing)
 
-        findPrevFuncBlock :: Vertex -> NumberedBlocks -> NumberedBlock
-        findPrevFuncBlock i = head . filter (\(i', cb) -> i' <= i && (isFuncLabel . head) cb)
+        findFunctionDefBlock :: Vertex -> NumberedBlocks -> NumberedBlock
+        findFunctionDefBlock i = head . filter (\(i', cb) -> i' <= i && (isFuncLabel . head) cb)
 
         isFuncLabel :: TAC -> Bool
-        isFuncLabel tac = case tac of
-                ThreeAddressCode NewLabel _ (Just (Label s)) _ -> head s == '_'
-                _ -> False
-
-        getLabelName :: TAC -> String
-        getLabelName (ThreeAddressCode NewLabel _ (Just (Label s)) _) = s
-        getLabelName _ = error $ "Trying to fetch label of non-label instr"
+        isFuncLabel (ThreeAddressCode NewLabel _ (Just (Label s)) _) = head s == '_'
+        isFuncLabel _ = False
 
         getCallsToLabel :: Maybe OperandType -> NumberedBlocks -> [Vertex]
         getCallsToLabel Nothing _ = []
         getCallsToLabel (Just l) code =
-            let returningBlocks = filter (endsWithCallToLabel l) code
+            let blocksEndingWithCall = filter (endsWithCallToLabel l) code
             -- We add 1 because we should return to the block immediately following this one
-            in  map ((+1) . fst) returningBlocks
+            in  map ((+1) . fst) blocksEndingWithCall
 
         endsWithCallToLabel :: OperandType -> NumberedBlock -> Bool
         endsWithCallToLabel l (_, tacs) = let lastInstr = last tacs in isCallToLabel lastInstr l
 
         isCallToLabel :: TAC -> OperandType -> Bool
         isCallToLabel (ThreeAddressCode Call _ (Just l) _) l' = l == l'
-        isCallToLabel _  _ = False
+        isCallToLabel _  _                                    = False
 
 -- | Given a list of numbered blocks, finds all direct edges, that is,
 -- | edges from a block to its following block (fall-through edges)

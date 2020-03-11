@@ -82,14 +82,14 @@ isFall _         = error "calling isFall with non-label"
 isProgramEnd :: Operation -> Bool
 isProgramEnd = flip elem [Exit, Abort]
 
-isInconditionalJump :: Operation -> Bool
-isInconditionalJump = flip elem [GoTo, Call, Return]
+isUnconditionalJump :: Operation -> Bool
+isUnconditionalJump = flip elem [GoTo, Call, Return]
 
 isConditionalJump :: Operation -> Bool
 isConditionalJump = flip elem [If, Eq, Neq, Gt, Lt, Gte, Lte]
 
 isJump :: Operation -> Bool
-isJump op = isInconditionalJump op || isConditionalJump op || isProgramEnd op
+isJump op = isUnconditionalJump op || isConditionalJump op || isProgramEnd op
 
 genIdAssignment :: OperandType -> OperandType -> CodeGenMonad ()
 genIdAssignment lValue rValue =
