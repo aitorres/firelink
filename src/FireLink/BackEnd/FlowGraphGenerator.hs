@@ -39,33 +39,20 @@ generateFlowGraph code =
     let numberedInstructions = numberTACs code
         basicBlocks = findBasicBlocks numberedInstructions
         numberedBlocks = numberBlocks basicBlocks
-        directEdges = getDirectEdges numberedBlocks
+        fallEdges = getFallEdges numberedBlocks
         entryEdge = (-1, 0) -- ENTRY
-        exitEdges = getExitEdges (length numberedBlocks) numberedBlocks
-        jumpEdges = getJumpEdges numberedBlocks
-        edges = entryEdge : directEdges ++ jumpEdges ++ exitEdges
+        exitNode = (length numberedBlocks) -- EXIT
+        jumpEdges = getJumpEdges numberedBlocks exitNode
+        edges = entryEdge : fallEdges ++ jumpEdges
         graph = buildG (-1, length numberedBlocks) edges
     in  graph
 
 -- | Given an integer that represents an EXIT vertex, and a
--- | list of numbered blocks, returns a list of edges from
--- | exit blocks to the EXIT vertex
-getExitEdges :: Vertex -> NumberedBlocks -> Edges
-getExitEdges vExit = foldr addExitEdges []
-    where
-        addExitEdges :: NumberedBlock -> Edges -> Edges
-        addExitEdges (i, cb) es =
-            let lastInstr = last cb
-                ThreeAddressCode op _ _ _ = lastInstr
-            in  if isExitOp op then (i, vExit) : es else es
-
-        isExitOp :: Operation -> Bool
-        isExitOp = flip elem [Exit, Abort]
-
--- | Given a list of numbered blocks, returns a list of edges
--- | from blocks that end up in jumps to their jumped blocks
-getJumpEdges :: NumberedBlocks -> Edges
-getJumpEdges code = foldr findAllJumpEdges [] code
+-- | list of numbered blocks, returns a list of edges
+-- | from blocks that end up in jumps to their jumped blocks,
+-- | including jumps from exit blocks to the EXIT vertex
+getJumpEdges :: NumberedBlocks -> Vertex -> Edges
+getJumpEdges code vExit = foldr findAllJumpEdges [] code
     where
         findAllJumpEdges :: NumberedBlock -> Edges -> Edges
         findAllJumpEdges (i, cb) es =
@@ -74,6 +61,7 @@ getJumpEdges code = foldr findAllJumpEdges [] code
             in  if isConditionalJump op || op == GoTo
                 then let (j, _) = findDestinyBlock dJ code
                     in  (i, j) : es
+                else if isProgramEnd op then (i, vExit) : es
                 else if op == Call then
                     let (j, _) = findDestinyBlock dC code
                     in (i, j) : es
@@ -107,19 +95,19 @@ getJumpEdges code = foldr findAllJumpEdges [] code
         isCallToLabel (ThreeAddressCode Call _ (Just l) _) l' = l == l'
         isCallToLabel _  _                                    = False
 
--- | Given a list of numbered blocks, finds all direct edges, that is,
+-- | Given a list of numbered blocks, finds all fall edges, that is,
 -- | edges from a block to its following block (fall-through edges)
--- | where applicable (that is, if there are no unconditional jumps
+-- | where applicable (i.e. if there are no unconditional jumps
 -- | at the end of the first block)
-getDirectEdges :: NumberedBlocks -> Edges
-getDirectEdges [] = []
-getDirectEdges [x] = []
-getDirectEdges (x:ys@(y:_)) = case hasDirectEdge x y of
-    Nothing -> getDirectEdges ys
-    Just e  -> e : getDirectEdges ys
+getFallEdges :: NumberedBlocks -> Edges
+getFallEdges [] = []
+getFallEdges [x] = []
+getFallEdges (x:ys@(y:_)) = case hasFallEdge x y of
+    Nothing -> getFallEdges ys
+    Just e  -> e : getFallEdges ys
     where
-        hasDirectEdge :: NumberedBlock -> NumberedBlock -> Maybe Edge
-        hasDirectEdge (i1, t1) (i2, _) =
+        hasFallEdge :: NumberedBlock -> NumberedBlock -> Maybe Edge
+        hasFallEdge (i1, t1) (i2, _) =
             let ThreeAddressCode op _ _ _ = last t1
             in  if isUnconditionalJump op || isProgramEnd op then Nothing else Just (i1, i2)
 
