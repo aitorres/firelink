@@ -10,7 +10,8 @@ import           FireLink.FrontEnd.Grammar      (BaseExpr (..), Expr (..),
 import           FireLink.FrontEnd.SymTable     (Dictionary,
                                                  DictionaryEntry (..),
                                                  findSymEntryById, getOffset,
-                                                 getUnionAttrId)
+                                                 getUnionAttrId, definedTypes, findWidth, findSymEntryByName)
+import qualified FireLink.FrontEnd.SymTable as ST (Extra(..), extractTypeFromExtra)
 import           FireLink.FrontEnd.Tokens       (Token (..))
 import           FireLink.FrontEnd.TypeChecking (Type (..))
 import qualified TACType                        as TAC
@@ -118,7 +119,51 @@ This implementation works because in TAC and in MIPS characters are just numbers
 -}
 genCodeForExpr _ (AsciiOf expr) = genCode' expr
 
+genCodeForExpr _ e@(IndexAccess array index) = do
+    (arrayRefOperand, base) <- genIndexAccess array index
+    operand <- TAC.Id <$> newtemp
+    gen [TAC.ThreeAddressCode
+        { TAC.tacOperand = TAC.Get
+        , TAC.tacLvalue = Just operand
+        , TAC.tacRvalue1 = Just base
+        , TAC.tacRvalue2 = Just arrayRefOperand
+        }]
+    return operand
+
+
 genCodeForExpr _ e = error $ "This expression hasn't been implemented " ++ show e
+
+genIndexAccess :: Expr -> Expr -> CodeGenMonad (OperandType, OperandType)
+genIndexAccess array index = do
+    indexOperand <- genCode' index
+    case expAst array of
+        IdExpr idArray -> do
+            idEntry <- findSymEntryById idArray <$> ask
+            width <- contentsWidth idEntry
+            resultAddress <- TAC.Id <$> newtemp
+            gen [TAC.ThreeAddressCode
+                    { TAC.tacOperand = TAC.Mult
+                    , TAC.tacLvalue = Just resultAddress
+                    , TAC.tacRvalue1 = Just indexOperand
+                    , TAC.tacRvalue2 = Just width
+                    }]
+            return (resultAddress, TAC.Id $ TACVariable idEntry (getOffset idEntry))
+    where
+        contentsWidth :: DictionaryEntry -> CodeGenMonad OperandType
+        contentsWidth = contents' . ST.extractTypeFromExtra
+
+
+        contents' :: ST.Extra -> CodeGenMonad OperandType
+        contents' (ST.CompoundRec _ _ (ST.Simple contentsType))
+            | contentsType `elem` definedTypes = do
+                t' <- findSymEntryByName contentsType <$> ask
+                let (ST.Width w) = findWidth t'
+                return $ TAC.Constant (show w, BigIntT)
+        -- Since this function is only used with arrays, this call should never have as an argument a definedType
+        contents' (ST.Simple t) =
+            ST.extractTypeFromExtra . findSymEntryByName t <$> ask >>= contents'
+        contents' a = error $ "error processing " ++ show a
+
 
 genParams :: [Expr] -> CodeGenMonad Int
 genParams params = do

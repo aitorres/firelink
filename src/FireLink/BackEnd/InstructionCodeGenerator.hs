@@ -1,6 +1,6 @@
 module FireLink.BackEnd.InstructionCodeGenerator where
 
-import Control.Monad.RWS (unless, when, ask, lift)
+import Control.Monad.RWS (unless, when, ask)
 import           FireLink.BackEnd.CodeGenerator
 import           FireLink.BackEnd.ExprCodeGenerator (genBooleanComparison,
                                                      genCode',
@@ -94,7 +94,6 @@ genCodeForInstruction (InstInitArray arrayId@(G.Id _ s)) _ = do
     entry <- findSymEntryById arrayId <$> ask
     let e@(ST.Simple t) = extractTypeFromExtra entry
     allocatedSize <- buildFromType (t, e)
-    m <- getArrayMap
     offsetVar <- Id <$> getArrayOffsetVar
     genIdAssignment (Id $ TACVariable entry (getOffset entry)) offsetVar
     newOffset <- newtemp
@@ -122,13 +121,9 @@ genCodeForInstruction (InstInitArray arrayId@(G.Id _ s)) _ = do
                 buildFromType (t, t')
 
         buildFromType s@(typeName, ST.CompoundRec _ expr t'@(ST.Simple t)) = do
-            lift $ print (expr, typeName)
             operand <- genCode' expr
-            lift $ print (operand, expr)
             temp <- Id <$> newtemp
             genIdAssignment temp operand
-            lift $ putStr "Generating assignment "
-            lift $ print (temp, operand)
             putArrayEntrySize typeName temp
             allocatedSize <- buildFromType (t, t')
             finalAllocatedSize <- Id <$> newtemp
