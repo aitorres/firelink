@@ -113,10 +113,9 @@ addToVariable v r = do
     let vDescs' = Map.insert v (Set.insert r vRegs) vDescs
     put $ dl { dlVarDescriptors = vDescs' }
 
-getVarName :: OperandType -> String
-getVarName (Id v) = case v of
-    TACVariable entry _ -> name entry
-    TACTemporal s _     -> s
+getVarName :: TACSymEntry -> String
+getVarName (TACVariable entry _) = name entry
+getVarName (TACTemporal s _ )    = s
 
 removeRegister :: String -> String -> NaiveRegisterAllocatorMonad ()
 removeRegister rA vA = do
@@ -126,14 +125,16 @@ removeRegister rA vA = do
 
 -- | TODO: Finish and clean implementation
 getReg :: TAC -> NaiveRegisterAllocatorMonad ()
-getReg t@(ThreeAddressCode op (Just a) (Just b) (Just c)) =
+getReg t@(ThreeAddressCode op (Just (Id vA)) (Just b) (Just c)) =
     if op `elem` [Add, Sub, Mult, Div] then do
-        let nameA = getVarName a
-        let nameB = getVarName b
-        let nameC = getVarName c
-        regB <- getIndividualReg nameB True
-        regC <- getIndividualReg nameC True
-        regA <- getIndividualReg nameA False
+        let nameA = getVarName vA
+        regA <- getIndividualReg vA False
+        regB <- case b of
+            Id vB -> getIndividualReg vB True
+            Constant (sb, _) -> return sb
+        regC <- case c of
+            Id vC -> getIndividualReg vC True
+            Constant (sc, _) -> return sc
         tell ["\t" ++ map toUpper (show op) ++ " " ++ regA ++ ", " ++ regB ++ ", " ++ regC]
         setRegister regA nameA
         setVariable nameA regA
@@ -143,8 +144,9 @@ getReg (ThreeAddressCode NewLabel _ (Just l) _ ) = tell [show l ++ ":"]
 getReg (ThreeAddressCode op Nothing Nothing Nothing) = tell ["\t" ++ map toUpper (show op)]
 getReg t = tell [show t ++ " (not supported by naiveRegisterAllocator)"]
 
-getIndividualReg :: String -> Bool -> NaiveRegisterAllocatorMonad String
-getIndividualReg n upd = do
+getIndividualReg :: TACSymEntry -> Bool -> NaiveRegisterAllocatorMonad String
+getIndividualReg tn upd = do
+    let n = getVarName tn
     gr <- getRegisterForVar n
     case gr of
         Just reg1 -> return reg1
