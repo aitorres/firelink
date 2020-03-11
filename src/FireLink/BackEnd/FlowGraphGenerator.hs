@@ -90,26 +90,32 @@ getReturnEdges code = foldr findAllReturnEdges [] code
     where
         findAllReturnEdges :: NumberedBlock -> Edges -> Edges
         findAllReturnEdges (i, cb) es =
-            let firstInstr = head cb
-                ThreeAddressCode op _ l _ = firstInstr
-                (i', _) = findNextReturn i code
-            in  if isLabel op
-                then es ++ (map (\x -> (i', x)) (getReturnsToLabel l code))
+            let lastInstr = last cb
+                ThreeAddressCode op _ _ _ = lastInstr
+                (_, fcb) = findPrevFuncBlock i code
+                ThreeAddressCode _ _ l _ = head fcb
+            in  if isReturn op
+                then es ++ (map (\x -> (i, x)) (getCallsToLabel l code))
                 else es
 
-        findNextReturn :: Vertex -> NumberedBlocks -> NumberedBlock
-        findNextReturn i = head . filter (\(i', cb) -> i' >= i && (isReturnTac . last) cb)
+        findPrevFuncBlock :: Vertex -> NumberedBlocks -> NumberedBlock
+        findPrevFuncBlock i = head . filter (\(i', cb) -> i' <= i && (isFuncLabel . head) cb)
 
-        isReturnTac :: TAC -> Bool
-        isReturnTac (ThreeAddressCode op _ _ _) = op == Return
+        isFuncLabel :: TAC -> Bool
+        isFuncLabel tac = case tac of
+                ThreeAddressCode NewLabel _ (Just (Label s)) _ -> head s == '_'
+                _ -> False
 
-        isLabel :: Operation -> Bool
-        isLabel NewLabel = True
-        isLabel _        = False
+        getLabelName :: TAC -> String
+        getLabelName (ThreeAddressCode NewLabel _ (Just (Label s)) _) = s
+        getLabelName _ = error $ "Trying to fetch label of non-label instr"
 
-        getReturnsToLabel :: Maybe OperandType -> NumberedBlocks -> [Vertex]
-        getReturnsToLabel Nothing _ = []
-        getReturnsToLabel (Just l) code =
+        isReturn :: Operation -> Bool
+        isReturn op = op == Return
+
+        getCallsToLabel :: Maybe OperandType -> NumberedBlocks -> [Vertex]
+        getCallsToLabel Nothing _ = []
+        getCallsToLabel (Just l) code =
             let returningBlocks = filter (endsWithCallToLabel l) code
             -- We add 1 because we should return to the block immediately following this one
             in  map ((+1) . fst) returningBlocks
