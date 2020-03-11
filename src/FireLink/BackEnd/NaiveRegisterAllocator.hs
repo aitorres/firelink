@@ -139,6 +139,8 @@ getReg t@(ThreeAddressCode op (Just a) (Just b) (Just c)) =
         setVariable nameA regA
         removeRegister regA nameA
     else tell [show t ++ " (not supported by naiveRegisterAllocator)"]
+getReg (ThreeAddressCode NewLabel _ (Just l) _ ) = tell [show l ++ ":"]
+getReg (ThreeAddressCode op Nothing Nothing Nothing) = tell ["\t" ++ map toUpper (show op)]
 getReg t = tell [show t ++ " (not supported by naiveRegisterAllocator)"]
 
 getIndividualReg :: String -> Bool -> NaiveRegisterAllocatorMonad String
