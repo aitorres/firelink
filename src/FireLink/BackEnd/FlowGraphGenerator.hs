@@ -1,23 +1,44 @@
 module FireLink.BackEnd.FlowGraphGenerator (
-    generateFlowGraph, findBasicBlocks
+    generateFlowGraph, findBasicBlocks, findBlockLeaders
 ) where
 
 import           Data.Graph
-import           FireLink.BackEnd.CodeGenerator (TAC (..))
+import           Data.Maybe
+import           FireLink.BackEnd.CodeGenerator (TAC (..), isInconditionalJump)
 import           TACType
+
+type NumberedBlock = (Int, [TAC])
+type NumberedBlocks = [NumberedBlock]
+type Edges = [Edge]
 
 -- | Generates and returns the flow graph
 -- | that correspond to a given list of TAC instructions.
-generateFlowGraph :: [TAC] -> [(Int, [TAC])]
+generateFlowGraph :: [TAC] -> Graph
 generateFlowGraph code =
     let basicBlocks = findBasicBlocks code
         numberedBlocks = numberBasicBlocks basicBlocks
-    in  numberedBlocks
+        directEdges = getDirectEdges numberedBlocks
+        entryEdge = (-1, 0) -- ENTRY
+        edges = entryEdge : directEdges
+        graph = buildG (-1, length numberedBlocks - 1) edges
+    in  graph
+
+getDirectEdges :: NumberedBlocks -> Edges
+getDirectEdges [] = []
+getDirectEdges [x] = []
+getDirectEdges (x:ys@(y:_)) = case hasDirectEdge x y of
+    Nothing -> getDirectEdges ys
+    Just e  -> e : getDirectEdges ys
+    where
+        hasDirectEdge :: NumberedBlock -> NumberedBlock -> Maybe Edge
+        hasDirectEdge (i1, t1) (i2, _) =
+            let (ThreeAddressCode op _ _ _) = last t1
+            in  if isInconditionalJump op then Nothing else Just (i1, i2)
 
 -- | Given a list of basic blocks, returns a list of pairs in which
 -- | each first component is an unique integer, and each second
 -- | component is a (now uniquely identified) basic block
-numberBasicBlocks :: [[TAC]] -> [(Int, [TAC])]
+numberBasicBlocks :: [[TAC]] -> NumberedBlocks
 numberBasicBlocks = zip [0..]
 
 -- | Given a list of TAC instructions, returns a list with
