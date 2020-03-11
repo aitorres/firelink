@@ -120,7 +120,7 @@ This implementation works because in TAC and in MIPS characters are just numbers
 genCodeForExpr _ (AsciiOf expr) = genCode' expr
 
 genCodeForExpr _ e@(IndexAccess array index) = do
-    (arrayRefOperand, base) <- genIndexAccess array index
+    (arrayRefOperand, _, base) <- genIndexAccess array index
     operand <- TAC.Id <$> newtemp
     gen [TAC.ThreeAddressCode
         { TAC.tacOperand = TAC.Get
@@ -133,13 +133,18 @@ genCodeForExpr _ e@(IndexAccess array index) = do
 
 genCodeForExpr _ e = error $ "This expression hasn't been implemented " ++ show e
 
-genIndexAccess :: Expr -> Expr -> CodeGenMonad (OperandType, OperandType)
+-- Return type is (offset, contents, base)
+genIndexAccess :: Expr -> Expr -> CodeGenMonad (OperandType, String, OperandType)
 genIndexAccess array index = do
     indexOperand <- genCode' index
+    lift $ print (expAst array, expAst index)
     case expAst array of
         IdExpr idArray -> do
             idEntry <- findSymEntryById idArray <$> ask
-            width <- contentsWidth idEntry
+            lift $ putStr "idEntry value "
+            lift $ print idEntry
+            contents <- getContents $ ST.extractTypeFromExtra idEntry
+            width <- contentsWidth contents
             resultAddress <- TAC.Id <$> newtemp
             gen [TAC.ThreeAddressCode
                     { TAC.tacOperand = TAC.Mult
@@ -147,23 +152,50 @@ genIndexAccess array index = do
                     , TAC.tacRvalue1 = Just indexOperand
                     , TAC.tacRvalue2 = Just width
                     }]
-            return (resultAddress, TAC.Id $ TACVariable idEntry (getOffset idEntry))
+            lift $ print contents
+            return (resultAddress, contents, TAC.Id $ TACVariable idEntry (getOffset idEntry))
+        IndexAccess array' index' -> do
+            (offset, contents', base) <- genIndexAccess array' index'
+            contents <- getContents $ ST.Simple contents'
+            width <- contentsWidth contents
+            t <- TAC.Id <$> newtemp
+            gen [TAC.ThreeAddressCode
+                    { TAC.tacOperand = TAC.Add
+                    , TAC.tacLvalue = Just t
+                    , TAC.tacRvalue1 = Just offset
+                    , TAC.tacRvalue2 = Just indexOperand
+                    }]
+            resultAddress <- TAC.Id <$> newtemp
+            gen [TAC.ThreeAddressCode
+                    { TAC.tacOperand = TAC.Mult
+                    , TAC.tacLvalue = Just resultAddress
+                    , TAC.tacRvalue1 = Just t
+                    , TAC.tacRvalue2 = Just width
+                    }]
+            return (resultAddress, contents, base)
     where
-        contentsWidth :: DictionaryEntry -> CodeGenMonad OperandType
-        contentsWidth = contents' . ST.extractTypeFromExtra
+        contentsWidth :: String -> CodeGenMonad OperandType
+        contentsWidth t = do
+            resultLookup <- lookupArrayMap t
+            case resultLookup of
+                -- It is an array and its size is known at compile time
+                Just o -> return o
+
+                -- The width is on symtable
+                _ -> do
+                    t' <- findSymEntryByName t <$> ask
+                    let (ST.Width w) = findWidth t'
+                    let w' = alignedOffset w
+                    return $ TAC.Constant (show w', BigIntT)
 
 
-        contents' :: ST.Extra -> CodeGenMonad OperandType
-        contents' (ST.CompoundRec _ _ (ST.Simple contentsType)) = do
-            t' <- findSymEntryByName contentsType <$> ask
-            let (ST.Width w) = findWidth t'
-            let w' = alignedOffset w
-            return $ TAC.Constant (show w', BigIntT)
+        getContents :: ST.Extra -> CodeGenMonad String
+        getContents (ST.CompoundRec _ _ s@(ST.Simple contentsType)) = return contentsType
 
         -- Since this function is only used with arrays, this call should never have as an argument a definedType
-        contents' (ST.Simple t) =
-            ST.extractTypeFromExtra . findSymEntryByName t <$> ask >>= contents'
-        contents' a = error $ "error processing " ++ show a
+        getContents (ST.Simple t) =
+            ST.extractTypeFromExtra . findSymEntryByName t <$> ask >>= getContents
+        getContents a = error $ "error processing " ++ show a
 
 
 genParams :: [Expr] -> CodeGenMonad Int
