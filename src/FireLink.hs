@@ -2,24 +2,27 @@ module FireLink (
     firelink
 ) where
 
-import qualified Control.Monad.RWS                  as RWS
-import           Data.List                          (groupBy, intercalate)
-import qualified Data.Map                           as Map
-import           FireLink.BackEnd.BackEndCompiler   (backend)
-import           FireLink.BackEnd.CodeGenerator     (TAC (..))
+import qualified Control.Monad.RWS                   as RWS
+import qualified Data.Graph                          as G
+import           Data.List                           (groupBy, intercalate)
+import qualified Data.Map                            as Map
+import           FireLink.BackEnd.BackEndCompiler    (backend)
+import           FireLink.BackEnd.CodeGenerator      (TAC (..))
+import           FireLink.BackEnd.FlowGraphGenerator (NumberedBlock,
+                                                      NumberedBlocks)
 import           FireLink.FrontEnd.Errors
 import           FireLink.FrontEnd.FrontEndCompiler
-import qualified FireLink.FrontEnd.SymTable         as ST
+import qualified FireLink.FrontEnd.SymTable          as ST
 import           FireLink.FrontEnd.Tokens
 import           FireLink.Utils
-import           System.Directory                   (doesFileExist)
-import           System.Environment                 (getArgs)
-import           System.Exit                        (exitFailure, exitSuccess)
-import           System.FilePath                    (takeExtension)
-import           System.IO                          (IOMode (..), hGetContents,
-                                                     openFile)
-import qualified TACType                            as TAC
-import           Text.Printf                        (printf)
+import           System.Directory                    (doesFileExist)
+import           System.Environment                  (getArgs)
+import           System.Exit                         (exitFailure, exitSuccess)
+import           System.FilePath                     (takeExtension)
+import           System.IO                           (IOMode (..), hGetContents,
+                                                      openFile)
+import qualified TACType                             as TAC
+import           Text.Printf                         (printf)
 
 prettyPrintSymTable :: ST.SymTable -> IO ()
 prettyPrintSymTable ST.SymTable{ST.stDict=dict} = do
@@ -186,12 +189,46 @@ handleCompileError compileError tokens =
 printTacCode :: [TAC] -> IO ()
 printTacCode = mapM_ print
 
+printBasicBlocks :: NumberedBlocks -> IO ()
+printBasicBlocks = mapM_ printBlock
+    where
+        printBlock :: NumberedBlock -> IO ()
+        printBlock (i, cb) = do
+            putStrLn $ bold ++ "Block " ++ show i ++ nocolor
+            printTacCode cb
+
+printFlowGraph :: G.Graph -> IO ()
+printFlowGraph g = do
+    let vs = G.vertices g
+    let es = G.edges g
+    putStrLn $ bold ++ "Graph (" ++ (show . length) vs ++ " nodes, " ++ (show . length) es ++ " edges)" ++ nocolor
+    let groupedEdges = groupBy (\a b -> fst a == fst b) es
+    mapM_ printEdges groupedEdges
+    where
+        printEdges :: [G.Edge] -> IO ()
+        printEdges es = do
+            let origin = (fst . head) es
+            let originName = if origin == entryNode then "ENTRY" else show origin
+            let destinies = map snd es
+            let destiniesNames = joinWithCommas destinies
+            putStrLn $ bold ++ originName ++ nocolor ++ " -> " ++ printDestinies destinies
+
+        printDestinies :: [Int] -> String
+        printDestinies destinies = if head destinies == exitNode then bold ++ "EXIT" ++ nocolor else joinWithCommas destinies
+
+        entryNode :: Int
+        entryNode = -1
+
+        exitNode :: Int
+        exitNode = length (G.vertices g) - 2
+
 compile :: String -> Maybe String -> IO ()
 compile program compileFlag = do
     compilerResult <- frontEnd program
     case compilerResult of
         Left e -> uncurry handleCompileError e >> exitFailure
         Right (ast, symTable, tokens) -> do
+            (tacCode, basicBlocks, flowGraph) <- backend ast (ST.stDict symTable)
             case compileFlag of
                 Nothing -> do
                     -- Default behavior: print everything
@@ -200,12 +237,18 @@ compile program compileFlag = do
                     putStrLn "\nFireLink: Printing recognized program"
                     printProgram tokens
                     putStrLn "\nFireLink: Printing Intermediate Representation in Three-Address Code"
-                    backend ast (ST.stDict symTable) >>= printTacCode
+                    printTacCode tacCode
+                    putStrLn "\nFireLink: Printing basic blocks (numbered, starting at 0)"
+                    printBasicBlocks basicBlocks
+                    putStrLn "\nFireLink: Printing flow graph (with special nodes ENTRY at -1, EXIT as the last one)"
+                    printFlowGraph flowGraph
                 Just flag ->
                     if flag `elem` ["-f", "--frontend"] then prettyPrintSymTable symTable >> printProgram tokens
                     else if flag `elem` ["-s", "--symtable"] then prettyPrintSymTable symTable
                     else if flag `elem` ["-p", "--program"] then printProgram tokens
-                    else if flag `elem` ["-t", "--tac"] then backend ast (ST.stDict symTable) >>= printTacCode
+                    else if flag `elem` ["-t", "--tac"] then printTacCode tacCode
+                    else if flag `elem` ["-b", "--blocks"] then printBasicBlocks basicBlocks
+                    else if flag `elem` ["-g", "--graph"] then printFlowGraph flowGraph
                     else failByUnknownFlag
             exitSuccess
 
