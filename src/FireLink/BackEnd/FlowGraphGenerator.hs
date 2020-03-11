@@ -1,5 +1,5 @@
 module FireLink.BackEnd.FlowGraphGenerator (
-    generateFlowGraph, findBasicBlocks, findBlockLeaders, numberTACs
+    generateFlowGraph, findBasicBlocks, numberTACs
 ) where
 
 import           Data.Graph
@@ -39,9 +39,25 @@ generateFlowGraph code =
         numberedBlocks = numberBlocks basicBlocks
         directEdges = getDirectEdges numberedBlocks
         entryEdge = (-1, 0) -- ENTRY
-        edges = entryEdge : directEdges
-        graph = buildG (-1, length numberedBlocks - 1) edges
+        exitEdges = getExitEdges (length numberedBlocks) numberedBlocks
+        edges = entryEdge : directEdges ++ exitEdges
+        graph = buildG (-1, length numberedBlocks) edges
     in  graph
+
+-- | Given an integer that represents an EXIT vertex, and a
+-- | list of numbered blocks, returns a list of edges from
+-- | exit blocks to the EXIT vertex
+getExitEdges :: Vertex -> NumberedBlocks -> Edges
+getExitEdges vExit = foldr addExitEdges []
+    where
+        addExitEdges :: NumberedBlock -> Edges -> Edges
+        addExitEdges (i, cb) es =
+            let lastInstr = last cb
+                ThreeAddressCode op _ _ _ = lastInstr
+            in  if isExitOp op then (i, vExit) : es else es
+
+        isExitOp :: Operation -> Bool
+        isExitOp = flip elem [Exit, Abort]
 
 getDirectEdges :: NumberedBlocks -> Edges
 getDirectEdges [] = []
