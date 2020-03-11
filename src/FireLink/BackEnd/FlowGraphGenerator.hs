@@ -5,8 +5,10 @@ module FireLink.BackEnd.FlowGraphGenerator (
 import           Data.Graph
 import           Data.List                      (nub)
 import           Data.Maybe
-import           FireLink.BackEnd.CodeGenerator (TAC (..), isInconditionalJump,
-                                                 isJump)
+import           FireLink.BackEnd.CodeGenerator (OperandType (..), TAC (..),
+                                                 isConditionalJump,
+                                                 isInconditionalJump, isJump,
+                                                 isProgramEnd)
 import           TACType
 
 -- | A numbered instruction (the number being a unique identifier within some context)
@@ -40,7 +42,9 @@ generateFlowGraph code =
         directEdges = getDirectEdges numberedBlocks
         entryEdge = (-1, 0) -- ENTRY
         exitEdges = getExitEdges (length numberedBlocks) numberedBlocks
-        edges = entryEdge : directEdges ++ exitEdges
+        jumpEdges = getJumpEdges numberedBlocks
+        -- ADD RETURN EDGES
+        edges = entryEdge : directEdges ++ jumpEdges ++ exitEdges
         graph = buildG (-1, length numberedBlocks) edges
     in  graph
 
@@ -59,6 +63,24 @@ getExitEdges vExit = foldr addExitEdges []
         isExitOp :: Operation -> Bool
         isExitOp = flip elem [Exit, Abort]
 
+getJumpEdges :: NumberedBlocks -> Edges
+getJumpEdges code = foldr findAllJumpEdges [] code
+    where
+        findAllJumpEdges :: NumberedBlock -> Edges -> Edges
+        findAllJumpEdges (i, cb) es =
+            let lastInstr = last cb
+                ThreeAddressCode op _ dC dJ = lastInstr
+            in  if isConditionalJump op || op == GoTo
+                then let (d, _) = findDestinyBlock dJ code
+                    in  (i, d) : es
+                else if op == Call then
+                    let (d, _) = findDestinyBlock dC code
+                    in (i, d) : es
+                else es
+
+        findDestinyBlock :: Maybe OperandType -> NumberedBlocks -> NumberedBlock
+        findDestinyBlock d = head . filter (\(_, b) -> head b == ThreeAddressCode NewLabel Nothing d Nothing)
+
 getDirectEdges :: NumberedBlocks -> Edges
 getDirectEdges [] = []
 getDirectEdges [x] = []
@@ -69,7 +91,7 @@ getDirectEdges (x:ys@(y:_)) = case hasDirectEdge x y of
         hasDirectEdge :: NumberedBlock -> NumberedBlock -> Maybe Edge
         hasDirectEdge (i1, t1) (i2, _) =
             let ThreeAddressCode op _ _ _ = last t1
-            in  if isInconditionalJump op then Nothing else Just (i1, i2)
+            in  if isInconditionalJump op || isProgramEnd op then Nothing else Just (i1, i2)
 
 -- | Given a list of numbered TAC instructions, returns a list with
 -- | their basic blocks
