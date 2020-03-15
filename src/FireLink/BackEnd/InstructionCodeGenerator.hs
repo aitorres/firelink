@@ -21,7 +21,7 @@ import           FireLink.FrontEnd.SymTable         (Dictionary,
                                                      findSymEntryById, findSymEntryByName,
                                                      getCodeBlock, extractTypeFromExtra,
                                                      getUnionAttrId, wordSize, getOffset, findWidth)
-import qualified FireLink.FrontEnd.SymTable         as ST (Extra (..), definedTypes)
+import qualified FireLink.FrontEnd.SymTable         as ST (Extra (..), definedTypes, sign)
 import           FireLink.FrontEnd.Tokens           (Token (..))
 import           FireLink.FrontEnd.TypeChecking     (Type (..))
 import           TACType
@@ -104,22 +104,13 @@ genCodeForInstruction (InstInitArray arrayId@(G.Id _ s)) _ = do
         getTypeFromString :: String -> CodeGenMonad ST.Extra
         getTypeFromString t = extractTypeFromExtra . findSymEntryByName t <$> ask
 
-        buildFromType :: (String, ST.Extra) -> CodeGenMonad OperandType
-        buildFromType s@(_, ST.Simple t)
-            | t `elem` ST.definedTypes = do
-                t' <- findSymEntryByName t <$> ask
-                let (ST.Width w) = findWidth t'
-                return $ Constant (show w, BigIntT)
-            | otherwise = do
-                t' <- getTypeFromString t
-                buildFromType (t, t')
-
-        buildFromType s@(typeName, ST.CompoundRec _ expr t'@(ST.Simple t)) = do
-            operand <- genCode' expr
+        buildForArrayLike :: String -> Expr -> (String, ST.Extra) -> CodeGenMonad OperandType
+        buildForArrayLike typeName sizeExpr t = do
+            operand <- genCode' sizeExpr
             temp <- Id <$> newtemp
             genIdAssignment temp operand
             putArrayEntrySize typeName temp
-            allocatedSize <- buildFromType (t, t')
+            allocatedSize <- buildFromType t
             finalAllocatedSize <- Id <$> newtemp
             gen [ThreeAddressCode
                 { tacOperand = Mult
@@ -128,6 +119,22 @@ genCodeForInstruction (InstInitArray arrayId@(G.Id _ s)) _ = do
                 , tacRvalue2 = Just operand
                 }]
             return finalAllocatedSize
+
+        buildFromType :: (String, ST.Extra) -> CodeGenMonad OperandType
+        buildFromType (_, ST.Simple t)
+            | t `elem` ST.definedTypes = do
+                t' <- findSymEntryByName t <$> ask
+                let (ST.Width w) = findWidth t'
+                return $ Constant (show w, BigIntT)
+            | otherwise = do
+                t' <- getTypeFromString t
+                buildFromType (t, t')
+
+        buildFromType (typeName, ST.CompoundRec _ expr t'@(ST.Simple t)) =
+            buildForArrayLike typeName expr (t, t')
+
+        buildFromType (typeName, ST.Compound t expr) =
+            buildForArrayLike typeName expr (ST.sign, ST.Simple ST.sign)
 
         buildFromType (typeName, ST.Fields _ _) = do
             entry <- findSymEntryByName typeName <$> ask
