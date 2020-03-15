@@ -541,6 +541,7 @@ DECLARADD :: { ([G.Instruction], Int) }
                                                                             t <- getType lvalue
                                                                             let instInit = (case t of
                                                                                               T.ArrayT _ -> let (G.IdExpr i) = G.expAst lvalue in [G.InstInitArray i]
+                                                                                              T.StringT -> let (G.IdExpr i) = G.expAst lvalue in [G.InstInitArray i]
                                                                                               _ -> [])
                                                                             return (instInit ++ mInstr, offsetW) }
 
