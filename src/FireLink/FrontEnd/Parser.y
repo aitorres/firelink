@@ -557,7 +557,7 @@ INSTRL :: { (G.Instructions, Int) }
 INSTR :: { G.Instruction }
   : EXPR asig EXPR                                                      {% do
                                                                           checkLvalue $1
-                                                                          checkAssignment $1 $2 $3 False >>= return }
+                                                                          checkAssignment $1 $2 $3 False }
   | malloc EXPR                                                         {% do
                                                                           checkPointerVariable $2
                                                                           return $ G.InstMalloc $2 }
