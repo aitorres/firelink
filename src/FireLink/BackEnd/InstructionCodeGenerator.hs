@@ -172,18 +172,34 @@ genCodeForInstruction (InstCall fId params) _ = do
 genCodeForInstruction (InstAsig lvalue rvalue) next =
     if supportedLvalue lvalue then do
         if expType rvalue == StructLitT then assignStructLiteral lvalue rvalue
-        else if isIndexExpr lvalue then do
-            lift $ print "pasé por aquí"
-            let IndexAccess array index = expAst lvalue
-            (arrayRefOperand, _, base) <- genIndexAccess array index
-            operand <- genCode' rvalue
-            genSetAssignment base arrayRefOperand operand
-        else if expType rvalue /= TrileanT || (isIdExpr lvalue && isFunCallExpr rvalue) then do
+        else if isIndexExpr lvalue then
+            handleIndexAssignment lvalue rvalue
+        else if expType rvalue /= TrileanT || (isIdExpr lvalue && isFunCallExpr rvalue) then
+            handleNonBooleanAssignment lvalue rvalue
+        else handleSimpleBooleanAssignment lvalue rvalue
+
+        -- The following code takes care of the isActive attribute for unions on property assignments
+        when (isUnionBExpr $ expAst lvalue) $ do
+            let Expr { expAst = (Access unionExpr propId) } = lvalue
+            markActiveAttrForUnion unionExpr propId
+
+    else error $ "Lvalue currently not supported for assignments: " ++ show lvalue
+    where
+        handleNonBooleanAssignment :: Expr -> Expr -> CodeGenMonad ()
+        handleNonBooleanAssignment lvalue rvalue = do
             let Expr { expType = lvalT, expAst = lvalAst } = lvalue
             operand <- genCodeForExpr lvalT lvalAst
             rValueAddress <- genCode' rvalue
             genIdAssignment operand rValueAddress
-        else do
+        handleIndexAssignment :: Expr -> Expr -> CodeGenMonad ()
+        handleIndexAssignment lvaule rvalue = do
+            let IndexAccess array index = expAst lvalue
+            (arrayRefOperand, _, base) <- genIndexAccess array index
+            operand <- genCode' rvalue
+            genSetAssignment base arrayRefOperand operand
+
+        handleSimpleBooleanAssignment :: Expr -> Expr -> CodeGenMonad ()
+        handleSimpleBooleanAssignment lvalue rvalue = do
             operand <- genCode' lvalue
             trueLabel <- newLabel
             falseLabel <- newLabel
@@ -194,14 +210,6 @@ genCodeForInstruction (InstAsig lvalue rvalue) next =
             genLabel falseLabel
             genIdAssignment operand $ Constant ("false", TrileanT)
             genLabel next
-
-        -- The following code takes care of the isActive attribute for unions on property assignments
-        when (isUnionBExpr $ expAst lvalue) $ do
-            let Expr { expAst = (Access unionExpr propId) } = lvalue
-            markActiveAttrForUnion unionExpr propId
-
-    else error $ "Lvalue currently not supported for assignments: " ++ show lvalue
-    where
         supportedLvalue :: Expr -> Bool
         supportedLvalue Expr {expAst = IdExpr _ }  = True
         supportedLvalue Expr {expAst = Access _ _} = True
