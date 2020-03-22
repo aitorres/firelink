@@ -4,8 +4,8 @@ traveling somewhere
 with
     var n of type humanity <<= 555,
     var m of type humanity <<= 10,
-    var x of type <n>-chest of type <n + m>-miracle, --<<= <$ @abcde@ $>,
-    var a of type <55>-miracle <<= @asdf@
+    var x of type <n>-chest of type <n + m>-miracle<<= <$ @abcde@ $>,
+    var a of type <55>-miracle <<= @abcdefghi@
 in your inventory
     -- a <<= @1234@ \
     -- n <<= size x<$0$>

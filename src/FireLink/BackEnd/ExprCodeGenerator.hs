@@ -11,7 +11,7 @@ import           FireLink.FrontEnd.SymTable     (Dictionary,
                                                  DictionaryEntry (..),
                                                  findSymEntryById, getOffset,
                                                  getUnionAttrId, definedTypes, findWidth, findSymEntryByName)
-import qualified FireLink.FrontEnd.SymTable as ST (Extra(..), extractTypeFromExtra)
+import qualified FireLink.FrontEnd.SymTable as ST (Extra(..), extractTypeFromExtra, sign)
 import           FireLink.FrontEnd.Tokens       (Token (..))
 import           FireLink.FrontEnd.TypeChecking (Type (..))
 import qualified TACType                        as TAC
@@ -120,6 +120,8 @@ This implementation works because in TAC and in MIPS characters are just numbers
 genCodeForExpr _ (AsciiOf expr) = genCode' expr
 
 genCodeForExpr _ (IndexAccess array index) = do
+    lift $ print $ "Generating code for " ++ show (IndexAccess array index)
+    lift $ putStrLn "hola"
     (arrayRefOperand, _, base) <- genIndexAccess array index
     operand <- TAC.Id <$> newtemp
     gen [TAC.ThreeAddressCode
@@ -146,12 +148,9 @@ genCodeForSize exp = case expAst exp of
 genIndexAccess :: Expr -> Expr -> CodeGenMonad (OperandType, String, OperandType)
 genIndexAccess array index = do
     indexOperand <- genCode' index
-    lift $ print (expAst array, expAst index)
     case expAst array of
         IdExpr idArray -> do
             idEntry <- findSymEntryById idArray <$> ask
-            lift $ putStr "idEntry value "
-            lift $ print idEntry
             contents <- getContents $ ST.extractTypeFromExtra idEntry
             width <- typeWidth contents
             resultAddress <- TAC.Id <$> newtemp
@@ -161,7 +160,6 @@ genIndexAccess array index = do
                     , TAC.tacRvalue1 = Just indexOperand
                     , TAC.tacRvalue2 = Just width
                     }]
-            lift $ print contents
             return (resultAddress, contents, TAC.Id $ TACVariable idEntry (getOffset idEntry))
         IndexAccess array' index' -> do
             (offset, contents', base) <- genIndexAccess array' index'
@@ -185,6 +183,7 @@ genIndexAccess array index = do
     where
         getContents :: ST.Extra -> CodeGenMonad String
         getContents (ST.CompoundRec _ _ s@(ST.Simple contentsType)) = return contentsType
+        getContents (ST.Compound ">-miracle" _) = return ST.sign
 
         -- Since this function is only used with arrays, this call should never have as an argument a definedType
         getContents (ST.Simple t) =

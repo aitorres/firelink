@@ -1,5 +1,6 @@
 module FireLink.BackEnd.InstructionCodeGenerator where
 
+import Data.Maybe (fromJust)
 import Control.Monad.RWS (unless, when, ask, lift)
 import           FireLink.BackEnd.CodeGenerator
 import           FireLink.BackEnd.ExprCodeGenerator (genBooleanComparison,
@@ -23,7 +24,7 @@ import           FireLink.FrontEnd.SymTable         (Dictionary,
                                                      getUnionAttrId, wordSize, getOffset, findWidth)
 import qualified FireLink.FrontEnd.SymTable         as ST (Extra (..), definedTypes, sign)
 import           FireLink.FrontEnd.Tokens           (Token (..))
-import           FireLink.FrontEnd.TypeChecking     (Type (..))
+import           FireLink.FrontEnd.TypeChecking     (Type (..), getTypeFromContainer)
 import           TACType
 
 
@@ -180,7 +181,7 @@ genCodeForInstruction (InstAsig lvalue rvalue) next =
     if supportedLvalue lvalue then do
         if expType rvalue == StructLitT then assignStructLiteral lvalue rvalue
         else if isArrayLikeExpr rvalue then
-            handleArrayLiteralAssignment lvalue rvalue
+            handleArrayLiteralAssignment 0 lvalue rvalue
         else if isIndexExpr lvalue then
             handleIndexAssignment lvalue rvalue
         else if expType rvalue /= TrileanT || (isIdExpr lvalue && isFunCallExpr rvalue) then
@@ -203,6 +204,7 @@ genCodeForInstruction (InstAsig lvalue rvalue) next =
         handleIndexAssignment :: Expr -> Expr -> CodeGenMonad ()
         handleIndexAssignment lvaule rvalue = do
             let IndexAccess array index = expAst lvalue
+            lift $ putStrLn $ "Generating code for " ++ show lvalue ++ " = " ++ show rvalue
             (arrayRefOperand, _, base) <- genIndexAccess array index
             operand <- genCode' rvalue
             genSetAssignment base arrayRefOperand operand
@@ -272,9 +274,32 @@ genCodeForInstruction (InstAsig lvalue rvalue) next =
             rOperand <- genCode' e
             genIdAssignment lOperand rOperand
 
-        handleArrayLiteralAssignment :: Expr -> Expr -> CodeGenMonad ()
-        handleArrayLiteralAssignment lvalue rvalue = error "not implemented yet"
+        handleArrayLiteralAssignment :: Int -> Expr -> Expr -> CodeGenMonad ()
+        handleArrayLiteralAssignment index lvalue rvalue =
+            case getNextValueFromArrayLike rvalue of
+                Nothing -> return ()
+                Just (nextValue, nextRValue) -> do
+                    let indexExpr = convertToIndexExpr index lvalue
+                    next <- newLabel
+                    genCodeForInstruction (InstAsig indexExpr nextValue) next
+                    handleArrayLiteralAssignment (index + 1) lvalue nextRValue
 
+        convertToIndexExpr :: Int -> Expr -> Expr
+        convertToIndexExpr index arrayLikeExpr = Expr {
+            expAst = IndexAccess arrayLikeExpr Expr {expAst=IntLit index, expType = BigIntT},
+            expType = fromJust $ getTypeFromContainer $ expType arrayLikeExpr
+            }
+
+        -- Get next value from an array like. It returns a tuple (Expr, Expr) where
+        -- the first element is the next value to index and the second the next
+        -- value to pass to this function on next call
+        getNextValueFromArrayLike :: Expr -> Maybe (Expr, Expr)
+        getNextValueFromArrayLike expr = case expAst expr of
+            StringLit "" -> Nothing
+            StringLit (c:chs) -> Just (Expr {expAst = CharLit c, expType = CharT}, Expr {expAst = StringLit chs, expType = StringT})
+            ArrayLit [] -> Nothing
+            ArrayLit (c:chs) -> Just (c, Expr {expAst = ArrayLit chs, expType = expType expr})
+            a -> Nothing
 
 {-
 Conditional selection statement

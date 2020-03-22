@@ -96,6 +96,7 @@ defaultableTypes = [TrileanT, BigIntT, SmallIntT, FloatT, CharT]
 getTypeFromContainer :: Type -> Maybe Type
 getTypeFromContainer (SetT t)   = Just t
 getTypeFromContainer (ArrayT t) = Just t
+getTypeFromContainer StringT    = Just CharT
 getTypeFromContainer _          = Nothing
 
 isSizeableType :: Type -> Bool

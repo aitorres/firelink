@@ -142,11 +142,11 @@ instance Show BaseExpr where
 data Expr = Expr {
   expType :: !Type,
   expAst :: !BaseExpr,
-  expTok :: !Token
+  expTok :: Token
 } deriving Eq
 
 instance Show Expr where
-  show exp = show (expAst exp) ++ ":" ++ show (expType exp)
+  show exp = show (expAst exp)
 
 newtype Program
   = Program CodeBlock
