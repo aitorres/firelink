@@ -179,6 +179,8 @@ genCodeForInstruction (InstCall fId params) _ = do
 genCodeForInstruction (InstAsig lvalue rvalue) next =
     if supportedLvalue lvalue then do
         if expType rvalue == StructLitT then assignStructLiteral lvalue rvalue
+        else if isArrayLikeExpr rvalue then
+            handleArrayLiteralAssignment lvalue rvalue
         else if isIndexExpr lvalue then
             handleIndexAssignment lvalue rvalue
         else if expType rvalue /= TrileanT || (isIdExpr lvalue && isFunCallExpr rvalue) then
@@ -239,6 +241,12 @@ genCodeForInstruction (InstAsig lvalue rvalue) next =
         isUnionBExpr (Access Expr { expType = UnionT _ _ } _) = True
         isUnionBExpr _                                        = False
 
+        isArrayLikeExpr :: Expr -> Bool
+        isArrayLikeExpr e = case expAst e of
+            ArrayLit _ -> True
+            StringLit _ -> True
+            _ -> False
+
         isUnionT :: Type -> Bool
         isUnionT (UnionT _ _) = True
         isUnionT _            = False
@@ -263,6 +271,10 @@ genCodeForInstruction (InstAsig lvalue rvalue) next =
             lOperand <- genCodeForExpr eT (Access lvalue propId)
             rOperand <- genCode' e
             genIdAssignment lOperand rOperand
+
+        handleArrayLiteralAssignment :: Expr -> Expr -> CodeGenMonad ()
+        handleArrayLiteralAssignment lvalue rvalue = error "not implemented yet"
+
 
 {-
 Conditional selection statement
