@@ -152,8 +152,8 @@ printSemErrors (semError:semErrors) tokens = do
 
 raiseCompilerError :: String -> IO ()
 raiseCompilerError msg = do
-    printErr $ bold ++ red ++ "YOU DIED!!" ++ nocolor ++ " Compiler error"
-    printErr msg
+    printErr $ bold ++ red ++ "YOU DIED!!" ++ nocolor ++ " Compiler error\n"
+    printErr $ msg ++ "\n"
     exitFailure
 
 failByNonExistantFile :: String -> IO ()
