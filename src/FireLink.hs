@@ -83,8 +83,7 @@ formatLexError (Error _ Position{row=r, column=c}, tokens) =
 printLexErrors :: [(Error, [Either Error Token])] -> IO ()
 printLexErrors [] = return ()
 printLexErrors (errorPair:xs) = do
-    printErr $ formatLexError errorPair
-    printErr "\n"
+    printErr $ formatLexError errorPair ++ "\n"
     printLexErrors xs
 
 groupLexErrorWithTokenContext :: [Error] -> [Token] -> [(Error, [Token])]
@@ -134,7 +133,7 @@ printProgram success tks =
 
 printSemErrors :: [Error] -> [Token] -> IO ()
 printSemErrors [] _ = do
-    printErr "Fix your semantic mistakes, ashen one."
+    printErr "Fix your semantic mistakes, ashen one.\n"
     return ()
 printSemErrors (semError:semErrors) tokens = do
     let (Error errMessage p) = semError
