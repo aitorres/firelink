@@ -1,0 +1,212 @@
+-- **Cálculo de estadísticos básicos.**
+-- El programa debe operar en un ciclo infinito, preguntando al usuario
+-- si desea iniciar un cálculo de estadísticos, o terminar. Para cada cálculo
+-- de estadísticos comenzará por solicitar la cantidad de muestras a procesar N
+-- que debe ser un número entero positivo. Obtenido N, solicitará N números en
+-- punto flotante, y al terminar de leerlo debe presentar en pantalla:
+
+--  La cantidad de muestras -- N como entero.
+--  El promedio de las muestras -- como punto flotante.
+--  La varianza -- como punto flotante.
+--  La desviación estándar -- como punto flotante.
+--  El máximo y el mínimo de la muestra -- como punto flotante.
+
+hello ashen one
+
+invocation sqrt
+requesting
+  val n of type hollow,
+  val iters of type humanity
+with skill of type hollow
+  traveling somewhere
+  with
+    var x of type hollow <<= 1,
+    var i of type humanity <<= 0
+  in your inventory
+    upgrading i with 1 soul until level iters
+      traveling somewhere
+        x <<= 0.5 * (x + (n/x))
+      you died
+    max level reached \
+    go back with x
+  you died
+after this return to your world
+
+invocation min
+requesting
+  val t of type humanity,
+  val arr of type <100>-chest of type hollow
+with skill of type hollow
+  traveling somewhere
+  with
+    var m of type hollow <<= arr<$0$>,
+    var i of type humanity <<= 1
+  in your inventory
+    upgrading i with 1 soul until level t
+      traveling somewhere
+        trust your inventory
+          arr<$i$> lt m:
+            traveling somewhere
+              m <<= arr<$i$>
+            you died
+        inventory closed
+      you died
+    max level reached \
+    go back with m
+  you died
+after this return to your world
+
+invocation max
+requesting
+  val t of type humanity,
+  val arr of type <100>-chest of type hollow
+with skill of type hollow
+  traveling somewhere
+  with
+    var m of type hollow <<= arr<$0$>,
+    var i of type humanity <<= 1
+  in your inventory
+    upgrading i with 1 soul until level t
+      traveling somewhere
+        trust your inventory
+          arr<$i$> lt m:
+            traveling somewhere
+              m <<= arr<$i$>
+            you died
+        inventory closed
+      you died
+    max level reached \
+    go back with m
+  you died
+after this return to your world
+
+invocation avg
+requesting
+  val t of type humanity,
+  val arr of type <100>-chest of type hollow
+with skill of type hollow
+  traveling somewhere
+  with
+    var a of type hollow <<= 0,
+    var i of type humanity <<= 0
+  in your inventory
+    upgrading i with 1 soul until level t
+      traveling somewhere
+        a <<= a + arr<$i$>
+      you died
+    max level reached \
+    a <<= a / t \
+    go back with a
+  you died
+after this return to your world
+
+invocation vari
+requesting
+  val t of type humanity,
+  val arr of type <100>-chest of type hollow
+with skill of type hollow
+  traveling somewhere
+  with
+    var a of type hollow <<= 0,
+    var i of type humanity <<= 0,
+    var avg_val of type hollow
+  in your inventory
+    avg_val <<= summon avg granting t, arr to the knight \
+    upgrading i with 1 soul until level t
+      traveling somewhere
+        a <<= (arr<$i$> - avg_val) * (arr<$i$> - avg_val)
+      you died
+    max level reached \
+    a <<= a / t \
+    go back with a
+  you died
+after this return to your world
+
+invocation std
+requesting
+  val t of type humanity,
+  val arr of type <100>-chest of type hollow
+with skill of type hollow
+  traveling somewhere
+  with
+    const s of type hollow <<= summon vari granting t, arr to the knight
+  in your inventory
+    go back with summon sqrt granting s, 100000 to the knight
+  you died
+after this return to your world
+
+traveling somewhere
+with
+  var n of type humanity <<= 100,
+  var i of type humanity <<= 0,
+  var s of type humanity <<= 0,
+  var arr of type <100>-chest of type hollow,
+  var stop of type bonfire
+in your inventory
+
+  with orange saponite say @Welcome to the stats calculator!\n@ \
+
+  while the not stop covenant is active:
+    traveling somewhere
+    with
+      var t of type humanity
+    in your inventory
+      with orange saponite say @Iteration started\n@ \
+      with orange saponite say @Enter the amount of values to process: @ \
+
+      transpose into t \
+
+      trust your inventory
+        t lte 0:
+          traveling somewhere
+            with orange saponite say @At least 1 value is needed. Stopping the program.\n@ \
+            stop <<= lit
+          you died
+        liar!:
+          traveling somewhere
+            with orange saponite say @We will now process each value\n@ \
+
+            -- Each value is read
+            i <<= 0 \
+            upgrading i with 1 soul until level t
+              traveling somewhere
+                with orange saponite say @Enter value: @ \
+                transpose into arr<$i$>
+              you died
+            max level reached \
+
+            -- Printing stuff
+            with orange saponite say @Number of values: @ \
+            with orange saponite say t \
+            with orange saponite say @\n@ \
+
+            with orange saponite say @Min value: @ \
+            with orange saponite say summon min granting t, arr to the knight \
+            with orange saponite say @\n@ \
+
+            with orange saponite say @Max value: @ \
+            with orange saponite say summon max granting t, arr to the knight \
+            with orange saponite say @\n@ \
+
+            with orange saponite say @Average: @ \
+            with orange saponite say summon avg granting t, arr to the knight \
+            with orange saponite say @\n@ \
+
+            with orange saponite say @Variance: @ \
+            with orange saponite say summon vari granting t, arr to the knight \
+            with orange saponite say @\n@ \
+
+            with orange saponite say @Standard Deviation: @ \
+            with orange saponite say summon std granting t, arr to the knight \
+            with orange saponite say @\n@ \
+
+            with orange saponite say @Wanna go again? (lit/unlit): @ \
+            transpose into stop
+          you died
+      inventory closed
+
+    you died
+  covenant left
+you died
+
+farewell ashen one
