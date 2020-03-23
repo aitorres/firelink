@@ -44,7 +44,7 @@ generateFlowGraph code =
         entryEdge = (-1, 0) -- ENTRY
         exitNode = (length numberedBlocks) -- EXIT
         jumpEdges = getJumpEdges numberedBlocks exitNode
-        edges = entryEdge : fallEdges ++ jumpEdges
+        edges = entryEdge : jumpEdges ++ fallEdges
         graph = buildG (-1, length numberedBlocks) edges
     in  graph
 
