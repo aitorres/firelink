@@ -1628,7 +1628,11 @@ instance TypeCheckable ST.Extra where
     ST.SymTable {ST.stDict=dict} <- RWS.get
     let isArg entry = ST.category entry `elem` [ST.ValueParam, ST.RefParam]
     let args = filter isArg $ ST.findAllInScope scope dict
+    -- ?INFO: Relevant anonymous type-aliases might be found on the method's params
+    -- ?INFO: scope, so we push it while we get the types
+    ST.pushScope scope
     types <- mapM getType $ ST.sortByArgPosition args
+    ST.exitScope
     return $ T.TypeList types
 
   getType (ST.Fields b scope) = buildStruct b scope
