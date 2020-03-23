@@ -18,7 +18,6 @@ import           TACType
 backend :: Program -> Dictionary -> IO [TAC]
 backend program dictionary = do
     (_, finalState, code) <- runRWST (genCode program) dictionary initialState
-    print finalState
     return $ optimize $ fillEmptyTemporals (cgsTemporalsToReplace finalState) code
     where
         fillEmptyTemporals :: [(TACSymEntry, Int)] -> [TAC] -> [TAC]
