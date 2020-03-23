@@ -19,10 +19,14 @@ import           System.Directory                    (doesFileExist)
 import           System.Environment                  (getArgs)
 import           System.Exit                         (exitFailure, exitSuccess)
 import           System.FilePath                     (takeExtension)
+
 import           System.IO                           (IOMode (..), hGetContents,
-                                                      openFile)
+                                                      hPutStr, openFile, stderr)
 import qualified TACType                             as TAC
 import           Text.Printf                         (printf)
+
+printErr :: String -> IO ()
+printErr = hPutStr stderr
 
 prettyPrintSymTable :: ST.SymTable -> IO ()
 prettyPrintSymTable ST.SymTable{ST.stDict=dict} = do
@@ -83,7 +87,7 @@ formatLexError (Error _ Position{row=r, column=c}, tokens) =
 printLexErrors :: [(Error, [Either Error Token])] -> IO ()
 printLexErrors [] = return ()
 printLexErrors (errorPair:xs) = do
-    putStrLn $ formatLexError errorPair
+    printErr $ formatLexError errorPair ++ "\n"
     printLexErrors xs
 
 groupLexErrorWithTokenContext :: [Error] -> [Token] -> [(Error, [Token])]
@@ -110,27 +114,30 @@ numberOfRows = foldl (\cu Token {position=pn} -> cu `max` row pn) (-1)
 maxDigits :: [Token] -> Int
 maxDigits = length . show . numberOfRows
 
-printProgram :: [Token] -> IO ()
-printProgram tks =
+printProgram :: Bool -> [Token] -> IO ()
+printProgram success tks =
     mapM_ printRowAndLine groupedByRowNumber
     where
         groupedByRowNumber :: [[Token]]
         groupedByRowNumber = groupBy (\Token {position=t1} Token {position=t2} -> row t1 == row t2) tks
 
+        printFun :: String -> IO ()
+        printFun = if success then putStr else printErr
 
         printRowAndLine :: [Token] -> IO ()
         printRowAndLine tks' = do
             let Token {position=pn} = head tks'
             let line = row pn
             let lengthOfRowNumber = length $ show line
-            putStr $ show line
-            putStr $ replicate (maxDigits tks - lengthOfRowNumber) ' '
-            putStr "|"
-            putStrLn $ joinTokensOnly tks'
+            printFun $ show line
+            printFun $ replicate (maxDigits tks - lengthOfRowNumber) ' '
+            printFun "|"
+            printFun $ joinTokensOnly tks'
+            printFun "\n"
 
 printSemErrors :: [Error] -> [Token] -> IO ()
 printSemErrors [] _ = do
-    putStrLn "Fix your semantic mistakes, ashen one."
+    printErr "Fix your semantic mistakes, ashen one.\n"
     return ()
 printSemErrors (semError:semErrors) tokens = do
     let (Error errMessage p) = semError
@@ -138,19 +145,19 @@ printSemErrors (semError:semErrors) tokens = do
     let preContext = filter (\Token{position=p'} -> row p' == row p - 1) tokens
     let postContext = filter (\Token{position=p'} -> row p' == row p + 1) tokens
     let nDigits = 2 + maxDigits tks
-    RWS.when (not $ null preContext) $ printProgram preContext
-    printProgram tks
-    putStr $ buildRuler (nDigits + column p)
-    putStrLn "^"
-    putStrLn $ bold ++ red ++ "YOU DIED!!" ++ nocolor ++ " " ++ errMessage
-    RWS.when (not $ null postContext) $ printProgram postContext
-    putStrLn "\n"
+    RWS.when (not $ null preContext) $ printProgram False preContext
+    printProgram False tks
+    printErr $ buildRuler (nDigits + column p)
+    printErr "^\n"
+    printErr $ bold ++ red ++ "YOU DIED!!" ++ nocolor ++ " " ++ errMessage ++ "\n"
+    RWS.when (not $ null postContext) $ printProgram False postContext
+    printErr "\n\n"
     printSemErrors semErrors tokens
 
 raiseCompilerError :: String -> IO ()
 raiseCompilerError msg = do
-    putStrLn $ bold ++ red ++ "YOU DIED!!" ++ nocolor ++ " Compiler error"
-    putStrLn msg
+    printErr $ bold ++ red ++ "YOU DIED!!" ++ nocolor ++ " Compiler error\n"
+    printErr $ msg ++ "\n"
     exitFailure
 
 failByNonExistantFile :: String -> IO ()
@@ -178,7 +185,7 @@ handleLexError errors tokens = do
     printLexErrors
         $ map (\(err, tks) -> (err, insertLexErrorOnContext err tks))
         $ groupLexErrorWithTokenContext errors tokens
-    putStrLn "Fix your lexical mistakes, ashen one."
+    printErr "Fix your lexical mistakes, ashen one.\n"
 
 handleCompileError :: CompilerError -> [Token] -> IO ()
 handleCompileError compileError tokens =
@@ -235,7 +242,7 @@ compile program compileFlag = do
                     putStrLn "\nFireLink: Printing SymTable"
                     prettyPrintSymTable symTable
                     putStrLn "\nFireLink: Printing recognized program"
-                    printProgram tokens
+                    printProgram True tokens
                     putStrLn "\nFireLink: Printing Intermediate Representation in Three-Address Code"
                     printTacCode tacCode
                     putStrLn "\nFireLink: Printing basic blocks (numbered, starting at 0)"
@@ -244,14 +251,14 @@ compile program compileFlag = do
                     printFlowGraph flowGraph
                     putStrLn "\nFireLink: Printing mockup of naive register allocation"
                     putStrLn allocatedTac
-                Just flag ->
-                    if flag `elem` ["-f", "--frontend"] then prettyPrintSymTable symTable >> printProgram tokens
-                    else if flag `elem` ["-s", "--symtable"] then prettyPrintSymTable symTable
-                    else if flag `elem` ["-p", "--program"] then printProgram tokens
-                    else if flag `elem` ["-t", "--tac"] then printTacCode tacCode
-                    else if flag `elem` ["-b", "--blocks"] then printBasicBlocks basicBlocks
-                    else if flag `elem` ["-g", "--graph"] then printFlowGraph flowGraph
-                    else failByUnknownFlag
+                Just flag
+                    | flag `elem` ["-f", "--frontend"] -> prettyPrintSymTable symTable >> printProgram True tokens
+                    | flag `elem` ["-s", "--symtable"] -> prettyPrintSymTable symTable
+                    | flag `elem` ["-p", "--program"] -> printProgram True tokens
+                    | flag `elem` ["-t", "--tac"] -> printTacCode tacCode
+                    | flag `elem` ["-b", "--blocks"] -> printBasicBlocks basicBlocks
+                    | flag `elem` ["-g", "--graph"] -> printFlowGraph flowGraph
+                    | otherwise -> failByUnknownFlag
             exitSuccess
 
 firelink :: IO ()

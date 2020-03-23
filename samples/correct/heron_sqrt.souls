@@ -1,0 +1,67 @@
+-- **Cálculo de Raíz Cuadrada por el Método de Heron.**
+-- El programa debe operar en un ciclo infinito en el cual solicita un número
+-- en punto flotante no negativo, y muestra la raíz cuadrada calculada según el
+-- método descrito, con una precisión de un millonésimo, hasta que el usuario
+-- indique que no quiere continuar.
+
+hello ashen one
+
+invocation sqrt
+requesting
+  val n of type hollow,
+  val iters of type humanity
+with skill of type hollow
+  traveling somewhere
+  with
+    var x of type hollow <<= 1,
+    var i of type humanity <<= 0
+  in your inventory
+    upgrading i with 1 soul until level iters
+      traveling somewhere
+        x <<= 0.5 * (x + (n/x))
+      you died
+    max level reached \
+    go back with x
+  you died
+after this return to your world
+
+traveling somewhere
+with
+  var stop of type bonfire <<= unlit
+in your inventory
+  with orange saponite say @Square Root by Heron's Method\n@ \
+
+  while the not stop covenant is active:
+    traveling somewhere
+    with
+      var n of type hollow
+    in your inventory
+      with orange saponite say @Enter the number: @ \
+      transpose into n \
+
+      trust your inventory
+        n lt 0:
+          traveling somewhere
+            stop <<= lit \
+            with orange saponite say @Only non-negative numbers are allowed!\n@
+          you died
+        liar!:
+          traveling somewhere
+          with
+            var s of type hollow
+          in your inventory
+            s <<= summon sqrt granting n, 1000000 to the knight \
+
+            with orange saponite say @Approximate square root: @ \
+            with orange saponite say s \
+            with orange saponite say @\n@ \
+
+            with orange saponite say @Wanna go again? (lit/unlit): @ \
+            transpose into stop
+          you died
+      inventory closed
+    you died
+  covenant left
+you died
+
+farewell ashen one

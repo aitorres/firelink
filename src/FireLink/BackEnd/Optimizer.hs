@@ -22,7 +22,7 @@ optimize' = foldr (.) id optimizations
 
 -- | A list with all currently valid optimizations.
 optimizations :: [Optimization]
-optimizations = [removeUnreachableJumps, removeUnusedLabels, removeRedundantJumps, removeIdempotencies, removeRedundantAssignments, removeUnreachableInstructions]
+optimizations = [removeUnreachableJumps, removeUnusedLabels, removeRedundantJumps, removeIdempotencies, removeUnreachableInstructions]
 
 -- | 'Optimization' that removes unreachable jumps, that is: a jump right next to a return statement
 removeUnreachableJumps :: Optimization
@@ -72,23 +72,6 @@ removeUnreachableInstructions = foldr removeUnreachableInstruction []
                 lastTAC = head $ tail seen in
                 if isUnreachableInstruction x middleTAC lastTAC then x : tail seen else x:seen
 
--- | 'Optimization' that removes redundant assignments, that is, a pair
--- | of instructions in which the first performs an operation to var A, and
--- | the second stores the content of var A to var B (instead of storing directly
--- | to var B)
-removeRedundantAssignments :: Optimization
-removeRedundantAssignments = foldr removeRedundantAssignment []
-    where
-        isRedundantAssignment :: TAC -> TAC -> Bool
-        isRedundantAssignment (ThreeAddressCode _ (Just c) _ _) (ThreeAddressCode Assign (Just a) (Just b) Nothing) = b == c
-        isRedundantAssignment _ _ = False
-
-        removeRedundantAssignment :: TAC -> [TAC] -> [TAC]
-        removeRedundantAssignment x [] = [x]
-        removeRedundantAssignment x@(ThreeAddressCode op _ b c) seen =
-            let nextTAC@(ThreeAddressCode _ a _ _) = head seen in
-                if isRedundantAssignment x nextTAC then ThreeAddressCode op a b c : tail seen else x : seen
-
 -- | 'Optimization' that removes certain duplicated instructions that are
 -- | idempotent, such as two sequential jumps to the same label,
 -- | or two sequential returns (with the very same expression)
@@ -99,6 +82,8 @@ removeIdempotencies = foldr removeIdempotency []
         isIdempotentInstruction :: TAC -> TAC -> Bool
         isIdempotentInstruction (ThreeAddressCode GoTo _ _ a) (ThreeAddressCode GoTo _ _ b) = a == b
         isIdempotentInstruction (ThreeAddressCode Return _ a _) (ThreeAddressCode Return _ b _) = a == b
+        isIdempotentInstruction (ThreeAddressCode Exit _ _ _) (ThreeAddressCode Exit _ _ _) = True
+        isIdempotentInstruction (ThreeAddressCode Abort _ _ _) (ThreeAddressCode Abort _ _ _) = True
         isIdempotentInstruction _ _ = False
 
         removeIdempotency :: TAC -> [TAC] -> [TAC]

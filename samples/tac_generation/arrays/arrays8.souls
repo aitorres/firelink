@@ -1,0 +1,20 @@
+hello ashen one
+
+invocation f
+requesting
+  val x of type humanity
+
+with skill of type humanity
+traveling somewhere
+  go back with x * 2 - 1
+you died
+after this return to your world
+
+traveling somewhere
+with
+    var x of type <10>-chest of type <123>-chest of type bonfire
+in your inventory
+    with orange saponite say size x<$0$>
+you died
+
+farewell ashen one

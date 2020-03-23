@@ -9,8 +9,12 @@ import           FireLink.FrontEnd.Grammar      (BaseExpr (..), Expr (..),
                                                  booleanOp2, comparableOp2)
 import           FireLink.FrontEnd.SymTable     (Dictionary,
                                                  DictionaryEntry (..),
-                                                 findSymEntryById, getOffset,
-                                                 getUnionAttrId)
+                                                 definedTypes, findSymEntryById,
+                                                 findSymEntryByName, findWidth,
+                                                 getOffset, getUnionAttrId)
+import qualified FireLink.FrontEnd.SymTable     as ST (Extra (..),
+                                                       extractTypeFromExtra,
+                                                       sign)
 import           FireLink.FrontEnd.Tokens       (Token (..))
 import           FireLink.FrontEnd.TypeChecking (Type (..))
 import qualified TACType                        as TAC
@@ -56,7 +60,7 @@ genCodeForExpr _ (EvalFunc fId params) = do
     paramsLength <- genParams params
     ret <- TAC.Id <$> newtemp
     funEntry <- findSymEntryById fId <$> ask
-    tell [TAC.ThreeAddressCode
+    gen [TAC.ThreeAddressCode
             { TAC.tacOperand = TAC.Call
             , TAC.tacLvalue = Just ret
             , TAC.tacRvalue1 = Just $ TAC.Label $ name funEntry
@@ -89,12 +93,13 @@ genCodeForExpr _ (Op2 op lexpr rexpr) = do
 genCodeForExpr t (IntLit n) = return $ TAC.Constant (show n, t)
 genCodeForExpr t (FloatLit n) = return $ TAC.Constant (show n, t)
 genCodeForExpr t (CharLit c) = return $ TAC.Constant (show $ ord c, t)
+genCodeForExpr t (StringLit s) = return $ TAC.Constant (s, t)
 
 genCodeForExpr t (Caster expr newType) = do
     tempOp <- genCode' expr
     let oldType = expType expr
     lvalue <- TAC.Id <$> newtemp
-    tell [TAC.ThreeAddressCode
+    gen [TAC.ThreeAddressCode
             { TAC.tacOperand = TAC.Cast (show oldType) (show newType)
             , TAC.tacLvalue = Just lvalue
             , TAC.tacRvalue1 = Just tempOp
@@ -105,7 +110,7 @@ genCodeForExpr t (Caster expr newType) = do
 genCodeForExpr _ (Op1 Negate expr) = do
     rId <- genCode' expr
     lvalue <- TAC.Id <$> newtemp
-    tell [TAC.ThreeAddressCode
+    gen [TAC.ThreeAddressCode
             { TAC.tacOperand = TAC.Minus
             , TAC.tacLvalue = Just lvalue
             , TAC.tacRvalue1 = Just rId
@@ -118,12 +123,80 @@ This implementation works because in TAC and in MIPS characters are just numbers
 -}
 genCodeForExpr _ (AsciiOf expr) = genCode' expr
 
+genCodeForExpr _ (IndexAccess array index) = do
+    (arrayRefOperand, _, base) <- genIndexAccess array index
+    operand <- TAC.Id <$> newtemp
+    gen [TAC.ThreeAddressCode
+        { TAC.tacOperand = TAC.Get
+        , TAC.tacLvalue = Just operand
+        , TAC.tacRvalue1 = Just base
+        , TAC.tacRvalue2 = Just arrayRefOperand
+        }]
+    return operand
+
+genCodeForExpr _ (Size container) = genCodeForSize container
+
 genCodeForExpr _ e = error $ "This expression hasn't been implemented " ++ show e
+
+-- Generates code to calculate size of a collection
+genCodeForSize :: Expr -> CodeGenMonad OperandType
+genCodeForSize exp = case expAst exp of
+    IdExpr i -> do
+        idEntry <- findSymEntryById i <$> ask
+        let ST.Simple entryType = ST.extractTypeFromExtra idEntry
+        typeWidth entryType
+
+-- Return type is (offset, contents, base)
+genIndexAccess :: Expr -> Expr -> CodeGenMonad (OperandType, String, OperandType)
+genIndexAccess array index = do
+    indexOperand <- genCode' index
+    case expAst array of
+        IdExpr idArray -> do
+            idEntry <- findSymEntryById idArray <$> ask
+            contents <- getContents $ ST.extractTypeFromExtra idEntry
+            width <- typeWidth contents
+            resultAddress <- TAC.Id <$> newtemp
+            gen [TAC.ThreeAddressCode
+                    { TAC.tacOperand = TAC.Mult
+                    , TAC.tacLvalue = Just resultAddress
+                    , TAC.tacRvalue1 = Just indexOperand
+                    , TAC.tacRvalue2 = Just width
+                    }]
+            return (resultAddress, contents, TAC.Id $ TACVariable idEntry (getOffset idEntry))
+        IndexAccess array' index' -> do
+            (offset, contents', base) <- genIndexAccess array' index'
+            contents <- getContents $ ST.Simple contents'
+            width <- typeWidth contents
+            t <- TAC.Id <$> newtemp
+            gen [TAC.ThreeAddressCode
+                    { TAC.tacOperand = TAC.Add
+                    , TAC.tacLvalue = Just t
+                    , TAC.tacRvalue1 = Just offset
+                    , TAC.tacRvalue2 = Just indexOperand
+                    }]
+            resultAddress <- TAC.Id <$> newtemp
+            gen [TAC.ThreeAddressCode
+                    { TAC.tacOperand = TAC.Mult
+                    , TAC.tacLvalue = Just resultAddress
+                    , TAC.tacRvalue1 = Just t
+                    , TAC.tacRvalue2 = Just width
+                    }]
+            return (resultAddress, contents, base)
+    where
+        getContents :: ST.Extra -> CodeGenMonad String
+        getContents (ST.CompoundRec _ _ s@(ST.Simple contentsType)) = return contentsType
+        getContents (ST.Compound ">-miracle" _) = return ST.sign
+
+        -- Since this function is only used with arrays, this call should never have as an argument a definedType
+        getContents (ST.Simple t) =
+            ST.extractTypeFromExtra . findSymEntryByName t <$> ask >>= getContents
+        getContents a = error $ "error processing " ++ show a
+
 
 genParams :: [Expr] -> CodeGenMonad Int
 genParams params = do
     operands <- mapM genCode' params
-    tell $ map createParam operands
+    gen $ map createParam operands
     return $ length params
     where
         createParam :: OperandType -> TAC
@@ -161,7 +234,7 @@ genCodeForBooleanExpr expr trueLabel falseLabel = case expr of
         let isTrueNotFall = not $ isFall trueLabel
         let isFalseNotFall = not $ isFall falseLabel
         if isTrueNotFall && isFalseNotFall then do
-            tell [TAC.ThreeAddressCode
+            gen [TAC.ThreeAddressCode
                     { TAC.tacOperand = TAC.Eq
                     , TAC.tacLvalue = Just symEntry
                     , TAC.tacRvalue1 = Just $ TAC.Constant ("true", TrileanT)
@@ -169,13 +242,13 @@ genCodeForBooleanExpr expr trueLabel falseLabel = case expr of
                     }]
             genGoTo falseLabel
         else if isTrueNotFall then
-            tell [TAC.ThreeAddressCode
+            gen [TAC.ThreeAddressCode
                     { TAC.tacOperand = TAC.Eq
                     , TAC.tacLvalue = Just symEntry
                     , TAC.tacRvalue1 = Just $ TAC.Constant ("true", TrileanT)
                     , TAC.tacRvalue2 = Just trueLabel
                     }]
-        else when isFalseNotFall (tell [TAC.ThreeAddressCode
+        else when isFalseNotFall (gen [TAC.ThreeAddressCode
                     { TAC.tacOperand = TAC.Eq
                     , TAC.tacLvalue = Just symEntry
                     , TAC.tacRvalue1 = Just $ TAC.Constant ("false", TrileanT)
@@ -238,7 +311,7 @@ genBooleanComparison leftExprId rightExprId trueLabel falseLabel op = do
     let isTrueNotFall = not $ isFall trueLabel
     let isFalseNotFall = not $ isFall falseLabel
     if isTrueNotFall && isFalseNotFall then do
-        tell [TAC.ThreeAddressCode
+        gen [TAC.ThreeAddressCode
                 { TAC.tacOperand = mapOp2ToTacOperation op
                 , TAC.tacLvalue = Just leftExprId
                 , TAC.tacRvalue1 = Just rightExprId
@@ -246,13 +319,13 @@ genBooleanComparison leftExprId rightExprId trueLabel falseLabel op = do
                 }]
         genGoTo falseLabel
     else if isTrueNotFall then
-        tell [TAC.ThreeAddressCode
+        gen [TAC.ThreeAddressCode
                 { TAC.tacOperand = mapOp2ToTacOperation op
                 , TAC.tacLvalue = Just leftExprId
                 , TAC.tacRvalue1 = Just rightExprId
                 , TAC.tacRvalue2 = Just trueLabel
                 }]
-    else when isFalseNotFall (tell [TAC.ThreeAddressCode
+    else when isFalseNotFall (gen [TAC.ThreeAddressCode
                 { TAC.tacOperand = complement $ mapOp2ToTacOperation op
                 , TAC.tacLvalue = Just leftExprId
                 , TAC.tacRvalue1 = Just rightExprId

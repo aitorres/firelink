@@ -1,11 +1,13 @@
 module FireLink.BackEnd.InstructionCodeGenerator where
 
-import           Control.Monad.RWS                  (ask, tell, unless, when)
+import           Control.Monad.RWS                  (ask, unless, when)
+import           Data.Maybe                         (fromJust)
 import           FireLink.BackEnd.CodeGenerator
 import           FireLink.BackEnd.ExprCodeGenerator (genBooleanComparison,
                                                      genCode',
                                                      genCodeForBooleanExpr,
-                                                     genCodeForExpr, genOp2Code,
+                                                     genCodeForExpr,
+                                                     genIndexAccess, genOp2Code,
                                                      genParams)
 import           FireLink.FrontEnd.Grammar          (BaseExpr (..),
                                                      CodeBlock (..), Expr (..),
@@ -16,12 +18,18 @@ import           FireLink.FrontEnd.Grammar          (BaseExpr (..),
 import qualified FireLink.FrontEnd.Grammar          as G (Id (..), Op2 (..))
 import           FireLink.FrontEnd.SymTable         (Dictionary,
                                                      DictionaryEntry (..),
+                                                     extractTypeFromExtra,
                                                      findAllFunctionsAndProcedures,
                                                      findSymEntryById,
-                                                     getCodeBlock,
-                                                     getUnionAttrId, wordSize)
+                                                     findSymEntryByName,
+                                                     findWidth, getCodeBlock,
+                                                     getOffset, getUnionAttrId,
+                                                     wordSize)
+import qualified FireLink.FrontEnd.SymTable         as ST (Extra (..),
+                                                           definedTypes, sign)
 import           FireLink.FrontEnd.Tokens           (Token (..))
-import           FireLink.FrontEnd.TypeChecking     (Type (..))
+import           FireLink.FrontEnd.TypeChecking     (Type (..),
+                                                     getTypeFromContainer)
 import           TACType
 
 
@@ -37,7 +45,7 @@ instance GenerateCode Program where
     genCode (Program codeblock@(CodeBlock _ maxOffset)) = do
         functions <- getFunctions <$> ask
         let allFunctions = ("_main", codeblock) : functions
-        tell [ThreeAddressCode
+        gen [ThreeAddressCode
             { tacOperand = Call
             , tacLvalue = Nothing
             , tacRvalue1 = Just $ Label "_main"
@@ -48,14 +56,14 @@ instance GenerateCode Program where
             , tacRvalue1 = Nothing
             , tacRvalue2 = Nothing
             }]
-
+        gen [ThreeAddressCode
+            { tacOperand = Exit
+            , tacLvalue = Nothing
+            , tacRvalue1 = Nothing
+            , tacRvalue2 = Nothing
+            }]
         mapM_ genBlock allFunctions
         where
-            alignedOffset :: Int -> Int
-            alignedOffset maxOffset =
-                if maxOffset `mod` wordSize == 0
-                then maxOffset
-                else maxOffset +  wordSize - (maxOffset `mod` wordSize)
 
             getFunctions :: Dictionary -> [(String, CodeBlock)]
             getFunctions = map mapDictionaryToTuple . findAllFunctionsAndProcedures
@@ -67,7 +75,12 @@ instance GenerateCode Program where
             genBlock (funName, codeblock@(CodeBlock _ maxOffset)) = do
                 setTempOffset $ alignedOffset maxOffset
                 genLabel $ Label funName
+                t <- newtemp
+                putArrayOffsetVar t
+                genIdAssignment (Id t) $ Constant ("TO_REPLACE", BigIntT)
                 genCode codeblock
+                offset <- getTempOffset
+                addTemp t offset
 
 instance GenerateCode CodeBlock where
     genCode (CodeBlock instrs _) = mapM_ genCode instrs
@@ -79,9 +92,66 @@ instance GenerateCode Instruction where
 
 genCodeForInstruction :: Instruction -> OperandType -> CodeGenMonad ()
 
+genCodeForInstruction (InstInitArray arrayId@(G.Id _ s)) _ = do
+    entry <- findSymEntryById arrayId <$> ask
+    let e@(ST.Simple t) = extractTypeFromExtra entry
+    allocatedSize <- buildFromType (t, e)
+    offsetVar <- Id <$> getArrayOffsetVar
+    genIdAssignment (Id $ TACVariable entry (getOffset entry)) offsetVar
+    newOffset <- newtemp
+    gen [ThreeAddressCode
+                { tacOperand = Add
+                , tacLvalue = Just $ Id newOffset
+                , tacRvalue1 = Just offsetVar
+                , tacRvalue2 = Just allocatedSize
+                }]
+    putArrayOffsetVar newOffset
+    where
+        getTypeFromString :: String -> CodeGenMonad ST.Extra
+        getTypeFromString t = extractTypeFromExtra . findSymEntryByName t <$> ask
+
+        buildForArrayLike :: String -> Expr -> (String, ST.Extra) -> CodeGenMonad OperandType
+        buildForArrayLike typeName sizeExpr t = do
+            operand <- genCode' sizeExpr
+            temp <- Id <$> newtemp
+            genIdAssignment temp operand
+            putArrayEntrySize typeName temp
+            allocatedSize <- buildFromType t
+            finalAllocatedSize <- Id <$> newtemp
+            gen [ThreeAddressCode
+                { tacOperand = Mult
+                , tacLvalue = Just finalAllocatedSize
+                , tacRvalue1 = Just allocatedSize
+                , tacRvalue2 = Just operand
+                }]
+            return finalAllocatedSize
+
+        buildFromType :: (String, ST.Extra) -> CodeGenMonad OperandType
+        buildFromType (_, ST.Simple t)
+            | t `elem` ST.definedTypes = do
+                t' <- findSymEntryByName t <$> ask
+                let (ST.Width w) = findWidth t'
+                return $ Constant (show w, BigIntT)
+            | otherwise = do
+                t' <- getTypeFromString t
+                buildFromType (t, t')
+
+        buildFromType (typeName, ST.CompoundRec _ expr t'@(ST.Simple t)) =
+            buildForArrayLike typeName expr (t, t')
+
+        buildFromType (typeName, ST.Compound t expr) =
+            buildForArrayLike typeName expr (ST.sign, ST.Simple ST.sign)
+
+        buildFromType (typeName, ST.Fields _ _) = do
+            entry <- findSymEntryByName typeName <$> ask
+            let (ST.Width w) = findWidth entry
+            let w' = alignedOffset w
+            return $ Constant (show w', BigIntT)
+        buildFromType o = error $ "Error processing " ++ show o
+
 -- Utility instructions
 genCodeForInstruction InstReturn _ =
-    tell [ThreeAddressCode
+    gen [ThreeAddressCode
             { tacOperand = Return
             , tacLvalue = Nothing
             , tacRvalue1 = Nothing
@@ -90,7 +160,7 @@ genCodeForInstruction InstReturn _ =
 
 genCodeForInstruction (InstReturnWith expr) _ = do
     operand <- genCode' expr
-    tell [ThreeAddressCode
+    gen [ThreeAddressCode
             { tacOperand = Return
             , tacLvalue = Nothing
             , tacRvalue1 = Just operand
@@ -104,7 +174,7 @@ as it was a label
 genCodeForInstruction (InstCall fId params) _ = do
     paramsLength <- genParams params
     funEntry <- findSymEntryById fId <$> ask
-    tell [ThreeAddressCode
+    gen [ThreeAddressCode
             { tacOperand = Call
             , tacLvalue = Nothing
             , tacRvalue1 = Just $ Label $ name funEntry
@@ -115,12 +185,36 @@ genCodeForInstruction (InstCall fId params) _ = do
 genCodeForInstruction (InstAsig lvalue rvalue) next =
     if supportedLvalue lvalue then do
         if expType rvalue == StructLitT then assignStructLiteral lvalue rvalue
-        else if expType rvalue /= TrileanT || (isIdExpr lvalue && isFunCallExpr rvalue) then do
+        else if isArrayLikeExpr rvalue then
+            handleArrayLiteralAssignment 0 lvalue rvalue
+        else if isIndexExpr lvalue then
+            handleIndexAssignment lvalue rvalue
+        else if expType rvalue /= TrileanT || (isIdExpr lvalue && isFunCallExpr rvalue) then
+            handleNonBooleanAssignment lvalue rvalue
+        else handleSimpleBooleanAssignment lvalue rvalue
+
+        -- The following code takes care of the isActive attribute for unions on property assignments
+        when (isUnionBExpr $ expAst lvalue) $ do
+            let Expr { expAst = (Access unionExpr propId) } = lvalue
+            markActiveAttrForUnion unionExpr propId
+
+    else error $ "Lvalue currently not supported for assignments: " ++ show lvalue
+    where
+        handleNonBooleanAssignment :: Expr -> Expr -> CodeGenMonad ()
+        handleNonBooleanAssignment lvalue rvalue = do
             let Expr { expType = lvalT, expAst = lvalAst } = lvalue
             operand <- genCodeForExpr lvalT lvalAst
             rValueAddress <- genCode' rvalue
             genIdAssignment operand rValueAddress
-        else do
+        handleIndexAssignment :: Expr -> Expr -> CodeGenMonad ()
+        handleIndexAssignment lvaule rvalue = do
+            let IndexAccess array index = expAst lvalue
+            (arrayRefOperand, _, base) <- genIndexAccess array index
+            operand <- genCode' rvalue
+            genSetAssignment base arrayRefOperand operand
+
+        handleSimpleBooleanAssignment :: Expr -> Expr -> CodeGenMonad ()
+        handleSimpleBooleanAssignment lvalue rvalue = do
             operand <- genCode' lvalue
             trueLabel <- newLabel
             falseLabel <- newLabel
@@ -131,22 +225,19 @@ genCodeForInstruction (InstAsig lvalue rvalue) next =
             genLabel falseLabel
             genIdAssignment operand $ Constant ("false", TrileanT)
             genLabel next
-
-        -- The following code takes care of the isActive attribute for unions on property assignments
-        when (isUnionBExpr $ expAst lvalue) $ do
-            let Expr { expAst = (Access unionExpr propId) } = lvalue
-            markActiveAttrForUnion unionExpr propId
-
-    else error $ "Lvalue currently not supported for assignments: " ++ show lvalue
-    where
         supportedLvalue :: Expr -> Bool
-        supportedLvalue Expr {expAst = IdExpr _ }  = True
-        supportedLvalue Expr {expAst = Access _ _} = True
-        supportedLvalue _                          = False
+        supportedLvalue Expr {expAst = IdExpr _ }       = True
+        supportedLvalue Expr {expAst = Access _ _}      = True
+        supportedLvalue Expr {expAst = IndexAccess _ _} = True
+        supportedLvalue _                               = False
 
         isIdExpr :: Expr -> Bool
         isIdExpr Expr { expAst = IdExpr _ } = True
         isIdExpr _                          = False
+
+        isIndexExpr :: Expr -> Bool
+        isIndexExpr Expr { expAst = IndexAccess _ _ } = True
+        isIndexExpr _                                 = False
 
         isFunCallExpr :: Expr -> Bool
         isFunCallExpr Expr { expAst = EvalFunc _ _ } = True
@@ -155,6 +246,12 @@ genCodeForInstruction (InstAsig lvalue rvalue) next =
         isUnionBExpr :: BaseExpr -> Bool
         isUnionBExpr (Access Expr { expType = UnionT _ _ } _) = True
         isUnionBExpr _                                        = False
+
+        isArrayLikeExpr :: Expr -> Bool
+        isArrayLikeExpr e = case expAst e of
+            ArrayLit _  -> True
+            StringLit _ -> True
+            _           -> False
 
         isUnionT :: Type -> Bool
         isUnionT (UnionT _ _) = True
@@ -180,6 +277,33 @@ genCodeForInstruction (InstAsig lvalue rvalue) next =
             lOperand <- genCodeForExpr eT (Access lvalue propId)
             rOperand <- genCode' e
             genIdAssignment lOperand rOperand
+
+        handleArrayLiteralAssignment :: Int -> Expr -> Expr -> CodeGenMonad ()
+        handleArrayLiteralAssignment index lvalue rvalue =
+            case getNextValueFromArrayLike rvalue of
+                Nothing -> return ()
+                Just (nextValue, nextRValue) -> do
+                    let indexExpr = convertToIndexExpr index lvalue
+                    next <- newLabel
+                    genCodeForInstruction (InstAsig indexExpr nextValue) next
+                    handleArrayLiteralAssignment (index + 1) lvalue nextRValue
+
+        convertToIndexExpr :: Int -> Expr -> Expr
+        convertToIndexExpr index arrayLikeExpr = Expr {
+            expAst = IndexAccess arrayLikeExpr Expr {expAst=IntLit index, expType = BigIntT},
+            expType = fromJust $ getTypeFromContainer $ expType arrayLikeExpr
+            }
+
+        -- Get next value from an array like. It returns a tuple (Expr, Expr) where
+        -- the first element is the next value to index and the second the next
+        -- value to pass to this function on next call
+        getNextValueFromArrayLike :: Expr -> Maybe (Expr, Expr)
+        getNextValueFromArrayLike expr = case expAst expr of
+            StringLit "" -> Nothing
+            StringLit (c:chs) -> Just (Expr {expAst = CharLit c, expType = CharT}, Expr {expAst = StringLit chs, expType = StringT})
+            ArrayLit [] -> Nothing
+            ArrayLit (c:chs) -> Just (c, Expr {expAst = ArrayLit chs, expType = expType expr})
+            a -> Nothing
 
 {-
 Conditional selection statement
@@ -284,7 +408,7 @@ transform the Read statement into the TAC instruction.
 -}
 genCodeForInstruction (InstRead expr) next = do
     readOperand <- genCode' expr
-    tell [ThreeAddressCode
+    gen [ThreeAddressCode
             { tacOperand = Read
             , tacLvalue = Nothing
             , tacRvalue1 = Just readOperand
@@ -300,7 +424,7 @@ transform the print statement into the TAC instruction.
 -}
 genCodeForInstruction (InstPrint expr) next = do
     printOperand <- genCode' expr
-    tell [ThreeAddressCode
+    gen [ThreeAddressCode
             { tacOperand = Print
             , tacLvalue = Nothing
             , tacRvalue1 = Just printOperand

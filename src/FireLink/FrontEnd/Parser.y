@@ -396,17 +396,23 @@ TYPE :: { ST.Extra }
   | float                                                               { ST.Simple ST.hollow }
   | char                                                                { ST.Simple ST.sign }
   | bool                                                                { ST.Simple ST.bonfire }
-  | ltelit EXPR array ofType TYPE                                       {% ST.genAliasName >>= \x -> return $ ST.Simple x }
-  | ltelit EXPR string                                                  {% ST.genAliasName >>= \x -> return $ ST.Simple x }
-  | set ofType TYPE                                                     {% ST.genAliasName >>= \x -> return $ ST.Simple x }
-  | pointer TYPE                                                        {% ST.genAliasName >>= \x -> return $ ST.Simple x }
+  | ltelit EXPR array ofType TYPE                                       {% do
+                                                                          aliasName <- ST.genAliasName
+                                                                          updateExprSizeForEntry aliasName $2
+                                                                          return $ ST.Simple aliasName }
+  | ltelit EXPR string                                                  {% do
+                                                                          aliasName <- ST.genAliasName
+                                                                          updateExprSizeForEntry aliasName $2
+                                                                          return $ ST.Simple aliasName }
+  | set ofType TYPE                                                     {% fmap ST.Simple ST.genAliasName }
+  | pointer TYPE                                                        {% fmap ST.Simple ST.genAliasName }
   | RECORD_OPEN  brOpen STRUCTITS BRCLOSE                               {% do
                                                                             checkRecoverableError $2 $4
                                                                             currScope <- ST.getCurrentScope
                                                                             nextOffset <- ST.getNextOffset
                                                                             ST.exitScope
                                                                             ST.popOffset
-                                                                            ST.genAliasName >>= \x -> return $ ST.Simple x }
+                                                                            fmap ST.Simple ST.genAliasName }
   | UNION_OPEN brOpen UNIONITS BRCLOSE                                  {% do
                                                                              checkRecoverableError $2 $4
                                                                              currScope <- ST.getCurrentScope
@@ -487,22 +493,21 @@ INSTEND :: { Maybe G.RecoverableError }
 DECLARS :: { ([G.Instruction], Int) }
   : with DECLARSL DECLAREND                                             {% do
                                                                             let (insts, o) = $2
-                                                                            let instrlist = catMaybes (reverse insts)
                                                                             checkRecoverableError $1 $3
-                                                                            return (instrlist, o) }
+                                                                            return (insts, o) }
 
 DECLAREND :: { Maybe G.RecoverableError }
   : declarend                                                           { Nothing }
   | error                                                               { Just G.MissingDeclarationListEnd }
 
-DECLARSL :: { ([Maybe G.Instruction], Int) }
+DECLARSL :: { ([G.Instruction], Int) }
   : DECLARSL comma DECLARADD                                            {% do
                                                                             let (mints, _) = $1
                                                                             let (mint, o) = $3
-                                                                            return (mint : mints, o) }
-  | DECLARADD                                                           { (\(i, o) -> ([i], o) )$1 }
+                                                                            return (mints ++ mint, o) }
+  | DECLARADD                                                           { $1 }
 
-DECLARADD :: { (Maybe G.Instruction, Int) }
+DECLARADD :: { ([G.Instruction], Int) }
   : DECLAR                                                              {% do
                                                                             -- Adds a declaration to the ST as soon as it's parsed
                                                                             let (declar, _) = $1
@@ -512,10 +517,15 @@ DECLARADD :: { (Maybe G.Instruction, Int) }
                                                                             let (G.Id idToken _) = lvalueId
                                                                             lvalue <- buildAndCheckExpr idToken baseLvalue
                                                                             mInstr <- case maybeRValue of
-                                                                              Nothing -> defaultAssignment lvalue >>= return
+                                                                              Nothing -> do
+                                                                                assignment <- defaultAssignment lvalue
+                                                                                case assignment of
+                                                                                  Nothing -> return []
+                                                                                  Just asig -> return [asig]
                                                                               Just (token, rvalue) -> do
                                                                                 ST.SymTable {ST.stScopeStack = stack} <- RWS.get
-                                                                                checkAssignment lvalue token rvalue True >>= return . Just
+                                                                                asig <- checkAssignment lvalue token rvalue True
+                                                                                return [asig]
                                                                             offsetW <- do
                                                                               mEntry <- ST.dictLookup $ G.extractIdName lvalueId
                                                                               case mEntry of
@@ -528,7 +538,12 @@ DECLARADD :: { (Maybe G.Instruction, Int) }
                                                                                       let ST.Offset o = ST.findOffset entry
                                                                                       let ST.Width w = ST.findWidth tEntry
                                                                                       return $ o + w
-                                                                            return (mInstr, offsetW) }
+                                                                            t <- getType lvalue
+                                                                            let instInit = (case t of
+                                                                                              T.ArrayT _ -> let (G.IdExpr i) = G.expAst lvalue in [G.InstInitArray i]
+                                                                                              T.StringT -> let (G.IdExpr i) = G.expAst lvalue in [G.InstInitArray i]
+                                                                                              _ -> [])
+                                                                            return (instInit ++ mInstr, offsetW) }
 
 DECLAR :: { (NameDeclaration, Maybe (T.Token, G.Expr)) }
   : var ID ofType TYPE                                                  { ((ST.Variable, $2, [$4]), Nothing) }
@@ -543,7 +558,7 @@ INSTRL :: { (G.Instructions, Int) }
 INSTR :: { G.Instruction }
   : EXPR asig EXPR                                                      {% do
                                                                           checkLvalue $1
-                                                                          checkAssignment $1 $2 $3 False >>= return }
+                                                                          checkAssignment $1 $2 $3 False }
   | malloc EXPR                                                         {% do
                                                                           checkPointerVariable $2
                                                                           return $ G.InstMalloc $2 }
@@ -785,6 +800,26 @@ buildAndCheckExpr tk bExpr = do
       G.expTok = tk
     }
 
+-- | Only used by array types
+updateExprSizeForEntry :: String -> G.Expr -> ST.ParserMonad ()
+updateExprSizeForEntry typeName expr = do
+  mEntry <- ST.dictLookup typeName
+  case mEntry of
+    Nothing -> return ()
+    Just entry -> do
+      let t = ST.extractTypeFromExtra entry
+      let restExtras = filter (not . ST.isExtraAType) $ ST.extra entry
+      case t of
+        ST.CompoundRec s _ ex -> updateExtras entry $ (ST.CompoundRec s expr ex) : restExtras
+        ST.Compound s _ -> updateExtras entry $ (ST.Compound s expr) : restExtras
+  where
+    updateExtras :: ST.DictionaryEntry -> [ST.Extra] -> ST.ParserMonad ()
+    updateExtras entry extras = do
+        let f x = (if and [ST.scope x == ST.scope entry, ST.name x == ST.name entry]
+            then x{ST.extra = extras}
+            else x) in ST.updateEntry (\ds -> Just $ map f ds) $ ST.name entry
+
+
 parseErrors :: [T.Token] -> ST.ParserMonad a
 parseErrors errors =
   let tk@T.Token {T.aToken=abst, T.position=pn} = errors !! 0
@@ -855,7 +890,7 @@ assignOffsetAndInsert entry = do
   let extras = ST.extra entry
   finalExtras <-
     if requiresOffset then do
-      let (ST.Simple t) = ST.extractTypeFromExtra extras
+      let (ST.Simple t) = ST.extractTypeFromExtra entry
       maybeTypeEntry <- ST.dictLookup t
       case maybeTypeEntry of
         Nothing -> return extras
@@ -1570,7 +1605,7 @@ instance TypeCheckable ST.DictionaryEntry where
     | cat `elem` [
         ST.Variable, ST.Constant,
         ST.RecordItem, ST.UnionItem,
-        ST.RefParam, ST.ValueParam, ST.Type] = getType $ ST.extractTypeFromExtra extras
+        ST.RefParam, ST.ValueParam, ST.Type] = getType $ ST.extractTypeFromExtra entry
 
     | otherwise = logRTError "error on getType for expected dict entries"
 
