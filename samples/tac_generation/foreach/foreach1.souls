@@ -1,0 +1,15 @@
+hello ashen one
+
+traveling somewhere
+with var i of type humanity, var a of type <2>-chest of type humanity
+in your inventory
+    a <<= <$ 1, 2 $> \
+
+    repairing i with titanite from a
+        traveling somewhere
+            with orange saponite say i
+        you died
+    weaponry repaired
+you died
+
+farewell ashen one
