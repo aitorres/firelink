@@ -546,6 +546,16 @@ spec = describe "Expressions" $ do
                             Expr{expAst=(IdExpr (Id Token {cleanedString="i"} _))})
                         }
                     }, InstReturn] _)) -> True)
+    it "accepts `a<$i$><$j$>` as an expression" $
+        runTestForExpr "a<$i$><$j$>" (\(Program (
+            CodeBlock
+                [InstReturnWith Expr{expAst=(
+                    IndexAccess
+                        Expr{expAst=(IndexAccess
+                            Expr {expAst=(IdExpr (Id Token {cleanedString="a"} _))}
+                            Expr {expAst=(IdExpr (Id Token {cleanedString="i"} _))})}
+                        Expr{expAst=(IdExpr (Id Token {cleanedString="j"} _))}
+                    )}, InstReturn] _)) -> True)
     it "rejects `a<$$>` as an expression" $
         runTestForInvalidProgram "a<$$>"
 

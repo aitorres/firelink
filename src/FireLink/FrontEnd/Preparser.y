@@ -668,7 +668,7 @@ assignOffsetAndInsert entry = do
   let extras = ST.extra entry
   finalExtras <-
     if requiresOffset then do
-      let (ST.Simple t) = ST.extractTypeFromExtra extras
+      let (ST.Simple t) = ST.extractTypeFromExtra entry
       maybeTypeEntry <- ST.dictLookup t
       case maybeTypeEntry of
         Nothing -> return extras

@@ -148,8 +148,12 @@ getUnionAttrId entry = let (UnionAttrId n) = findUnionAttrId entry in n
 getCodeBlock :: DictionaryEntry -> G.CodeBlock
 getCodeBlock entry = let (CodeBlock codeblock) = findCodeBlock entry in codeblock
 
-extractTypeFromExtra :: [Extra] -> Extra
-extractTypeFromExtra = head . filter isExtraAType
+extractTypeFromExtra :: DictionaryEntry -> Extra
+extractTypeFromExtra entry = let filteredTypes = filter isExtraAType $ extra entry
+    in
+        if null filteredTypes then error ("No type found on " ++ show entry)
+        else head filteredTypes
+
 
 {-|
     Dictionary entries represent "names" in the programming languages. With
@@ -195,6 +199,9 @@ findSymEntryById (G.Id T.Token {T.cleanedString=idName} idScope) = findSymEntry 
 
 findSymEntry :: Int -> String -> Dictionary -> DictionaryEntry
 findSymEntry idScope idName = head . filter (\s -> scope s == idScope) . findChain idName
+
+findSymEntryByName :: String -> Dictionary -> DictionaryEntry
+findSymEntryByName idName = head . findChain idName
 
 findAllFunctionsAndProcedures :: Dictionary -> DictionaryEntries
 findAllFunctionsAndProcedures = filter isFunction . concat . Map.elems
@@ -398,6 +405,9 @@ void :: String
 void = "void"
 errorType :: String
 errorType = "_errorType"
+
+definedTypes :: [String]
+definedTypes = [ smallHumanity, humanity, hollow, sign, bonfire ]
 
 wordSize :: Int
 wordSize = 4

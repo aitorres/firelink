@@ -1,0 +1,23 @@
+hello ashen one
+
+invocation f
+requesting
+  val x of type humanity
+
+with skill of type humanity
+traveling somewhere
+  go back with x * 2 - 1
+you died
+after this return to your world
+
+traveling somewhere
+with
+    var x of type <10>-chest of type <123>-chest of type bonfire <<= <$
+        <$ 1 neq 2, 2 + 3 eq 5, 1 eq summon f granting 12 to the knight $>,
+        <$ 13 eq summon f granting 12 to the knight $>
+    $>
+in your inventory
+    x<$1$> <<= <$ (size x) eq 10 $>
+you died
+
+farewell ashen one

@@ -1,22 +1,38 @@
 module FireLink.BackEnd.CodeGenerator where
 
-import           Control.Monad.RWS              (RWST (..), get, put, tell)
+import           Control.Monad.RWS              (RWST (..), get, put, tell, ask)
 import qualified FireLink.FrontEnd.Grammar      as G (Id (..))
 import           FireLink.FrontEnd.SymTable     (Dictionary (..),
                                                  DictionaryEntry (..),
-                                                 findChain)
+                                                 Extra(..), findWidth,
+                                                 findChain, wordSize, findSymEntryByName)
 import           FireLink.FrontEnd.Tokens       (Token (..))
 import           FireLink.FrontEnd.TypeChecking
 import           TACType
+import           Data.Map.Strict as Map
 
 data CodeGenState = CodeGenState
     { cgsNextLabel :: !Int
     , cgsNextTemp :: !Int
     , cgsCurTempOffset :: !Int
+    , cgsArrayOffsetVar :: !TACSymEntry -- This variable holds the current offset for arrays
+    , cgsTemporalsToReplace :: ![(TACSymEntry, Int)]
+
+    -- ^ To save array intermediate sizes we associate the _alias generated
+    -- with a TACSymEntry that contains its size
+    , cgsArrayWidthMap :: !(Map.Map String OperandType)
     }
+    deriving Show
 
 initialState :: CodeGenState
-initialState = CodeGenState {cgsNextTemp = 0, cgsNextLabel = 0, cgsCurTempOffset = 0}
+initialState = CodeGenState
+    { cgsNextTemp = 0
+    , cgsNextLabel = 0
+    , cgsCurTempOffset = 0
+    , cgsArrayOffsetVar = TACTemporal "" (-1)
+    , cgsTemporalsToReplace = []
+    , cgsArrayWidthMap = Map.empty
+    }
 
 type Offset = Int
 
@@ -47,8 +63,25 @@ newtemp = do
     put $ state{cgsNextTemp = temp + 1, cgsCurTempOffset = offset + 4}
     return $ TACTemporal ("_t" ++ show temp) offset
 
+putArrayOffsetVar :: TACSymEntry -> CodeGenMonad ()
+putArrayOffsetVar e = get >>= \state -> put state { cgsArrayOffsetVar = e }
+
+getArrayOffsetVar :: CodeGenMonad TACSymEntry
+getArrayOffsetVar = cgsArrayOffsetVar <$> get
+
 setTempOffset :: Int -> CodeGenMonad ()
 setTempOffset offset = get >>= \state -> put state { cgsCurTempOffset = offset }
+
+getTempOffset :: CodeGenMonad Int
+getTempOffset = cgsCurTempOffset <$> get
+
+getTemporalsToReplace :: CodeGenMonad [(TACSymEntry, Int)]
+getTemporalsToReplace = cgsTemporalsToReplace <$> get
+
+addTemp :: TACSymEntry -> Int -> CodeGenMonad ()
+addTemp entry n = do
+    state@CodeGenState {cgsTemporalsToReplace = temps} <- get
+    put state{cgsTemporalsToReplace = (entry, n) : temps}
 
 newLabel :: CodeGenMonad (Operand a b)
 newLabel = do
@@ -57,7 +90,7 @@ newLabel = do
     return $ Label $ show label
 
 genGoTo :: OperandType -> CodeGenMonad ()
-genGoTo label = tell [ThreeAddressCode
+genGoTo label = gen [ThreeAddressCode
             { tacOperand = GoTo
             , tacLvalue = Nothing
             , tacRvalue1 = Nothing
@@ -65,12 +98,23 @@ genGoTo label = tell [ThreeAddressCode
             }]
 
 genLabel :: OperandType -> CodeGenMonad ()
-genLabel label = tell [ThreeAddressCode
+genLabel label = gen [ThreeAddressCode
                             { tacOperand = NewLabel
                             , tacLvalue = Nothing
                             , tacRvalue1 = Just label
                             , tacRvalue2 = Nothing
                             }]
+
+putArrayEntrySize :: String -> OperandType -> CodeGenMonad ()
+putArrayEntrySize a o = do
+    state@CodeGenState{cgsArrayWidthMap=m} <- get
+    put state{cgsArrayWidthMap = Map.insert a o m}
+
+getArrayMap :: CodeGenMonad (Map.Map String OperandType)
+getArrayMap = cgsArrayWidthMap <$> get
+
+lookupArrayMap :: String -> CodeGenMonad (Maybe OperandType)
+lookupArrayMap s = Map.lookup s <$> getArrayMap
 
 fall :: OperandType
 fall = Label "-1"
@@ -81,11 +125,20 @@ isFall _         = error "calling isFall with non-label"
 
 genIdAssignment :: OperandType -> OperandType -> CodeGenMonad ()
 genIdAssignment lValue rValue =
-    tell [ThreeAddressCode
+    gen [ThreeAddressCode
         { tacOperand = Assign
         , tacLvalue = Just lValue
         , tacRvalue1 = Just rValue
         , tacRvalue2 = Nothing
+        }]
+
+genSetAssignment :: OperandType -> OperandType -> OperandType -> CodeGenMonad ()
+genSetAssignment base offset value =
+    gen [ThreeAddressCode
+        { tacOperand = Set
+        , tacLvalue = Just base
+        , tacRvalue1 = Just offset
+        , tacRvalue2 = Just value
         }]
 
 class GenerateCode a where
@@ -94,7 +147,7 @@ class GenerateCode a where
 raiseRunTimeError :: String -> CodeGenMonad ()
 raiseRunTimeError msg = do
     let msgOperand = Constant (msg, StringT)
-    tell [
+    gen [
         ThreeAddressCode
         { tacOperand = Print
         , tacLvalue = Nothing
@@ -107,3 +160,26 @@ raiseRunTimeError msg = do
         , tacRvalue1 = Nothing
         , tacRvalue2 = Nothing
         }]
+
+gen :: [TAC] -> CodeGenMonad ()
+gen = tell
+
+alignedOffset :: Int -> Int
+alignedOffset maxOffset =
+    if maxOffset `mod` wordSize == 0
+    then maxOffset
+    else maxOffset +  wordSize - (maxOffset `mod` wordSize)
+
+typeWidth :: String -> CodeGenMonad OperandType
+typeWidth t = do
+    resultLookup <- lookupArrayMap t
+    case resultLookup of
+        -- It is an array and its size is known at compile time
+        Just o -> return o
+
+        -- The width is on symtable
+        _ -> do
+            t' <- findSymEntryByName t <$> ask
+            let (Width w) = findWidth t'
+            let w' = alignedOffset w
+            return $ Constant (show w', BigIntT)
