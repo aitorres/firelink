@@ -1,13 +1,13 @@
 module FireLink.BackEnd.InstructionCodeGenerator where
 
-import Data.Maybe (fromJust)
-import Control.Monad.RWS (unless, when, ask, lift)
+import           Control.Monad.RWS                  (ask, unless, when)
+import           Data.Maybe                         (fromJust)
 import           FireLink.BackEnd.CodeGenerator
 import           FireLink.BackEnd.ExprCodeGenerator (genBooleanComparison,
                                                      genCode',
-                                                     genIndexAccess,
                                                      genCodeForBooleanExpr,
-                                                     genCodeForExpr, genOp2Code,
+                                                     genCodeForExpr,
+                                                     genIndexAccess, genOp2Code,
                                                      genParams)
 import           FireLink.FrontEnd.Grammar          (BaseExpr (..),
                                                      CodeBlock (..), Expr (..),
@@ -18,13 +18,18 @@ import           FireLink.FrontEnd.Grammar          (BaseExpr (..),
 import qualified FireLink.FrontEnd.Grammar          as G (Id (..), Op2 (..))
 import           FireLink.FrontEnd.SymTable         (Dictionary,
                                                      DictionaryEntry (..),
+                                                     extractTypeFromExtra,
                                                      findAllFunctionsAndProcedures,
-                                                     findSymEntryById, findSymEntryByName,
-                                                     getCodeBlock, extractTypeFromExtra,
-                                                     getUnionAttrId, wordSize, getOffset, findWidth)
-import qualified FireLink.FrontEnd.SymTable         as ST (Extra (..), definedTypes, sign)
+                                                     findSymEntryById,
+                                                     findSymEntryByName,
+                                                     findWidth, getCodeBlock,
+                                                     getOffset, getUnionAttrId,
+                                                     wordSize)
+import qualified FireLink.FrontEnd.SymTable         as ST (Extra (..),
+                                                           definedTypes, sign)
 import           FireLink.FrontEnd.Tokens           (Token (..))
-import           FireLink.FrontEnd.TypeChecking     (Type (..), getTypeFromContainer)
+import           FireLink.FrontEnd.TypeChecking     (Type (..),
+                                                     getTypeFromContainer)
 import           TACType
 
 
@@ -221,18 +226,18 @@ genCodeForInstruction (InstAsig lvalue rvalue) next =
             genIdAssignment operand $ Constant ("false", TrileanT)
             genLabel next
         supportedLvalue :: Expr -> Bool
-        supportedLvalue Expr {expAst = IdExpr _ }  = True
-        supportedLvalue Expr {expAst = Access _ _} = True
+        supportedLvalue Expr {expAst = IdExpr _ }       = True
+        supportedLvalue Expr {expAst = Access _ _}      = True
         supportedLvalue Expr {expAst = IndexAccess _ _} = True
-        supportedLvalue _                          = False
+        supportedLvalue _                               = False
 
         isIdExpr :: Expr -> Bool
         isIdExpr Expr { expAst = IdExpr _ } = True
         isIdExpr _                          = False
-        
+
         isIndexExpr :: Expr -> Bool
         isIndexExpr Expr { expAst = IndexAccess _ _ } = True
-        isIndexExpr _ = False
+        isIndexExpr _                                 = False
 
         isFunCallExpr :: Expr -> Bool
         isFunCallExpr Expr { expAst = EvalFunc _ _ } = True
@@ -244,9 +249,9 @@ genCodeForInstruction (InstAsig lvalue rvalue) next =
 
         isArrayLikeExpr :: Expr -> Bool
         isArrayLikeExpr e = case expAst e of
-            ArrayLit _ -> True
+            ArrayLit _  -> True
             StringLit _ -> True
-            _ -> False
+            _           -> False
 
         isUnionT :: Type -> Bool
         isUnionT (UnionT _ _) = True

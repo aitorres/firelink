@@ -3,8 +3,11 @@ module FireLink.BackEnd.BackEndCompiler (
 ) where
 
 import           Control.Monad.RWS                         (runRWST)
-import           FireLink.BackEnd.CodeGenerator            (TAC (..), genCode,
-                                                            initialState, CodeGenState (..), TACSymEntry (..))
+import           FireLink.BackEnd.CodeGenerator            (CodeGenState (..),
+                                                            TAC (..),
+                                                            TACSymEntry (..),
+                                                            genCode,
+                                                            initialState)
 import           FireLink.BackEnd.InstructionCodeGenerator ()
 import           FireLink.BackEnd.Optimizer                (optimize)
 import           FireLink.FrontEnd.Grammar                 (Program (..))
@@ -29,11 +32,11 @@ backend program dictionary = do
                     else let t = head l in
                         ThreeAddressCode
                             Assign
-                            (Just (Id $ fst t)) 
+                            (Just (Id $ fst t))
                             (Just $ Constant (show $ snd t, BigIntT))
                             Nothing
             _ -> tac
 
         matchTemps :: TACSymEntry -> TACSymEntry -> Bool
         matchTemps (TACTemporal i _) (TACTemporal i' _) = i == i'
-        matchTemps _ _ = False
+        matchTemps _ _                                  = False

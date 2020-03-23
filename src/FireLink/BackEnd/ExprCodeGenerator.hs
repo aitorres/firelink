@@ -9,9 +9,12 @@ import           FireLink.FrontEnd.Grammar      (BaseExpr (..), Expr (..),
                                                  booleanOp2, comparableOp2)
 import           FireLink.FrontEnd.SymTable     (Dictionary,
                                                  DictionaryEntry (..),
-                                                 findSymEntryById, getOffset,
-                                                 getUnionAttrId, definedTypes, findWidth, findSymEntryByName)
-import qualified FireLink.FrontEnd.SymTable as ST (Extra(..), extractTypeFromExtra, sign)
+                                                 definedTypes, findSymEntryById,
+                                                 findSymEntryByName, findWidth,
+                                                 getOffset, getUnionAttrId)
+import qualified FireLink.FrontEnd.SymTable     as ST (Extra (..),
+                                                       extractTypeFromExtra,
+                                                       sign)
 import           FireLink.FrontEnd.Tokens       (Token (..))
 import           FireLink.FrontEnd.TypeChecking (Type (..))
 import qualified TACType                        as TAC

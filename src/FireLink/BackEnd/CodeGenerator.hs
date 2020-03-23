@@ -1,15 +1,16 @@
 module FireLink.BackEnd.CodeGenerator where
 
-import           Control.Monad.RWS              (RWST (..), get, put, tell, ask)
+import           Control.Monad.RWS              (RWST (..), ask, get, put, tell)
+import           Data.Map.Strict                as Map
 import qualified FireLink.FrontEnd.Grammar      as G (Id (..))
 import           FireLink.FrontEnd.SymTable     (Dictionary (..),
                                                  DictionaryEntry (..),
-                                                 Extra(..), findWidth,
-                                                 findChain, wordSize, findSymEntryByName)
+                                                 Extra (..), findChain,
+                                                 findSymEntryByName, findWidth,
+                                                 wordSize)
 import           FireLink.FrontEnd.Tokens       (Token (..))
 import           FireLink.FrontEnd.TypeChecking
 import           TACType
-import           Data.Map.Strict as Map
 
 data CodeGenState = CodeGenState
     { cgsNextLabel :: !Int

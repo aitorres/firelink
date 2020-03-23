@@ -17,7 +17,7 @@ import           System.Environment                 (getArgs)
 import           System.Exit                        (exitFailure, exitSuccess)
 import           System.FilePath                    (takeExtension)
 import           System.IO                          (IOMode (..), hGetContents,
-                                                     openFile, hPutStr, stderr)
+                                                     hPutStr, openFile, stderr)
 import qualified TACType                            as TAC
 import           Text.Printf                        (printf)
 
