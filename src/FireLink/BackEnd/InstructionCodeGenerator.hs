@@ -436,7 +436,7 @@ genCodeForInstruction (InstFor id step bound codeblock) next = do
     -- Loop generation
     genLabel begin
     idOperand <- genCodeForExpr BigIntT (IdExpr id)
-    genBooleanComparison idOperand boundOperand trueLabel falseLabel G.Lt
+    genBooleanComparison idOperand boundOperand falseLabel trueLabel G.Gte
     genLabel trueLabel
     genCode codeblock
 
