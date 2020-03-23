@@ -121,8 +121,6 @@ This implementation works because in TAC and in MIPS characters are just numbers
 genCodeForExpr _ (AsciiOf expr) = genCode' expr
 
 genCodeForExpr _ (IndexAccess array index) = do
-    lift $ print $ "Generating code for " ++ show (IndexAccess array index)
-    lift $ putStrLn "hola"
     (arrayRefOperand, _, base) <- genIndexAccess array index
     operand <- TAC.Id <$> newtemp
     gen [TAC.ThreeAddressCode

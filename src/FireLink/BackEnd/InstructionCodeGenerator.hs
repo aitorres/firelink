@@ -204,7 +204,6 @@ genCodeForInstruction (InstAsig lvalue rvalue) next =
         handleIndexAssignment :: Expr -> Expr -> CodeGenMonad ()
         handleIndexAssignment lvaule rvalue = do
             let IndexAccess array index = expAst lvalue
-            lift $ putStrLn $ "Generating code for " ++ show lvalue ++ " = " ++ show rvalue
             (arrayRefOperand, _, base) <- genIndexAccess array index
             operand <- genCode' rvalue
             genSetAssignment base arrayRefOperand operand
