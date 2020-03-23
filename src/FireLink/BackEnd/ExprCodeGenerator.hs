@@ -90,6 +90,7 @@ genCodeForExpr _ (Op2 op lexpr rexpr) = do
 genCodeForExpr t (IntLit n) = return $ TAC.Constant (show n, t)
 genCodeForExpr t (FloatLit n) = return $ TAC.Constant (show n, t)
 genCodeForExpr t (CharLit c) = return $ TAC.Constant (show $ ord c, t)
+genCodeForExpr t (StringLit s) = return $ TAC.Constant (s, t)
 
 genCodeForExpr t (Caster expr newType) = do
     tempOp <- genCode' expr
