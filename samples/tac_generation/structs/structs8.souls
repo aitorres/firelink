@@ -1,0 +1,20 @@
+hello ashen one
+
+invocation f
+requesting
+    val x of type bezel { a of type humanity, b of type hollow }
+with skill of type humanity
+    traveling somewhere
+        go back with x~>a
+    you died
+after this return to your world
+
+traveling somewhere
+with
+    var x of type bezel { a of type humanity, b of type hollow }
+in your inventory
+    x~>a <<= 1 \
+    x~>b <<= 9.3
+you died
+
+farewell ashen one
