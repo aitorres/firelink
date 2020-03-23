@@ -1,0 +1,434 @@
+-- **Quicksort «en sitio»**
+-- El programa debe operar en un ciclo infinito, preguntando al usuario si desea ordenar
+-- números enteros, números en punto flotante, caracteres o terminar. Si el usuario decide
+-- continuar, el programa solicitará la cantidad de elementos a ordenar, como un número entero
+-- N entre 1 y 100. Una vez obtenido N, el programa solicitará los datos del tipo adecuado, y los
+-- almacenará en un arreglo del tipo adecuado, para luego ordenarlos con el método «Quicksort»,
+-- presentando el arreglo como resultado.
+--
+-- Tendrá que escribir tres funciones QuickSort con cuerpo muy similar, pero firma diferente.
+--
+-- Quicksort «en sitio» necesita una operación swap para intercambiar los valores en dos posiciones
+-- de un arreglo. Resuelva esto usando funciones auxiliares con pasaje por referencia, i.e.
+--
+-- `void swapi(var int a, var int b) { int t; t = a; a = b; b = t; }`
+--
+-- No puede escribir esta función usando apuntadores para simular pasaje por referencia.
+--
+-- Fuente auxiliar: https://www.geeksforgeeks.org/quick-sort/
+
+hello ashen one
+
+spell readarri
+requesting
+  val n of type humanity,
+  ref arr of type <n>-chest of type humanity
+to the estus flask
+  traveling somewhere
+  with
+    var i of type humanity <<= 0
+  in your inventory
+    upgrading i with 1 soul until level n
+      traveling somewhere
+        with orange saponite say @Enter value: @ \
+        transpose into arr<$i$>
+      you died
+    max level reached \
+    go back
+  you died
+ashen estus flask consumed
+
+spell readarrc
+requesting
+  val n of type humanity,
+  ref arr of type <n>-chest of type sign
+to the estus flask
+  traveling somewhere
+  with
+    var i of type humanity <<= 0
+  in your inventory
+    upgrading i with 1 soul until level n
+      traveling somewhere
+        with orange saponite say @Enter value: @ \
+        transpose into arr<$i$>
+      you died
+    max level reached \
+    go back
+  you died
+ashen estus flask consumed
+
+spell readarrf
+requesting
+  val n of type humanity,
+  ref arr of type <n>-chest of type hollow
+to the estus flask
+  traveling somewhere
+  with
+    var i of type humanity <<= 0
+  in your inventory
+    upgrading i with 1 soul until level n
+      traveling somewhere
+        with orange saponite say @Enter value: @ \
+        transpose into arr<$i$>
+      you died
+    max level reached \
+    go back
+  you died
+ashen estus flask consumed
+
+spell printarri
+requesting
+  val n of type humanity,
+  ref arr of type <n>-chest of type humanity
+to the estus flask
+  traveling somewhere
+  with
+    var i of type humanity <<= 0
+  in your inventory
+    upgrading i with 1 soul until level n
+      traveling somewhere
+        with orange saponite say arr<$i$> \
+        with orange saponite say @\n@
+      you died
+    max level reached \
+    go back
+  you died
+ashen estus flask consumed
+
+spell printarrc
+requesting
+  val n of type humanity,
+  ref arr of type <n>-chest of type sign
+to the estus flask
+  traveling somewhere
+  with
+    var i of type humanity <<= 0
+  in your inventory
+    upgrading i with 1 soul until level n
+      traveling somewhere
+        with orange saponite say arr<$i$> \
+        with orange saponite say @\n@
+      you died
+    max level reached \
+    go back
+  you died
+ashen estus flask consumed
+
+spell printarrf
+requesting
+  val n of type humanity,
+  ref arr of type <n>-chest of type hollow
+to the estus flask
+  traveling somewhere
+  with
+    var i of type humanity <<= 0
+  in your inventory
+    upgrading i with 1 soul until level n
+      traveling somewhere
+        with orange saponite say arr<$i$> \
+        with orange saponite say @\n@
+      you died
+    max level reached \
+    go back
+  you died
+ashen estus flask consumed
+
+spell swapi
+requesting
+  ref a of type humanity,
+  ref b of type humanity
+to the estus flask
+  traveling somewhere
+  with
+    var t of type humanity
+  in your inventory
+    t <<= a \
+    a <<= b \
+    b <<= t \
+    go back
+  you died
+ashen estus flask consumed
+
+spell swapc
+requesting
+  ref a of type sign,
+  ref b of type sign
+to the estus flask
+  traveling somewhere
+  with
+    var t of type sign
+  in your inventory
+    t <<= a \
+    a <<= b \
+    b <<= t \
+    go back
+  you died
+ashen estus flask consumed
+
+spell swapf
+requesting
+  ref a of type hollow,
+  ref b of type hollow
+to the estus flask
+  traveling somewhere
+  with
+    var t of type hollow
+  in your inventory
+    t <<= a \
+    a <<= b \
+    b <<= t \
+    go back
+  you died
+ashen estus flask consumed
+
+invocation partitioni
+requesting
+  val n of type humanity,
+  ref arr of type <n>-chest of type humanity,
+  val low of type humanity,
+  val high of type humanity
+with skill of type humanity
+  traveling somewhere
+  with
+    var pivot of type humanity <<= arr<$high$>,
+    var i of type humanity <<= low - 1,
+    var j of type humanity <<= low
+  in your inventory
+
+    upgrading j with 1 soul until level high
+      traveling somewhere
+        trust your inventory
+          arr<$j$> lt pivot:
+            traveling somewhere
+              i <<= i + 1 \
+              cast swapi offering arr<$i$>, arr<$j$> to the estus flask
+            you died
+        inventory closed
+      you died
+    max level reached \
+
+    cast swapi offering arr<$i+1$>, arr<$high$> to the estus flask \
+    go back with i + 1
+
+  you died
+after this return to your world
+
+spell quicksorti
+requesting
+  val n of type humanity,
+  ref arr of type <n>-chest of type humanity,
+  val low of type humanity,
+  val high of type humanity
+to the estus flask
+  traveling somewhere
+
+    trust your inventory
+      low lt high:
+        traveling somewhere
+        with
+          var pi of type humanity
+        in your inventory
+          pi <<= summon partitioni granting n, arr, low, high to the knight \
+          cast quicksorti offering n, arr, low, pi - 1 to the estus flask \
+          cast quicksorti offering n, arr, pi + 1, high to the estus flask
+        you died
+    inventory closed \
+    go back
+
+  you died
+ashen estus flask consumed
+
+invocation partitionc
+requesting
+  val n of type humanity,
+  ref arr of type <n>-chest of type sign,
+  val low of type humanity,
+  val high of type humanity
+with skill of type humanity
+  traveling somewhere
+  with
+    var pivot of type sign <<= arr<$high$>,
+    var i of type humanity <<= low - 1,
+    var j of type humanity <<= low
+  in your inventory
+
+    upgrading j with 1 soul until level high
+      traveling somewhere
+        trust your inventory
+          arr<$j$> lt pivot:
+            traveling somewhere
+              i <<= i + 1 \
+              cast swapc offering arr<$i$>, arr<$j$> to the estus flask
+            you died
+        inventory closed
+      you died
+    max level reached \
+
+    cast swapc offering arr<$i+1$>, arr<$high$> to the estus flask \
+    go back with i + 1
+
+  you died
+after this return to your world
+
+spell quicksortc
+requesting
+  val n of type humanity,
+  ref arr of type <n>-chest of type sign,
+  val low of type humanity,
+  val high of type humanity
+to the estus flask
+  traveling somewhere
+
+    trust your inventory
+      low lt high:
+        traveling somewhere
+        with
+          var pi of type humanity
+        in your inventory
+          pi <<= summon partitionc granting n, arr, low, high to the knight \
+          cast quicksortc offering n, arr, low, pi - 1 to the estus flask \
+          cast quicksortc offering n, arr, pi + 1, high to the estus flask
+        you died
+    inventory closed \
+    go back
+
+  you died
+ashen estus flask consumed
+
+invocation partitionf
+requesting
+  val n of type humanity,
+  ref arr of type <n>-chest of type hollow,
+  val low of type humanity,
+  val high of type humanity
+with skill of type humanity
+  traveling somewhere
+  with
+    var pivot of type hollow <<= arr<$high$>,
+    var i of type humanity <<= low - 1,
+    var j of type humanity <<= low
+  in your inventory
+
+    upgrading j with 1 soul until level high
+      traveling somewhere
+        trust your inventory
+          arr<$j$> lt pivot:
+            traveling somewhere
+              i <<= i + 1 \
+              cast swapf offering arr<$i$>, arr<$j$> to the estus flask
+            you died
+        inventory closed
+      you died
+    max level reached \
+
+    cast swapf offering arr<$i+1$>, arr<$high$> to the estus flask \
+    go back with i + 1
+
+  you died
+after this return to your world
+
+spell quicksortf
+requesting
+  val n of type humanity,
+  ref arr of type <n>-chest of type hollow,
+  val low of type humanity,
+  val high of type humanity
+to the estus flask
+  traveling somewhere
+
+    trust your inventory
+      low lt high:
+        traveling somewhere
+        with
+          var pi of type humanity
+        in your inventory
+          pi <<= summon partitionf granting n, arr, low, high to the knight \
+          cast quicksortf offering n, arr, low, pi - 1 to the estus flask \
+          cast quicksortf offering n, arr, pi + 1, high to the estus flask
+        you died
+    inventory closed \
+    go back
+
+  you died
+ashen estus flask consumed
+
+traveling somewhere
+with
+  var stop of type bonfire <<= unlit
+in your inventory
+
+  with orange saponite say @Quicksort <<in-place>>\n@ \
+
+  while the not stop covenant is active:
+    traveling somewhere
+      with var option of type sign
+    in your inventory
+      with orange saponite say @Want to sort (i)ntegers, (c)haracters, (f)loats or (q)uit? (i/c/f/q): @ \
+      transpose into option \
+
+      trust your inventory
+        option neq |i| and option neq |c| and option neq |f|:
+          traveling somewhere
+            with orange saponite say @Exiting...\n@ \
+            stop <<= lit
+          you died
+        liar!:
+          traveling somewhere
+          with
+            var n of type humanity
+          in your inventory
+            with orange saponite say @Enter the size (between 1 and 100): @ \
+            transpose into n \
+
+            trust your inventory
+              1 lte n and n lte 100:
+                traveling somewhere
+
+                  trust your inventory
+                    option eq |i|:
+                      traveling somewhere
+                      with
+                        var arr of type <n>-chest of type humanity
+                      in your inventory
+                        cast readarri offering n, arr to the estus flask \
+                        cast quicksorti offering n, arr, 0, n - 1 to the estus flask \
+                        with orange saponite say @Printing result: \n@ \
+                        cast printarri offering n, arr to the estus flask
+                      you died
+                    option eq |c|:
+                      traveling somewhere
+                      with
+                        var arr of type <n>-chest of type sign
+                      in your inventory
+                        cast readarrc offering n, arr to the estus flask \
+                        cast quicksortc offering n, arr, 0, n - 1 to the estus flask \
+                        with orange saponite say @Printing result: \n@ \
+                        cast printarrc offering n, arr to the estus flask
+                      you died
+                    option eq |f|:
+                      traveling somewhere
+                      with
+                        var arr of type <n>-chest of type hollow
+                      in your inventory
+                        cast readarrf offering n, arr to the estus flask \
+                        cast quicksortf offering n, arr, 0, n - 1 to the estus flask \
+                        with orange saponite say @Printing result: \n@ \
+                        cast printarrf offering n, arr to the estus flask
+                      you died
+                  inventory closed
+
+                you died
+              liar!:
+                traveling somewhere
+                  with orange saponite say @Invalid amount, aborting...\n@ \
+                  stop <<= lit
+                you died
+            inventory closed
+          you died
+      inventory closed
+    you died
+  covenant left
+
+you died
+
+farewell ashen one
