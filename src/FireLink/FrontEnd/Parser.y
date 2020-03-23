@@ -778,14 +778,16 @@ getMethodOffset (G.Id (T.Token {T.cleanedString=methodName}) _) = do
     Nothing -> return 0
     Just ST.DictionaryEntry {ST.extra = extras } -> do
       let (ST.Fields _ scope) = head $ filter ST.isFieldsExtra extras
-      ST.SymTable {ST.stDict=dict} <- RWS.get
+      ST.SymTable {ST.stDict=dict, ST.stScopeStack = stack} <- RWS.get
       let paramEntries = ST.findAllInScope scope dict
       if length paramEntries == 0 then return 0
       else do
-        let lastParam@(ST.DictionaryEntry {ST.entryType=Just typeName, ST.extra=paramExtras}) = last paramEntries
+        let lastParam@(ST.DictionaryEntry {ST.entryType=Just typeName, ST.extra=paramExtras, ST.scope = parScope}) = last paramEntries
+        ST.pushScope parScope
         mtEntry <- ST.dictLookup typeName
+        ST.exitScope
         case mtEntry of
-          Nothing -> logRTError "Param with no type found" >> return 0
+          Nothing -> logRTError ("Param with no type found for alleged type " ++ typeName) >> return 0
           Just tEntry -> do
             let ST.Width typeWidth = ST.findWidth tEntry
             let ST.Offset varOffset = ST.findOffset lastParam
