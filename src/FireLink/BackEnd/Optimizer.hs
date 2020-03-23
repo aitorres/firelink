@@ -68,6 +68,8 @@ removeIdempotencies = foldr removeIdempotency []
         isIdempotentInstruction :: TAC -> TAC -> Bool
         isIdempotentInstruction (ThreeAddressCode GoTo _ _ a) (ThreeAddressCode GoTo _ _ b) = a == b
         isIdempotentInstruction (ThreeAddressCode Return _ a _) (ThreeAddressCode Return _ b _) = a == b
+        isIdempotentInstruction (ThreeAddressCode Exit _ _ _) (ThreeAddressCode Exit _ _ _) = True
+        isIdempotentInstruction (ThreeAddressCode Abort _ _ _) (ThreeAddressCode Abort _ _ _) = True
         isIdempotentInstruction _ _ = False
 
         removeIdempotency :: TAC -> [TAC] -> [TAC]
