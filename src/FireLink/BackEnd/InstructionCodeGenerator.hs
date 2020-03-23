@@ -7,8 +7,10 @@ import           FireLink.BackEnd.ExprCodeGenerator (genBooleanComparison,
                                                      genCode',
                                                      genCodeForBooleanExpr,
                                                      genCodeForExpr,
-                                                     genIndexAccess, genOp2Code,
-                                                     genParams)
+                                                     genCodeForSize,
+                                                     genIndexAccess,
+                                                     genIndexAccess',
+                                                     genOp2Code, genParams)
 import           FireLink.FrontEnd.Grammar          (BaseExpr (..),
                                                      CodeBlock (..), Expr (..),
                                                      IfCase (..),
@@ -358,6 +360,61 @@ genCodeForInstruction (InstWhile guard codeblock) next = do
     genCodeForBooleanExpr (expAst guard) trueLabel falseLabel
     genLabel trueLabel
     genCode codeblock
+    genGoTo begin
+    genLabel next
+
+{-
+Structured looping statement
+Code generation is similar to that of a bounded loop statement
+that iterates on a structure using its indexes,
+and additional instructions are added underneath the code block
+in order to successfully update the value of the iteration variable
+after every iteration.
+-}
+genCodeForInstruction (InstForEach id@(G.Id tk si) collection codeblock) next = do
+    (begin, trueLabel, falseLabel) <- setUpIteration next
+
+    -- Getting the size, which will serve as the iteration bound
+    sizeTemp <- genCodeForSize collection
+    incrementTemp <- genCodeForExpr BigIntT (IntLit 1)
+
+    -- Setting up the iteration variable
+    iterStart <- genCodeForExpr BigIntT (IntLit 0)
+    iterTemp <- Id <$> newtemp
+    genIdAssignment iterTemp iterStart
+
+    -- Loop header
+    genLabel begin
+    -- The comparison is fall-through optimized
+    genBooleanComparison iterTemp sizeTemp falseLabel trueLabel G.Gte
+    genLabel trueLabel
+
+    -- Creating a fictitious access for the array
+    let elementType = fromJust . getTypeFromContainer . expType $ collection
+    let indexExpr = Expr { expAst = IdExpr (G.Id (tk {cleanedString=show iterTemp}) si), expType = elementType }
+    let accessBaseExpr = IndexAccess collection indexExpr
+
+    -- Preparating access code
+    (arrayRefOperand, _, base) <- genIndexAccess' collection iterTemp
+
+    -- Assigning access to the id
+    idEntry <- findSymEntryById id <$> ask
+    let idOp = Id $ TACVariable idEntry (getOffset idEntry)
+    gen [ThreeAddressCode
+        { tacOperand = Get
+        , tacLvalue = Just idOp
+        , tacRvalue1 = Just base
+        , tacRvalue2 = Just arrayRefOperand
+        }]
+
+    -- Codeblock generation
+    genCode codeblock
+
+    -- Increment before next iteration
+    incOperand <- genOp2Code Add iterTemp incrementTemp
+    genIdAssignment iterTemp incOperand
+
+    -- Iterate!
     genGoTo begin
     genLabel next
 
