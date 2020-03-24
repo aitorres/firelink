@@ -1,0 +1,114 @@
+hello ashen one
+
+requiring help of
+  knight node bezel {
+    i of type humanity,
+    cost of type hollow
+  },
+  knight edge bezel {
+    i of type humanity,
+    j of type humanity,
+    cost of type hollow
+  },
+  knight graph bezel {
+    v of type humanity,
+    e of type humanity,
+    nodes of type <1000>-chest of type node,
+    edges of type <1000>-chest of type edge
+  }
+help received
+
+spell init_node
+requesting
+  ref n of type node,
+  val i of type humanity,
+  val c of type hollow
+to the estus flask
+  traveling somewhere
+    n~>i <<= i \
+    n~>cost <<= c \
+    go back
+  you died
+ashen estus flask consumed
+
+spell init_edge
+requesting
+  ref e of type edge,
+  val i of type humanity,
+  val j of type humanity,
+  val c of type hollow
+to the estus flask
+  traveling somewhere
+    e~>i <<= i \
+    e~>j <<= j \
+    e~>cost <<= c \
+    go back
+  you died
+ashen estus flask consumed
+
+spell dfs_print
+requesting
+  ref g of type graph,
+  ref visited of type <1000>-chest of type bonfire,
+  val n of type humanity
+to the estus flask
+  traveling somewhere
+  with
+    var i of type humanity <<= 0
+  in your inventory
+
+    with orange saponite say n \
+
+    upgrading i with 1 soul until level g~>e
+      traveling somewhere
+        trust your inventory
+          g~>edges<$i$>~>i eq n and not visited<$ g~>edges<$i$>~>j $>:
+            traveling somewhere
+              visited<$ g~>edges<$i$>~>j $> <<= lit \
+
+              cast dfs_print offering g, visited, g~>edges<$i$>~>j to the estus flask
+            you died
+        inventory closed
+      you died
+    max level reached \
+    go back
+  you died
+ashen estus flask consumed
+
+traveling somewhere
+with
+  var ns of type <1000>-chest of type node,
+  var es of type <1000>-chest of type edge,
+  var g of type graph,
+  var visited of type <1000>-chest of type bonfire,
+  var i of type humanity <<= 0
+in your inventory
+  cast init_node offering ns<$0$>, 0, 1 to the estus flask \
+  cast init_node offering ns<$1$>, 1, 1 to the estus flask \
+  cast init_node offering ns<$2$>, 2, 1 to the estus flask \
+  cast init_node offering ns<$3$>, 3, 1 to the estus flask \
+
+  cast init_edge offering es<$0$>, 0, 1, 1 to the estus flask \
+  cast init_edge offering es<$1$>, 0, 2, 1 to the estus flask \
+  cast init_edge offering es<$2$>, 1, 2, 1 to the estus flask \
+  cast init_edge offering es<$3$>, 1, 3, 1 to the estus flask \
+  cast init_edge offering es<$4$>, 3, 0, 1 to the estus flask \
+  cast init_edge offering es<$5$>, 2, 3, 1 to the estus flask \
+
+  g~>v <<= 4 \
+  g~>e <<= 6 \
+  g~>nodes <<= ns \
+  g~>edges <<= es \
+
+  upgrading i with 1 soul until level g~>v
+    traveling somewhere
+      visited<$i$> <<= unlit
+    you died
+  max level reached \
+
+  visited<$0$> <<= lit \
+
+  cast dfs_print offering g, visited, 0 to the estus flask
+you died
+
+farewell ashen one

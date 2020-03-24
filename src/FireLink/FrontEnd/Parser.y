@@ -782,10 +782,12 @@ getMethodOffset (G.Id (T.Token {T.cleanedString=methodName}) _) = do
       let paramEntries = ST.findAllInScope scope dict
       if length paramEntries == 0 then return 0
       else do
-        let lastParam@(ST.DictionaryEntry {ST.entryType=Just typeName, ST.extra=paramExtras}) = last paramEntries
+        let lastParam@(ST.DictionaryEntry {ST.entryType=Just typeName, ST.extra=paramExtras, ST.scope=parScope}) = last paramEntries
+        ST.pushScope parScope
         mtEntry <- ST.dictLookup typeName
+        ST.exitScope
         case mtEntry of
-          Nothing -> logRTError "Param with no type found" >> return 0
+          Nothing -> logRTError ("Param with no type found for alleged type " ++ typeName) >> return 0
           Just tEntry -> do
             let ST.Width typeWidth = ST.findWidth tEntry
             let ST.Offset varOffset = ST.findOffset lastParam
@@ -1628,7 +1630,11 @@ instance TypeCheckable ST.Extra where
     ST.SymTable {ST.stDict=dict} <- RWS.get
     let isArg entry = ST.category entry `elem` [ST.ValueParam, ST.RefParam]
     let args = filter isArg $ ST.findAllInScope scope dict
+    -- ?INFO: Relevant anonymous type-aliases might be found on the method's params
+    -- ?INFO: scope, so we push it while we get the types
+    ST.pushScope scope
     types <- mapM getType $ ST.sortByArgPosition args
+    ST.exitScope
     return $ T.TypeList types
 
   getType (ST.Fields b scope) = buildStruct b scope

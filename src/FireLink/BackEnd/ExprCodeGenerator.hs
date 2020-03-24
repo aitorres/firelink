@@ -150,38 +150,42 @@ genCodeForSize exp = case expAst exp of
 genIndexAccess :: Expr -> Expr -> CodeGenMonad (OperandType, String, OperandType)
 genIndexAccess array index = do
     indexOperand <- genCode' index
-    case expAst array of
-        IdExpr idArray -> do
-            idEntry <- findSymEntryById idArray <$> ask
-            contents <- getContents $ ST.extractTypeFromExtra idEntry
-            width <- typeWidth contents
-            resultAddress <- TAC.Id <$> newtemp
-            gen [TAC.ThreeAddressCode
-                    { TAC.tacOperand = TAC.Mult
-                    , TAC.tacLvalue = Just resultAddress
-                    , TAC.tacRvalue1 = Just indexOperand
-                    , TAC.tacRvalue2 = Just width
-                    }]
-            return (resultAddress, contents, TAC.Id $ TACVariable idEntry (getOffset idEntry))
-        IndexAccess array' index' -> do
-            (offset, contents', base) <- genIndexAccess array' index'
-            contents <- getContents $ ST.Simple contents'
-            width <- typeWidth contents
-            t <- TAC.Id <$> newtemp
-            gen [TAC.ThreeAddressCode
-                    { TAC.tacOperand = TAC.Add
-                    , TAC.tacLvalue = Just t
-                    , TAC.tacRvalue1 = Just offset
-                    , TAC.tacRvalue2 = Just indexOperand
-                    }]
-            resultAddress <- TAC.Id <$> newtemp
-            gen [TAC.ThreeAddressCode
-                    { TAC.tacOperand = TAC.Mult
-                    , TAC.tacLvalue = Just resultAddress
-                    , TAC.tacRvalue1 = Just t
-                    , TAC.tacRvalue2 = Just width
-                    }]
-            return (resultAddress, contents, base)
+    genIndexAccess' array indexOperand
+
+genIndexAccess' :: Expr -> OperandType -> CodeGenMonad (OperandType, String, OperandType)
+genIndexAccess' array indexOperand = case expAst array of
+    IdExpr idArray -> do
+        idEntry <- findSymEntryById idArray <$> ask
+        contents <- getContents $ ST.extractTypeFromExtra idEntry
+        width <- typeWidth contents
+        resultAddress <- TAC.Id <$> newtemp
+        gen [TAC.ThreeAddressCode
+                { TAC.tacOperand = TAC.Mult
+                , TAC.tacLvalue = Just resultAddress
+                , TAC.tacRvalue1 = Just indexOperand
+                , TAC.tacRvalue2 = Just width
+                }]
+        return (resultAddress, contents, TAC.Id $ TACVariable idEntry (getOffset idEntry))
+    IndexAccess array' index' -> do
+        (offset, contents', base) <- genIndexAccess array' index'
+        contents <- getContents $ ST.Simple contents'
+        width <- typeWidth contents
+        t <- TAC.Id <$> newtemp
+        gen [TAC.ThreeAddressCode
+                { TAC.tacOperand = TAC.Add
+                , TAC.tacLvalue = Just t
+                , TAC.tacRvalue1 = Just offset
+                , TAC.tacRvalue2 = Just indexOperand
+                }]
+        resultAddress <- TAC.Id <$> newtemp
+        gen [TAC.ThreeAddressCode
+                { TAC.tacOperand = TAC.Mult
+                , TAC.tacLvalue = Just resultAddress
+                , TAC.tacRvalue1 = Just t
+                , TAC.tacRvalue2 = Just width
+                }]
+        return (resultAddress, contents, base)
+    e -> error $ "unsupported index access for expression " ++ show e
     where
         getContents :: ST.Extra -> CodeGenMonad String
         getContents (ST.CompoundRec _ _ s@(ST.Simple contentsType)) = return contentsType
