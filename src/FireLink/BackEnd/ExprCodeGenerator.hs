@@ -185,6 +185,7 @@ genIndexAccess' array indexOperand = case expAst array of
                 , TAC.tacRvalue2 = Just width
                 }]
         return (resultAddress, contents, base)
+    e -> error $ "unsupported index access for expression " ++ show e
     where
         getContents :: ST.Extra -> CodeGenMonad String
         getContents (ST.CompoundRec _ _ s@(ST.Simple contentsType)) = return contentsType
