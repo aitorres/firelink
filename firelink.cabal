@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 4e8d176ce24d14f965a908e638af13da6a6b784bffee539c442f148b439bb29c
+-- hash: bb571989e8120c6ed1b5d57fe49c846384d865a7ced8fa9d5680a0690fcc5580
 
 name:           firelink
 version:        0.2.0.0
@@ -71,7 +71,7 @@ executable firelink-exe
       Paths_firelink
   hs-source-dirs:
       app
-  ghc-options: -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -Wmissing-export-lists -Wpartial-fields -fwarn-unused-imports -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -O2 -Wall -Wincomplete-uni-patterns -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -Wmissing-export-lists -Wpartial-fields -fwarn-unused-imports -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
     , base >=4.7 && <5
@@ -108,7 +108,7 @@ test-suite lexer-tests
       Paths_firelink
   hs-source-dirs:
       test/Lexer
-  ghc-options: -Wall -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -Wpartial-fields -fwarn-unused-imports -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -O2 -Wall -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -Wpartial-fields -fwarn-unused-imports -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
     , base >=4.7 && <5
@@ -140,7 +140,7 @@ test-suite parser-tests
       Paths_firelink
   hs-source-dirs:
       test/Parser
-  ghc-options: -Wall -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -Wpartial-fields -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -O2 -Wall -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -Wpartial-fields -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
     , base >=4.7 && <5
@@ -176,7 +176,7 @@ test-suite semantic-tests
   hs-source-dirs:
       test/Semantic
       test/test-utils
-  ghc-options: -Wall -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -Wpartial-fields -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -O2 -Wall -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -Wpartial-fields -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
     , base >=4.7 && <5
@@ -215,7 +215,7 @@ test-suite type-checking-tests
   hs-source-dirs:
       test/TypeChecking
       test/test-utils
-  ghc-options: -Wall -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -Wpartial-fields -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -O2 -Wall -Wincomplete-record-updates -Wcompat -Widentities -Wredundant-constraints -Wpartial-fields -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       array
     , base >=4.7 && <5

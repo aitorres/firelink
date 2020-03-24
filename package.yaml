@@ -41,6 +41,7 @@ executables:
     main:                Main.hs
     source-dirs:         app
     ghc-options:
+    - -O2
     - -Wall
     - -Wincomplete-uni-patterns
     - -Wincomplete-record-updates
@@ -61,6 +62,7 @@ tests:
     main:                Spec.hs
     source-dirs:         test/Lexer
     ghc-options:
+    - -O2
     - -Wall
     - -Wincomplete-record-updates
     - -Wcompat
@@ -79,6 +81,7 @@ tests:
     main:                Spec.hs
     source-dirs:         test/Parser
     ghc-options:
+    - -O2
     - -Wall
     - -Wincomplete-record-updates
     - -Wcompat
@@ -96,6 +99,7 @@ tests:
     main:                Spec.hs
     source-dirs:         [test/Semantic, test/test-utils]
     ghc-options:
+    - -O2
     - -Wall
     - -Wincomplete-record-updates
     - -Wcompat
@@ -113,6 +117,7 @@ tests:
     main:                Spec.hs
     source-dirs:         [test/TypeChecking, test/test-utils]
     ghc-options:
+    - -O2
     - -Wall
     - -Wincomplete-record-updates
     - -Wcompat
