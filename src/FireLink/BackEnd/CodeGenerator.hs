@@ -124,6 +124,18 @@ isFall :: OperandType -> Bool
 isFall (Label l) = l == "-1"
 isFall _         = error "calling isFall with non-label"
 
+isProgramEnd :: Operation -> Bool
+isProgramEnd = flip elem [Exit, Abort]
+
+isUnconditionalJump :: Operation -> Bool
+isUnconditionalJump = flip elem [GoTo, Call, Return]
+
+isConditionalJump :: Operation -> Bool
+isConditionalJump = flip elem [If, Eq, Neq, Gt, Lt, Gte, Lte]
+
+isJump :: Operation -> Bool
+isJump op = isUnconditionalJump op || isConditionalJump op || isProgramEnd op
+
 genIdAssignment :: OperandType -> OperandType -> CodeGenMonad ()
 genIdAssignment lValue rValue =
     gen [ThreeAddressCode

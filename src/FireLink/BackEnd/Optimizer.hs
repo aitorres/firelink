@@ -22,7 +22,21 @@ optimize' = foldr (.) id optimizations
 
 -- | A list with all currently valid optimizations.
 optimizations :: [Optimization]
-optimizations = [removeUnusedLabels, removeRedundantJumps, removeIdempotencies, removeUnreachableInstructions]
+optimizations = [removeUnreachableJumps, removeUnusedLabels, removeRedundantJumps, removeIdempotencies, removeUnreachableInstructions]
+
+-- | 'Optimization' that removes unreachable jumps, that is: a jump right next to a return statement
+removeUnreachableJumps :: Optimization
+removeUnreachableJumps = foldr removeUnreachableJump []
+    where
+        isUnreachableJump :: TAC -> TAC -> Bool
+        isUnreachableJump (ThreeAddressCode Return _ _ _) (ThreeAddressCode GoTo _ _ _) = True
+        isUnreachableJump _ _ = False
+
+        removeUnreachableJump :: TAC -> [TAC] -> [TAC]
+        removeUnreachableJump x [] = [x]
+        removeUnreachableJump x seen =
+            let nextTAC = head seen in
+                if isUnreachableJump x nextTAC then x : tail seen else x : seen
 
 -- | 'Optimization' that removes redundant jumps, that is: a jump that goes to a
 -- | label that is defined in the very next line.

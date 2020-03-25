@@ -3,22 +3,33 @@ module FireLink.BackEnd.BackEndCompiler (
 ) where
 
 import           Control.Monad.RWS                         (runRWST)
+import           Data.Graph                                (Graph)
+import           Data.List                                 (intercalate)
 import           FireLink.BackEnd.CodeGenerator            (CodeGenState (..),
                                                             TAC (..),
                                                             TACSymEntry (..),
                                                             genCode,
                                                             initialState)
-import           FireLink.BackEnd.InstructionCodeGenerator ()
+import           FireLink.BackEnd.FlowGraphGenerator       (NumberedBlocks,
+                                                            findBasicBlocks,
+                                                            generateFlowGraph,
+                                                            numberTACs)
+import           FireLink.BackEnd.InstructionCodeGenerator
 import           FireLink.BackEnd.Optimizer                (optimize)
 import           FireLink.FrontEnd.Grammar                 (Program (..))
 import           FireLink.FrontEnd.SymTable                (Dictionary (..))
 import           FireLink.FrontEnd.TypeChecking            (Type (..))
 import           TACType
 
-backend :: Program -> Dictionary -> IO [TAC]
+backend :: Program -> Dictionary -> IO ([TAC], NumberedBlocks, Graph)
 backend program dictionary = do
     (_, finalState, code) <- runRWST (genCode program) dictionary initialState
-    return $ optimize $ fillEmptyTemporals (cgsTemporalsToReplace finalState) code
+    let postProcessedCode = fillEmptyTemporals (cgsTemporalsToReplace finalState) code
+    let optimizedCode = optimize postProcessedCode
+    let basicBlocks = zip [0..] $ findBasicBlocks $ numberTACs optimizedCode
+    let flowGraph = generateFlowGraph optimizedCode
+
+    return (optimizedCode, basicBlocks, flowGraph)
     where
         fillEmptyTemporals :: [(TACSymEntry, Int)] -> [TAC] -> [TAC]
         fillEmptyTemporals tempsToReplace = map (patchTac tempsToReplace)
