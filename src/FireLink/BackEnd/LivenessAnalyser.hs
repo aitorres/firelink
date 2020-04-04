@@ -5,7 +5,8 @@ module FireLink.BackEnd.LivenessAnalyser (
 import           Control.Monad.State
 import           Data.Graph
 import qualified Data.Map.Strict                     as Map
-import           Data.Maybe                          (catMaybes, fromJust)
+import           Data.Maybe                          (catMaybes, fromJust,
+                                                      isJust)
 import qualified Data.Set                            as Set
 import           FireLink.BackEnd.CodeGenerator
 import           FireLink.BackEnd.FlowGraphGenerator
@@ -41,10 +42,6 @@ getAllVariables = foldr getVariables []
         getVariables :: TAC -> [String] -> [String]
         getVariables (ThreeAddressCode _ a b c) xs = xs ++ map show (filter isId $ catMaybes [a, b, c])
 
-        isId :: OperandType -> Bool
-        isId (Id _) = True
-        isId _      = False
-
 -- | Given a basic block, returns a set that marks all of its variables as live
 initialLiveVariables :: BasicBlock -> LiveVariables
 initialLiveVariables = Set.fromList . getAllVariables
@@ -70,7 +67,6 @@ initialNextUseState block = NextUseInfo {
 -- | in order to tag each instruction with its liveness information
 analyse :: BasicBlock -> NextUseState BlockLiveness
 analyse block = do
-    liftIO $ print $ "MI BLOQUE ES\n" ++ show block ++ "\n"
     -- Number the instructions, then reverse them (due to backwards flow)
     let numberedBlock = reverse $ zip [1..] block
 
@@ -101,8 +97,28 @@ getLiveVariables (i, tac@(ThreeAddressCode _ a b c)) = do
         Just v@(Id _) -> return (Set.insert (show v) liveVars'', Map.insert (show v) (Just i) nextUse'')
         _ -> return (liveVars'', nextUse'')
 
-
     -- update state
     put NextUseInfo { nuiLiveVars = newLiveVars, nuiNextUse = newNextUse }
     return (tac, nu)
 
+-- | Given a basic block, generates the interference graph
+-- | by checking all of its instructions, one by one, as an undirected
+-- | graph.
+-- | (helpful resource: http://lambda.uta.edu/cse5317/spring03/notes/node40.html)
+generateInterferenceGraph :: BasicBlock -> ([(String, Int)], Graph)
+generateInterferenceGraph block =
+    let nodes = getAllVariables block
+        numberedNodes = zip nodes [1..]
+        numberMap = Map.fromList numberedNodes
+        upperBound = length numberedNodes
+        stringEdges = getInterferenceEdges block
+        nodupStringEdges = Set.toList $ Set.fromList stringEdges
+        edges = [(fromJust $ Map.lookup x numberMap, fromJust $ Map.lookup y numberMap) | (x, y) <- nodupStringEdges]
+    in (numberedNodes, buildG (0, upperBound) edges)
+    where
+        getInterferenceEdges :: BasicBlock -> [(String, String)]
+        getInterferenceEdges [] = []
+        getInterferenceEdges (ThreeAddressCode _ a b c:xs) =
+            let usedVarsList = map show $ filter isId $ catMaybes [a, b, c]
+                currentEdges = [(i, j) | i <- usedVarsList, j <- usedVarsList]
+            in  currentEdges ++ getInterferenceEdges xs
