@@ -3,6 +3,7 @@ module FireLink.BackEnd.BackEndCompiler (
 ) where
 
 import           Control.Monad.RWS                         (runRWST)
+import           Control.Monad.State
 import           Data.Graph                                (Graph)
 import           Data.List                                 (intercalate)
 import           FireLink.BackEnd.CodeGenerator            (CodeGenState (..),
@@ -10,26 +11,30 @@ import           FireLink.BackEnd.CodeGenerator            (CodeGenState (..),
                                                             TACSymEntry (..),
                                                             genCode,
                                                             initialState)
-import           FireLink.BackEnd.FlowGraphGenerator       (NumberedBlocks,
+import           FireLink.BackEnd.FlowGraphGenerator       (NumberedBlock,
                                                             findBasicBlocks,
                                                             generateFlowGraph,
                                                             numberTACs)
 import           FireLink.BackEnd.InstructionCodeGenerator
+import           FireLink.BackEnd.LivenessAnalyser
 import           FireLink.BackEnd.Optimizer                (optimize)
 import           FireLink.FrontEnd.Grammar                 (Program (..))
 import           FireLink.FrontEnd.SymTable                (Dictionary (..))
 import           FireLink.FrontEnd.TypeChecking            (Type (..))
 import           TACType
 
-backend :: Program -> Dictionary -> IO ([TAC], NumberedBlocks, Graph)
+backend :: Program -> Dictionary -> IO ([TAC], [(NumberedBlock, InterferenceGraph)], Graph)
 backend program dictionary = do
     (_, finalState, code) <- runRWST (genCode program) dictionary initialState
     let postProcessedCode = fillEmptyTemporals (cgsTemporalsToReplace finalState) code
     let optimizedCode = optimize postProcessedCode
-    let basicBlocks = zip [0..] $ findBasicBlocks $ numberTACs optimizedCode
+    let basicBlocks = findBasicBlocks $ numberTACs optimizedCode
+    let interferenceGraphs = map generateInterferenceGraph basicBlocks
+    let numberedBlocks = zip [0..] basicBlocks
+    let blocksWithInterGraphs = zip numberedBlocks interferenceGraphs
     let flowGraph = generateFlowGraph optimizedCode
 
-    return (optimizedCode, basicBlocks, flowGraph)
+    return (optimizedCode, blocksWithInterGraphs, flowGraph)
     where
         fillEmptyTemporals :: [(TACSymEntry, Int)] -> [TAC] -> [TAC]
         fillEmptyTemporals tempsToReplace = map (patchTac tempsToReplace)
