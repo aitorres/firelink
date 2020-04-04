@@ -34,6 +34,10 @@ type NextUseState = StateT NextUseInfo IO
 -- | Basically, a basic block (no pun intended) with each instruction tagged with such info.
 type BlockLiveness = [(TAC, NextUseInfo)]
 
+-- | A map that matches variable names to integer representations,
+-- | and a graph that matches such representations' mutual interference
+type InterferenceGraph = (Map.Map String Int, Graph)
+
 -- | Given a basic block, builds and returns a list of the string-representation
 -- | of all the variables used in the program (including temporals)
 getAllVariables :: BasicBlock -> [String]
@@ -105,7 +109,7 @@ getLiveVariables (i, tac@(ThreeAddressCode _ a b c)) = do
 -- | by checking all of its instructions, one by one, as an undirected
 -- | graph.
 -- | (helpful resource: http://lambda.uta.edu/cse5317/spring03/notes/node40.html)
-generateInterferenceGraph :: BasicBlock -> ([(String, Int)], Graph)
+generateInterferenceGraph :: BasicBlock -> InterferenceGraph
 generateInterferenceGraph block =
     let nodes = getAllVariables block
         numberedNodes = zip nodes [1..]
@@ -116,11 +120,11 @@ generateInterferenceGraph block =
         -- the graph must be created from pairs of integers, so we find each edge name's respective integer
         -- if they were enumerated in the generation order
         edges = [(fromJust $ Map.lookup x numberMap, fromJust $ Map.lookup y numberMap) | (x, y) <- nodupStringEdges]
-    in (numberedNodes, buildG (0, upperBound) edges)
+    in (numberMap, buildG (0, upperBound) edges)
     where
         getInterferenceEdges :: BasicBlock -> [(String, String)]
         getInterferenceEdges [] = []
         getInterferenceEdges (ThreeAddressCode _ a b c:xs) =
             let usedVarsList = map show $ filter isId $ catMaybes [a, b, c]
-                currentEdges = [(i, j) | i <- usedVarsList, j <- usedVarsList]
+                currentEdges = [(i, j) | i <- usedVarsList, j <- usedVarsList, i /= j]
             in  currentEdges ++ getInterferenceEdges xs
