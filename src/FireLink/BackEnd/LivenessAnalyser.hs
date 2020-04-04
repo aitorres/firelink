@@ -113,6 +113,8 @@ generateInterferenceGraph block =
         upperBound = length numberedNodes
         stringEdges = getInterferenceEdges block
         nodupStringEdges = Set.toList $ Set.fromList stringEdges
+        -- the graph must be created from pairs of integers, so we find each edge name's respective integer
+        -- if they were enumerated in the generation order
         edges = [(fromJust $ Map.lookup x numberMap, fromJust $ Map.lookup y numberMap) | (x, y) <- nodupStringEdges]
     in (numberedNodes, buildG (0, upperBound) edges)
     where
