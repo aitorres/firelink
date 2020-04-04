@@ -1,6 +1,4 @@
-module FireLink.BackEnd.FlowGraphGenerator (
-    generateFlowGraph, findBasicBlocks, numberTACs, NumberedBlocks, NumberedBlock
-) where
+module FireLink.BackEnd.FlowGraphGenerator where
 
 import           Data.Char                      (isDigit)
 import           Data.Graph
