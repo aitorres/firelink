@@ -2,14 +2,16 @@ module FireLink (
     firelink
 ) where
 
+import           Control.Monad                       (unless)
 import qualified Control.Monad.RWS                   as RWS
 import qualified Data.Graph                          as G
 import           Data.List                           (groupBy, intercalate)
 import qualified Data.Map                            as Map
+import           Data.Maybe                          (fromJust)
 import           FireLink.BackEnd.BackEndCompiler    (backend)
 import           FireLink.BackEnd.CodeGenerator      (TAC (..))
-import           FireLink.BackEnd.FlowGraphGenerator (NumberedBlock,
-                                                      NumberedBlocks)
+import           FireLink.BackEnd.FlowGraphGenerator (NumberedBlock)
+import           FireLink.BackEnd.LivenessAnalyser   (InterferenceGraph)
 import           FireLink.FrontEnd.Errors
 import           FireLink.FrontEnd.FrontEndCompiler
 import qualified FireLink.FrontEnd.SymTable          as ST
@@ -196,13 +198,35 @@ handleCompileError compileError tokens =
 printTacCode :: [TAC] -> IO ()
 printTacCode = mapM_ print
 
-printBasicBlocks :: NumberedBlocks -> IO ()
+printBasicBlocks :: [(NumberedBlock, InterferenceGraph)] -> IO ()
 printBasicBlocks = mapM_ printBlock
     where
-        printBlock :: NumberedBlock -> IO ()
-        printBlock (i, cb) = do
+        printBlock :: (NumberedBlock, InterferenceGraph) -> IO ()
+        printBlock (nb, ig) = do
+            let (i, cb) = nb
             putStrLn $ bold ++ "Block " ++ show i ++ nocolor
             printTacCode cb
+
+            let (msi, g) = ig
+            unless (null $ G.edges g) $ do
+                putStrLn $ red ++ "Interference Graph for Block " ++ show i ++ nocolor
+                printInterferenceGraph (Map.fromList $ map (\(x, y) -> (y, x)) $ Map.toList msi) g
+                putStrLn ""
+
+printInterferenceGraph :: Map.Map Int String -> G.Graph -> IO ()
+printInterferenceGraph msi g = do
+    let es = G.edges g
+    let groupedEdges = groupBy (\a b -> fst a == fst b) es
+    mapM_ printEdges groupedEdges
+    where
+        printEdges :: [G.Edge] -> IO ()
+        printEdges es = do
+            let origin = (fst . head) es
+            let originName = fromJust $ Map.lookup origin msi
+            let destinies = map snd es
+            let destiniesNames = map (\x -> fromJust $ Map.lookup x msi) destinies
+            let joinedDestiniesNames = intercalate ", " destiniesNames
+            putStrLn $ bold ++ originName ++ nocolor ++ " -> " ++ joinedDestiniesNames
 
 printFlowGraph :: G.Graph -> IO ()
 printFlowGraph g = do
@@ -217,7 +241,6 @@ printFlowGraph g = do
             let origin = (fst . head) es
             let originName = if origin == entryNode then "ENTRY" else show origin
             let destinies = map snd es
-            let destiniesNames = joinWithCommas destinies
             putStrLn $ bold ++ originName ++ nocolor ++ " -> " ++ printDestinies destinies
 
         printDestinies :: [Int] -> String
@@ -235,7 +258,7 @@ compile program compileFlag = do
     case compilerResult of
         Left e -> uncurry handleCompileError e >> exitFailure
         Right (ast, symTable, tokens) -> do
-            (tacCode, basicBlocks, flowGraph) <- backend ast (ST.stDict symTable)
+            (tacCode, blocksWithInterGraphs, flowGraph) <- backend ast (ST.stDict symTable)
             case compileFlag of
                 Nothing -> do
                     -- Default behavior: print everything
@@ -246,15 +269,15 @@ compile program compileFlag = do
                     putStrLn "\nFireLink: Printing Intermediate Representation in Three-Address Code"
                     printTacCode tacCode
                     putStrLn "\nFireLink: Printing basic blocks (numbered, starting at 0)"
-                    printBasicBlocks basicBlocks
-                    putStrLn "\nFireLink: Printing flow graph (with special nodes ENTRY at -1, EXIT as the last one)"
+                    printBasicBlocks blocksWithInterGraphs
+                    putStrLn "\nFireLink: Printing flow graph"
                     printFlowGraph flowGraph
                 Just flag
                     | flag `elem` ["-f", "--frontend"] -> prettyPrintSymTable symTable >> printProgram True tokens
                     | flag `elem` ["-s", "--symtable"] -> prettyPrintSymTable symTable
                     | flag `elem` ["-p", "--program"] -> printProgram True tokens
                     | flag `elem` ["-t", "--tac"] -> printTacCode tacCode
-                    | flag `elem` ["-b", "--blocks"] -> printBasicBlocks basicBlocks
+                    | flag `elem` ["-b", "--blocks"] -> printBasicBlocks blocksWithInterGraphs
                     | flag `elem` ["-g", "--graph"] -> printFlowGraph flowGraph
                     | otherwise -> failByUnknownFlag
             exitSuccess

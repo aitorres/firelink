@@ -196,3 +196,9 @@ typeWidth t = do
             let (Width w) = findWidth t'
             let w' = alignedOffset w
             return $ Constant (show w', BigIntT)
+
+-- | Auxiliary function that determines if a given OperandType
+-- | is an Id (as opposed to Labels or Constants)
+isId :: OperandType -> Bool
+isId (Id _) = True
+isId _      = False
