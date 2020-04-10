@@ -1,5 +1,6 @@
 module FireLink.BackEnd.FlowGraphGenerator(
-    generateFlowGraph, BasicBlock, NumberedBlock
+    generateFlowGraph, BasicBlock, NumberedBlock, FlowGraph,
+    entryVertex, exitVertex
 ) where
 
 import           Data.Char                      (isDigit)
@@ -10,6 +11,7 @@ import           FireLink.BackEnd.CodeGenerator (OperandType (..), TAC (..),
                                                  isConditionalJump, isJump,
                                                  isProgramEnd,
                                                  isUnconditionalJump)
+import           FireLink.BackEnd.Utils
 import           TACType
 
 -- | A numbered instruction (the number being a unique identifier within some context)
@@ -34,7 +36,8 @@ type NumberedBlocks = [NumberedBlock]
 type Edges = [Edge]
 
 -- | FlowGraph representation. First tuple contains the basic blocks, with their respective number
--- | Second tuple position contains the graph with the basic block numbers as edges
+-- | Second tuple position contains the graph with the basic block numbers as edges.
+-- | Graph nodes includes -1 as entry node and `length numberedBlocks` as exit node
 type FlowGraph = (NumberedBlocks, Graph)
 
 -- | Generates and returns the flow graph
@@ -51,6 +54,14 @@ generateFlowGraph code =
         edges = entryEdge : jumpEdges ++ fallEdges
         graph = buildG (-1, length numberedBlocks) edges
     in  (numberedBlocks, graph)
+
+-- | Helper to centralize what value is associated with flow graph entryVertex
+entryVertex :: FlowGraph -> Vertex
+entryVertex = const (-1)
+
+-- | Same for exitVertex
+exitVertex :: FlowGraph -> Vertex
+exitVertex = length . fst
 
 -- | Given an integer that represents an EXIT vertex, and a
 -- | list of numbered blocks, returns a list of edges
@@ -163,9 +174,3 @@ numberTACs = numberList
 numberBlocks :: BasicBlocks -> NumberedBlocks
 numberBlocks = numberList
 
--- | Given a list, returns a list of pairs in which
--- | each first component is an unique integer, and each second
--- | component is a (now uniquely identified) element of the first list,
--- | in the original order
-numberList :: [a] -> [(Int, a)]
-numberList = zip [0..]

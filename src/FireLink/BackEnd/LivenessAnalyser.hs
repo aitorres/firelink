@@ -3,7 +3,7 @@ module FireLink.BackEnd.LivenessAnalyser (
 ) where
 
 import           Control.Monad.State
-import           Data.Graph
+import qualified Data.Graph                          as Graph
 import qualified Data.Map.Strict                     as Map
 import           Data.Maybe                          (catMaybes, fromJust,
                                                       isJust)
@@ -11,11 +11,12 @@ import qualified Data.Set                            as Set
 import           Debug.Trace                         (trace)
 import           FireLink.BackEnd.CodeGenerator
 import           FireLink.BackEnd.FlowGraphGenerator
+import           FireLink.BackEnd.Utils
 import           TACType
 
 -- | A map that matches variable names to integer representations,
 -- | and a graph that matches such representations' mutual interference
-type InterferenceGraph = (Map.Map TACSymEntry Int, Graph)
+type InterferenceGraph = (Map.Map TACSymEntry Int, Graph.Graph)
 
 -- | Given a basic block, builds and returns a list of the string-representation
 -- | of all the variables used in the program (including temporals)
@@ -77,6 +78,66 @@ use1 (ThreeAddressCode op u v w)
         isCast (Cast _ _) = True
         isCast _          = False
 
+-- | Semantic alias for Set.Set TACSymEntry
+type LiveVariables = Set.Set TACSymEntry
+
+data BlockLiveVariables = BlockLiveVariables
+    { blvBlockId :: !Int -- ^ Block id
+    , blvInLiveVariables :: !LiveVariables -- ^ live variables upon execution this block
+    , blvOutLiveVariables :: !LiveVariables -- ^ live variables after execution this block
+    }
+
+-- | Semantic alias for (LivenessIn, LivenessOut)
+type LivenessInOut = (LiveVariables, LiveVariables)
+
+-- | Calculates live variables at end
+livenessAnalyser :: FlowGraph -> [BlockLiveVariables]
+livenessAnalyser f@(numberedBlocks, flowGraph) =
+    -- | Number of actual blocks + exit + entry
+    let graphNodes = Graph.vertices flowGraph
+        -- set both `in` and `out` arrays to contain empty sets
+        livenessInOutZipped = map (const (Set.empty, Set.empty)) graphNodes
+        convergedInOut = fixedPoint livenessAnalyser' livenessInOutZipped
+        in undefined
+
+    where
+        f :: (BasicBlock -> Set.Set TACSymEntry) -> Graph.Vertex -> Set.Set TACSymEntry
+        f fun vertex
+            | vertex == -1 || vertex == length numberedBlocks = Set.empty
+            | otherwise = fun $ snd $ head $ filter ((vertex ==) . fst) numberedBlocks
+
+        useB :: Graph.Vertex -> LiveVariables
+        useB = f use
+
+        defB :: Graph.Vertex -> LiveVariables
+        defB = f def
+
+        putOnIndex :: Int -> a -> [a] -> [a]
+        putOnIndex 0 a (_ : as)  = a : as
+        putOnIndex i a (a' : as) = a' : putOnIndex (i - 1) a as
+
+        -- | First tuple corresponds too livenessIn, second one to livenessOut
+        livenessAnalyser' :: [LivenessInOut] -> [LivenessInOut]
+        livenessAnalyser' livenessInOutZipped = go livenessInOutZipped [0 .. length livenessInOutZipped - 1]
+            where
+                go :: [LivenessInOut] -> [Int] -> [LivenessInOut]
+                go ls (blockId : blockIds) =
+                    if blockId == exitBlockId then go ls blockIds
+                    else
+                        let outB = Set.unions $ map (fst . (livenessInOutZipped !!)) $ successors blockId
+                            inB = useB blockId `Set.union` (outB Set.\\ defB blockId)
+                        in go (putOnIndex blockId (inB, outB) ls) blockIds
+
+                exitBlockId = 2 + length numberedBlocks
+
+        successors :: Graph.Vertex -> [Graph.Vertex]
+        successors vertex =
+            let graphEdges = Graph.edges flowGraph
+                outgoingEdges = filter ((== vertex) . fst) graphEdges
+                successors' = map snd outgoingEdges
+                in successors'
+
+
 -- | Given a basic block, generates the interference graph
 -- | by checking all of its instructions, one by one, as an undirected
 -- | graph.
@@ -92,7 +153,7 @@ generateInterferenceGraph block =
         -- the graph must be created from pairs of integers, so we find each edge name's respective integer
         -- if they were enumerated in the generation order
         edges = [(fromJust $ Map.lookup x numberMap, fromJust $ Map.lookup y numberMap) | (x, y) <- nodupStringEdges]
-    in (numberMap, buildG (0, upperBound) edges)
+    in (numberMap, Graph.buildG (0, upperBound) edges)
     where
         getInterferenceEdges :: BasicBlock -> [(TACSymEntry, TACSymEntry)]
         getInterferenceEdges [] = []
