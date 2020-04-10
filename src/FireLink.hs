@@ -8,10 +8,11 @@ import qualified Data.Graph                          as G
 import           Data.List                           (groupBy, intercalate)
 import qualified Data.Map                            as Map
 import           Data.Maybe                          (fromJust)
+import qualified Data.Set                            as Set
 import           FireLink.BackEnd.BackEndCompiler    (backend)
 import           FireLink.BackEnd.CodeGenerator      (TAC (..), TACSymEntry)
 import           FireLink.BackEnd.FlowGraphGenerator (NumberedBlock)
-import           FireLink.BackEnd.LivenessAnalyser   (InterferenceGraph)
+import           FireLink.BackEnd.LivenessAnalyser   (InterferenceGraph, def)
 import           FireLink.FrontEnd.Errors
 import           FireLink.FrontEnd.FrontEndCompiler
 import qualified FireLink.FrontEnd.SymTable          as ST
@@ -212,6 +213,11 @@ printBasicBlocks = mapM_ printBlock
                 putStrLn $ red ++ "Interference Graph for Block " ++ show i ++ nocolor
                 printInterferenceGraph (Map.fromList $ map (\(x, y) -> (y, x)) $ Map.toList msi) g
                 putStrLn ""
+            let d = def $ snd nb
+            unless (Set.null d) $ do
+                putStrLn $ red ++ "Definitions of block " ++ show i ++ nocolor
+                putStrLn $ intercalate "\n" $ map show $ Set.toList d
+
 
 printInterferenceGraph :: Map.Map Int TACSymEntry -> G.Graph -> IO ()
 printInterferenceGraph msi g = do

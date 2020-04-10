@@ -1,5 +1,5 @@
 module FireLink.BackEnd.LivenessAnalyser (
-    generateInterferenceGraph, InterferenceGraph (..)
+    def, generateInterferenceGraph, InterferenceGraph (..)
 ) where
 
 import           Control.Monad.State
@@ -23,6 +23,20 @@ getAllVariables = foldr getVariables []
     where
         getVariables :: TAC -> [TACSymEntry] -> [TACSymEntry]
         getVariables (ThreeAddressCode _ a b c) xs = xs ++ catTACSymEntries (catMaybes [a, b, c])
+
+-- | Calculate variable definitions of a basic block, used by data-flow analysis algorithm for liveness analysis
+-- | Mathematically, def[B] = union of def[n] for n in B.indices
+def :: BasicBlock -> Set.Set TACSymEntry
+def = foldr def' Set.empty
+    where
+        assignableOperations :: [Operation]
+        assignableOperations = [Assign, Add, Minus, Sub, Mult, Div, Mod, Get, Call]
+
+        def' :: TAC -> Set.Set TACSymEntry -> Set.Set TACSymEntry
+        def' (ThreeAddressCode op (Just (Id v)) _ _) s
+            | op `elem` assignableOperations = Set.insert v s
+            | otherwise = s
+        def' _ s = s
 
 -- | Given a basic block, generates the interference graph
 -- | by checking all of its instructions, one by one, as an undirected
