@@ -1,9 +1,10 @@
 module FireLink.BackEnd.LivenessAnalyser (
-    def, use, generateInterferenceGraph, InterferenceGraph (..)
+    def, use, generateInterferenceGraph, InterferenceGraph (..), livenessAnalyser
 ) where
 
 import           Control.Monad.State
 import qualified Data.Graph                          as Graph
+import           Data.List                           (intercalate)
 import qualified Data.Map.Strict                     as Map
 import           Data.Maybe                          (catMaybes, fromJust,
                                                       isJust)
@@ -87,6 +88,12 @@ data BlockLiveVariables = BlockLiveVariables
     , blvOutLiveVariables :: !LiveVariables -- ^ live variables after execution this block
     }
 
+instance Show BlockLiveVariables where
+    show BlockLiveVariables
+        { blvBlockId = blockId
+        , blvInLiveVariables = blockIn
+        , blvOutLiveVariables = blockOut } = "Block #" ++ show blockId ++ " in = " ++ intercalate ", " (map show (Set.toList blockIn)) ++ " out = " ++ intercalate ", " (map show (Set.toList blockOut))
+
 -- | Semantic alias for (LivenessIn, LivenessOut)
 type LivenessInOut = (LiveVariables, LiveVariables)
 
@@ -98,13 +105,17 @@ livenessAnalyser f@(numberedBlocks, flowGraph) =
         -- set both `in` and `out` arrays to contain empty sets
         livenessInOutZipped = map (const (Set.empty, Set.empty)) graphNodes
         convergedInOut = fixedPoint livenessAnalyser' livenessInOutZipped
-        in undefined
+        in map (\(blockId, (blockIn, blockOut)) ->
+                BlockLiveVariables
+                    { blvBlockId = blockId
+                    , blvInLiveVariables = blockIn
+                    , blvOutLiveVariables = blockOut}) $ zip [-1..length numberedBlocks] convergedInOut
 
     where
         f :: (BasicBlock -> Set.Set TACSymEntry) -> Graph.Vertex -> Set.Set TACSymEntry
         f fun vertex
-            | vertex == -1 || vertex == length numberedBlocks = Set.empty
-            | otherwise = fun $ snd $ head $ filter ((vertex ==) . fst) numberedBlocks
+            | vertex == 0 || vertex == length numberedBlocks + 1 = Set.empty
+            | otherwise = fun $ snd $ head $ filter ((vertex - 1 ==) . fst) numberedBlocks
 
         useB :: Graph.Vertex -> LiveVariables
         useB = f use
@@ -121,6 +132,7 @@ livenessAnalyser f@(numberedBlocks, flowGraph) =
         livenessAnalyser' livenessInOutZipped = go livenessInOutZipped [0 .. length livenessInOutZipped - 1]
             where
                 go :: [LivenessInOut] -> [Int] -> [LivenessInOut]
+                go ls [] = ls
                 go ls (blockId : blockIds) =
                     if blockId == exitBlockId then go ls blockIds
                     else

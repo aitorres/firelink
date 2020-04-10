@@ -26,12 +26,14 @@ backend program dictionary = do
     (_, finalState, code) <- runRWST (genCode program) dictionary initialState
     let postProcessedCode = fillEmptyTemporals (cgsTemporalsToReplace finalState) code
     let optimizedCode = optimize postProcessedCode
-    let (numberedBlocks, flowGraph) = generateFlowGraph optimizedCode
+    let flowGraph@(numberedBlocks, graph) = generateFlowGraph optimizedCode
     let basicBlocks = map snd numberedBlocks
     let interferenceGraphs = map generateInterferenceGraph basicBlocks
     let blocksWithInterGraphs = zip numberedBlocks interferenceGraphs
+    let livenessAnalysisResult = livenessAnalyser flowGraph
 
-    return (optimizedCode, blocksWithInterGraphs, flowGraph)
+    mapM_ print livenessAnalysisResult
+    return (optimizedCode, blocksWithInterGraphs, graph)
     where
         fillEmptyTemporals :: [(TACSymEntry, Int)] -> [TAC] -> [TAC]
         fillEmptyTemporals tempsToReplace = map (patchTac tempsToReplace)
