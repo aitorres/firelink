@@ -9,7 +9,7 @@ import           Data.List                           (groupBy, intercalate)
 import qualified Data.Map                            as Map
 import           Data.Maybe                          (fromJust)
 import           FireLink.BackEnd.BackEndCompiler    (backend)
-import           FireLink.BackEnd.CodeGenerator      (TAC (..))
+import           FireLink.BackEnd.CodeGenerator      (TAC (..), TACSymEntry)
 import           FireLink.BackEnd.FlowGraphGenerator (NumberedBlock)
 import           FireLink.BackEnd.LivenessAnalyser   (InterferenceGraph)
 import           FireLink.FrontEnd.Errors
@@ -213,7 +213,7 @@ printBasicBlocks = mapM_ printBlock
                 printInterferenceGraph (Map.fromList $ map (\(x, y) -> (y, x)) $ Map.toList msi) g
                 putStrLn ""
 
-printInterferenceGraph :: Map.Map Int String -> G.Graph -> IO ()
+printInterferenceGraph :: Map.Map Int TACSymEntry -> G.Graph -> IO ()
 printInterferenceGraph msi g = do
     let es = G.edges g
     let groupedEdges = groupBy (\a b -> fst a == fst b) es
@@ -225,8 +225,8 @@ printInterferenceGraph msi g = do
             let originName = fromJust $ Map.lookup origin msi
             let destinies = map snd es
             let destiniesNames = map (\x -> fromJust $ Map.lookup x msi) destinies
-            let joinedDestiniesNames = intercalate ", " destiniesNames
-            putStrLn $ bold ++ originName ++ nocolor ++ " -> " ++ joinedDestiniesNames
+            let joinedDestiniesNames = intercalate ", " $ map show destiniesNames
+            putStrLn $ bold ++ show originName ++ nocolor ++ " -> " ++ joinedDestiniesNames
 
 printFlowGraph :: G.Graph -> IO ()
 printFlowGraph g = do

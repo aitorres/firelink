@@ -16,10 +16,10 @@ import           TACType
 type ProgramPoint = (Int, Int)
 
 -- | A set of live variables at a given time, represented by their unique string name
-type LiveVariables = Set.Set String
+type LiveVariables = Set.Set TACSymEntry
 
 -- | A map that points a variable to the instruction it's next used in (or none)
-type NextUseMap = Map.Map String (Maybe Int)
+type NextUseMap = Map.Map TACSymEntry (Maybe Int)
 
 -- | An object containing a given point's next use information: live variables and next-use information
 data NextUseInfo = NextUseInfo {
@@ -39,15 +39,15 @@ type BlockLiveness = [(TAC, NextUseInfo)]
 
 -- | A map that matches variable names to integer representations,
 -- | and a graph that matches such representations' mutual interference
-type InterferenceGraph = (Map.Map String Int, Graph)
+type InterferenceGraph = (Map.Map TACSymEntry Int, Graph)
 
 -- | Given a basic block, builds and returns a list of the string-representation
 -- | of all the variables used in the program (including temporals)
-getAllVariables :: BasicBlock -> [String]
+getAllVariables :: BasicBlock -> [TACSymEntry]
 getAllVariables = foldr getVariables []
     where
-        getVariables :: TAC -> [String] -> [String]
-        getVariables (ThreeAddressCode _ a b c) xs = xs ++ map show (filter isId $ catMaybes [a, b, c])
+        getVariables :: TAC -> [TACSymEntry] -> [TACSymEntry]
+        getVariables (ThreeAddressCode _ a b c) xs = xs ++ catTACSymEntries (catMaybes [a, b, c])
 
 -- | Given a basic block, returns a set that marks all of its variables as live
 initialLiveVariables :: BasicBlock -> LiveVariables
@@ -93,15 +93,15 @@ getLiveVariables (i, tac@(ThreeAddressCode _ a b c)) = do
 
     -- mark a as non-live and next use undefined
     (liveVars', nextUse')  <- case a of
-        Just v@(Id _) -> return (Set.delete (show v) liveVars, Map.insert (show v) Nothing nextUse)
+        Just (Id v) -> return (Set.delete v liveVars, Map.insert v Nothing nextUse)
         _ -> return (liveVars, nextUse)
 
     -- mark b, c as live and with current next use
     (liveVars'', nextUse'') <- case b of
-        Just v@(Id _) -> return (Set.insert (show v) liveVars', Map.insert (show v) (Just i) nextUse')
+        Just (Id v) -> return (Set.insert v liveVars', Map.insert v (Just i) nextUse')
         _ -> return (liveVars', nextUse')
     (newLiveVars, newNextUse) <- case c of
-        Just v@(Id _) -> return (Set.insert (show v) liveVars'', Map.insert (show v) (Just i) nextUse'')
+        Just (Id v) -> return (Set.insert v liveVars'', Map.insert v (Just i) nextUse'')
         _ -> return (liveVars'', nextUse'')
 
     -- update state
@@ -125,9 +125,9 @@ generateInterferenceGraph block =
         edges = [(fromJust $ Map.lookup x numberMap, fromJust $ Map.lookup y numberMap) | (x, y) <- nodupStringEdges]
     in (numberMap, buildG (0, upperBound) edges)
     where
-        getInterferenceEdges :: BasicBlock -> [(String, String)]
+        getInterferenceEdges :: BasicBlock -> [(TACSymEntry, TACSymEntry)]
         getInterferenceEdges [] = []
         getInterferenceEdges (ThreeAddressCode _ a b c:xs) =
-            let usedVarsList = map show $ filter isId $ catMaybes [a, b, c]
+            let usedVarsList = catTACSymEntries $ catMaybes [a, b, c]
                 currentEdges = [(i, j) | i <- usedVarsList, j <- usedVarsList, i /= j]
             in  currentEdges ++ getInterferenceEdges xs

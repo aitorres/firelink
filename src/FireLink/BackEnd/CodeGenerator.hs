@@ -1,7 +1,7 @@
 module FireLink.BackEnd.CodeGenerator where
 
 import           Control.Monad.RWS          (RWST (..), ask, get, put, tell)
-import           Data.Map.Strict            as Map
+import qualified Data.Map.Strict            as Map
 import qualified FireLink.FrontEnd.Grammar  as G (Id (..))
 import           FireLink.FrontEnd.SymTable (Dictionary (..),
                                              DictionaryEntry (..), Extra (..),
@@ -38,7 +38,24 @@ type Offset = Int
 data TACSymEntry
     = TACTemporal String Offset
     | TACVariable DictionaryEntry Offset
-    deriving Eq
+
+instance Eq TACSymEntry where
+    -- following works because temporal variables are unique, so we can safely compare just the name
+    TACTemporal s _ == TACTemporal s' _ = s == s'
+    TACVariable entry _ == TACVariable entry' _ = name entry == name entry' && scope entry == scope entry'
+    _ == _ = False
+
+-- Although "TACSymEntry" doesn't really have a total order, "Data.Map" and "Data.Set" operations with this
+-- data type requires to instance "Ord"
+-- Rules are simple though:
+-- 1. Temporals *always* go before program variables
+-- 2. Temporals comparisons use their actual string representations
+-- 3. Variables comparisons use their (name, scope)
+instance Ord TACSymEntry where
+    TACTemporal _ _ <= TACVariable _ _ = True
+    TACTemporal s _ <= TACTemporal s' _ = s <= s'
+    TACVariable entry _ <= TACVariable entry' _ = (name entry, scope entry) <= (name entry', scope entry')
+    _ <= _ = False
 
 getTACSymEntryOffset :: TACSymEntry -> Int
 getTACSymEntryOffset (TACTemporal _ o) = o
@@ -203,3 +220,12 @@ typeWidth t = do
 isId :: OperandType -> Bool
 isId (Id _) = True
 isId _      = False
+
+-- | Takes a list of "OperandTypes" and returns only the "TACSymEntry", similar to
+-- | "Data.Maybe.catMaybes"
+catTACSymEntries :: [OperandType] -> [TACSymEntry]
+catTACSymEntries = foldr f []
+    where
+        f :: OperandType -> [TACSymEntry] -> [TACSymEntry]
+        f (Id s) l = s : l
+        f _ l      = l
