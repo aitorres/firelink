@@ -1,4 +1,6 @@
-module FireLink.BackEnd.FlowGraphGenerator where
+module FireLink.BackEnd.FlowGraphGenerator(
+    generateFlowGraph, BasicBlock, NumberedBlock
+) where
 
 import           Data.Char                      (isDigit)
 import           Data.Graph
@@ -31,9 +33,13 @@ type NumberedBlocks = [NumberedBlock]
 -- | Semantic shortcut for a list of edges
 type Edges = [Edge]
 
+-- | FlowGraph representation. First tuple contains the basic blocks, with their respective number
+-- | Second tuple position contains the graph with the basic block numbers as edges
+type FlowGraph = (NumberedBlocks, Graph)
+
 -- | Generates and returns the flow graph
 -- | that correspond to a given list of TAC instructions.
-generateFlowGraph :: [TAC] -> Graph
+generateFlowGraph :: [TAC] -> FlowGraph
 generateFlowGraph code =
     let numberedInstructions = numberTACs code
         basicBlocks = findBasicBlocks numberedInstructions
@@ -44,7 +50,7 @@ generateFlowGraph code =
         jumpEdges = getJumpEdges numberedBlocks exitNode
         edges = entryEdge : jumpEdges ++ fallEdges
         graph = buildG (-1, length numberedBlocks) edges
-    in  graph
+    in  (numberedBlocks, graph)
 
 -- | Given an integer that represents an EXIT vertex, and a
 -- | list of numbered blocks, returns a list of edges

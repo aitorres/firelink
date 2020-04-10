@@ -13,9 +13,7 @@ import           FireLink.BackEnd.CodeGenerator            (CodeGenState (..),
                                                             genCode,
                                                             initialState)
 import           FireLink.BackEnd.FlowGraphGenerator       (NumberedBlock,
-                                                            findBasicBlocks,
-                                                            generateFlowGraph,
-                                                            numberTACs)
+                                                            generateFlowGraph)
 import           FireLink.BackEnd.InstructionCodeGenerator
 import           FireLink.BackEnd.LivenessAnalyser
 import           FireLink.BackEnd.Optimizer                (optimize)
@@ -28,11 +26,10 @@ backend program dictionary = do
     (_, finalState, code) <- runRWST (genCode program) dictionary initialState
     let postProcessedCode = fillEmptyTemporals (cgsTemporalsToReplace finalState) code
     let optimizedCode = optimize postProcessedCode
-    let basicBlocks = findBasicBlocks $ numberTACs optimizedCode
+    let (numberedBlocks, flowGraph) = generateFlowGraph optimizedCode
+    let basicBlocks = map snd numberedBlocks
     let interferenceGraphs = map generateInterferenceGraph basicBlocks
-    let numberedBlocks = zip [0..] basicBlocks
     let blocksWithInterGraphs = zip numberedBlocks interferenceGraphs
-    let flowGraph = generateFlowGraph optimizedCode
 
     return (optimizedCode, blocksWithInterGraphs, flowGraph)
     where
