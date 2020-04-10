@@ -1,5 +1,5 @@
 module FireLink.BackEnd.LivenessAnalyser (
-    analyse, initialNextUseState, generateInterferenceGraph, InterferenceGraph (..)
+    generateInterferenceGraph, InterferenceGraph (..)
 ) where
 
 import           Control.Monad.State
@@ -48,65 +48,6 @@ getAllVariables = foldr getVariables []
     where
         getVariables :: TAC -> [TACSymEntry] -> [TACSymEntry]
         getVariables (ThreeAddressCode _ a b c) xs = xs ++ catTACSymEntries (catMaybes [a, b, c])
-
--- | Given a basic block, returns a set that marks all of its variables as live
-initialLiveVariables :: BasicBlock -> LiveVariables
-initialLiveVariables = Set.fromList . getAllVariables
-
--- | Given a basic block, returns a map that assigns to every one of its variables
--- | the value of Nothing, indicating that its next use is undefined
-initialNextUseMap :: BasicBlock -> NextUseMap
-initialNextUseMap block =
-    let vars = getAllVariables block
-        pairedVars = [(x, Nothing) | x <- vars]
-    in  Map.fromList pairedVars
-
--- | Given a basic block, returns its initial next-use state:
--- |  * All variables have an undefined next use
--- |  * All variables are live
-initialNextUseState :: BasicBlock -> NextUseInfo
-initialNextUseState block = NextUseInfo {
-    nuiLiveVars = initialLiveVariables block,
-    nuiNextUse = initialNextUseMap block
-}
-
--- | Given a basic block, performs a backwards data-flow analysis
--- | in order to tag each instruction with its liveness information
-analyse :: BasicBlock -> NextUseState BlockLiveness
-analyse block = do
-    -- Number the instructions, then reverse them (due to backwards flow)
-    let numberedBlock = reverse $ zip [1..] block
-
-    -- For each instruction, get their live variables
-    reversedAnalysedBlock <- mapM getLiveVariables numberedBlock
-
-    -- Reverse the result (to get the original order)
-    return $ reverse reversedAnalysedBlock
-
--- | Given a TAC instruction, and running as a state transformer,
--- | anotates the instruction with the current next-use info
--- | and prepares the state for the following instruction to be
--- | analysed
-getLiveVariables :: NumberedTAC -> NextUseState (TAC, NextUseInfo)
-getLiveVariables (i, tac@(ThreeAddressCode _ a b c)) = do
-    nu@NextUseInfo { nuiLiveVars=liveVars, nuiNextUse=nextUse } <- get
-
-    -- mark a as non-live and next use undefined
-    (liveVars', nextUse')  <- case a of
-        Just (Id v) -> return (Set.delete v liveVars, Map.insert v Nothing nextUse)
-        _ -> return (liveVars, nextUse)
-
-    -- mark b, c as live and with current next use
-    (liveVars'', nextUse'') <- case b of
-        Just (Id v) -> return (Set.insert v liveVars', Map.insert v (Just i) nextUse')
-        _ -> return (liveVars', nextUse')
-    (newLiveVars, newNextUse) <- case c of
-        Just (Id v) -> return (Set.insert v liveVars'', Map.insert v (Just i) nextUse'')
-        _ -> return (liveVars'', nextUse'')
-
-    -- update state
-    put NextUseInfo { nuiLiveVars = newLiveVars, nuiNextUse = newNextUse }
-    return (tac, nu)
 
 -- | Given a basic block, generates the interference graph
 -- | by checking all of its instructions, one by one, as an undirected
