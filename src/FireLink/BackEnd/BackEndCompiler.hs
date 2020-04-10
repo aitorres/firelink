@@ -7,6 +7,7 @@ import           Control.Monad.State
 import           Data.Graph                                (Graph)
 import           Data.List                                 (intercalate)
 import           FireLink.BackEnd.CodeGenerator            (CodeGenState (..),
+                                                            SimpleType (..),
                                                             TAC (..),
                                                             TACSymEntry (..),
                                                             genCode,
@@ -20,7 +21,6 @@ import           FireLink.BackEnd.LivenessAnalyser
 import           FireLink.BackEnd.Optimizer                (optimize)
 import           FireLink.FrontEnd.Grammar                 (Program (..))
 import           FireLink.FrontEnd.SymTable                (Dictionary (..))
-import           FireLink.FrontEnd.TypeChecking            (Type (..))
 import           TACType
 
 backend :: Program -> Dictionary -> IO ([TAC], [(NumberedBlock, InterferenceGraph)], Graph)
@@ -48,7 +48,7 @@ backend program dictionary = do
                         ThreeAddressCode
                             Assign
                             (Just (Id $ fst t))
-                            (Just $ Constant (show $ snd t, BigIntT))
+                            (Just $ Constant (show $ snd t, BigIntTAC))
                             Nothing
             _ -> tac
 

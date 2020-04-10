@@ -1,15 +1,13 @@
 module FireLink.BackEnd.CodeGenerator where
 
-import           Control.Monad.RWS              (RWST (..), ask, get, put, tell)
-import           Data.Map.Strict                as Map
-import qualified FireLink.FrontEnd.Grammar      as G (Id (..))
-import           FireLink.FrontEnd.SymTable     (Dictionary (..),
-                                                 DictionaryEntry (..),
-                                                 Extra (..), findChain,
-                                                 findSymEntryByName, findWidth,
-                                                 wordSize)
-import           FireLink.FrontEnd.Tokens       (Token (..))
-import           FireLink.FrontEnd.TypeChecking
+import           Control.Monad.RWS          (RWST (..), ask, get, put, tell)
+import           Data.Map.Strict            as Map
+import qualified FireLink.FrontEnd.Grammar  as G (Id (..))
+import           FireLink.FrontEnd.SymTable (Dictionary (..),
+                                             DictionaryEntry (..), Extra (..),
+                                             findChain, findSymEntryByName,
+                                             findWidth, wordSize)
+import           FireLink.FrontEnd.Tokens   (Token (..))
 import           TACType
 
 data CodeGenState = CodeGenState
@@ -53,8 +51,11 @@ instance SymEntryCompatible TACSymEntry where
 instance Show TACSymEntry where
     show = getSymID
 
-type TAC = ThreeAddressCode TACSymEntry Type
-type OperandType = Operand TACSymEntry Type
+data SimpleType = BigIntTAC | StringTAC | TrileanTAC | CharTAC | FloatTAC | SmallIntTAC
+    deriving (Eq, Show)
+
+type TAC = ThreeAddressCode TACSymEntry SimpleType
+type OperandType = Operand TACSymEntry SimpleType
 
 type CodeGenMonad = RWST Dictionary [TAC] CodeGenState IO
 
@@ -159,7 +160,7 @@ class GenerateCode a where
 
 raiseRunTimeError :: String -> CodeGenMonad ()
 raiseRunTimeError msg = do
-    let msgOperand = Constant (msg, StringT)
+    let msgOperand = Constant (msg, StringTAC)
     gen [
         ThreeAddressCode
         { tacOperand = Print
@@ -195,7 +196,7 @@ typeWidth t = do
             t' <- findSymEntryByName t <$> ask
             let (Width w) = findWidth t'
             let w' = alignedOffset w
-            return $ Constant (show w', BigIntT)
+            return $ Constant (show w', BigIntTAC)
 
 -- | Auxiliary function that determines if a given OperandType
 -- | is an Id (as opposed to Labels or Constants)

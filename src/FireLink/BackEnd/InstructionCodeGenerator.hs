@@ -51,7 +51,7 @@ instance GenerateCode Program where
             { tacOperand = Call
             , tacLvalue = Nothing
             , tacRvalue1 = Just $ Label "_main"
-            , tacRvalue2 = Just $ Constant ("0", SmallIntT)
+            , tacRvalue2 = Just $ Constant ("0", SmallIntTAC)
             }, ThreeAddressCode
             { tacOperand = Exit
             , tacLvalue = Nothing
@@ -79,7 +79,7 @@ instance GenerateCode Program where
                 genLabel $ Label funName
                 t <- newtemp
                 putArrayOffsetVar t
-                genIdAssignment (Id t) $ Constant ("TO_REPLACE", BigIntT)
+                genIdAssignment (Id t) $ Constant ("TO_REPLACE", BigIntTAC)
                 genCode codeblock
                 offset <- getTempOffset
                 addTemp t offset
@@ -133,7 +133,7 @@ genCodeForInstruction (InstInitArray arrayId@(G.Id _ s)) _ = do
             | t `elem` ST.definedTypes = do
                 t' <- findSymEntryByName t <$> ask
                 let (ST.Width w) = findWidth t'
-                return $ Constant (show w, BigIntT)
+                return $ Constant (show w, BigIntTAC)
             | otherwise = do
                 t' <- getTypeFromString t
                 buildFromType (t, t')
@@ -148,7 +148,7 @@ genCodeForInstruction (InstInitArray arrayId@(G.Id _ s)) _ = do
             entry <- findSymEntryByName typeName <$> ask
             let (ST.Width w) = findWidth entry
             let w' = alignedOffset w
-            return $ Constant (show w', BigIntT)
+            return $ Constant (show w', BigIntTAC)
         buildFromType o = error $ "Error processing " ++ show o
 
 -- Utility instructions
@@ -180,7 +180,7 @@ genCodeForInstruction (InstCall fId params) _ = do
             { tacOperand = Call
             , tacLvalue = Nothing
             , tacRvalue1 = Just $ Label $ name funEntry
-            , tacRvalue2 = Just $ Constant (show paramsLength, SmallIntT)
+            , tacRvalue2 = Just $ Constant (show paramsLength, SmallIntTAC)
             }]
 
 -- Assignments, currently supported for id assignments, structs & unions
@@ -222,10 +222,10 @@ genCodeForInstruction (InstAsig lvalue rvalue) next =
             falseLabel <- newLabel
             genCodeForBooleanExpr (expAst rvalue) trueLabel falseLabel
             genLabel trueLabel
-            genIdAssignment operand $ Constant ("true", TrileanT)
+            genIdAssignment operand $ Constant ("true", TrileanTAC)
             genGoTo next
             genLabel falseLabel
-            genIdAssignment operand $ Constant ("false", TrileanT)
+            genIdAssignment operand $ Constant ("false", TrileanTAC)
             genLabel next
         supportedLvalue :: Expr -> Bool
         supportedLvalue Expr {expAst = IdExpr _ }       = True
@@ -264,7 +264,7 @@ genCodeForInstruction (InstAsig lvalue rvalue) next =
             propertySymEntry <- findSymEntryById propId <$> ask
             let argPos = getUnionAttrId propertySymEntry
             unionExprOp <- genCode' unionExpr
-            genIdAssignment unionExprOp $ Constant (show argPos, BigIntT)
+            genIdAssignment unionExprOp $ Constant (show argPos, BigIntTAC)
 
         assignStructLiteral :: Expr -> Expr -> CodeGenMonad ()
         assignStructLiteral lvalue Expr { expAst = StructLit propAssignments } = do

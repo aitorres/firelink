@@ -12,6 +12,9 @@ import           FireLink.BackEnd.CodeGenerator
 import           FireLink.BackEnd.FlowGraphGenerator
 import           TACType
 
+-- | A pair representing an unique point in a program. Its meaning is to hold (blockIds, instructionIndex)
+type ProgramPoint = (Int, Int)
+
 -- | A set of live variables at a given time, represented by their unique string name
 type LiveVariables = Set.Set String
 
