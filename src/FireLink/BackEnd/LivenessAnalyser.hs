@@ -1,5 +1,5 @@
 module FireLink.BackEnd.LivenessAnalyser (
-    def, generateInterferenceGraph, InterferenceGraph (..)
+    def, use, generateInterferenceGraph, InterferenceGraph (..)
 ) where
 
 import           Control.Monad.State
@@ -8,6 +8,7 @@ import qualified Data.Map.Strict                     as Map
 import           Data.Maybe                          (catMaybes, fromJust,
                                                       isJust)
 import qualified Data.Set                            as Set
+import           Debug.Trace                         (trace)
 import           FireLink.BackEnd.CodeGenerator
 import           FireLink.BackEnd.FlowGraphGenerator
 import           TACType
@@ -40,29 +41,41 @@ def = foldr def' Set.empty
 -- | Calculates definition for a single three-address code instruction. Basically, the left side of an instruction
 -- | that assigns a variable.
 def1 :: TAC -> Set.Set TACSymEntry
-def1 :: TAC -> Set.Set TACSymEntry
-def1 (ThreeAddressCode op (Just (Id v)) _ _) s
+def1 (ThreeAddressCode op (Just (Id v)) _ _)
     | op `elem` assignableOperations = Set.singleton v
-    | otherwise = Set.empty
 
 -- | Read will end setting a value to its parameter
 def1 (ThreeAddressCode Read _ (Just (Id v)) _) = Set.singleton v
-def1 _ s = Set.empty
+-- | Casting also assigns a value
+def1 t@(ThreeAddressCode (Cast _ _) (Just (Id v)) _ _) = Set.singleton v
+def1 _ = Set.empty
 
 -- | Calculate used variables in a basic block prior to any definition of the same variable inside the
--- | same block
+-- | same block. its mathematical definition is as follows:
+-- | use[B] = use[1] U (use[2] - def[1]) U (use[3] - def[2] - def[1]) U ...
 use :: BasicBlock -> Set.Set TACSymEntry
-use = foldr use' Set.empty
+use = go [Set.empty]
     where
-        use' :: TAC -> Set.Set TACSymEntry -> Set.Set TACSymEntry
-        use' tac set = error ""
+        -- | accumulatedDefs has the current differences from the useB mathematical definition
+        go :: [Set.Set TACSymEntry] -> BasicBlock -> Set.Set TACSymEntry
+        go accumulatedDefs (i : is) = diffOfList (use1 i : accumulatedDefs) `Set.union` go (def1 i : accumulatedDefs) is
+        go _ []                     = Set.empty
+
+
+        diffOfList :: Ord a => [Set.Set a] -> Set.Set a
+        diffOfList (s : ss) = foldl Set.difference s ss
 
 -- | Calculate used variables in a single instruction. That is, their operands
 -- | TODO: review operations on the `otherwise` branch to see if the used values are actually ok
 use1 :: TAC -> Set.Set TACSymEntry
 use1 (ThreeAddressCode op u v w)
     | op `elem` assignableOperations = Set.fromList $ catTACSymEntries $ catMaybes [v, w]
+    | isCast op = Set.fromList $ catTACSymEntries $ catMaybes [v, w]
     | otherwise = Set.fromList $ catTACSymEntries $ catMaybes [u, v, w]
+    where
+        isCast :: Operation -> Bool
+        isCast (Cast _ _) = True
+        isCast _          = False
 
 -- | Given a basic block, generates the interference graph
 -- | by checking all of its instructions, one by one, as an undirected

@@ -12,7 +12,8 @@ import qualified Data.Set                            as Set
 import           FireLink.BackEnd.BackEndCompiler    (backend)
 import           FireLink.BackEnd.CodeGenerator      (TAC (..), TACSymEntry)
 import           FireLink.BackEnd.FlowGraphGenerator (NumberedBlock)
-import           FireLink.BackEnd.LivenessAnalyser   (InterferenceGraph, def)
+import           FireLink.BackEnd.LivenessAnalyser   (InterferenceGraph, def,
+                                                      use)
 import           FireLink.FrontEnd.Errors
 import           FireLink.FrontEnd.FrontEndCompiler
 import qualified FireLink.FrontEnd.SymTable          as ST
@@ -217,6 +218,10 @@ printBasicBlocks = mapM_ printBlock
             unless (Set.null d) $ do
                 putStrLn $ red ++ "Definitions of block " ++ show i ++ nocolor
                 putStrLn $ intercalate "\n" $ map show $ Set.toList d
+            let u = use $ snd nb
+            unless (Set.null u) $ do
+                putStrLn $ red ++ "Variable uses of block " ++ show i ++ nocolor
+                putStrLn $ intercalate "\n" $ map show $ Set.toList u
 
 
 printInterferenceGraph :: Map.Map Int TACSymEntry -> G.Graph -> IO ()
