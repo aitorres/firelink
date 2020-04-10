@@ -40,7 +40,7 @@ generateFlowGraph code =
         numberedBlocks = numberBlocks basicBlocks
         fallEdges = getFallEdges numberedBlocks
         entryEdge = (-1, 0) -- ENTRY
-        exitNode = (length numberedBlocks) -- EXIT
+        exitNode = length numberedBlocks -- EXIT
         jumpEdges = getJumpEdges numberedBlocks exitNode
         edges = entryEdge : jumpEdges ++ fallEdges
         graph = buildG (-1, length numberedBlocks) edges
@@ -67,7 +67,7 @@ getJumpEdges code vExit = foldr findAllJumpEdges [] code
                 else if op == Return then
                     let (_, fcb) = findFunctionDefBlock i code
                         ThreeAddressCode _ _ mL _ = head fcb
-                    in  es ++ (map (\x -> (i, x)) (getCallsToLabel mL code))
+                    in  es ++ map (\x -> (i, x)) (getCallsToLabel mL code)
                 else es
 
         findDestinyBlock :: Maybe OperandType -> NumberedBlocks -> NumberedBlock
@@ -143,11 +143,11 @@ findBlockLeaders ts = nub $ head ts : findBlockLeaders' ts
         findBlockLeaders' (x:ys@(y:_)) = [y | isJumpTac x] ++ [x | isJumpDestiny x] ++ findBlockLeaders' ys
 
         isJumpTac :: NumberedTAC -> Bool
-        isJumpTac (_, (ThreeAddressCode op _ _ _)) = isJump op
+        isJumpTac (_, ThreeAddressCode op _ _ _) = isJump op
 
         isJumpDestiny :: NumberedTAC -> Bool
-        isJumpDestiny (_, (ThreeAddressCode NewLabel _ (Just _) _)) = True
-        isJumpDestiny _                                             = False
+        isJumpDestiny (_, ThreeAddressCode NewLabel _ (Just _) _) = True
+        isJumpDestiny _                                           = False
 
 -- | Type-binding application of numberList for a code block
 numberTACs :: [TAC] -> NumberedTACs
