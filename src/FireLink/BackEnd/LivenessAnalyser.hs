@@ -15,10 +15,6 @@ import           FireLink.BackEnd.FlowGraphGenerator
 import           FireLink.BackEnd.Utils
 import           TACType
 
--- | A map that matches variable names to integer representations,
--- | and a graph that matches such representations' mutual interference
-type InterferenceGraph = (Map.Map TACSymEntry Int, Graph.Graph)
-
 -- | Given a basic block, builds and returns a list of the string-representation
 -- | of all the variables used in the program (including temporals)
 getAllVariables :: BasicBlock -> [TACSymEntry]
@@ -126,7 +122,7 @@ livenessAnalyser fg@(numberedBlocks, flowGraph) =
                 basicBlock = snd $ numberedBlocks !! blockId
                 in if blockId == (-1) || blockId == length numberedBlocks then []
                     else reverse $ map (\(i, inOut) -> ((blockId, i), inOut)) $ go livenessOut reversedBasicBlock
-    where
+            where
                 -- | Computes the current instruction in/out, suppling in[s] as the out of previous instruction
                 -- | due to the not alteration of flow in a basic block
                 go :: LiveVariables -> [(Int, TAC)] -> [(Int, LivenessInOut)]
@@ -186,6 +182,10 @@ livenessAnalyser fg@(numberedBlocks, flowGraph) =
                             inB = useB blockId `Set.union` (outB Set.\\ defB blockId)
                         in go (Map.insert blockId (inB, outB) dfi) blockIds
 
+-- | A map that matches variable names to integer representations,
+-- | and a graph that matches such representations' mutual interference
+type InterferenceGraph = (Map.Map Int TACSymEntry, Graph.Graph)
+
 -- | Given a basic block, generates the interference graph
 -- | by checking all of its instructions, one by one, as an undirected
 -- | graph.
@@ -201,7 +201,7 @@ generateInterferenceGraph block =
         -- the graph must be created from pairs of integers, so we find each edge name's respective integer
         -- if they were enumerated in the generation order
         edges = [(fromJust $ Map.lookup x numberMap, fromJust $ Map.lookup y numberMap) | (x, y) <- nodupStringEdges]
-    in (numberMap, Graph.buildG (0, upperBound) edges)
+    in (Map.fromList $ map (\(i, j) -> (j, i)) $ Map.toList numberMap, Graph.buildG (0, upperBound) edges)
     where
         getInterferenceEdges :: BasicBlock -> [(TACSymEntry, TACSymEntry)]
         getInterferenceEdges [] = []
@@ -209,3 +209,52 @@ generateInterferenceGraph block =
             let usedVarsList = catTACSymEntries $ catMaybes [a, b, c]
                 currentEdges = [(i, j) | i <- usedVarsList, j <- usedVarsList, i /= j]
             in  currentEdges ++ getInterferenceEdges xs
+
+
+-- | Given a whole program, generates the interference graph by using liveness information
+generateInterferenceGraph' :: FlowGraph -> InterferenceGraph
+generateInterferenceGraph' flowGraph'@(numberedBlocks, flowGraph) =
+    ( Map.fromList $ map (\(i, j) -> (j, i)) $ Map.toList interferenceGraphVertexMap
+    , Graph.buildG (0, Set.size programVariables) interferenceGraphEdges)
+
+    where
+        livenessAnalysis :: [LineLiveVariables]
+        livenessAnalysis = livenessAnalyser flowGraph'
+
+        getTac :: (Int, Int) -> TAC
+        getTac (i, j) =
+            let basicBlock = snd $ head $ filter ((== i) . fst) numberedBlocks
+            in basicBlock !! j
+
+        getEdgesForSingleInstr :: LineLiveVariables -> Set.Set Graph.Edge
+        getEdgesForSingleInstr LineLiveVariables
+            { llvInstrId = instrId
+            , llvOutLiveVariables = out } =
+                let d = defN tac
+                    o = outN out
+                    tac = getTac instrId
+                    res = d `Set.cartesianProduct` o
+                    in case tac of
+                        ThreeAddressCode Assign (Just (Id v)) _ _ ->
+                            let varId = vertexMapLookup v
+                                toDelete = d `Set.cartesianProduct` Set.singleton varId
+                                in res Set.\\ toDelete
+                        _ -> res
+
+        defN :: TAC -> Set.Set Graph.Vertex
+        defN = Set.map vertexMapLookup . def1
+
+        outN :: LiveVariables -> Set.Set Graph.Vertex
+        outN = Set.map vertexMapLookup
+
+        programVariables :: Set.Set TACSymEntry
+        programVariables = Set.unions $ map (Set.fromList . getAllVariables . snd) numberedBlocks
+
+        interferenceGraphVertexMap :: Map.Map TACSymEntry Graph.Vertex
+        interferenceGraphVertexMap = Map.fromList $ zip (Set.toList programVariables) [0..]
+
+        vertexMapLookup :: TACSymEntry -> Int
+        vertexMapLookup = (interferenceGraphVertexMap Map.!)
+
+        interferenceGraphEdges :: [Graph.Edge]
+        interferenceGraphEdges = Set.toList $ Set.unions $ map getEdgesForSingleInstr livenessAnalysis
