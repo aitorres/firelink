@@ -16,14 +16,6 @@ import           FireLink.BackEnd.FlowGraphGenerator
 import           FireLink.BackEnd.Utils
 import           TACType
 
--- | Given a basic block, builds and returns a list of the string-representation
--- | of all the variables used in the program (including temporals)
-getAllVariables :: BasicBlock -> [TACSymEntry]
-getAllVariables = foldr getVariables []
-    where
-        getVariables :: TAC -> [TACSymEntry] -> [TACSymEntry]
-        getVariables (ThreeAddressCode _ a b c) xs = xs ++ catTACSymEntries (catMaybes [a, b, c])
-
 -- | Operations that consists of an assignment of a value to a lvalue
 -- | TODO: Add pointer operations here when their implementation is ready
 assignableOperations :: [Operation]
@@ -249,7 +241,7 @@ generateInterferenceGraph' flowGraph'@(numberedBlocks, flowGraph) =
         outN = Set.map vertexMapLookup
 
         programVariables :: Set.Set TACSymEntry
-        programVariables = Set.unions $ map (Set.fromList . getAllVariables . snd) numberedBlocks
+        programVariables = getProgramVariables numberedBlocks
 
         interferenceGraphVertexMap :: Map.Map TACSymEntry Graph.Vertex
         interferenceGraphVertexMap = Map.fromList $ zip (Set.toList programVariables) [0..]

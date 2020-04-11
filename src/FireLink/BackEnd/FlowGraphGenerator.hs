@@ -1,13 +1,16 @@
 module FireLink.BackEnd.FlowGraphGenerator(
     generateFlowGraph, BasicBlock, NumberedBlock, FlowGraph,
-    entryVertex, exitVertex
+    entryVertex, exitVertex, getAllVariables, getProgramVariables
 ) where
 
 import           Data.Char                      (isDigit)
 import           Data.Graph
 import           Data.List                      (nub)
 import           Data.Maybe
+import qualified Data.Set                       as Set
 import           FireLink.BackEnd.CodeGenerator (OperandType (..), TAC (..),
+                                                 TACSymEntry (..),
+                                                 catTACSymEntries,
                                                  isConditionalJump, isJump,
                                                  isProgramEnd,
                                                  isUnconditionalJump)
@@ -174,3 +177,14 @@ numberTACs = numberList
 numberBlocks :: BasicBlocks -> NumberedBlocks
 numberBlocks = numberList
 
+-- | Given a basic block, builds and returns a list of the string-representation
+-- | of all the variables used in the program (including temporals)
+getAllVariables :: BasicBlock -> [TACSymEntry]
+getAllVariables = foldr getVariables []
+    where
+        getVariables :: TAC -> [TACSymEntry] -> [TACSymEntry]
+        getVariables (ThreeAddressCode _ a b c) xs = xs ++ catTACSymEntries (catMaybes [a, b, c])
+
+-- | Get all variables used in a list of "NumberedBlock"
+getProgramVariables :: NumberedBlocks -> Set.Set TACSymEntry
+getProgramVariables = Set.unions . map (Set.fromList . getAllVariables . snd)

@@ -12,10 +12,15 @@ avoid that the interference graph will have edges between their own variables.
 -}
 module FireLink.BackEnd.RegisterAllocationProcess where
 
-import qualified Data.Map                       as DM
-import           FireLink.BackEnd.CodeGenerator (TACSymEntry (..))
+import qualified Data.Map                            as DM
+import           FireLink.BackEnd.CodeGenerator      (TACSymEntry (..))
+import           FireLink.BackEnd.FlowGraphGenerator (FlowGraph (..))
 
 -- Semantic aliases
 type Register = Int
 type Color = Register
 type SymEntryRegisterMap = DM.Map TACSymEntry Color
+
+-- | Generate attempting final TAC assumming that we will have infinite registers i.e one register per actual variable
+initialStep :: FlowGraph -> (SymEntryRegisterMap, FlowGraph)
+initialStep (numberedBlocks, graph) = undefined
