@@ -21,7 +21,7 @@ import           FireLink.FrontEnd.Grammar                 (Program (..))
 import           FireLink.FrontEnd.SymTable                (Dictionary (..))
 import           TACType
 
-backend :: Program -> Dictionary -> IO ([TAC], [(NumberedBlock, InterferenceGraph)], Graph)
+backend :: Program -> Dictionary -> IO ([TAC], [(NumberedBlock, InterferenceGraph)], Graph, InterferenceGraph)
 backend program dictionary = do
     (_, finalState, code) <- runRWST (genCode program) dictionary initialState
     let postProcessedCode = fillEmptyTemporals (cgsTemporalsToReplace finalState) code
@@ -31,9 +31,10 @@ backend program dictionary = do
     let interferenceGraphs = map generateInterferenceGraph basicBlocks
     let blocksWithInterGraphs = zip numberedBlocks interferenceGraphs
     let livenessAnalysisResult = livenessAnalyser flowGraph
+    let interferenceGraph' = generateInterferenceGraph' flowGraph
 
     mapM_ print livenessAnalysisResult
-    return (optimizedCode, blocksWithInterGraphs, graph)
+    return (optimizedCode, blocksWithInterGraphs, graph, interferenceGraph')
     where
         fillEmptyTemporals :: [(TACSymEntry, Int)] -> [TAC] -> [TAC]
         fillEmptyTemporals tempsToReplace = map (patchTac tempsToReplace)

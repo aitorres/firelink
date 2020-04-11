@@ -63,7 +63,7 @@ getTACSymEntryOffset (TACVariable _ o) = o
 
 instance SymEntryCompatible TACSymEntry where
     getSymID (TACTemporal s o)          = "(" ++ s ++ ")base[" ++ show o ++ "]"
-    getSymID (TACVariable entry offset) = "(" ++ name entry ++ ")base[" ++ show offset ++ "]"
+    getSymID (TACVariable entry offset) = "(" ++ name entry ++ ":" ++ show (scope entry) ++ ")base[" ++ show offset ++ "]"
 
 instance Show TACSymEntry where
     show = getSymID

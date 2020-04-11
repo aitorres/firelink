@@ -212,7 +212,7 @@ printBasicBlocks = mapM_ printBlock
             let (msi, g) = ig
             unless (null $ G.edges g) $ do
                 putStrLn $ red ++ "Interference Graph for Block " ++ show i ++ nocolor
-                printInterferenceGraph (Map.fromList $ map (\(x, y) -> (y, x)) $ Map.toList msi) g
+                printInterferenceGraph (Map.fromList $ Map.toList msi) g
                 putStrLn ""
             let d = def $ snd nb
             unless (Set.null d) $ do
@@ -263,26 +263,46 @@ printFlowGraph g = do
         exitNode :: Int
         exitNode = length (G.vertices g) - 2
 
+printInterferenceGraph' :: InterferenceGraph -> IO ()
+printInterferenceGraph' (vertexMap, graph) = do
+    let vs = G.vertices graph
+    let es = G.edges graph
+    putStrLn $ bold ++ "Graph (" ++ (show . length) vs ++ " variables, " ++ (show . length) es ++ " interferences)" ++ nocolor
+    let groupedEdges = groupBy (\a b -> fst a == fst b) es
+    mapM_ printEdges groupedEdges
+    where
+        printEdges :: [G.Edge] -> IO ()
+        printEdges es = do
+            let origin = (fst . head) es
+            let originName = show $ vertexMap Map.! origin
+            let destinies = map snd es
+            putStrLn $ bold ++ originName ++ nocolor ++ " -> " ++ printDestinies destinies
+
+        printDestinies :: [Int] -> String
+        printDestinies destinies = joinWithCommas $ map (vertexMap Map.!) destinies
+
 compile :: String -> Maybe String -> IO ()
 compile program compileFlag = do
     compilerResult <- frontEnd program
     case compilerResult of
         Left e -> uncurry handleCompileError e >> exitFailure
         Right (ast, symTable, tokens) -> do
-            (tacCode, blocksWithInterGraphs, flowGraph) <- backend ast (ST.stDict symTable)
+            (tacCode, blocksWithInterGraphs, flowGraph, interferenceGraph) <- backend ast (ST.stDict symTable)
             case compileFlag of
                 Nothing -> do
-                    -- Default behavior: print everything
-                    putStrLn "\nFireLink: Printing SymTable"
-                    prettyPrintSymTable symTable
-                    putStrLn "\nFireLink: Printing recognized program"
-                    printProgram True tokens
+                    -- -- Default behavior: print everything
+                    -- putStrLn "\nFireLink: Printing SymTable"
+                    -- prettyPrintSymTable symTable
+                    -- putStrLn "\nFireLink: Printing recognized program"
+                    -- printProgram True tokens
                     putStrLn "\nFireLink: Printing Intermediate Representation in Three-Address Code"
                     printTacCode tacCode
                     putStrLn "\nFireLink: Printing basic blocks (numbered, starting at 0)"
                     printBasicBlocks blocksWithInterGraphs
                     putStrLn "\nFireLink: Printing flow graph"
                     printFlowGraph flowGraph
+                    putStrLn "\nFireLink: printing interference graph"
+                    printInterferenceGraph' interferenceGraph
                 Just flag
                     | flag `elem` ["-f", "--frontend"] -> prettyPrintSymTable symTable >> printProgram True tokens
                     | flag `elem` ["-s", "--symtable"] -> prettyPrintSymTable symTable
