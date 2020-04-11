@@ -146,7 +146,7 @@ isProgramEnd :: Operation -> Bool
 isProgramEnd = flip elem [Exit, Abort]
 
 isUnconditionalJump :: Operation -> Bool
-isUnconditionalJump = flip elem [GoTo, Call, Return]
+isUnconditionalJump = flip elem [GoTo, Return]
 
 isConditionalJump :: Operation -> Bool
 isConditionalJump = flip elem [If, Eq, Neq, Gt, Lt, Gte, Lte]

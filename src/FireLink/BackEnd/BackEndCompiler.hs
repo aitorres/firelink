@@ -42,7 +42,7 @@ backend program dictionary = do
     printBasicBlocks numberedBlocks
     putStrLn "After first step"
     printBasicBlocks newNumberedBlocks
-    -- mapM_ print livenessAnalysisResult
+    mapM_ print livenessAnalysisResult
     return (optimizedCode, blocksWithInterGraphs, graph, interferenceGraph')
     where
         fillEmptyTemporals :: [(TACSymEntry, Int)] -> [TAC] -> [TAC]

@@ -81,13 +81,6 @@ getJumpEdges code vExit = foldr findAllJumpEdges [] code
                 then let (j, _) = findDestinyBlock dJ code
                     in  (i, j) : es
                 else if isProgramEnd op then (i, vExit) : es
-                else if op == Call then
-                    let (j, _) = findDestinyBlock dC code
-                    in (i, j) : es
-                else if op == Return then
-                    let (_, fcb) = findFunctionDefBlock i code
-                        ThreeAddressCode _ _ mL _ = head fcb
-                    in  es ++ map (\x -> (i, x)) (getCallsToLabel mL code)
                 else es
 
         findDestinyBlock :: Maybe OperandType -> NumberedBlocks -> NumberedBlock

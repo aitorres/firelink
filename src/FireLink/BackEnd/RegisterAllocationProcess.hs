@@ -83,10 +83,12 @@ initialStep flowGraph@(numberedBlocks, graph) dict =
         go' :: (ProgramPoint, TAC) -> [TAC]
         -- If we find a function call, we need to store all live-variables at that point
         go' (programPoint, tac@(ThreeAddressCode Call _ _ _)) =
-            let liveVariables = llvInLiveVariables $ getLivenessIn programPoint
+            let liveVariablesInOut = getLivenessIn programPoint
                 storeTacs = map (\tacSymEntry ->
-                    ThreeAddressCode Store (Just (Id tacSymEntry)) Nothing Nothing) $ DS.toList liveVariables
-                in storeTacs ++ [tac]
+                    ThreeAddressCode Store (Just (Id tacSymEntry)) Nothing Nothing) $ DS.toList $ llvInLiveVariables liveVariablesInOut
+                loadTacs = map (\tacSymEntry ->
+                    ThreeAddressCode Load (Just (Id tacSymEntry)) Nothing Nothing) $ DS.toList $ llvOutLiveVariables liveVariablesInOut
+                in storeTacs ++ [tac] ++ loadTacs
 
         -- after generating code for labels, we need to load the used-arguments to their registers.
         -- if a var is not in the variableRegisterMap then it is not used in the program i.e. we can

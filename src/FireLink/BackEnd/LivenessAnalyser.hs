@@ -230,7 +230,7 @@ generateInterferenceGraph' flowGraph'@(numberedBlocks, flowGraph) =
                     o = outN out
                     tac = getTac instrId
                     res = d `Set.cartesianProduct` o
-                    in case tac of
+                    in Set.filter (uncurry (/=)) $ case tac of
                         ThreeAddressCode Assign (Just (Id v)) _ _ ->
                             let varId = vertexMapLookup v
                                 toDelete = d `Set.cartesianProduct` Set.singleton varId
