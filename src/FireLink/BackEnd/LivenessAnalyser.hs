@@ -1,6 +1,6 @@
 module FireLink.BackEnd.LivenessAnalyser (
     def, use, generateInterferenceGraph, InterferenceGraph (..), livenessAnalyser,
-    generateInterferenceGraph'
+    generateInterferenceGraph', LineLiveVariables(..)
 ) where
 
 import           Control.Monad.State

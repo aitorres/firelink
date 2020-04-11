@@ -7,6 +7,7 @@ import qualified FireLink.FrontEnd.Grammar      as G
 import qualified FireLink.FrontEnd.Tokens       as T
 import qualified FireLink.FrontEnd.TypeChecking as TC
 
+import           Data.Maybe                     (mapMaybe)
 import           Data.Sort                      (sortBy)
 
 type Scope = Int
@@ -202,6 +203,12 @@ findSymEntry idScope idName = head . filter (\s -> scope s == idScope) . findCha
 
 findSymEntryByName :: String -> Dictionary -> DictionaryEntry
 findSymEntryByName idName = head . findChain idName
+
+findArgsByFunName :: String -> Dictionary -> [DictionaryEntry]
+findArgsByFunName funName dict =
+    let funEntry = findSymEntryByName funName dict
+        [Fields Callable fieldScope] = mapMaybe findFieldsExtra (extra funEntry)
+        in findAllInScope fieldScope dict
 
 findAllFunctionsAndProcedures :: Dictionary -> DictionaryEntries
 findAllFunctionsAndProcedures = filter isFunction . concat . Map.elems
