@@ -216,7 +216,7 @@ generateInterferenceGraph block =
 generateInterferenceGraph' :: FlowGraph -> InterferenceGraph
 generateInterferenceGraph' flowGraph'@(numberedBlocks, flowGraph) =
     ( Map.fromList $ map (\(i, j) -> (j, i)) $ Map.toList interferenceGraphVertexMap
-    , Graph.buildG (0, Set.size programVariables) interferenceGraphEdges)
+    , Graph.buildG (0, Set.size programVariables - 1) interferenceGraphEdges)
 
     where
         livenessAnalysis :: [LineLiveVariables]

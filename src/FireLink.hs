@@ -268,14 +268,19 @@ printInterferenceGraph' (vertexMap, graph) = do
     let vs = G.vertices graph
     let es = G.edges graph
     putStrLn $ bold ++ "Graph (" ++ (show . length) vs ++ " variables, " ++ (show . length) es ++ " interferences)" ++ nocolor
-    let groupedEdges = groupBy (\a b -> fst a == fst b) es
-    mapM_ printEdges groupedEdges
+    mapM_ printEdges vs
     where
-        printEdges :: [G.Edge] -> IO ()
-        printEdges es = do
-            let origin = (fst . head) es
-            let originName = show $ vertexMap Map.! origin
-            let destinies = map snd es
+        successors :: G.Vertex -> [G.Vertex]
+        successors vertex =
+            let graphEdges = G.edges graph
+                outgoingEdges = filter ((== vertex) . fst) graphEdges
+                successors' = map snd outgoingEdges
+            in successors'
+
+        printEdges :: G.Vertex -> IO ()
+        printEdges v = do
+            let originName = show $ vertexMap Map.! v
+            let destinies = successors v
             putStrLn $ bold ++ originName ++ nocolor ++ " -> " ++ printDestinies destinies
 
         printDestinies :: [Int] -> String
