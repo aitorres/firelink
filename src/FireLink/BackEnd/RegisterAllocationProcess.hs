@@ -10,7 +10,7 @@ https://cs.gmu.edu/~white/CS640/p98-chaitin.pdf
 all live variables at that moment are going to be "stored" before them. That is done to
 avoid that the interference graph will have edges between their own variables.
 -}
-module FireLink.BackEnd.RegisterAllocationProcess (initialStep) where
+module FireLink.BackEnd.RegisterAllocationProcess (initialStep, SymEntryRegisterMap, Register) where
 
 import           Data.Char                           (isDigit)
 import qualified Data.Map                            as DM
@@ -82,12 +82,17 @@ initialStep flowGraph@(numberedBlocks, graph) dict =
 
         go' :: (ProgramPoint, TAC) -> [TAC]
         -- If we find a function call, we need to store all live-variables at that point
-        go' (programPoint, tac@(ThreeAddressCode Call _ _ _)) =
+        go' (programPoint, tac@(ThreeAddressCode Call maybeVar _ _)) =
             let liveVariablesInOut = getLivenessIn programPoint
                 storeTacs = map (\tacSymEntry ->
-                    ThreeAddressCode Store (Just (Id tacSymEntry)) Nothing Nothing) $ DS.toList $ llvInLiveVariables liveVariablesInOut
+                    ThreeAddressCode Store (Just (Id tacSymEntry)) Nothing Nothing) $
+                        DS.toList $ llvInLiveVariables liveVariablesInOut
+                toDeleteAfterCall = case maybeVar of
+                                        Nothing     -> DS.empty
+                                        Just (Id v) -> DS.singleton v
                 loadTacs = map (\tacSymEntry ->
-                    ThreeAddressCode Load (Just (Id tacSymEntry)) Nothing Nothing) $ DS.toList $ llvOutLiveVariables liveVariablesInOut
+                    ThreeAddressCode Load (Just (Id tacSymEntry)) Nothing Nothing) $
+                        DS.toList $ llvOutLiveVariables liveVariablesInOut DS.\\ toDeleteAfterCall
                 in storeTacs ++ [tac] ++ loadTacs
 
         -- after generating code for labels, we need to load the used-arguments to their registers.
