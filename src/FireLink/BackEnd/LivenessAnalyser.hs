@@ -82,17 +82,17 @@ use1 (ThreeAddressCode op u v w)
 -- | Semantic alias for Set.Set TACSymEntry
 type LiveVariables = Set.Set TACSymEntry
 
-data BlockLiveVariables = BlockLiveVariables
-    { blvBlockId :: !Int -- ^ Block id
-    , blvInLiveVariables :: !LiveVariables -- ^ live variables upon execution this block
-    , blvOutLiveVariables :: !LiveVariables -- ^ live variables after execution this block
+data LineLiveVariables = LineLiveVariables
+    { llvInstrId :: !(Int, Int) -- ^ (Block id, instruction index)
+    , llvInLiveVariables :: !LiveVariables -- ^ live variables upon execution this block
+    , llvOutLiveVariables :: !LiveVariables -- ^ live variables after execution this block
     }
 
-instance Show BlockLiveVariables where
-    show BlockLiveVariables
-        { blvBlockId = blockId
-        , blvInLiveVariables = blockIn
-        , blvOutLiveVariables = blockOut } = "Block #" ++ show blockId ++ " in = " ++ intercalate ", " (map show (Set.toList blockIn)) ++ " out = " ++ intercalate ", " (map show (Set.toList blockOut))
+instance Show LineLiveVariables where
+    show LineLiveVariables
+        { llvInstrId = blockId
+        , llvInLiveVariables = blockIn
+        , llvOutLiveVariables = blockOut } = "Block #" ++ show blockId ++ " in = " ++ intercalate ", " (map show (Set.toList blockIn)) ++ " out = " ++ intercalate ", " (map show (Set.toList blockOut))
 
 -- | Semantic alias for (LivenessIn, LivenessOut)
 type LivenessInOut = (LiveVariables, LiveVariables)
@@ -100,25 +100,50 @@ type LivenessInOut = (LiveVariables, LiveVariables)
 type DataFlowInfo = Map.Map Graph.Vertex LivenessInOut
 
 -- | Calculates live variables at end
-livenessAnalyser :: FlowGraph -> [BlockLiveVariables]
+livenessAnalyser :: FlowGraph -> [LineLiveVariables]
 livenessAnalyser fg@(numberedBlocks, flowGraph) =
-    -- | Number of actual blocks + exit + entry
-    let livenessInOutMap = Map.fromList $ zip graphNodes $ repeat (Set.empty, Set.empty)
-        convergedInOut = fixedPoint livenessAnalyser' livenessInOutMap
-        in map (\(blockId, (blockIn, blockOut)) ->
-                BlockLiveVariables
-                    { blvBlockId = blockId
-                    , blvInLiveVariables = blockIn
-                    , blvOutLiveVariables = blockOut}) $ Map.toList convergedInOut
+        map (\(blockId, (blockIn, blockOut)) ->
+            LineLiveVariables
+                { llvInstrId = blockId
+                , llvInLiveVariables = blockIn
+                , llvOutLiveVariables = blockOut }) $ concatMap (livenessForInstruction . fst) $ Map.toList convergedInOut
 
     where
+        livenessInOutMap = Map.fromList $ zip graphNodes $ repeat (Set.empty, Set.empty)
+        convergedInOut = fixedPoint livenessAnalyser' livenessInOutMap
+
+        -- | Computes for each block, the liveness information of each of their instructions
+        -- | This is done after the dataflow execution is done and it helps in building refined
+        -- | information about live variables in each instruction
+        livenessForInstruction :: Int -> [((Int, Int), LivenessInOut)]
+        livenessForInstruction blockId =
+            let
+                -- Let sn be the last instruction of a block, then out[sn] = out[B], by dataflow properties
+                -- We can start computing the in/out for each instruction in a backwards fashion, starting
+                -- by out[B]
+                livenessOut = snd $ convergedInOut Map.! blockId
+                reversedBasicBlock = reverse $ zip [0..] basicBlock
+                basicBlock = snd $ numberedBlocks !! blockId
+                in if blockId == (-1) || blockId == length numberedBlocks then []
+                    else reverse $ map (\(i, inOut) -> ((blockId, i), inOut)) $ go livenessOut reversedBasicBlock
+    where
+                -- | Computes the current instruction in/out, suppling in[s] as the out of previous instruction
+                -- | due to the not alteration of flow in a basic block
+                go :: LiveVariables -> [(Int, TAC)] -> [(Int, LivenessInOut)]
+                go _ [] = []
+                go tacOut ((index, tac) : itacs) =
+                    let uset = use1 tac
+                        deft = def1 tac
+                        tacIn = uset `Set.union` (tacOut Set.\\ deft)
+                        in (index, (tacIn, tacOut)) : go tacIn itacs
+
         f :: (BasicBlock -> Set.Set TACSymEntry) -> Graph.Vertex -> Set.Set TACSymEntry
         f fun vertex
             | vertex == (-1) || vertex == length numberedBlocks = Set.empty
             | otherwise = fun $ snd $ head $ filter ((vertex ==) . fst) numberedBlocks
 
         graphNodes :: [Graph.Vertex]
-        graphNodes = entryVertex fg : exit : map fst numberedBlocks
+        graphNodes = Graph.vertices flowGraph
 
         useMap :: Map.Map Graph.Vertex LiveVariables
         useMap = Map.fromList $ zip graphNodes $ map (f use) graphNodes
