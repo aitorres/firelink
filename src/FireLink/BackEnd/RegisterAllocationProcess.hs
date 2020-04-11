@@ -56,26 +56,42 @@ initialStep flowGraph@(numberedBlocks, graph) dict =
         initialLivenessAnalysis :: [LineLiveVariables]
         initialLivenessAnalysis = livenessAnalyser flowGraph
 
+        getLivenessIn :: ProgramPoint -> LineLiveVariables
+        getLivenessIn point = head $ filter ((point ==) . llvInstrId) initialLivenessAnalysis
+
         isTacLabelFun :: TAC -> Bool
-        isTacLabelFun (ThreeAddressCode NewLabel _ (Just (Label (l : _))) _) = l /= '_' && not (isDigit l)
+        isTacLabelFun (ThreeAddressCode NewLabel _ (Just (Label (l : _))) _) =
+            -- case for _main function, that isn't on symtable
+            l /= '_' &&
+            -- jump labels, functions do not begin with digits
+            not (isDigit l)
+
         isTacLabelFun _ = False
 
         preProcessCode :: [NumberedBlock]
         preProcessCode = map go numberedBlocks
 
         go :: NumberedBlock -> NumberedBlock
-        go (index, block) = (index, concatMap go' block)
+        go (index, block) =
+            (index, concatMap (go' . \(instrIdx, tac) -> ((index, instrIdx), tac)) $ zip [0..] block)
 
         getFunctionArguments :: String -> [TACSymEntry]
         getFunctionArguments funName =
             let dictEntryArguments = findArgsByFunName funName dict in
                 map (\entry -> TACVariable entry (getOffset entry)) dictEntryArguments
 
-        go' :: TAC -> [TAC]
+        go' :: (ProgramPoint, TAC) -> [TAC]
+        -- If we find a function call, we need to store all live-variables at that point
+        go' (programPoint, tac@(ThreeAddressCode Call _ _ _)) =
+            let liveVariables = llvInLiveVariables $ getLivenessIn programPoint
+                storeTacs = map (\tacSymEntry ->
+                    ThreeAddressCode Store (Just (Id tacSymEntry)) Nothing Nothing) $ DS.toList liveVariables
+                in storeTacs ++ [tac]
+
         -- after generating code for labels, we need to load the used-arguments to their registers.
         -- if a var is not in the variableRegisterMap then it is not used in the program i.e. we can
         -- skip its load
-        go' tac@(ThreeAddressCode NewLabel _ (Just (Label funName)) _) =
+        go' (_, tac@(ThreeAddressCode NewLabel _ (Just (Label funName)) _)) =
             if isTacLabelFun tac then
                 let args = getFunctionArguments funName
                     loadTacsSet = map (\tacSymEntry ->
@@ -85,4 +101,4 @@ initialStep flowGraph@(numberedBlocks, graph) dict =
                     loadTacs = concat loadTacsSet in
                         tac : loadTacs
             else [tac]
-        go' tac = [tac]
+        go' (_, tac) = [tac]

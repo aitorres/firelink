@@ -1,6 +1,6 @@
 module FireLink.BackEnd.LivenessAnalyser (
     def, use, generateInterferenceGraph, InterferenceGraph (..), livenessAnalyser,
-    generateInterferenceGraph', LineLiveVariables(..)
+    generateInterferenceGraph', LineLiveVariables(..), ProgramPoint
 ) where
 
 import           Control.Monad.State
@@ -71,8 +71,11 @@ use1 (ThreeAddressCode op u v w)
 -- | Semantic alias for Set.Set TACSymEntry
 type LiveVariables = Set.Set TACSymEntry
 
+-- | (block id, instruction index)
+type ProgramPoint = (Int, Int)
+
 data LineLiveVariables = LineLiveVariables
-    { llvInstrId :: !(Int, Int) -- ^ (Block id, instruction index)
+    { llvInstrId :: !ProgramPoint -- ^ Program point of this information
     , llvInLiveVariables :: !LiveVariables -- ^ live variables upon execution this block
     , llvOutLiveVariables :: !LiveVariables -- ^ live variables after execution this block
     }
