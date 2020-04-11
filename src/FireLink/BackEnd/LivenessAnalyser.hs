@@ -97,58 +97,69 @@ instance Show BlockLiveVariables where
 -- | Semantic alias for (LivenessIn, LivenessOut)
 type LivenessInOut = (LiveVariables, LiveVariables)
 
+type DataFlowInfo = Map.Map Graph.Vertex LivenessInOut
+
 -- | Calculates live variables at end
 livenessAnalyser :: FlowGraph -> [BlockLiveVariables]
-livenessAnalyser f@(numberedBlocks, flowGraph) =
+livenessAnalyser fg@(numberedBlocks, flowGraph) =
     -- | Number of actual blocks + exit + entry
-    let graphNodes = Graph.vertices flowGraph
-        -- set both `in` and `out` arrays to contain empty sets
-        livenessInOutZipped = map (const (Set.empty, Set.empty)) graphNodes
-        convergedInOut = fixedPoint livenessAnalyser' livenessInOutZipped
+    let livenessInOutMap = Map.fromList $ zip graphNodes $ repeat (Set.empty, Set.empty)
+        convergedInOut = fixedPoint livenessAnalyser' livenessInOutMap
         in map (\(blockId, (blockIn, blockOut)) ->
                 BlockLiveVariables
                     { blvBlockId = blockId
                     , blvInLiveVariables = blockIn
-                    , blvOutLiveVariables = blockOut}) $ zip [-1..length numberedBlocks] convergedInOut
+                    , blvOutLiveVariables = blockOut}) $ Map.toList convergedInOut
 
     where
         f :: (BasicBlock -> Set.Set TACSymEntry) -> Graph.Vertex -> Set.Set TACSymEntry
         f fun vertex
-            | vertex == 0 || vertex == length numberedBlocks + 1 = Set.empty
-            | otherwise = fun $ snd $ head $ filter ((vertex - 1 ==) . fst) numberedBlocks
+            | vertex == (-1) || vertex == length numberedBlocks = Set.empty
+            | otherwise = fun $ snd $ head $ filter ((vertex ==) . fst) numberedBlocks
+
+        graphNodes :: [Graph.Vertex]
+        graphNodes = entryVertex fg : exit : map fst numberedBlocks
+
+        useMap :: Map.Map Graph.Vertex LiveVariables
+        useMap = Map.fromList $ zip graphNodes $ map (f use) graphNodes
+
+        defMap :: Map.Map Graph.Vertex LiveVariables
+        defMap = Map.fromList $ zip graphNodes $ map (f def) graphNodes
 
         useB :: Graph.Vertex -> LiveVariables
-        useB = f use
+        useB = (useMap Map.!)
 
         defB :: Graph.Vertex -> LiveVariables
-        defB = f def
+        defB = (defMap Map.!)
 
-        putOnIndex :: Int -> a -> [a] -> [a]
-        putOnIndex 0 a (_ : as)  = a : as
-        putOnIndex i a (a' : as) = a' : putOnIndex (i - 1) a as
+        successorsMap :: Map.Map Graph.Vertex (Set.Set Graph.Vertex)
+        successorsMap = Map.fromList $ zip graphNodes $ map successors' graphNodes
 
-        -- | First tuple corresponds too livenessIn, second one to livenessOut
-        livenessAnalyser' :: [LivenessInOut] -> [LivenessInOut]
-        livenessAnalyser' livenessInOutZipped = go livenessInOutZipped [0 .. length livenessInOutZipped - 1]
-            where
-                go :: [LivenessInOut] -> [Int] -> [LivenessInOut]
-                go ls [] = ls
-                go ls (blockId : blockIds) =
-                    if blockId == exitBlockId then go ls blockIds
-                    else
-                        let outB = Set.unions $ map (fst . (livenessInOutZipped !!)) $ successors blockId
-                            inB = useB blockId `Set.union` (outB Set.\\ defB blockId)
-                        in go (putOnIndex blockId (inB, outB) ls) blockIds
+        successors :: Graph.Vertex -> Set.Set Graph.Vertex
+        successors = (successorsMap Map.!)
 
-                exitBlockId = 2 + length numberedBlocks
-
-        successors :: Graph.Vertex -> [Graph.Vertex]
-        successors vertex =
+        successors' :: Graph.Vertex -> Set.Set Graph.Vertex
+        successors' vertex =
             let graphEdges = Graph.edges flowGraph
                 outgoingEdges = filter ((== vertex) . fst) graphEdges
                 successors' = map snd outgoingEdges
-                in successors'
+                in Set.fromList successors'
 
+        exit :: Graph.Vertex
+        exit = exitVertex fg
+
+        -- | First tuple corresponds too livenessIn, second one to livenessOut
+        livenessAnalyser' :: DataFlowInfo -> DataFlowInfo
+        livenessAnalyser' livenessInOutZipped = go livenessInOutZipped graphNodes
+            where
+                go :: DataFlowInfo -> [Graph.Vertex] -> DataFlowInfo
+                go dfi [] = dfi
+                go dfi (blockId : blockIds) =
+                    if blockId == exit then go dfi blockIds
+                    else
+                        let outB = Set.unions $ Set.map (fst . (dfi Map.!)) $ successors blockId
+                            inB = useB blockId `Set.union` (outB Set.\\ defB blockId)
+                        in go (Map.insert blockId (inB, outB) dfi) blockIds
 
 -- | Given a basic block, generates the interference graph
 -- | by checking all of its instructions, one by one, as an undirected
