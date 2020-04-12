@@ -294,6 +294,48 @@ initialStep flowGraph@(numberedBlocks, graph) dict = (preProcessCode, graph)
         go' (_, tac) = [tac]
 
 
+-- | Do liveness analysis on a program to construct the interference graph.
+build :: ColorState ()
+build = do
+    flowGraph <- getProgramFlowGraph
+    let (interferenceGraph, livenessInfo) = generateInterferenceGraph' flowGraph
+    putInterferenceGraph interferenceGraph
+    putLivenessInformation livenessInfo
+
+
+-- | Estimate by each variable its cost of not having a spill for it, by using following heuristics
+-- | - number of definitions + number of usages
+-- | - TODO: try to implement cycle costs formula
+-- |
+-- | The final cost for each variable is the sum of all of this heuristics
+costs :: ColorState ()
+costs = do
+    programVars <- getProgramVariables'
+    mapM_ applyHeuristics programVars
+    where
+        numberOfDefinitionsAndUsages :: TACSymEntry -> ColorState Int
+        numberOfDefinitionsAndUsages var = do
+            (numberedBlocks, _) <- getProgramFlowGraph
+            let wholeProgram = concatMap snd numberedBlocks
+            let d = sum $ map (defines var) wholeProgram
+            let u = sum $ map (usages var) wholeProgram
+            return $ d + u
+
+        defines :: TACSymEntry -> TAC -> Int
+        defines var tac = if var `Set.member` def1 tac then 1 else 0
+
+        usages :: TACSymEntry -> TAC -> Int
+        usages var tac = if var `Set.member` use1 tac then 1 else 0
+
+        heuristics :: [TACSymEntry -> ColorState Int]
+        heuristics = [numberOfDefinitionsAndUsages]
+
+        applyHeuristics :: TACSymEntry -> ColorState ()
+        applyHeuristics var = do
+            costs <- mapM (\f -> f var) heuristics
+            let sumOfCosts = sum costs
+            associateSpillCost var sumOfCosts
+
 -- | Attempts to color a graph with the number of general-purpose registers
 simplify :: ColorState ()
 simplify = prepareState >> go
@@ -368,48 +410,6 @@ simplify = prepareState >> go
                 deleteVertex v
                 pushVertex v
                 go
-
--- | Do liveness analysis on a program to construct the interference graph.
-build :: ColorState ()
-build = do
-    flowGraph <- getProgramFlowGraph
-    let (interferenceGraph, livenessInfo) = generateInterferenceGraph' flowGraph
-    putInterferenceGraph interferenceGraph
-    putLivenessInformation livenessInfo
-
-
--- | Estimate by each variable its cost of not having a spill for it, by using following heuristics
--- | - number of definitions + number of usages
--- | - TODO: try to implement cycle costs formula
--- |
--- | The final cost for each variable is the sum of all of this heuristics
-costs :: ColorState ()
-costs = do
-    programVars <- getProgramVariables'
-    mapM_ applyHeuristics programVars
-    where
-        numberOfDefinitionsAndUsages :: TACSymEntry -> ColorState Int
-        numberOfDefinitionsAndUsages var = do
-            (numberedBlocks, _) <- getProgramFlowGraph
-            let wholeProgram = concatMap snd numberedBlocks
-            let d = sum $ map (defines var) wholeProgram
-            let u = sum $ map (usages var) wholeProgram
-            return $ d + u
-
-        defines :: TACSymEntry -> TAC -> Int
-        defines var tac = if var `Set.member` def1 tac then 1 else 0
-
-        usages :: TACSymEntry -> TAC -> Int
-        usages var tac = if var `Set.member` use1 tac then 1 else 0
-
-        heuristics :: [TACSymEntry -> ColorState Int]
-        heuristics = [numberOfDefinitionsAndUsages]
-
-        applyHeuristics :: TACSymEntry -> ColorState ()
-        applyHeuristics var = do
-            costs <- mapM (\f -> f var) heuristics
-            let sumOfCosts = sum costs
-            associateSpillCost var sumOfCosts
 
 -- | Based on the stack, the actual interference graph and knowing that **no** register was spilled, we
 -- | finally attempt to color registers
