@@ -15,7 +15,7 @@ Register allocation is made using optimistic colouring algorithm from Chaitan/Br
 Data.Graph.Graph represents directed graphs, but we actually need undirected. So, we need
 to remember that the existence of edge (i, j) implies that (j, i) exists (when i /= j)
 -}
-module FireLink.BackEnd.RegisterAllocationProcess (run, SymEntryRegisterMap, Register) where
+module FireLink.BackEnd.RegisterAllocationProcess (run, SymEntryRegisterMap, Register(..)) where
 
 import qualified Control.Monad.State                 as State
 import qualified Data.Array                          as A
@@ -40,7 +40,10 @@ import           TACType
 
 -- | To avoid confusions between G.Vertex and registers
 newtype Register = Register Int
-    deriving (Eq, Ord, Show)
+    deriving (Eq, Ord)
+
+instance Show Register where
+    show (Register r) = "$" ++ show r
 
 type Color = Register
 
