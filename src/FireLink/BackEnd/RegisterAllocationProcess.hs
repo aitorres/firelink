@@ -203,7 +203,7 @@ pushVertex reg = do
 
 
 graphBounds :: G.Graph -> G.Bounds
-graphBounds graph = (0, length $ G.vertices graph)
+graphBounds graph = (0, length (G.vertices graph) - 1)
 
 deleteVertex :: G.Vertex -> ColorState ()
 deleteVertex vertex = do
