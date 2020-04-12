@@ -11,6 +11,9 @@ all live variables at that moment are going to be "stored" before them. That is 
 avoid that the interference graph will have edges between their own variables.
 
 Register allocation is made using optimistic colouring algorithm from Chaitan/Briggs
+
+Data.Graph.Graph represents directed graphs, but we actually need undirected. So, we need
+to remember that the existence of edge (i, j) implies that (j, i) exists (when i /= j)
 -}
 module FireLink.BackEnd.RegisterAllocationProcess (initialStep, SymEntryRegisterMap, Register) where
 
@@ -35,8 +38,10 @@ import           FireLink.FrontEnd.SymTable          (Dictionary (..),
 import qualified FireLink.FrontEnd.SymTable          as ST (DictionaryEntry (..))
 import           TACType
 
--- Semantic aliases
-type Register = Int
+-- | To avoid confusions between G.Vertex and registers
+newtype Register = Register Int
+    deriving (Eq, Ord, Show)
+
 type Color = Register
 
 -- | Associate a variable with a color (register). If the variable isn't in the
@@ -51,8 +56,11 @@ data ColorationState = ColorationState
     -- | Used only by @simplify@ function
     { csGraph :: !G.Graph -- ^ state graph
     , csDeletedVertices :: !(Set.Set G.Vertex) -- ^ Set of deleted vertices
-    , csRegisterStack :: ![G.Vertex] -- ^ register stack
+    , csVertexStack :: ![G.Vertex] -- ^ vertex stack to recolor in `select` phase
     , csSpilledVertices :: !(Set.Set G.Vertex) -- ^ Set of spilled vertices
+
+    -- | Used in `select` phase
+    , csColoredVertices :: !(Map.Map G.Vertex Color) -- ^ Map of vertex to color, where vertex represents a virtual register
 
     -- | General use properties
     , csProgramVariables :: !(Set.Set TACSymEntry) -- ^ All program variables, never updated
@@ -71,6 +79,22 @@ type ColorState = State.State ColorationState
 -------------------------------------------------------
 ----- Helper functions to operate with ColorState -----
 -------------------------------------------------------
+
+-- | Helper to get the colored vertices
+getColoredVertices :: ColorState (Map.Map G.Vertex Color)
+getColoredVertices = csColoredVertices <$> State.get
+
+-- | Helper to modify colored vertices map state
+putColoredVertices :: Map.Map G.Vertex Color -> ColorState ()
+putColoredVertices m = do
+    c <- State.get
+    State.put c{csColoredVertices = m}
+
+-- | Helper to color a vertex
+colorVertex :: G.Vertex -> Color -> ColorState ()
+colorVertex vertex color = do
+    m <- getColoredVertices
+    putColoredVertices $ Map.insert vertex color m
 
 -- | Helper to get spilled vertices
 getSpilledVertices :: ColorState (Set.Set G.Vertex)
@@ -154,19 +178,19 @@ putDeletedVertices vertices = do
     State.put c{csDeletedVertices = vertices}
 
 -- | Helper to get current stack
-getRegisterStack :: ColorState [G.Vertex]
-getRegisterStack = csRegisterStack <$> State.get
+getVertexStack :: ColorState [G.Vertex]
+getVertexStack = csVertexStack <$> State.get
 
 -- | Helper to put register stack
 putRegisterStack :: [G.Vertex] -> ColorState ()
 putRegisterStack stack = do
     c <- State.get
-    State.put c{csRegisterStack = stack}
+    State.put c{csVertexStack = stack}
 
 -- | Push a register on top of the state's stack
-pushRegister :: Register -> ColorState ()
-pushRegister reg = do
-    stack <- getRegisterStack
+pushVertex :: G.Vertex -> ColorState ()
+pushVertex reg = do
+    stack <- getVertexStack
     putRegisterStack $ reg : stack
 
 
@@ -182,6 +206,9 @@ deleteVertex vertex = do
     putGraph $ G.buildG (graphBounds graph) newEdges
     putDeletedVertices $ vertex `Set.insert` deletedVertices
 
+----------------------------------
+-------- Actual algorithm --------
+----------------------------------
 
 -- | Generate attempting final TAC assumming that we will have infinite registers i.e one register per actual variable
 -- | Also, before and after functions call live variables at that point will be saved to and loaded from memory respectively.
@@ -196,7 +223,7 @@ initialStep flowGraph@(numberedBlocks, graph) dict =
 
         -- | one for each actual variable
         initialRegisters :: [Register]
-        initialRegisters = [0 .. Set.size programVariables - 1]
+        initialRegisters = map Register [0 .. Set.size programVariables - 1]
 
         -- | Map for each tac to its initial register
         variableRegisterMap :: SymEntryRegisterMap
@@ -332,7 +359,7 @@ simplify = prepareState >> go
                         addVertexToSpilledVertices v
                         return v
                 deleteVertex v
-                pushRegister v
+                pushVertex v
                 go
 
 -- | Do liveness analysis on a program to construct the interference graph.
@@ -377,6 +404,39 @@ costs = do
             let sumOfCosts = sum costs
             associateSpillCost var sumOfCosts
 
+-- | Based on the stack, the actual interference graph and knowing that **no** register was spilled, we
+-- | finally attempt to color registers
+select :: ColorState (SymEntryRegisterMap, FlowGraph)
+select = do
+    colorationStack <- getVertexStack
+    undefined
+    where
+        -- | Gets the colors of the neighbours of a vertex in the current graph
+        -- | Pre: we need to ensure that vertex v is already on the graph
+        getNeighboursColors :: G.Vertex -> ColorState (Set.Set Color)
+        getNeighboursColors vertex = do
+            let isNeighbour (a, b) = vertex `elem` [a, b]
+            let extractNeightbours (a, b) = if vertex == a then b else a
+            neighbours <- Set.fromList . map extractNeightbours . filter isNeighbour . G.edges <$> getGraph
+            colorMap <- getColoredVertices
+            return $ Set.map (colorMap Map.!) neighbours
+
+        -- | Add a vertex to the current graph, attaching edges between vertices on it that
+        -- | existed on the original interferenceGraph
+        addVertex :: G.Vertex -> ColorState ()
+        addVertex vertex = do
+            currentVerticesSet <- Set.fromList . Map.keys <$> getColoredVertices
+            let edgeFilter (a, b) = (vertex == a && b `Set.member` currentVerticesSet) || (vertex == b && a `Set.member` currentVerticesSet)
+            -- | We only care about edges that start/end on `vertex` and whose other vertex is already colored
+            edgesToAddToCurrent <- Set.fromList . filter edgeFilter . G.edges . snd <$> getInterferenceGraph
+            currentGraph <- getGraph
+            let currentEdgesAsSet = Set.fromList $ G.edges currentGraph
+            putGraph $ G.buildG (graphBounds currentGraph) $ Set.toList $ currentEdgesAsSet `Set.union` edgesToAddToCurrent
+
+        -- | Assigns a color to a vertex, taking into account all of its current neighbours
+        assignColor :: G.Vertex -> ColorState Color
+        assignColor vertex = undefined
+
 -- | Actually runs chaitain/briggs optimistic coloring algorithm to produce new code with
 -- | mappings between variables and their assigned registers
 run :: FlowGraph -> (SymEntryRegisterMap, FlowGraph)
@@ -387,13 +447,14 @@ run flowGraph = State.evalState go (initialState flowGraph)
             ColorationState
                 { csGraph = G.buildG (0, 1) [] -- dummy value
                 , csDeletedVertices = Set.empty -- dummy value
-                , csRegisterStack = [] -- dummy value
+                , csVertexStack = [] -- dummy value
                 , csProgramFlowGraph = flowGraph
                 , csInterferenceGraph = (Map.empty, G.buildG (0, 1) []) -- dummy value
                 , csLivenessInformation = [] -- dummy value
                 , csProgramVariables = let (numberedBlocks, _) = flowGraph in getProgramVariables numberedBlocks
                 , csSpillsCostMap = Map.empty -- dummy value
-                , csSpilledVertices = Set.empty
+                , csSpilledVertices = Set.empty -- dummy value
+                , csColoredVertices = Map.empty -- dummy value
                 }
 
         go :: ColorState (SymEntryRegisterMap, FlowGraph)
@@ -403,4 +464,10 @@ run flowGraph = State.evalState go (initialState flowGraph)
             costs
             simplify
             undefined
-
+            spilledVertices <- getSpilledVertices
+            -- | We successfully found an assignment of registers that didn't caused spills
+            if Set.null spilledVertices then
+                select
+            else
+            -- | TODO: add spill code here
+                undefined
