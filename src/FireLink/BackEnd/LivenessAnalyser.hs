@@ -209,10 +209,11 @@ generateInterferenceGraph block =
 
 
 -- | Given a whole program, generates the interference graph by using liveness information
-generateInterferenceGraph' :: FlowGraph -> InterferenceGraph
+-- | Also returns the liveness analysis result.
+generateInterferenceGraph' :: FlowGraph -> (InterferenceGraph, [LineLiveVariables])
 generateInterferenceGraph' flowGraph'@(numberedBlocks, flowGraph) =
-    ( Map.fromList $ map (\(i, j) -> (j, i)) $ Map.toList interferenceGraphVertexMap
-    , Graph.buildG (0, Set.size programVariables - 1) interferenceGraphEdges)
+    ( (Map.fromList $ map (\(i, j) -> (j, i)) $ Map.toList interferenceGraphVertexMap
+    , Graph.buildG (0, Set.size programVariables - 1) interferenceGraphEdges), livenessAnalysis)
 
     where
         livenessAnalysis :: [LineLiveVariables]

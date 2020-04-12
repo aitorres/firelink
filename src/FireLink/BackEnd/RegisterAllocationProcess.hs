@@ -9,6 +9,8 @@ https://cs.gmu.edu/~white/CS640/p98-chaitin.pdf
 [@initialStep@] process all codeblocks as we have infinite registers. Also, on function calls,
 all live variables at that moment are going to be "stored" before them. That is done to
 avoid that the interference graph will have edges between their own variables.
+
+Register allocation is made using optimistic colouring algorithm from Chaitan/Briggs
 -}
 module FireLink.BackEnd.RegisterAllocationProcess (initialStep, SymEntryRegisterMap, Register) where
 
@@ -43,6 +45,9 @@ data ColorationState = ColorationState
     { csGraph :: !G.Graph -- ^ state graph
     , csDeletedVertices :: !(Set.Set G.Vertex) -- ^ Set of deleted vertices
     , csRegisterStack :: ![G.Vertex] -- ^ register stack
+    , csProgramFlowGraph :: !FlowGraph -- ^ Whole program flow-graph = (NumberedBlocks, Graph)
+    , csInterferenceGraph :: !InterferenceGraph -- ^ Current interference graph
+    , csLivenessInformation :: ![LineLiveVariables] -- ^ in/out liveness information for each line
     }
 
 -- | Data.Graph graph representation is made by a range of integers describeing the set of vertices
@@ -50,6 +55,26 @@ data ColorationState = ColorationState
 -- | Even Data.Graph.outdegree will say that its outdegree is 0, so we need to have a set of deleted vertices
 -- | as well.
 type ColorState = State.State ColorationState
+
+-------------------------------------------------------
+----- Helper functions to operate with ColorState -----
+-------------------------------------------------------
+
+-- | Helper to get whole program from state
+getProgramFlowGraph :: ColorState FlowGraph
+getProgramFlowGraph = csProgramFlowGraph <$> State.get
+
+-- | Helper to replace interference graph on current state
+putInterferenceGraph :: InterferenceGraph -> ColorState ()
+putInterferenceGraph interferenceGraph = do
+    c <- State.get
+    State.put c{csInterferenceGraph = interferenceGraph}
+
+-- | helper to replace livenesss information
+putLivenessInformation :: [LineLiveVariables] -> ColorState ()
+putLivenessInformation ls = do
+    c <- State.get
+    State.put c{csLivenessInformation = ls}
 
 -- | Helper to get the graph in a ColorState execution
 getGraph :: ColorState G.Graph
@@ -232,3 +257,11 @@ simplify (varToVertexMap, interferenceGraph) =
                         go
                     -- | TODO: handle case when we can't get a vertex with less than k neighbours
                     Nothing -> undefined
+
+-- | Do liveness analysis on a program to construct the interference graph.
+build :: ColorState ()
+build = do
+    flowGraph <- getProgramFlowGraph
+    let (interferenceGraph, livenessInfo) = generateInterferenceGraph' flowGraph
+    putInterferenceGraph interferenceGraph
+    putLivenessInformation livenessInfo
