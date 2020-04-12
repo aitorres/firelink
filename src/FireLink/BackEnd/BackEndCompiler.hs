@@ -25,6 +25,8 @@ import           FireLink.FrontEnd.SymTable                 (Dictionary (..))
 import           FireLink.Utils
 import           TACType
 
+import           Data.Map.Internal.Debug                    (showTree)
+
 backend :: Program -> Dictionary -> IO ([TAC], [(NumberedBlock, InterferenceGraph)], Graph, InterferenceGraph)
 backend program dictionary = do
     (_, finalState, code) <- runRWST (genCode program) dictionary initialState
@@ -37,23 +39,8 @@ backend program dictionary = do
     let livenessAnalysisResult = livenessAnalyser flowGraph
     let (interferenceGraph', _) = generateInterferenceGraph' flowGraph
 
-    let (initialRegisterAssignment, flowGraph'@(newNumberedBlocks, _)) = initialStep flowGraph dictionary
-    let (interferenceGraph'', _) = generateInterferenceGraph' flowGraph'
-
-
-    putStrLn "Before first step"
-    printBasicBlocks numberedBlocks
-    putStrLn "After first step"
-    printBasicBlocks newNumberedBlocks
-    mapM_ print livenessAnalysisResult
-
-    putStrLn "Interference grahp before code manipulation assignment"
-    printInterferenceGraph' interferenceGraph'
-
-    putStrLn "Initial register assignment"
-    printRegisterAssignment initialRegisterAssignment
-    putStrLn "Interference grahp after codemanipulation assignment"
-    printInterferenceGraph' interferenceGraph''
+    let (registerAssignment, finalNumberedBlock) = run flowGraph dictionary
+    putStrLn $ showTree registerAssignment
     return (optimizedCode, blocksWithInterGraphs, graph, interferenceGraph')
     where
         fillEmptyTemporals :: [(TACSymEntry, Int)] -> [TAC] -> [TAC]
