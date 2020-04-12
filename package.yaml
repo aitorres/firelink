@@ -28,6 +28,7 @@ dependencies:
 - mtl
 - containers
 - sort
+- optparse-applicative
 
 library:
   source-dirs: [src, src/tac]

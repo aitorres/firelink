@@ -20,6 +20,8 @@ import           System.Environment                 (getArgs)
 import           System.Exit                        (exitFailure, exitSuccess)
 import           System.FilePath                    (takeExtension)
 
+import           Data.Semigroup                     ((<>))
+import           Options.Applicative
 import           System.IO                          (IOMode (..), hGetContents,
                                                      hPutStr, openFile, stderr)
 import qualified TACType                            as TAC
@@ -282,46 +284,87 @@ printInterferenceGraph'' (vertexMap, graph) registerAssignment = do
                 printEdges v
             else checkValidity vs
 
-compile :: String -> Maybe String -> IO ()
-compile program compileFlag = do
+compile :: String -> CommandLineArgs -> IO ()
+compile program args = do
     compilerResult <- frontEnd program
     case compilerResult of
         Left e -> uncurry handleCompileError e >> exitFailure
         Right (ast, symTable, tokens) -> do
             ((numberedBlocks, flowGraph), interferenceGraph, registerAssignment) <- backend ast (ST.stDict symTable)
-            case compileFlag of
-                Nothing -> do
-                    -- -- Default behavior: print everything
-                    -- putStrLn "\nFireLink: Printing SymTable"
-                    -- prettyPrintSymTable symTable
-                    -- putStrLn "\nFireLink: Printing recognized program"
-                    -- printProgram True tokens
-                    -- putStrLn "\nFireLink: Printing Intermediate Representation in Three-Address Code"
-                    -- printTacCode tacCode
-                    -- putStrLn "\nFireLink: Printing basic blocks (numbered, starting at 0)"
-                    -- printBasicBlocks blocksWithInterGraphs
-                    putStrLn "\nFireLink: Printing flow graph"
-                    printFlowGraph flowGraph
-                    putStrLn "FireLink: printing register assignment with interference graph"
-                    printInterferenceGraph'' interferenceGraph registerAssignment
-                    return ()
-                Just flag
-                    | flag `elem` ["-f", "--frontend"] -> prettyPrintSymTable symTable >> printProgram True tokens
-                    | flag `elem` ["-s", "--symtable"] -> prettyPrintSymTable symTable
-                    | flag `elem` ["-p", "--program"] -> printProgram True tokens
-                    | flag `elem` ["-t", "--tac"] -> printTacCode $ concatMap snd numberedBlocks
-                    | flag `elem` ["-b", "--blocks"] -> printBasicBlocks numberedBlocks
-                    | flag `elem` ["-g", "--graph"] -> printFlowGraph flowGraph
-                    | otherwise -> failByUnknownFlag
+            unless (anyArg args) $ do
+                -- Default behavior: print everything
+                putStrLn "\nFireLink: Printing SymTable"
+                prettyPrintSymTable symTable
+                putStrLn "\nFireLink: Printing recognized program"
+                printProgram True tokens
+                putStrLn "\nFireLink: Printing Intermediate Representation in Three-Address Code"
+                printTacCode $ concatMap snd numberedBlocks
+                putStrLn "\nFireLink: Printing basic blocks (numbered, starting at 0)"
+                printBasicBlocks numberedBlocks
+                putStrLn "\nFireLink: Printing flow graph"
+                printFlowGraph flowGraph
+                putStrLn "FireLink: printing register assignment with interference graph"
+                printInterferenceGraph'' interferenceGraph registerAssignment
+                return ()
+            unless (showSymTable args && showProgram args) $ prettyPrintSymTable symTable >> printProgram True tokens
+            unless (showSymTable args) $ prettyPrintSymTable symTable
+            unless (showProgram args) $ printProgram True tokens
+            unless (showTac args) $ printTacCode $ concatMap snd numberedBlocks
+            unless (showBlocks args) $ printBasicBlocks numberedBlocks
+            unless (showGraph args) $ printFlowGraph flowGraph
+            unless (showRegisterAssignment args) $ printInterferenceGraph'' interferenceGraph registerAssignment
             exitSuccess
 
-firelink :: IO ()
-firelink = do
-    args <- getArgs
-    if null args then failByEmptyArgs
+anyArg :: CommandLineArgs -> Bool
+anyArg args = all not $ map (\f -> f args) [showSymTable, showProgram, showTac, showBlocks, showGraph, showRegisterAssignment]
+
+data CommandLineArgs = CommandLineArgs
+    { filename :: String
+    , showSymTable :: Bool
+    , showProgram :: Bool
+    , showTac :: Bool
+    , showBlocks :: Bool
+    , showGraph :: Bool
+    , showRegisterAssignment :: Bool
+    }
+
+commandLineParser :: Parser CommandLineArgs
+commandLineParser =
+    CommandLineArgs
+        <$> argument str
+            ( metavar "FILENAME"
+            <> value ""
+            )
+        <*> switch
+            ( long "symtable"
+            <> short 's'
+            <> help "Show symtable" )
+        <*> switch
+            ( long "program"
+            <> short 'p'
+            <> help "Print colorized program" )
+        <*> switch
+            ( long "tac"
+            <> short 't'
+            <> help "Print all three-address code" )
+        <*> switch
+            ( long "blocks"
+            <> short 'b'
+            <> help "Print all basic blocks" )
+        <*> switch
+            ( long "graph"
+            <> short 'g'
+            <> help "Print flow graph" )
+        <*> switch
+            ( long "register"
+            <> short 'r'
+            <> help "Print register assignment" )
+
+compiler :: CommandLineArgs -> IO ()
+compiler commandLineArgs = do
+    let programFile = filename commandLineArgs
+    if null programFile then failByEmptyArgs
     else do
-        let programFile = head args
-        let compileFlag = if length args < 2 then Nothing else Just (args !! 1)
         fileExists <- doesFileExist programFile
         if fileExists then
             if takeExtension programFile /= ".souls" then failByFileExtension
@@ -329,5 +372,27 @@ firelink = do
                 handle <- openFile programFile ReadMode
                 contents <- hGetContents handle
                 if null contents then failByEmptyFile
-                else compile contents compileFlag
+                else compile contents commandLineArgs
         else failByNonExistantFile programFile
+
+firelink :: IO ()
+firelink = compiler =<< execParser opts
+    -- commandLineArgs <- execParser opts
+    -- if null args then failByEmptyArgs
+    -- else do
+    --     let programFile = head args
+    --     let compileFlag = if length args < 2 then Nothing else Just (args !! 1)
+    --     fileExists <- doesFileExist programFile
+    --     if fileExists then
+    --         if takeExtension programFile /= ".souls" then failByFileExtension
+    --         else do
+    --             handle <- openFile programFile ReadMode
+    --             contents <- hGetContents handle
+    --             if null contents then failByEmptyFile
+    --             else compile contents compileFlag
+    --     else failByNonExistantFile programFile
+  where
+    opts = info (commandLineParser <**> helper)
+      ( fullDesc
+     <> progDesc "Compiles a FireLink program to MIPS32"
+     <> header "firelink - a compiler for FireLink programming language" )
