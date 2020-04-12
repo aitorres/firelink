@@ -2,7 +2,7 @@ module FireLink (
     firelink
 ) where
 
-import           Control.Monad                      (unless)
+import           Control.Monad                      (unless, when)
 import qualified Control.Monad.RWS                  as RWS
 import qualified Data.Graph                         as G
 import           Data.List                          (groupBy, intercalate)
@@ -20,6 +20,7 @@ import           System.Environment                 (getArgs)
 import           System.Exit                        (exitFailure, exitSuccess)
 import           System.FilePath                    (takeExtension)
 
+import           Data.Map.Internal.Debug            (showTree)
 import           Data.Semigroup                     ((<>))
 import           Options.Applicative
 import           System.IO                          (IOMode (..), hGetContents,
@@ -246,6 +247,10 @@ printInterferenceGraph'' (vertexMap, graph) registerAssignment = do
     let vs = G.vertices graph
     let es = G.edges graph
     putStrLn $ bold ++ "Graph (" ++ (show . length) vs ++ " variables, " ++ (show . length) es ++ " interferences)" ++ nocolor
+    -- putStrLn "vertexMap"
+    -- putStrLn $ showTree vertexMap
+    -- putStrLn "registerAssignment"
+    -- putStrLn $ showTree registerAssignment
     mapM_ printEdges vs
     checkValidity vs
     where
@@ -287,6 +292,7 @@ printInterferenceGraph'' (vertexMap, graph) registerAssignment = do
 compile :: String -> CommandLineArgs -> IO ()
 compile program args = do
     compilerResult <- frontEnd program
+    print args
     case compilerResult of
         Left e -> uncurry handleCompileError e >> exitFailure
         Right (ast, symTable, tokens) -> do

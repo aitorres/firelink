@@ -15,7 +15,6 @@ Register allocation is made using optimistic colouring algorithm from Chaitan/Br
 Data.Graph.Graph represents directed graphs, but we actually need undirected. So, we need
 to remember that the existence of edge (i, j) implies that (j, i) exists (when i /= j)
 
-TODO: in each step of `run` method mark what properties of state are used and how (read/write)
 -}
 module FireLink.BackEnd.RegisterAllocationProcess (run, RegisterAssignment, Register(..)) where
 
@@ -149,6 +148,12 @@ getVarSpillCost v = do
 -- | Helper to get whole program from state
 getProgramFlowGraph :: ColorState FlowGraph
 getProgramFlowGraph = csProgramFlowGraph <$> State.get
+
+-- | Helper to replace program flow graph
+putProgramFlowGraph :: FlowGraph -> ColorState ()
+putProgramFlowGraph flowGraph = do
+    c <- State.get
+    State.put c{csProgramFlowGraph = flowGraph}
 
 -- | Helper to replace interference graph on current state
 putInterferenceGraph :: InterferenceGraph -> ColorState ()
@@ -479,6 +484,32 @@ select = do
             let color = pickAColor neighboursColors
             colorVertex vertex color
 
+-- | If graph coloration fails i.e. there are spilled vertices, we need to add spill code in order to minimize
+-- | live ranges and make the interference graph less constrained
+spill :: ColorState ()
+spill = do
+    (numberedBlocks, flowGraph) <- getProgramFlowGraph
+    (vertexToVarMap, _) <- getInterferenceGraph
+    spilledVertices <- Set.map (vertexToVarMap Map.!) <$> getSpilledVertices
+    let newNumberedBlocks = map (spillBlock spilledVertices) numberedBlocks
+    putProgramFlowGraph (newNumberedBlocks, flowGraph)
+    where
+        spillBlock :: Set.Set TACSymEntry -> NumberedBlock -> NumberedBlock
+        spillBlock spilledVertices (blockId, tacs) = (blockId, concatMap (addSpill spilledVertices) tacs)
+
+        addSpill :: Set.Set TACSymEntry -> TAC -> [TAC]
+        -- | We don't have to spill a load or store
+        addSpill _ tac@(ThreeAddressCode op _ _ _)
+            | op `elem` [Load, Store] = [tac]
+        addSpill spilledVertices tac =
+            let isSpillVertex = filter (`Set.member` spilledVertices)
+                makeLoad var = ThreeAddressCode Load (Just (Id var)) Nothing Nothing
+                makeStore var = ThreeAddressCode Store (Just (Id var)) Nothing Nothing
+                loadTacs = map makeLoad $ isSpillVertex $ Set.toList $ use1 tac
+                storeTacs = map makeStore $ isSpillVertex $ Set.toList $ def1 tac
+            in
+                loadTacs ++ [tac] ++ storeTacs
+
 
 -- | Actually runs chaitain/briggs optimistic coloring algorithm to produce new code with
 -- | mappings between variables and their assigned registers
@@ -508,12 +539,14 @@ run flowGraph dict = State.evalStateT go initialState
             costs
             simplify
             spilledVertices <- getSpilledVertices
+
+            State.liftIO $ putStrLn $ Set.showTree spilledVertices
+            (vertexToVarMap, _) <- getInterferenceGraph
+            State.lift $ putStrLn $ Set.showTree $ Set.map (vertexToVarMap Map.!) spilledVertices
             -- | We successfully found an assignment of registers that didn't caused spills
             if Set.null spilledVertices then
                 select
-            else
-            -- | TODO: add spill code here
-                undefined
+            else spill >> go
 
 
 printAllState :: ColorState ()
