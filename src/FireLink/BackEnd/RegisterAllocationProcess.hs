@@ -44,6 +44,9 @@ newtype Register = Register Int
 
 type Color = Register
 
+availableColors :: Set.Set Color
+availableColors = Set.map Register availableRegisters
+
 -- | Associate a variable with a color (register). If the variable isn't in the
 -- | map we can say that it needs to be spilled
 type SymEntryRegisterMap = Map.Map TACSymEntry Color
@@ -81,8 +84,8 @@ type ColorState = State.State ColorationState
 -------------------------------------------------------
 
 -- | Helper to get the colored vertices
-getColoredVertices :: ColorState (Map.Map G.Vertex Color)
-getColoredVertices = csColoredVertices <$> State.get
+getColoredVerticesMap :: ColorState (Map.Map G.Vertex Color)
+getColoredVerticesMap = csColoredVertices <$> State.get
 
 -- | Helper to modify colored vertices map state
 putColoredVertices :: Map.Map G.Vertex Color -> ColorState ()
@@ -93,7 +96,7 @@ putColoredVertices m = do
 -- | Helper to color a vertex
 colorVertex :: G.Vertex -> Color -> ColorState ()
 colorVertex vertex color = do
-    m <- getColoredVertices
+    m <- getColoredVerticesMap
     putColoredVertices $ Map.insert vertex color m
 
 -- | Helper to get spilled vertices
@@ -409,7 +412,13 @@ costs = do
 select :: ColorState (SymEntryRegisterMap, FlowGraph)
 select = do
     colorationStack <- getVertexStack
-    undefined
+    mapM_ assignColor colorationStack
+    flowGraph <- getProgramFlowGraph
+    vertexColorMap <- getColoredVerticesMap
+    (vertexToVarMap, _) <- getInterferenceGraph
+    let mapVarToColor (vertex, color) = (vertexToVarMap Map.! vertex, color)
+    let symEntryRegisterMap = Map.fromList $ map mapVarToColor $ Map.toList vertexColorMap
+    return (symEntryRegisterMap, flowGraph)
     where
         -- | Gets the colors of the neighbours of a vertex in the current graph
         -- | Pre: we need to ensure that vertex v is already on the graph
@@ -418,14 +427,14 @@ select = do
             let isNeighbour (a, b) = vertex `elem` [a, b]
             let extractNeightbours (a, b) = if vertex == a then b else a
             neighbours <- Set.fromList . map extractNeightbours . filter isNeighbour . G.edges <$> getGraph
-            colorMap <- getColoredVertices
+            colorMap <- getColoredVerticesMap
             return $ Set.map (colorMap Map.!) neighbours
 
         -- | Add a vertex to the current graph, attaching edges between vertices on it that
         -- | existed on the original interferenceGraph
         addVertex :: G.Vertex -> ColorState ()
         addVertex vertex = do
-            currentVerticesSet <- Set.fromList . Map.keys <$> getColoredVertices
+            currentVerticesSet <- Set.fromList . Map.keys <$> getColoredVerticesMap
             let edgeFilter (a, b) = (vertex == a && b `Set.member` currentVerticesSet) || (vertex == b && a `Set.member` currentVerticesSet)
             -- | We only care about edges that start/end on `vertex` and whose other vertex is already colored
             edgesToAddToCurrent <- Set.fromList . filter edgeFilter . G.edges . snd <$> getInterferenceGraph
@@ -433,9 +442,18 @@ select = do
             let currentEdgesAsSet = Set.fromList $ G.edges currentGraph
             putGraph $ G.buildG (graphBounds currentGraph) $ Set.toList $ currentEdgesAsSet `Set.union` edgesToAddToCurrent
 
+        -- | Pick a color from the available list that isn't already on the set supplied
+        pickAColor :: Set.Set Color -> Color
+        pickAColor = head . Set.toList . (availableColors `Set.difference`)
+
         -- | Assigns a color to a vertex, taking into account all of its current neighbours
-        assignColor :: G.Vertex -> ColorState Color
-        assignColor vertex = undefined
+        assignColor :: G.Vertex -> ColorState ()
+        assignColor vertex = do
+            addVertex vertex
+            neighboursColors <- getNeighboursColors vertex
+            let color = pickAColor neighboursColors
+            colorVertex vertex color
+
 
 -- | Actually runs chaitain/briggs optimistic coloring algorithm to produce new code with
 -- | mappings between variables and their assigned registers
