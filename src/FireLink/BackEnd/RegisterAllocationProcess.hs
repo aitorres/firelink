@@ -37,6 +37,68 @@ import           TACType
 type Register = Int
 type Color = Register
 
+-- | Coloration state for the optimistic coloring algorithm by Chaitan/Briggs, as exposed
+-- | on classroom slides.
+data ColorationState = ColorationState
+    { csGraph :: !G.Graph -- ^ state graph
+    , csDeletedVertices :: !(Set.Set G.Vertex) -- ^ Set of deleted vertices
+    , csRegisterStack :: ![G.Vertex] -- ^ register stack
+    }
+
+-- | Data.Graph graph representation is made by a range of integers describeing the set of vertices
+-- | So we can't exactly delete a single vertex, only remove all edges where it appears.
+-- | Even Data.Graph.outdegree will say that its outdegree is 0, so we need to have a set of deleted vertices
+-- | as well.
+type ColorState = State.State ColorationState
+
+-- | Helper to get the graph in a ColorState execution
+getGraph :: ColorState G.Graph
+getGraph = csGraph <$> State.get
+
+putGraph :: G.Graph -> ColorState ()
+putGraph graph = do
+    c <- State.get
+    State.put c{csGraph = graph}
+
+-- | Helper to get deleted vertices set in a ColorState execution
+getDeletedVertices :: ColorState (Set.Set G.Vertex)
+getDeletedVertices = csDeletedVertices <$> State.get
+
+putDeletedVertices :: Set.Set G.Vertex -> ColorState ()
+putDeletedVertices vertices = do
+    c <- State.get
+    State.put c{csDeletedVertices = vertices}
+
+-- | Helper to get current stack
+getRegisterStack :: ColorState [G.Vertex]
+getRegisterStack = csRegisterStack <$> State.get
+
+-- | Helper to put register stack
+putRegisterStack :: [G.Vertex] -> ColorState ()
+putRegisterStack stack = do
+    c <- State.get
+    State.put c{csRegisterStack = stack}
+
+-- | Push a register on top of the state's stack
+pushRegister :: Register -> ColorState ()
+pushRegister reg = do
+    stack <- getRegisterStack
+    putRegisterStack $ reg : stack
+
+
+graphBounds :: G.Graph -> G.Bounds
+graphBounds graph = (0, length $ G.vertices graph)
+
+deleteVertex :: G.Vertex -> ColorState ()
+deleteVertex vertex = do
+    graph <- getGraph
+    deletedVertices <- getDeletedVertices
+    let newEdges = filter (\(a, b) -> a /= vertex && b /= vertex) $ G.edges graph
+
+    putGraph $ G.buildG (graphBounds graph) newEdges
+    putDeletedVertices $ vertex `Set.insert` deletedVertices
+
+
 -- | Associate a variable with a color (register). If the variable isn't in the
 type SymEntryRegisterMap = Map.Map TACSymEntry Color
 
@@ -117,69 +179,9 @@ initialStep flowGraph@(numberedBlocks, graph) dict =
         go' (_, tac) = [tac]
 
 
--- | Coloration state for the ColorState
-data ColorationState = ColorationState
-    { csGraph :: !G.Graph -- ^ state graph
-    , csDeletedVertices :: !(Set.Set G.Vertex) -- ^ Set of deleted vertices
-    , csRegisterStack :: ![G.Vertex] -- ^ register stack
-    }
-
--- | Data.Graph graph representation is made by a range of integers describeing the set of vertices
--- | So we can't exactly delete a single vertex, only remove all edges where it appears.
--- | Even Data.Graph.outdegree will say that its outdegree is 0, so we need to have a set of deleted vertices
--- | as well.
-type ColorState = State.State ColorationState
-
--- | Helper to get the graph in a ColorState execution
-getGraph :: ColorState G.Graph
-getGraph = csGraph <$> State.get
-
-putGraph :: G.Graph -> ColorState ()
-putGraph graph = do
-    c <- State.get
-    State.put c{csGraph = graph}
-
--- | Helper to get deleted vertices set in a ColorState execution
-getDeletedVertices :: ColorState (Set.Set G.Vertex)
-getDeletedVertices = csDeletedVertices <$> State.get
-
-putDeletedVertices :: Set.Set G.Vertex -> ColorState ()
-putDeletedVertices vertices = do
-    c <- State.get
-    State.put c{csDeletedVertices = vertices}
-
--- | Helper to get current stack
-getRegisterStack :: ColorState [G.Vertex]
-getRegisterStack = csRegisterStack <$> State.get
-
--- | Helper to put register stack
-putRegisterStack :: [G.Vertex] -> ColorState ()
-putRegisterStack stack = do
-    c <- State.get
-    State.put c{csRegisterStack = stack}
-
--- | Push a register on top of the state's stack
-pushRegister :: Register -> ColorState ()
-pushRegister reg = do
-    stack <- getRegisterStack
-    putRegisterStack $ reg : stack
-
-
-graphBounds :: G.Graph -> G.Bounds
-graphBounds graph = (0, length $ G.vertices graph)
-
-deleteVertex :: G.Vertex -> ColorState ()
-deleteVertex vertex = do
-    graph <- getGraph
-    deletedVertices <- getDeletedVertices
-    let newEdges = filter (\(a, b) -> a /= vertex && b /= vertex) $ G.edges graph
-
-    putGraph $ G.buildG (graphBounds graph) newEdges
-    putDeletedVertices $ vertex `Set.insert` deletedVertices
-
--- | Attempts to color a graph using
-attemptToColor :: InterferenceGraph -> ColorationState
-attemptToColor (varToVertexMap, interferenceGraph) =
+-- | Attempts to color a graph with the number of general-purpose registers
+simplify :: InterferenceGraph -> ColorationState
+simplify (varToVertexMap, interferenceGraph) =
     State.execState go initialState
 
     where
