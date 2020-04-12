@@ -39,6 +39,11 @@ import           TACType
 type Register = Int
 type Color = Register
 
+-- | Associate a variable with a color (register). If the variable isn't in the
+-- | map we can say that it needs to be spilled
+type SymEntryRegisterMap = Map.Map TACSymEntry Color
+
+
 -- | Coloration state for the optimistic coloring algorithm by Chaitan/Briggs, as exposed
 -- | on classroom slides.
 data ColorationState = ColorationState
@@ -69,6 +74,10 @@ putInterferenceGraph :: InterferenceGraph -> ColorState ()
 putInterferenceGraph interferenceGraph = do
     c <- State.get
     State.put c{csInterferenceGraph = interferenceGraph}
+
+-- | Helper to get interference grpah on current state
+getInterferenceGraph :: ColorState InterferenceGraph
+getInterferenceGraph = csInterferenceGraph <$> State.get
 
 -- | helper to replace livenesss information
 putLivenessInformation :: [LineLiveVariables] -> ColorState ()
@@ -123,9 +132,6 @@ deleteVertex vertex = do
     putGraph $ G.buildG (graphBounds graph) newEdges
     putDeletedVertices $ vertex `Set.insert` deletedVertices
 
-
--- | Associate a variable with a color (register). If the variable isn't in the
-type SymEntryRegisterMap = Map.Map TACSymEntry Color
 
 -- | Generate attempting final TAC assumming that we will have infinite registers i.e one register per actual variable
 -- | Also, before and after functions call live variables at that point will be saved to and loaded from memory respectively.
@@ -205,20 +211,14 @@ initialStep flowGraph@(numberedBlocks, graph) dict =
 
 
 -- | Attempts to color a graph with the number of general-purpose registers
-simplify :: InterferenceGraph -> ColorationState
-simplify (varToVertexMap, interferenceGraph) =
-    State.execState go initialState
-
+simplify :: ColorState ()
+simplify = go
     where
-        numberOfVertices :: Int
-        numberOfVertices = length $ G.vertices interferenceGraph
+        numberOfVertices :: ColorState Int
+        numberOfVertices = do
+            (_, interferenceGraph) <- getInterferenceGraph
+            return $ length $ G.vertices interferenceGraph
 
-        initialState :: ColorationState
-        initialState = ColorationState {
-            csGraph = interferenceGraph,
-            csDeletedVertices = Set.empty,
-            csRegisterStack = []
-        }
         numberOfColors :: Int
         numberOfColors = length availableRegisters
 
@@ -243,8 +243,9 @@ simplify (varToVertexMap, interferenceGraph) =
         go :: ColorState ()
         go = do
             deletedVertices <- getDeletedVertices
+            numOfVertices <- numberOfVertices
             -- | If every vertex was deleted, then coloration is finished
-            if Set.size deletedVertices == numberOfVertices then
+            if Set.size deletedVertices == numOfVertices then
                 return ()
             -- | Otherwise, let's keep coloration
             else do
@@ -265,3 +266,30 @@ build = do
     let (interferenceGraph, livenessInfo) = generateInterferenceGraph' flowGraph
     putInterferenceGraph interferenceGraph
     putLivenessInformation livenessInfo
+
+
+-- | Actually runs chaitain/briggs optimistic coloring algorithm to produce new code with
+-- | mappings between variables and their assigned registers
+run :: FlowGraph -> (SymEntryRegisterMap, FlowGraph)
+run flowGraph = State.evalState go (initialState flowGraph)
+    where
+        initialState :: FlowGraph -> ColorationState
+        initialState flowGraph =
+            ColorationState
+                { csGraph = G.buildG (0, 1) [] -- dummy value
+                , csDeletedVertices = Set.empty -- dummy value
+                , csRegisterStack = [] -- dummy value
+                , csProgramFlowGraph = flowGraph
+                , csInterferenceGraph = (Map.empty, G.buildG (0, 1) []) -- dummy value
+                , csLivenessInformation = [] -- dummy value
+                }
+
+        go :: ColorState (SymEntryRegisterMap, FlowGraph)
+        go = do
+            build
+            -- TODO: implement `coalesce`, we can live without it by the moment
+            -- costs
+
+            simplify
+            undefined
+
