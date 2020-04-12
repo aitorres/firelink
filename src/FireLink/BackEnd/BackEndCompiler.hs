@@ -5,7 +5,9 @@ module FireLink.BackEnd.BackEndCompiler (
 import           Control.Monad.RWS                          (runRWST)
 import           Control.Monad.State
 import           Data.Graph                                 (Graph)
+import qualified Data.Graph                                 as G
 import           Data.List                                  (intercalate)
+import qualified Data.Map                                   as Map
 import           FireLink.BackEnd.CodeGenerator             (CodeGenState (..),
                                                              SimpleType (..),
                                                              TAC (..),
@@ -35,7 +37,8 @@ backend program dictionary = do
     let livenessAnalysisResult = livenessAnalyser flowGraph
     let interferenceGraph' = generateInterferenceGraph' flowGraph
 
-    let (initialRegisterAssignment, (newNumberedBlocks, _)) = initialStep flowGraph dictionary
+    let (initialRegisterAssignment, flowGraph'@(newNumberedBlocks, _)) = initialStep flowGraph dictionary
+    let interferenceGraph'' = generateInterferenceGraph' flowGraph'
 
 
     putStrLn "Before first step"
@@ -43,6 +46,14 @@ backend program dictionary = do
     putStrLn "After first step"
     printBasicBlocks newNumberedBlocks
     mapM_ print livenessAnalysisResult
+
+    putStrLn "Interference grahp before code manipulation assignment"
+    printInterferenceGraph' interferenceGraph'
+
+    putStrLn "Initial register assignment"
+    printRegisterAssignment initialRegisterAssignment
+    putStrLn "Interference grahp after codemanipulation assignment"
+    printInterferenceGraph' interferenceGraph''
     return (optimizedCode, blocksWithInterGraphs, graph, interferenceGraph')
     where
         fillEmptyTemporals :: [(TACSymEntry, Int)] -> [TAC] -> [TAC]
@@ -77,3 +88,35 @@ printBasicBlocks = mapM_ printBlock
             let (i, cb) = nb
             putStrLn $ bold ++ "Block " ++ show i ++ nocolor
             printTacCode cb
+
+printInterferenceGraph' :: InterferenceGraph -> IO ()
+printInterferenceGraph' (vertexMap, graph) = do
+    let vs = G.vertices graph
+    let es = G.edges graph
+    putStrLn $ bold ++ "Graph (" ++ (show . length) vs ++ " variables, " ++ (show . length) es ++ " interferences)" ++ nocolor
+    mapM_ printEdges vs
+    where
+        successors :: G.Vertex -> [G.Vertex]
+        successors vertex =
+            let graphEdges = G.edges graph
+                outgoingEdges = filter ((== vertex) . fst) graphEdges
+                successors' = map snd outgoingEdges
+            in successors'
+
+        printEdges :: G.Vertex -> IO ()
+        printEdges v = do
+            let originName = show $ vertexMap Map.! v
+            let destinies = successors v
+            putStrLn $ bold ++ originName ++ nocolor ++ " -> " ++ printDestinies destinies
+
+        printDestinies :: [Int] -> String
+        printDestinies destinies = joinWithCommas $ map (vertexMap Map.!) destinies
+
+printRegisterAssignment :: SymEntryRegisterMap -> IO ()
+printRegisterAssignment registerMap = do
+    let pairList = Map.toList registerMap
+    mapM_ prettyPrint pairList
+    where
+        prettyPrint :: (TACSymEntry, Register) -> IO ()
+        prettyPrint (tacSymEntry, register) =
+            putStrLn $ bold ++ show tacSymEntry ++ nocolor ++ " => " ++ show register

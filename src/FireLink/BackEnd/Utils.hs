@@ -10,3 +10,8 @@ fixedPoint = until =<< ((==) =<<)
 -- | in the original order
 numberList :: [a] -> [(Int, a)]
 numberList = zip [0..]
+
+
+-- | List of available registers for MIPS32
+availableRegisters :: [Int]
+availableRegisters = [4 .. 25]

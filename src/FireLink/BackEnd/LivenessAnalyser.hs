@@ -19,7 +19,7 @@ import           TACType
 -- | Operations that consists of an assignment of a value to a lvalue
 -- | TODO: Add pointer operations here when their implementation is ready
 assignableOperations :: [Operation]
-assignableOperations = [Assign, Add, Minus, Sub, Mult, Div, Mod, Get, Call, Set]
+assignableOperations = [Assign, Add, Minus, Sub, Mult, Div, Mod, Get, Call, Set, Load]
 
 -- | Calculate variable definitions of a basic block, used by data-flow analysis algorithm for liveness analysis
 -- | Mathematically, def[B] = union of def[n] for n in B.indices
@@ -186,6 +186,7 @@ type InterferenceGraph = (Map.Map Int TACSymEntry, Graph.Graph)
 -- | by checking all of its instructions, one by one, as an undirected
 -- | graph.
 -- | (helpful resource: http://lambda.uta.edu/cse5317/spring03/notes/node40.html)
+-- | TODO: This function is probably going to be deprecated and deleted in the future
 generateInterferenceGraph :: BasicBlock -> InterferenceGraph
 generateInterferenceGraph block =
     let nodes = getAllVariables block
@@ -229,11 +230,12 @@ generateInterferenceGraph' flowGraph'@(numberedBlocks, flowGraph) =
                 let d = defN tac
                     o = outN out
                     tac = getTac instrId
-                    res = d `Set.cartesianProduct` o
+                    res = (o `Set.cartesianProduct` d) `Set.union` (d `Set.cartesianProduct` o)
                     in Set.filter (uncurry (/=)) $ case tac of
                         ThreeAddressCode Assign (Just (Id v)) _ _ ->
                             let varId = vertexMapLookup v
-                                toDelete = d `Set.cartesianProduct` Set.singleton varId
+                                sing = Set.singleton varId
+                                toDelete = (sing `Set.cartesianProduct` d) `Set.union` (d `Set.cartesianProduct` sing)
                                 in res Set.\\ toDelete
                         _ -> res
 
