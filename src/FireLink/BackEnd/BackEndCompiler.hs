@@ -1,5 +1,6 @@
 module FireLink.BackEnd.BackEndCompiler (
-    backend
+    backend, Register(..), RegisterAssignment, InterferenceGraph, NumberedBlock, TAC(..), TACSymEntry(..),
+    def, use
 ) where
 
 import           Control.Monad.RWS                          (runRWST)
@@ -14,7 +15,8 @@ import           FireLink.BackEnd.CodeGenerator             (CodeGenState (..),
                                                              TACSymEntry (..),
                                                              genCode,
                                                              initialState)
-import           FireLink.BackEnd.FlowGraphGenerator        (NumberedBlock,
+import           FireLink.BackEnd.FlowGraphGenerator        (FlowGraph,
+                                                             NumberedBlock,
                                                              generateFlowGraph)
 import           FireLink.BackEnd.InstructionCodeGenerator
 import           FireLink.BackEnd.LivenessAnalyser
@@ -27,21 +29,16 @@ import           TACType
 
 import           Data.Map.Internal.Debug                    (showTree)
 
-backend :: Program -> Dictionary -> IO ([TAC], [(NumberedBlock, InterferenceGraph)], Graph, InterferenceGraph)
+backend :: Program -> Dictionary -> IO (FlowGraph, InterferenceGraph, RegisterAssignment)
 backend program dictionary = do
     (_, finalState, code) <- runRWST (genCode program) dictionary initialState
     let postProcessedCode = fillEmptyTemporals (cgsTemporalsToReplace finalState) code
     let optimizedCode = optimize postProcessedCode
     let flowGraph@(numberedBlocks, graph) = generateFlowGraph optimizedCode
-    let basicBlocks = map snd numberedBlocks
-    let interferenceGraphs = map generateInterferenceGraph basicBlocks
-    let blocksWithInterGraphs = zip numberedBlocks interferenceGraphs
-    let livenessAnalysisResult = livenessAnalyser flowGraph
-    let (interferenceGraph', _) = generateInterferenceGraph' flowGraph
 
-    let (registerAssignment, finalNumberedBlock) = run flowGraph dictionary
-    putStrLn $ showTree registerAssignment
-    return (optimizedCode, blocksWithInterGraphs, graph, interferenceGraph')
+    let (registerAssignment, finalFlowGraph) = run flowGraph dictionary
+    let (interferenceGraph'', _) = generateInterferenceGraph' finalFlowGraph
+    return (finalFlowGraph, interferenceGraph'', registerAssignment)
     where
         fillEmptyTemporals :: [(TACSymEntry, Int)] -> [TAC] -> [TAC]
         fillEmptyTemporals tempsToReplace = map (patchTac tempsToReplace)
@@ -63,47 +60,3 @@ backend program dictionary = do
         matchTemps (TACTemporal i _) (TACTemporal i' _) = i == i'
         matchTemps _ _                                  = False
 
-
-printTacCode :: [TAC] -> IO ()
-printTacCode = mapM_ print
-
-printBasicBlocks :: [NumberedBlock] -> IO ()
-printBasicBlocks = mapM_ printBlock
-    where
-        printBlock :: NumberedBlock -> IO ()
-        printBlock nb = do
-            let (i, cb) = nb
-            putStrLn $ bold ++ "Block " ++ show i ++ nocolor
-            printTacCode cb
-
-printInterferenceGraph' :: InterferenceGraph -> IO ()
-printInterferenceGraph' (vertexMap, graph) = do
-    let vs = G.vertices graph
-    let es = G.edges graph
-    putStrLn $ bold ++ "Graph (" ++ (show . length) vs ++ " variables, " ++ (show . length) es ++ " interferences)" ++ nocolor
-    mapM_ printEdges vs
-    where
-        successors :: G.Vertex -> [G.Vertex]
-        successors vertex =
-            let graphEdges = G.edges graph
-                outgoingEdges = filter ((== vertex) . fst) graphEdges
-                successors' = map snd outgoingEdges
-            in successors'
-
-        printEdges :: G.Vertex -> IO ()
-        printEdges v = do
-            let originName = show $ vertexMap Map.! v
-            let destinies = successors v
-            putStrLn $ bold ++ originName ++ nocolor ++ " -> " ++ printDestinies destinies
-
-        printDestinies :: [Int] -> String
-        printDestinies destinies = joinWithCommas $ map (vertexMap Map.!) destinies
-
-printRegisterAssignment :: SymEntryRegisterMap -> IO ()
-printRegisterAssignment registerMap = do
-    let pairList = Map.toList registerMap
-    mapM_ prettyPrint pairList
-    where
-        prettyPrint :: (TACSymEntry, Register) -> IO ()
-        prettyPrint (tacSymEntry, register) =
-            putStrLn $ bold ++ show tacSymEntry ++ nocolor ++ " => " ++ show register

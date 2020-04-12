@@ -14,8 +14,10 @@ Register allocation is made using optimistic colouring algorithm from Chaitan/Br
 
 Data.Graph.Graph represents directed graphs, but we actually need undirected. So, we need
 to remember that the existence of edge (i, j) implies that (j, i) exists (when i /= j)
+
+TODO: in each step of `run` method mark what properties of state are used and how (read/write)
 -}
-module FireLink.BackEnd.RegisterAllocationProcess (run, SymEntryRegisterMap, Register(..)) where
+module FireLink.BackEnd.RegisterAllocationProcess (run, RegisterAssignment, Register(..)) where
 
 import qualified Control.Monad.State                 as State
 import qualified Data.Array                          as A
@@ -52,7 +54,7 @@ availableColors = Set.map Register availableRegisters
 
 -- | Associate a variable with a color (register). If the variable isn't in the
 -- | map we can say that it needs to be spilled
-type SymEntryRegisterMap = Map.Map TACSymEntry Color
+type RegisterAssignment = Map.Map TACSymEntry Color
 
 
 -- | Coloration state for the optimistic coloring algorithm by Chaitan/Briggs, as exposed
@@ -231,7 +233,7 @@ initialStep flowGraph@(numberedBlocks, graph) dict = (preProcessCode, graph)
         initialRegisters = map Register [0 .. Set.size programVariables - 1]
 
         -- | Map for each tac to its initial register
-        variableRegisterMap :: SymEntryRegisterMap
+        variableRegisterMap :: RegisterAssignment
         variableRegisterMap = Map.fromList $ zip (Set.toList programVariables) initialRegisters
 
         initialLivenessAnalysis :: [LineLiveVariables]
@@ -411,7 +413,7 @@ costs = do
 
 -- | Based on the stack, the actual interference graph and knowing that **no** register was spilled, we
 -- | finally attempt to color registers
-select :: ColorState (SymEntryRegisterMap, FlowGraph)
+select :: ColorState (RegisterAssignment, FlowGraph)
 select = do
     colorationStack <- getVertexStack
     mapM_ assignColor colorationStack
@@ -459,7 +461,7 @@ select = do
 
 -- | Actually runs chaitain/briggs optimistic coloring algorithm to produce new code with
 -- | mappings between variables and their assigned registers
-run :: FlowGraph -> Dictionary -> (SymEntryRegisterMap, FlowGraph)
+run :: FlowGraph -> Dictionary -> (RegisterAssignment, FlowGraph)
 run flowGraph dict = State.evalState go initialState
     where
         initialState :: ColorationState
@@ -478,7 +480,7 @@ run flowGraph dict = State.evalState go initialState
                 , csColoredVertices = Map.empty -- dummy value
                 }
 
-        go :: ColorState (SymEntryRegisterMap, FlowGraph)
+        go :: ColorState (RegisterAssignment, FlowGraph)
         go = do
             build
             -- TODO: implement `coalesce`, we can live without it by the moment
