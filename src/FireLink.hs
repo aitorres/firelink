@@ -291,7 +291,7 @@ compile program args = do
         Left e -> uncurry handleCompileError e >> exitFailure
         Right (ast, symTable, tokens) -> do
             ((numberedBlocks, flowGraph), interferenceGraph, registerAssignment) <- backend ast (ST.stDict symTable)
-            unless (anyArg args) $ do
+            when (anyArg args) $ do
                 -- Default behavior: print everything
                 putStrLn "\nFireLink: Printing SymTable"
                 prettyPrintSymTable symTable
@@ -306,13 +306,13 @@ compile program args = do
                 putStrLn "FireLink: printing register assignment with interference graph"
                 printInterferenceGraph'' interferenceGraph registerAssignment
                 return ()
-            unless (showSymTable args && showProgram args) $ prettyPrintSymTable symTable >> printProgram True tokens
-            unless (showSymTable args) $ prettyPrintSymTable symTable
-            unless (showProgram args) $ printProgram True tokens
-            unless (showTac args) $ printTacCode $ concatMap snd numberedBlocks
-            unless (showBlocks args) $ printBasicBlocks numberedBlocks
-            unless (showGraph args) $ printFlowGraph flowGraph
-            unless (showRegisterAssignment args) $ printInterferenceGraph'' interferenceGraph registerAssignment
+            when (showSymTable args && showProgram args) $ prettyPrintSymTable symTable >> printProgram True tokens
+            when (showSymTable args) $ prettyPrintSymTable symTable
+            when (showProgram args) $ printProgram True tokens
+            when (showTac args) $ printTacCode $ concatMap snd numberedBlocks
+            when (showBlocks args) $ printBasicBlocks numberedBlocks
+            when (showGraph args) $ printFlowGraph flowGraph
+            when (showRegisterAssignment args) $ printInterferenceGraph'' interferenceGraph registerAssignment
             exitSuccess
 
 anyArg :: CommandLineArgs -> Bool
@@ -327,6 +327,7 @@ data CommandLineArgs = CommandLineArgs
     , showGraph :: Bool
     , showRegisterAssignment :: Bool
     }
+    deriving Show
 
 commandLineParser :: Parser CommandLineArgs
 commandLineParser =
