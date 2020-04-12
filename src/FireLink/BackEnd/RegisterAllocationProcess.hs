@@ -262,8 +262,16 @@ initialStep flowGraph@(numberedBlocks, graph) dict =
 
 -- | Attempts to color a graph with the number of general-purpose registers
 simplify :: ColorState ()
-simplify = go
+simplify = prepareState >> go
     where
+        prepareState :: ColorState ()
+        prepareState = do
+            (_, interferenceGraph) <- getInterferenceGraph
+            putGraph interferenceGraph
+            putDeletedVertices Set.empty
+            putRegisterStack []
+            putSpilledVertices Set.empty
+
         numberOfVertices :: ColorState Int
         numberOfVertices = do
             (_, interferenceGraph) <- getInterferenceGraph
@@ -297,7 +305,8 @@ simplify = go
             deletedVertices <- getDeletedVertices
             let currentVertices = Set.toList $ Set.fromList (G.vertices currGraph) Set.\\ deletedVertices
             costsWithVertex <- mapM lookupCost currentVertices
-            let (spilledVertex, _) = foldl (\v@(_, vcost) a@(_, acost) -> if vcost > acost then v else a) (-1, -1) costsWithVertex
+            let (spilledVertex, _) = foldl (\v@(_, vcost) a@(_, acost) -> if vcost > acost then v else a)
+                                        (-1, -1) costsWithVertex
             return spilledVertex
 
         lookupCost :: G.Vertex -> ColorState (G.Vertex, Int)
