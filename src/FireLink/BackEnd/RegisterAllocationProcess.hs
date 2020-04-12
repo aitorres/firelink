@@ -295,6 +295,10 @@ initialStep flowGraph@(numberedBlocks, graph) dict = (preProcessCode, graph)
 
 
 -- | Do liveness analysis on a program to construct the interference graph.
+-- state properties used:
+-- * csProgramFlowGraph, read
+-- * csInterferenceGraph, write
+-- * csLivenessInformation, write
 build :: ColorState ()
 build = do
     flowGraph <- getProgramFlowGraph
@@ -307,7 +311,11 @@ build = do
 -- | - number of definitions + number of usages
 -- | - TODO: try to implement cycle costs formula
 -- |
--- | The final cost for each variable is the sum of all of this heuristics
+-- | The final cost for each variable is the sum of all of this heuristics.
+-- state properties used:
+-- * csProgramVariables, read
+-- * csProgramFlowGraph, read
+-- * csSpillsCostMap, write
 costs :: ColorState ()
 costs = do
     programVars <- getProgramVariables'
@@ -337,6 +345,13 @@ costs = do
             associateSpillCost var sumOfCosts
 
 -- | Attempts to color a graph with the number of general-purpose registers
+-- state properties used:
+-- * csInterferenceGraph, read
+-- * csGraph, write
+-- * csDeletedVertices, write
+-- * csRegisterStack, write
+-- * csSpilledVertices, write
+-- * csSpillsCostMap, read
 simplify :: ColorState ()
 simplify = prepareState >> go
     where
@@ -413,6 +428,12 @@ simplify = prepareState >> go
 
 -- | Based on the stack, the actual interference graph and knowing that **no** register was spilled, we
 -- | finally attempt to color registers
+-- state properties used:
+-- * csVertexStack, read
+-- * csProgramFlowGraph, read
+-- * csInterferenceGraph, read
+-- * csColoredVertices, write
+-- * csGraph, write
 select :: ColorState (RegisterAssignment, FlowGraph)
 select = do
     colorationStack <- getVertexStack
