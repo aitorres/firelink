@@ -52,7 +52,7 @@ data ColorationState = ColorationState
     { csGraph :: !G.Graph -- ^ state graph
     , csDeletedVertices :: !(Set.Set G.Vertex) -- ^ Set of deleted vertices
     , csRegisterStack :: ![G.Vertex] -- ^ register stack
-
+    , csSpilledVertices :: !(Set.Set G.Vertex) -- ^ Set of spilled vertices
 
     -- | General use properties
     , csProgramVariables :: !(Set.Set TACSymEntry) -- ^ All program variables, never updated
@@ -72,6 +72,27 @@ type ColorState = State.State ColorationState
 ----- Helper functions to operate with ColorState -----
 -------------------------------------------------------
 
+-- | Helper to get spilled vertices
+getSpilledVertices :: ColorState (Set.Set G.Vertex)
+getSpilledVertices = csSpilledVertices <$> State.get
+
+-- | Helper to put spilled vertices
+putSpilledVertices :: Set.Set G.Vertex -> ColorState ()
+putSpilledVertices v = do
+    c <- State.get
+    State.put c{csSpilledVertices = v}
+
+-- | Add vertex to the set of spilled vertices
+addVertexToSpilledVertices :: G.Vertex -> ColorState ()
+addVertexToSpilledVertices vertex = do
+    spilledVertices <- getSpilledVertices
+    putSpilledVertices $ Set.insert vertex spilledVertices
+
+getAssocVariable :: G.Vertex -> ColorState TACSymEntry
+getAssocVariable vertex = do
+    (vertexToVarMap, _) <- getInterferenceGraph
+    return $ vertexToVarMap Map.! vertex
+
 -- | Helper to get program variables
 getProgramVariables' :: ColorState (Set.Set TACSymEntry)
 getProgramVariables' = csProgramVariables <$> State.get
@@ -86,6 +107,12 @@ associateSpillCost v i = do
     spillMap <- getSpillsCostMap
     c <- State.get
     State.put c{csSpillsCostMap = Map.insert v i spillMap}
+
+-- | Get cost for var v, defaults to 0
+getVarSpillCost :: TACSymEntry -> ColorState Int
+getVarSpillCost v = do
+    spillMap <- getSpillsCostMap
+    return $ Map.findWithDefault 0 v spillMap
 
 -- | Helper to get whole program from state
 getProgramFlowGraph :: ColorState FlowGraph
@@ -261,6 +288,20 @@ simplify = go
                 []         -> return Nothing
                 (a, _) : _ -> return $ Just a
 
+        -- | Attempts to choose a vertex to spill based on the `costs` map
+        -- | TODO: try to implement heuristic of choosing vertex that will make its neightbours have less than k
+        -- | neighbours
+        chooseVertexToSpill :: ColorState G.Vertex
+        chooseVertexToSpill = do
+            currGraph <- getGraph
+            deletedVertices <- getDeletedVertices
+            let currentVertices = Set.toList $ Set.fromList (G.vertices currGraph) Set.\\ deletedVertices
+            costsWithVertex <- mapM lookupCost currentVertices
+            let (spilledVertex, _) = foldl (\v@(_, vcost) a@(_, acost) -> if vcost > acost then v else a) (-1, -1) costsWithVertex
+            return spilledVertex
+
+        lookupCost :: G.Vertex -> ColorState (G.Vertex, Int)
+        lookupCost vertex = (,) vertex <$> (getAssocVariable vertex >>= getVarSpillCost)
 
         -- Returns a stack of vertices that emulated the reverse order of vertices that were delete
         go :: ColorState ()
@@ -273,14 +314,17 @@ simplify = go
             -- | Otherwise, let's keep coloration
             else do
                 maybeChoosenVertex <- chooseVertexWithLessthanK
-                case maybeChoosenVertex of
+                v <- case maybeChoosenVertex of
                     -- | Nice! we can retrieve this vertex and add it to the stack
-                    Just v -> do
-                        deleteVertex v
-                        pushRegister v
-                        go
+                    Just v -> return v
                     -- | TODO: handle case when we can't get a vertex with less than k neighbours
-                    Nothing -> undefined
+                    Nothing -> do
+                        v <- chooseVertexToSpill
+                        addVertexToSpilledVertices v
+                        return v
+                deleteVertex v
+                pushRegister v
+                go
 
 -- | Do liveness analysis on a program to construct the interference graph.
 build :: ColorState ()
@@ -340,6 +384,7 @@ run flowGraph = State.evalState go (initialState flowGraph)
                 , csLivenessInformation = [] -- dummy value
                 , csProgramVariables = let (numberedBlocks, _) = flowGraph in getProgramVariables numberedBlocks
                 , csSpillsCostMap = Map.empty -- dummy value
+                , csSpilledVertices = Set.empty
                 }
 
         go :: ColorState (SymEntryRegisterMap, FlowGraph)
