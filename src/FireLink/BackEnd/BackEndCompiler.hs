@@ -35,10 +35,10 @@ backend program dictionary = do
     let interferenceGraphs = map generateInterferenceGraph basicBlocks
     let blocksWithInterGraphs = zip numberedBlocks interferenceGraphs
     let livenessAnalysisResult = livenessAnalyser flowGraph
-    let interferenceGraph' = generateInterferenceGraph' flowGraph
+    let (interferenceGraph', _) = generateInterferenceGraph' flowGraph
 
     let (initialRegisterAssignment, flowGraph'@(newNumberedBlocks, _)) = initialStep flowGraph dictionary
-    let interferenceGraph'' = generateInterferenceGraph' flowGraph'
+    let (interferenceGraph'', _) = generateInterferenceGraph' flowGraph'
 
 
     putStrLn "Before first step"

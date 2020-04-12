@@ -47,12 +47,19 @@ type SymEntryRegisterMap = Map.Map TACSymEntry Color
 -- | Coloration state for the optimistic coloring algorithm by Chaitan/Briggs, as exposed
 -- | on classroom slides.
 data ColorationState = ColorationState
+
+    -- | Used only by @simplify@ function
     { csGraph :: !G.Graph -- ^ state graph
     , csDeletedVertices :: !(Set.Set G.Vertex) -- ^ Set of deleted vertices
     , csRegisterStack :: ![G.Vertex] -- ^ register stack
+
+
+    -- | General use properties
+    , csProgramVariables :: !(Set.Set TACSymEntry) -- ^ All program variables, never updated
     , csProgramFlowGraph :: !FlowGraph -- ^ Whole program flow-graph = (NumberedBlocks, Graph)
     , csInterferenceGraph :: !InterferenceGraph -- ^ Current interference graph
     , csLivenessInformation :: ![LineLiveVariables] -- ^ in/out liveness information for each line
+    , csSpillsCostMap :: !(Map.Map TACSymEntry Int) -- ^ What is the cost of spilling a variable?
     }
 
 -- | Data.Graph graph representation is made by a range of integers describeing the set of vertices
@@ -64,6 +71,21 @@ type ColorState = State.State ColorationState
 -------------------------------------------------------
 ----- Helper functions to operate with ColorState -----
 -------------------------------------------------------
+
+-- | Helper to get program variables
+getProgramVariables' :: ColorState (Set.Set TACSymEntry)
+getProgramVariables' = csProgramVariables <$> State.get
+
+-- | Helper to get spills cost map
+getSpillsCostMap :: ColorState (Map.Map TACSymEntry Int)
+getSpillsCostMap = csSpillsCostMap <$> State.get
+
+-- | Associate cost i with var v
+associateSpillCost :: TACSymEntry -> Int -> ColorState ()
+associateSpillCost v i = do
+    spillMap <- getSpillsCostMap
+    c <- State.get
+    State.put c{csSpillsCostMap = Map.insert v i spillMap}
 
 -- | Helper to get whole program from state
 getProgramFlowGraph :: ColorState FlowGraph
@@ -89,6 +111,7 @@ putLivenessInformation ls = do
 getGraph :: ColorState G.Graph
 getGraph = csGraph <$> State.get
 
+-- | Helper to replace the graph in a ColorState execution
 putGraph :: G.Graph -> ColorState ()
 putGraph graph = do
     c <- State.get
@@ -268,6 +291,39 @@ build = do
     putLivenessInformation livenessInfo
 
 
+-- | Estimate by each variable its cost of not having a spill for it, by using following heuristics
+-- | - number of definitions + number of usages
+-- | - TODO: try to implement cycle costs formula
+-- |
+-- | The final cost for each variable is the sum of all of this heuristics
+costs :: ColorState ()
+costs = do
+    programVars <- getProgramVariables'
+    mapM_ applyHeuristics programVars
+    where
+        numberOfDefinitionsAndUsages :: TACSymEntry -> ColorState Int
+        numberOfDefinitionsAndUsages var = do
+            (numberedBlocks, _) <- getProgramFlowGraph
+            let wholeProgram = concatMap snd numberedBlocks
+            let d = sum $ map (defines var) wholeProgram
+            let u = sum $ map (usages var) wholeProgram
+            return $ d + u
+
+        defines :: TACSymEntry -> TAC -> Int
+        defines var tac = if var `Set.member` def1 tac then 1 else 0
+
+        usages :: TACSymEntry -> TAC -> Int
+        usages var tac = if var `Set.member` use1 tac then 1 else 0
+
+        heuristics :: [TACSymEntry -> ColorState Int]
+        heuristics = [numberOfDefinitionsAndUsages]
+
+        applyHeuristics :: TACSymEntry -> ColorState ()
+        applyHeuristics var = do
+            costs <- mapM (\f -> f var) heuristics
+            let sumOfCosts = sum costs
+            associateSpillCost var sumOfCosts
+
 -- | Actually runs chaitain/briggs optimistic coloring algorithm to produce new code with
 -- | mappings between variables and their assigned registers
 run :: FlowGraph -> (SymEntryRegisterMap, FlowGraph)
@@ -282,14 +338,15 @@ run flowGraph = State.evalState go (initialState flowGraph)
                 , csProgramFlowGraph = flowGraph
                 , csInterferenceGraph = (Map.empty, G.buildG (0, 1) []) -- dummy value
                 , csLivenessInformation = [] -- dummy value
+                , csProgramVariables = let (numberedBlocks, _) = flowGraph in getProgramVariables numberedBlocks
+                , csSpillsCostMap = Map.empty -- dummy value
                 }
 
         go :: ColorState (SymEntryRegisterMap, FlowGraph)
         go = do
             build
             -- TODO: implement `coalesce`, we can live without it by the moment
-            -- costs
-
+            costs
             simplify
             undefined
 
