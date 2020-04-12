@@ -36,7 +36,7 @@ backend program dictionary = do
     let optimizedCode = optimize postProcessedCode
     let flowGraph@(numberedBlocks, graph) = generateFlowGraph optimizedCode
 
-    let (registerAssignment, finalFlowGraph) = run flowGraph dictionary
+    (registerAssignment, finalFlowGraph) <- run flowGraph dictionary
     let (interferenceGraph'', _) = generateInterferenceGraph' finalFlowGraph
     return (finalFlowGraph, interferenceGraph'', registerAssignment)
     where

@@ -24,8 +24,8 @@ import qualified Data.Array                          as A
 import           Data.Char                           (isDigit)
 import qualified Data.Graph                          as G
 import qualified Data.Map                            as Map
+import           Data.Map.Internal.Debug             (showTree)
 import qualified Data.Set                            as Set
-import           Debug.Trace                         (trace)
 import           FireLink.BackEnd.CodeGenerator      (TAC (..),
                                                       TACSymEntry (..))
 import           FireLink.BackEnd.FlowGraphGenerator (BasicBlock,
@@ -82,7 +82,7 @@ data ColorationState = ColorationState
 -- | So we can't exactly delete a single vertex, only remove all edges where it appears.
 -- | Even Data.Graph.outdegree will say that its outdegree is 0, so we need to have a set of deleted vertices
 -- | as well.
-type ColorState = State.State ColorationState
+type ColorState = State.StateT ColorationState IO
 
 -------------------------------------------------------
 ----- Helper functions to operate with ColorState -----
@@ -461,8 +461,8 @@ select = do
 
 -- | Actually runs chaitain/briggs optimistic coloring algorithm to produce new code with
 -- | mappings between variables and their assigned registers
-run :: FlowGraph -> Dictionary -> (RegisterAssignment, FlowGraph)
-run flowGraph dict = State.evalState go initialState
+run :: FlowGraph -> Dictionary -> IO (RegisterAssignment, FlowGraph)
+run flowGraph dict = State.evalStateT go initialState
     where
         initialState :: ColorationState
         initialState =
@@ -493,3 +493,27 @@ run flowGraph dict = State.evalState go initialState
             else
             -- | TODO: add spill code here
                 undefined
+
+
+printAllState :: ColorState ()
+printAllState = do
+    c <- State.get
+    State.liftIO $ do
+        putStrLn "Printing current graph"
+        print $ csGraph c
+        putStrLn "\nPrinting deleted vertices"
+        putStrLn $ Set.showTree $ csDeletedVertices c
+        putStrLn "\nPrint vertex stack"
+        print $ csVertexStack c
+        putStrLn "\nPrint spilled vertices"
+        putStrLn $ Set.showTree $ csSpilledVertices c
+        putStrLn "\nColored vertices"
+        putStrLn $ showTree $ csColoredVertices c
+        putStrLn $ "\nProgram variables " ++ show (length $ csProgramVariables c)
+        putStrLn $ Set.showTree $ csProgramVariables c
+        putStrLn "\nInterference graph"
+        print $ let (_, graph) = csInterferenceGraph c in graph
+        -- putStrLn "\nLiveness information"
+        -- print $ csLivenessInformation c
+        putStrLn "\nSpill cost map"
+        putStrLn $ showTree $ csSpillsCostMap c
