@@ -15,7 +15,7 @@ Register allocation is made using optimistic colouring algorithm from Chaitan/Br
 Data.Graph.Graph represents directed graphs, but we actually need undirected. So, we need
 to remember that the existence of edge (i, j) implies that (j, i) exists (when i /= j)
 -}
-module FireLink.BackEnd.RegisterAllocationProcess (initialStep, SymEntryRegisterMap, Register) where
+module FireLink.BackEnd.RegisterAllocationProcess (run, SymEntryRegisterMap, Register) where
 
 import qualified Control.Monad.State                 as State
 import qualified Data.Array                          as A
@@ -217,9 +217,8 @@ deleteVertex vertex = do
 -- | Also, before and after functions call live variables at that point will be saved to and loaded from memory respectively.
 -- | This is done to reduce the size of the interference graph, and because variables from different functions are not supposed
 -- | to interfere between them.
-initialStep :: FlowGraph -> Dictionary -> (SymEntryRegisterMap, FlowGraph)
-initialStep flowGraph@(numberedBlocks, graph) dict =
-    (variableRegisterMap, (preProcessCode, graph))
+initialStep :: FlowGraph -> Dictionary -> FlowGraph
+initialStep flowGraph@(numberedBlocks, graph) dict = (preProcessCode, graph)
     where
         programVariables :: Set.Set TACSymEntry
         programVariables = getProgramVariables numberedBlocks
@@ -457,19 +456,20 @@ select = do
 
 -- | Actually runs chaitain/briggs optimistic coloring algorithm to produce new code with
 -- | mappings between variables and their assigned registers
-run :: FlowGraph -> (SymEntryRegisterMap, FlowGraph)
-run flowGraph = State.evalState go (initialState flowGraph)
+run :: FlowGraph -> Dictionary -> (SymEntryRegisterMap, FlowGraph)
+run flowGraph dict = State.evalState go initialState
     where
-        initialState :: FlowGraph -> ColorationState
-        initialState flowGraph =
-            ColorationState
+        initialState :: ColorationState
+        initialState =
+            let initialFlowGraph = initialStep flowGraph dict
+            in ColorationState
                 { csGraph = G.buildG (0, 1) [] -- dummy value
                 , csDeletedVertices = Set.empty -- dummy value
                 , csVertexStack = [] -- dummy value
-                , csProgramFlowGraph = flowGraph
+                , csProgramFlowGraph = initialFlowGraph
                 , csInterferenceGraph = (Map.empty, G.buildG (0, 1) []) -- dummy value
                 , csLivenessInformation = [] -- dummy value
-                , csProgramVariables = let (numberedBlocks, _) = flowGraph in getProgramVariables numberedBlocks
+                , csProgramVariables = let (numberedBlocks, _) = initialFlowGraph in getProgramVariables numberedBlocks
                 , csSpillsCostMap = Map.empty -- dummy value
                 , csSpilledVertices = Set.empty -- dummy value
                 , csColoredVertices = Map.empty -- dummy value
@@ -481,7 +481,6 @@ run flowGraph = State.evalState go (initialState flowGraph)
             -- TODO: implement `coalesce`, we can live without it by the moment
             costs
             simplify
-            undefined
             spilledVertices <- getSpilledVertices
             -- | We successfully found an assignment of registers that didn't caused spills
             if Set.null spilledVertices then
