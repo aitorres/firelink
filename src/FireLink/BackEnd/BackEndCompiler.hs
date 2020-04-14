@@ -1,40 +1,44 @@
 module FireLink.BackEnd.BackEndCompiler (
-    backend
+    backend, Register(..), RegisterAssignment, InterferenceGraph, NumberedBlock, TAC(..), TACSymEntry(..),
+    def, use
 ) where
 
-import           Control.Monad.RWS                         (runRWST)
+import           Control.Monad.RWS                          (runRWST)
 import           Control.Monad.State
-import           Data.Graph                                (Graph)
-import           Data.List                                 (intercalate)
-import           FireLink.BackEnd.CodeGenerator            (CodeGenState (..),
-                                                            TAC (..),
-                                                            TACSymEntry (..),
-                                                            genCode,
-                                                            initialState)
-import           FireLink.BackEnd.FlowGraphGenerator       (NumberedBlock,
-                                                            findBasicBlocks,
-                                                            generateFlowGraph,
-                                                            numberTACs)
+import           Data.Graph                                 (Graph)
+import qualified Data.Graph                                 as G
+import           Data.List                                  (intercalate)
+import qualified Data.Map                                   as Map
+import           FireLink.BackEnd.CodeGenerator             (CodeGenState (..),
+                                                             SimpleType (..),
+                                                             TAC (..),
+                                                             TACSymEntry (..),
+                                                             genCode,
+                                                             initialState)
+import           FireLink.BackEnd.FlowGraphGenerator        (FlowGraph,
+                                                             NumberedBlock,
+                                                             generateFlowGraph)
 import           FireLink.BackEnd.InstructionCodeGenerator
 import           FireLink.BackEnd.LivenessAnalyser
-import           FireLink.BackEnd.Optimizer                (optimize)
-import           FireLink.FrontEnd.Grammar                 (Program (..))
-import           FireLink.FrontEnd.SymTable                (Dictionary (..))
-import           FireLink.FrontEnd.TypeChecking            (Type (..))
+import           FireLink.BackEnd.Optimizer                 (optimize)
+import           FireLink.BackEnd.RegisterAllocationProcess
+import           FireLink.FrontEnd.Grammar                  (Program (..))
+import           FireLink.FrontEnd.SymTable                 (Dictionary (..))
+import           FireLink.Utils
 import           TACType
 
-backend :: Program -> Dictionary -> IO ([TAC], [(NumberedBlock, InterferenceGraph)], Graph)
+import           Data.Map.Internal.Debug                    (showTree)
+
+backend :: Program -> Dictionary -> IO (FlowGraph, InterferenceGraph, RegisterAssignment)
 backend program dictionary = do
     (_, finalState, code) <- runRWST (genCode program) dictionary initialState
     let postProcessedCode = fillEmptyTemporals (cgsTemporalsToReplace finalState) code
     let optimizedCode = optimize postProcessedCode
-    let basicBlocks = findBasicBlocks $ numberTACs optimizedCode
-    let interferenceGraphs = map generateInterferenceGraph basicBlocks
-    let numberedBlocks = zip [0..] basicBlocks
-    let blocksWithInterGraphs = zip numberedBlocks interferenceGraphs
-    let flowGraph = generateFlowGraph optimizedCode
+    let flowGraph@(numberedBlocks, graph) = generateFlowGraph optimizedCode
 
-    return (optimizedCode, blocksWithInterGraphs, flowGraph)
+    (registerAssignment, finalFlowGraph) <- run flowGraph dictionary
+    let (interferenceGraph'', _) = generateInterferenceGraph' finalFlowGraph
+    return (finalFlowGraph, interferenceGraph'', registerAssignment)
     where
         fillEmptyTemporals :: [(TACSymEntry, Int)] -> [TAC] -> [TAC]
         fillEmptyTemporals tempsToReplace = map (patchTac tempsToReplace)
@@ -48,10 +52,11 @@ backend program dictionary = do
                         ThreeAddressCode
                             Assign
                             (Just (Id $ fst t))
-                            (Just $ Constant (show $ snd t, BigIntT))
+                            (Just $ Constant (show $ snd t, BigIntTAC))
                             Nothing
             _ -> tac
 
         matchTemps :: TACSymEntry -> TACSymEntry -> Bool
         matchTemps (TACTemporal i _) (TACTemporal i' _) = i == i'
         matchTemps _ _                                  = False
+

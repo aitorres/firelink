@@ -16,7 +16,7 @@ import qualified FireLink.FrontEnd.SymTable     as ST (Extra (..),
                                                        extractTypeFromExtra,
                                                        sign)
 import           FireLink.FrontEnd.Tokens       (Token (..))
-import           FireLink.FrontEnd.TypeChecking (Type (..))
+import qualified FireLink.FrontEnd.TypeChecking as T (Type (..))
 import qualified TACType                        as TAC
 
 instance GenerateCode Expr where
@@ -36,12 +36,12 @@ genCode' e@Expr {expAst=ast@(Access struct _), expType=t} = do
         genLabel trueLabel
     return ret
     where
-        isUnionT :: Type -> Bool
-        isUnionT (UnionT _ _) = True
-        isUnionT _            = False
+        isUnionT :: T.Type -> Bool
+        isUnionT (T.UnionT _ _) = True
+        isUnionT _              = False
 genCode' Expr {expAst=ast, expType=t} = genCodeForExpr t ast
 
-genCodeForExpr :: Type -> BaseExpr -> CodeGenMonad OperandType
+genCodeForExpr :: T.Type -> BaseExpr -> CodeGenMonad OperandType
 -- | Ids
 genCodeForExpr _ (IdExpr exprId) = do
     symEntry <- findSymEntryById exprId <$> ask
@@ -64,21 +64,21 @@ genCodeForExpr _ (EvalFunc fId params) = do
             { TAC.tacOperand = TAC.Call
             , TAC.tacLvalue = Just ret
             , TAC.tacRvalue1 = Just $ TAC.Label $ name funEntry
-            , TAC.tacRvalue2 = Just $ TAC.Constant (show paramsLength, SmallIntT)
+            , TAC.tacRvalue2 = Just $ TAC.Constant (show paramsLength, BigIntTAC)
             }]
     return ret
 
-genCodeForExpr TrileanT exp = do
+genCodeForExpr T.TrileanT exp = do
     trueLabel <- newLabel
     falseLabel <- newLabel
     next <- newLabel
     lvalue <- TAC.Id <$> newtemp
     genCodeForBooleanExpr exp trueLabel falseLabel
     genLabel trueLabel
-    genIdAssignment lvalue $ TAC.Constant ("true", TrileanT)
+    genIdAssignment lvalue $ TAC.Constant ("true", TrileanTAC)
     genGoTo next
     genLabel falseLabel
-    genIdAssignment lvalue $ TAC.Constant ("false", TrileanT)
+    genIdAssignment lvalue $ TAC.Constant ("false", TrileanTAC)
     genLabel next
     return lvalue
 
@@ -90,10 +90,10 @@ genCodeForExpr _ (Op2 op lexpr rexpr) = do
         operation :: TAC.Operation
         operation = mapOp2ToTacOperation op
 
-genCodeForExpr t (IntLit n) = return $ TAC.Constant (show n, t)
-genCodeForExpr t (FloatLit n) = return $ TAC.Constant (show n, t)
-genCodeForExpr t (CharLit c) = return $ TAC.Constant (show $ ord c, t)
-genCodeForExpr t (StringLit s) = return $ TAC.Constant (s, t)
+genCodeForExpr t (IntLit n) = return $ TAC.Constant (show n, if t == T.BigIntT then BigIntTAC else SmallIntTAC)
+genCodeForExpr t (FloatLit n) = return $ TAC.Constant (show n, FloatTAC)
+genCodeForExpr t (CharLit c) = return $ TAC.Constant (show $ ord c, CharTAC)
+genCodeForExpr t (StringLit s) = return $ TAC.Constant (s, StringTAC)
 
 genCodeForExpr t (Caster expr newType) = do
     tempOp <- genCode' expr
@@ -234,14 +234,14 @@ genCodeForBooleanExpr expr trueLabel falseLabel = case expr of
     Op1 Not expr -> genCodeForBooleanExpr (expAst expr) falseLabel trueLabel
 
     IdExpr _ -> do
-        symEntry <- genCodeForExpr TrileanT expr
+        symEntry <- genCodeForExpr T.TrileanT expr
         let isTrueNotFall = not $ isFall trueLabel
         let isFalseNotFall = not $ isFall falseLabel
         if isTrueNotFall && isFalseNotFall then do
             gen [TAC.ThreeAddressCode
                     { TAC.tacOperand = TAC.Eq
                     , TAC.tacLvalue = Just symEntry
-                    , TAC.tacRvalue1 = Just $ TAC.Constant ("true", TrileanT)
+                    , TAC.tacRvalue1 = Just $ TAC.Constant ("true", TrileanTAC)
                     , TAC.tacRvalue2 = Just trueLabel
                     }]
             genGoTo falseLabel
@@ -249,13 +249,13 @@ genCodeForBooleanExpr expr trueLabel falseLabel = case expr of
             gen [TAC.ThreeAddressCode
                     { TAC.tacOperand = TAC.Eq
                     , TAC.tacLvalue = Just symEntry
-                    , TAC.tacRvalue1 = Just $ TAC.Constant ("true", TrileanT)
+                    , TAC.tacRvalue1 = Just $ TAC.Constant ("true", TrileanTAC)
                     , TAC.tacRvalue2 = Just trueLabel
                     }]
         else when isFalseNotFall (gen [TAC.ThreeAddressCode
                     { TAC.tacOperand = TAC.Eq
                     , TAC.tacLvalue = Just symEntry
-                    , TAC.tacRvalue1 = Just $ TAC.Constant ("false", TrileanT)
+                    , TAC.tacRvalue1 = Just $ TAC.Constant ("false", TrileanTAC)
                     , TAC.tacRvalue2 = Just falseLabel
                     }])
     -- Boolean comparation
@@ -289,8 +289,8 @@ genCodeForBooleanExpr expr trueLabel falseLabel = case expr of
             genCodeForBooleanExpr (expAst rhs) rhsTrueLabel rhsFalseLabel
             when (isFall falseLabel) (genLabel lhsFalseLabel)
     (EvalFunc _ _) -> do
-        resultOperand <- genCodeForExpr TrileanT expr
-        genBooleanComparison resultOperand (TAC.Constant ("true", TrileanT)) trueLabel falseLabel Eq
+        resultOperand <- genCodeForExpr T.TrileanT expr
+        genBooleanComparison resultOperand (TAC.Constant ("true", TrileanTAC)) trueLabel falseLabel Eq
 
     IsActive Expr { expAst = Access unionExpr propId } -> do
         -- Get union's base direction (where real is_active is stored)
@@ -302,7 +302,7 @@ genCodeForBooleanExpr expr trueLabel falseLabel = case expr of
 
         -- Assign received argument's attr number to a new temp
         propArgOperand <- TAC.Id <$> newtemp
-        genIdAssignment propArgOperand $ TAC.Constant (show propArgPos, BigIntT)
+        genIdAssignment propArgOperand $ TAC.Constant (show propArgPos, BigIntTAC)
 
         -- Gen boolean comparison
         genBooleanComparison propArgOperand realArgOperand trueLabel falseLabel Eq

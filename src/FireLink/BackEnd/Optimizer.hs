@@ -3,6 +3,7 @@ module FireLink.BackEnd.Optimizer (
 ) where
 
 import           FireLink.BackEnd.CodeGenerator (TAC (..))
+import           FireLink.BackEnd.Utils
 import           TACType
 
 -- | An 'Optimization' is a function that receives a list of TAC and
@@ -13,7 +14,7 @@ type Optimization = [TAC] -> [TAC]
 -- | stability is reached (i.e. until it converges)
 -- | (src: https://stackoverflow.com/a/23924238)
 optimize :: Optimization
-optimize = until =<< ((==) =<<) $ optimize'
+optimize = fixedPoint optimize'
 
 -- | Composes all valid optimizations into one function to be applied
 -- | to a generated three-address code list.

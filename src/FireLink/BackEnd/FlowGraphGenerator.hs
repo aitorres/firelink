@@ -1,13 +1,20 @@
-module FireLink.BackEnd.FlowGraphGenerator where
+module FireLink.BackEnd.FlowGraphGenerator(
+    generateFlowGraph, BasicBlock, NumberedBlock, FlowGraph,
+    entryVertex, exitVertex, getAllVariables, getProgramVariables
+) where
 
 import           Data.Char                      (isDigit)
 import           Data.Graph
 import           Data.List                      (nub)
 import           Data.Maybe
+import qualified Data.Set                       as Set
 import           FireLink.BackEnd.CodeGenerator (OperandType (..), TAC (..),
+                                                 TACSymEntry (..),
+                                                 catTACSymEntries,
                                                  isConditionalJump, isJump,
                                                  isProgramEnd,
                                                  isUnconditionalJump)
+import           FireLink.BackEnd.Utils
 import           TACType
 
 -- | A numbered instruction (the number being a unique identifier within some context)
@@ -31,20 +38,33 @@ type NumberedBlocks = [NumberedBlock]
 -- | Semantic shortcut for a list of edges
 type Edges = [Edge]
 
+-- | FlowGraph representation. First tuple contains the basic blocks, with their respective number
+-- | Second tuple position contains the graph with the basic block numbers as edges.
+-- | Graph nodes includes -1 as entry node and `length numberedBlocks` as exit node
+type FlowGraph = (NumberedBlocks, Graph)
+
 -- | Generates and returns the flow graph
 -- | that correspond to a given list of TAC instructions.
-generateFlowGraph :: [TAC] -> Graph
+generateFlowGraph :: [TAC] -> FlowGraph
 generateFlowGraph code =
     let numberedInstructions = numberTACs code
         basicBlocks = findBasicBlocks numberedInstructions
         numberedBlocks = numberBlocks basicBlocks
         fallEdges = getFallEdges numberedBlocks
         entryEdge = (-1, 0) -- ENTRY
-        exitNode = (length numberedBlocks) -- EXIT
+        exitNode = length numberedBlocks -- EXIT
         jumpEdges = getJumpEdges numberedBlocks exitNode
         edges = entryEdge : jumpEdges ++ fallEdges
         graph = buildG (-1, length numberedBlocks) edges
-    in  graph
+    in  (numberedBlocks, graph)
+
+-- | Helper to centralize what value is associated with flow graph entryVertex
+entryVertex :: FlowGraph -> Vertex
+entryVertex = const (-1)
+
+-- | Same for exitVertex
+exitVertex :: FlowGraph -> Vertex
+exitVertex = length . fst
 
 -- | Given an integer that represents an EXIT vertex, and a
 -- | list of numbered blocks, returns a list of edges
@@ -61,13 +81,6 @@ getJumpEdges code vExit = foldr findAllJumpEdges [] code
                 then let (j, _) = findDestinyBlock dJ code
                     in  (i, j) : es
                 else if isProgramEnd op then (i, vExit) : es
-                else if op == Call then
-                    let (j, _) = findDestinyBlock dC code
-                    in (i, j) : es
-                else if op == Return then
-                    let (_, fcb) = findFunctionDefBlock i code
-                        ThreeAddressCode _ _ mL _ = head fcb
-                    in  es ++ (map (\x -> (i, x)) (getCallsToLabel mL code))
                 else es
 
         findDestinyBlock :: Maybe OperandType -> NumberedBlocks -> NumberedBlock
@@ -143,11 +156,11 @@ findBlockLeaders ts = nub $ head ts : findBlockLeaders' ts
         findBlockLeaders' (x:ys@(y:_)) = [y | isJumpTac x] ++ [x | isJumpDestiny x] ++ findBlockLeaders' ys
 
         isJumpTac :: NumberedTAC -> Bool
-        isJumpTac (_, (ThreeAddressCode op _ _ _)) = isJump op
+        isJumpTac (_, ThreeAddressCode op _ _ _) = isJump op
 
         isJumpDestiny :: NumberedTAC -> Bool
-        isJumpDestiny (_, (ThreeAddressCode NewLabel _ (Just _) _)) = True
-        isJumpDestiny _                                             = False
+        isJumpDestiny (_, ThreeAddressCode NewLabel _ (Just _) _) = True
+        isJumpDestiny _                                           = False
 
 -- | Type-binding application of numberList for a code block
 numberTACs :: [TAC] -> NumberedTACs
@@ -157,9 +170,14 @@ numberTACs = numberList
 numberBlocks :: BasicBlocks -> NumberedBlocks
 numberBlocks = numberList
 
--- | Given a list, returns a list of pairs in which
--- | each first component is an unique integer, and each second
--- | component is a (now uniquely identified) element of the first list,
--- | in the original order
-numberList :: [a] -> [(Int, a)]
-numberList = zip [0..]
+-- | Given a basic block, builds and returns a list of the string-representation
+-- | of all the variables used in the program (including temporals)
+getAllVariables :: BasicBlock -> [TACSymEntry]
+getAllVariables = foldr getVariables []
+    where
+        getVariables :: TAC -> [TACSymEntry] -> [TACSymEntry]
+        getVariables (ThreeAddressCode _ a b c) xs = xs ++ catTACSymEntries (catMaybes [a, b, c])
+
+-- | Get all variables used in a list of "NumberedBlock"
+getProgramVariables :: NumberedBlocks -> Set.Set TACSymEntry
+getProgramVariables = Set.unions . map (Set.fromList . getAllVariables . snd)

@@ -2,30 +2,31 @@ module FireLink (
     firelink
 ) where
 
-import           Control.Monad                       (unless)
-import qualified Control.Monad.RWS                   as RWS
-import qualified Data.Graph                          as G
-import           Data.List                           (groupBy, intercalate)
-import qualified Data.Map                            as Map
-import           Data.Maybe                          (fromJust)
-import           FireLink.BackEnd.BackEndCompiler    (backend)
-import           FireLink.BackEnd.CodeGenerator      (TAC (..))
-import           FireLink.BackEnd.FlowGraphGenerator (NumberedBlock)
-import           FireLink.BackEnd.LivenessAnalyser   (InterferenceGraph)
+import           Control.Monad                      (unless, when)
+import qualified Control.Monad.RWS                  as RWS
+import qualified Data.Graph                         as G
+import           Data.List                          (groupBy, intercalate)
+import qualified Data.Map                           as Map
+import           Data.Maybe                         (fromJust)
+import qualified Data.Set                           as Set
+import           FireLink.BackEnd.BackEndCompiler
 import           FireLink.FrontEnd.Errors
 import           FireLink.FrontEnd.FrontEndCompiler
-import qualified FireLink.FrontEnd.SymTable          as ST
+import qualified FireLink.FrontEnd.SymTable         as ST
 import           FireLink.FrontEnd.Tokens
 import           FireLink.Utils
-import           System.Directory                    (doesFileExist)
-import           System.Environment                  (getArgs)
-import           System.Exit                         (exitFailure, exitSuccess)
-import           System.FilePath                     (takeExtension)
+import           System.Directory                   (doesFileExist)
+import           System.Environment                 (getArgs)
+import           System.Exit                        (exitFailure, exitSuccess)
+import           System.FilePath                    (takeExtension)
 
-import           System.IO                           (IOMode (..), hGetContents,
-                                                      hPutStr, openFile, stderr)
-import qualified TACType                             as TAC
-import           Text.Printf                         (printf)
+import           Data.Map.Internal.Debug            (showTree)
+import           Data.Semigroup                     ((<>))
+import           Options.Applicative
+import           System.IO                          (IOMode (..), hGetContents,
+                                                     hPutStr, openFile, stderr)
+import qualified TACType                            as TAC
+import           Text.Printf                        (printf)
 
 printErr :: String -> IO ()
 printErr = hPutStr stderr
@@ -198,35 +199,24 @@ handleCompileError compileError tokens =
 printTacCode :: [TAC] -> IO ()
 printTacCode = mapM_ print
 
-printBasicBlocks :: [(NumberedBlock, InterferenceGraph)] -> IO ()
+printBasicBlocks :: [NumberedBlock] -> IO ()
 printBasicBlocks = mapM_ printBlock
     where
-        printBlock :: (NumberedBlock, InterferenceGraph) -> IO ()
-        printBlock (nb, ig) = do
+        printBlock :: NumberedBlock -> IO ()
+        printBlock nb = do
             let (i, cb) = nb
             putStrLn $ bold ++ "Block " ++ show i ++ nocolor
             printTacCode cb
 
-            let (msi, g) = ig
-            unless (null $ G.edges g) $ do
-                putStrLn $ red ++ "Interference Graph for Block " ++ show i ++ nocolor
-                printInterferenceGraph (Map.fromList $ map (\(x, y) -> (y, x)) $ Map.toList msi) g
-                putStrLn ""
+            let d = def $ snd nb
+            unless (Set.null d) $ do
+                putStrLn $ red ++ "Definitions of block " ++ show i ++ nocolor
+                putStrLn $ intercalate "\n" $ map show $ Set.toList d
+            let u = use $ snd nb
+            unless (Set.null u) $ do
+                putStrLn $ red ++ "Variable uses of block " ++ show i ++ nocolor
+                putStrLn $ intercalate "\n" $ map show $ Set.toList u
 
-printInterferenceGraph :: Map.Map Int String -> G.Graph -> IO ()
-printInterferenceGraph msi g = do
-    let es = G.edges g
-    let groupedEdges = groupBy (\a b -> fst a == fst b) es
-    mapM_ printEdges groupedEdges
-    where
-        printEdges :: [G.Edge] -> IO ()
-        printEdges es = do
-            let origin = (fst . head) es
-            let originName = fromJust $ Map.lookup origin msi
-            let destinies = map snd es
-            let destiniesNames = map (\x -> fromJust $ Map.lookup x msi) destinies
-            let joinedDestiniesNames = intercalate ", " destiniesNames
-            putStrLn $ bold ++ originName ++ nocolor ++ " -> " ++ joinedDestiniesNames
 
 printFlowGraph :: G.Graph -> IO ()
 printFlowGraph g = do
@@ -252,43 +242,136 @@ printFlowGraph g = do
         exitNode :: Int
         exitNode = length (G.vertices g) - 2
 
-compile :: String -> Maybe String -> IO ()
-compile program compileFlag = do
+printInterferenceGraph'' :: InterferenceGraph -> RegisterAssignment -> IO ()
+printInterferenceGraph'' (vertexMap, graph) registerAssignment = do
+    let vs = G.vertices graph
+    let es = G.edges graph
+    putStrLn $ bold ++ "Graph (" ++ (show . length) vs ++ " variables, " ++ (show . length) es ++ " interferences)" ++ nocolor
+    -- putStrLn "vertexMap"
+    -- putStrLn $ showTree vertexMap
+    -- putStrLn "registerAssignment"
+    -- putStrLn $ showTree registerAssignment
+    mapM_ printEdges vs
+    checkValidity vs
+    where
+        successors :: G.Vertex -> [G.Vertex]
+        successors vertex =
+            let graphEdges = G.edges graph
+                outgoingEdges = filter ((== vertex) . fst) graphEdges
+                successors' = map snd outgoingEdges
+            in successors'
+
+        printPair :: (TACSymEntry, Register) -> String
+        printPair (var, reg) =
+            red ++ "(" ++ nocolor ++
+            bold ++ show var ++ nocolor ++
+            red ++ ", " ++ nocolor ++ bold ++ show reg ++ nocolor ++
+            red ++ ")" ++ nocolor
+
+        printEdges :: G.Vertex -> IO ()
+        printEdges v = do
+            let origin = vertexMap Map.! v
+            let originName = show origin
+            let assignedRegister = registerAssignment Map.! origin
+            let destinies = successors v
+            putStrLn $ printPair (origin, assignedRegister) ++ " -> " ++ printDestinies destinies
+
+        printDestinies :: [G.Vertex] -> String
+        printDestinies destinies = intercalate ", " $
+            map (\vertex -> let var = vertexMap Map.! vertex in printPair (var, registerAssignment Map.! var)) destinies
+
+        checkValidity :: [G.Vertex] -> IO ()
+        checkValidity [] = putStrLn "Thankfully, register assignment is correct!"
+        checkValidity (v : vs) = do
+            let destinies = successors v
+            if v `elem` destinies then do
+                putStrLn "Sadly, register assignment is wrong :("
+                printEdges v
+            else checkValidity vs
+
+compile :: String -> CommandLineArgs -> IO ()
+compile program args = do
     compilerResult <- frontEnd program
+    print args
     case compilerResult of
         Left e -> uncurry handleCompileError e >> exitFailure
         Right (ast, symTable, tokens) -> do
-            (tacCode, blocksWithInterGraphs, flowGraph) <- backend ast (ST.stDict symTable)
-            case compileFlag of
-                Nothing -> do
-                    -- Default behavior: print everything
-                    putStrLn "\nFireLink: Printing SymTable"
-                    prettyPrintSymTable symTable
-                    putStrLn "\nFireLink: Printing recognized program"
-                    printProgram True tokens
-                    putStrLn "\nFireLink: Printing Intermediate Representation in Three-Address Code"
-                    printTacCode tacCode
-                    putStrLn "\nFireLink: Printing basic blocks (numbered, starting at 0)"
-                    printBasicBlocks blocksWithInterGraphs
-                    putStrLn "\nFireLink: Printing flow graph"
-                    printFlowGraph flowGraph
-                Just flag
-                    | flag `elem` ["-f", "--frontend"] -> prettyPrintSymTable symTable >> printProgram True tokens
-                    | flag `elem` ["-s", "--symtable"] -> prettyPrintSymTable symTable
-                    | flag `elem` ["-p", "--program"] -> printProgram True tokens
-                    | flag `elem` ["-t", "--tac"] -> printTacCode tacCode
-                    | flag `elem` ["-b", "--blocks"] -> printBasicBlocks blocksWithInterGraphs
-                    | flag `elem` ["-g", "--graph"] -> printFlowGraph flowGraph
-                    | otherwise -> failByUnknownFlag
+            ((numberedBlocks, flowGraph), interferenceGraph, registerAssignment) <- backend ast (ST.stDict symTable)
+            when (anyArg args) $ do
+                -- Default behavior: print everything
+                putStrLn "\nFireLink: Printing SymTable"
+                prettyPrintSymTable symTable
+                putStrLn "\nFireLink: Printing recognized program"
+                printProgram True tokens
+                putStrLn "\nFireLink: Printing Intermediate Representation in Three-Address Code"
+                printTacCode $ concatMap snd numberedBlocks
+                putStrLn "\nFireLink: Printing basic blocks (numbered, starting at 0)"
+                printBasicBlocks numberedBlocks
+                putStrLn "\nFireLink: Printing flow graph"
+                printFlowGraph flowGraph
+                putStrLn "FireLink: printing register assignment with interference graph"
+                printInterferenceGraph'' interferenceGraph registerAssignment
+                return ()
+            when (showSymTable args && showProgram args) $ prettyPrintSymTable symTable >> printProgram True tokens
+            when (showSymTable args) $ prettyPrintSymTable symTable
+            when (showProgram args) $ printProgram True tokens
+            when (showTac args) $ printTacCode $ concatMap snd numberedBlocks
+            when (showBlocks args) $ printBasicBlocks numberedBlocks
+            when (showGraph args) $ printFlowGraph flowGraph
+            when (showRegisterAssignment args) $ printInterferenceGraph'' interferenceGraph registerAssignment
             exitSuccess
 
-firelink :: IO ()
-firelink = do
-    args <- getArgs
-    if null args then failByEmptyArgs
+anyArg :: CommandLineArgs -> Bool
+anyArg args = all not $ map (\f -> f args) [showSymTable, showProgram, showTac, showBlocks, showGraph, showRegisterAssignment]
+
+data CommandLineArgs = CommandLineArgs
+    { filename :: String
+    , showSymTable :: Bool
+    , showProgram :: Bool
+    , showTac :: Bool
+    , showBlocks :: Bool
+    , showGraph :: Bool
+    , showRegisterAssignment :: Bool
+    }
+    deriving Show
+
+commandLineParser :: Parser CommandLineArgs
+commandLineParser =
+    CommandLineArgs
+        <$> argument str
+            ( metavar "FILENAME"
+            <> value ""
+            )
+        <*> switch
+            ( long "symtable"
+            <> short 's'
+            <> help "Show symtable" )
+        <*> switch
+            ( long "program"
+            <> short 'p'
+            <> help "Print colorized program" )
+        <*> switch
+            ( long "tac"
+            <> short 't'
+            <> help "Print all three-address code" )
+        <*> switch
+            ( long "blocks"
+            <> short 'b'
+            <> help "Print all basic blocks" )
+        <*> switch
+            ( long "graph"
+            <> short 'g'
+            <> help "Print flow graph" )
+        <*> switch
+            ( long "register"
+            <> short 'r'
+            <> help "Print register assignment" )
+
+compiler :: CommandLineArgs -> IO ()
+compiler commandLineArgs = do
+    let programFile = filename commandLineArgs
+    if null programFile then failByEmptyArgs
     else do
-        let programFile = head args
-        let compileFlag = if length args < 2 then Nothing else Just (args !! 1)
         fileExists <- doesFileExist programFile
         if fileExists then
             if takeExtension programFile /= ".souls" then failByFileExtension
@@ -296,5 +379,27 @@ firelink = do
                 handle <- openFile programFile ReadMode
                 contents <- hGetContents handle
                 if null contents then failByEmptyFile
-                else compile contents compileFlag
+                else compile contents commandLineArgs
         else failByNonExistantFile programFile
+
+firelink :: IO ()
+firelink = compiler =<< execParser opts
+    -- commandLineArgs <- execParser opts
+    -- if null args then failByEmptyArgs
+    -- else do
+    --     let programFile = head args
+    --     let compileFlag = if length args < 2 then Nothing else Just (args !! 1)
+    --     fileExists <- doesFileExist programFile
+    --     if fileExists then
+    --         if takeExtension programFile /= ".souls" then failByFileExtension
+    --         else do
+    --             handle <- openFile programFile ReadMode
+    --             contents <- hGetContents handle
+    --             if null contents then failByEmptyFile
+    --             else compile contents compileFlag
+    --     else failByNonExistantFile programFile
+  where
+    opts = info (commandLineParser <**> helper)
+      ( fullDesc
+     <> progDesc "Compiles a FireLink program to MIPS32"
+     <> header "firelink - a compiler for FireLink programming language" )

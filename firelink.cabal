@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.33.0.
+-- This file has been generated from package.yaml by hpack version 0.31.2.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 45e094a38a4f91a0730fc409f10a9d3a30bec976fa078adc05fce604599e116a
+-- hash: ecdac1aef0d0d81eb79452302af696ff81357e2458f2a713326522c7cfe622e8
 
 name:           firelink
 version:        0.2.0.0
@@ -34,6 +34,8 @@ library
       FireLink.BackEnd.InstructionCodeGenerator
       FireLink.BackEnd.LivenessAnalyser
       FireLink.BackEnd.Optimizer
+      FireLink.BackEnd.RegisterAllocationProcess
+      FireLink.BackEnd.Utils
       FireLink.FrontEnd.Errors
       FireLink.FrontEnd.FrontEndCompiler
       FireLink.FrontEnd.Grammar
@@ -63,6 +65,7 @@ library
     , extra
     , filepath
     , mtl
+    , optparse-applicative
     , sort
     , split
   default-language: Haskell2010
@@ -83,6 +86,7 @@ executable firelink-exe
     , filepath
     , firelink
     , mtl
+    , optparse-applicative
     , sort
     , split
   default-language: Haskell2010
@@ -122,6 +126,7 @@ test-suite lexer-tests
     , hspec
     , hspec-discover
     , mtl
+    , optparse-applicative
     , sort
     , split
   default-language: Haskell2010
@@ -154,6 +159,7 @@ test-suite parser-tests
     , hspec
     , hspec-discover
     , mtl
+    , optparse-applicative
     , sort
     , split
   default-language: Haskell2010
@@ -190,6 +196,7 @@ test-suite semantic-tests
     , hspec
     , hspec-discover
     , mtl
+    , optparse-applicative
     , sort
     , split
   default-language: Haskell2010
@@ -229,6 +236,7 @@ test-suite type-checking-tests
     , hspec
     , hspec-discover
     , mtl
+    , optparse-applicative
     , sort
     , split
   default-language: Haskell2010
