@@ -40,11 +40,12 @@ import qualified FireLink.FrontEnd.SymTable          as ST (DictionaryEntry (..)
 import           TACType
 
 -- | To avoid confusions between G.Vertex and registers
-newtype Register = Register Int
+-- | In order to allow registers for floating point
+newtype Register = Register String
     deriving (Eq, Ord)
 
 instance Show Register where
-    show (Register r) = "$" ++ show r
+    show (Register r) = "$" ++ r
 
 type Color = Register
 
@@ -233,14 +234,6 @@ initialStep flowGraph@(numberedBlocks, graph) dict = (preProcessCode, graph)
         programVariables :: Set.Set TACSymEntry
         programVariables = getProgramVariables numberedBlocks
 
-        -- | one for each actual variable
-        initialRegisters :: [Register]
-        initialRegisters = map Register [0 .. Set.size programVariables - 1]
-
-        -- | Map for each tac to its initial register
-        variableRegisterMap :: RegisterAssignment
-        variableRegisterMap = Map.fromList $ zip (Set.toList programVariables) initialRegisters
-
         initialLivenessAnalysis :: [LineLiveVariables]
         initialLivenessAnalysis = livenessAnalyser flowGraph
 
@@ -290,9 +283,9 @@ initialStep flowGraph@(numberedBlocks, graph) dict = (preProcessCode, graph)
             if isTacLabelFun tac then
                 let args = getFunctionArguments funName
                     loadTacsSet = map (\tacSymEntry ->
-                        case variableRegisterMap Map.!? tacSymEntry of
-                            Nothing -> []
-                            Just _ -> [ThreeAddressCode Load (Just (Id tacSymEntry)) Nothing Nothing]) args
+                        [ThreeAddressCode
+                            Load (Just (Id tacSymEntry)) Nothing Nothing | tacSymEntry `Set.member` programVariables]
+                        ) args
                     loadTacs = concat loadTacsSet in
                         tac : loadTacs
             else [tac]
