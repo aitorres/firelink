@@ -1,20 +1,20 @@
 module FireLink.BackEnd.LivenessAnalyser (
-    def, use, generateInterferenceGraph, InterferenceGraph (..), livenessAnalyser,
+    def, use, InterferenceGraph (..), livenessAnalyser,
     generateInterferenceGraph', LineLiveVariables(..), ProgramPoint, def1, use1
 ) where
 
-import           Control.Monad.State
-import qualified Data.Graph                          as Graph
-import           Data.List                           (intercalate)
-import qualified Data.Map.Strict                     as Map
-import           Data.Maybe                          (catMaybes, fromJust,
-                                                      isJust)
-import qualified Data.Set                            as Set
-import           Debug.Trace                         (trace)
-import           FireLink.BackEnd.CodeGenerator
-import           FireLink.BackEnd.FlowGraphGenerator
-import           FireLink.BackEnd.Utils
-import           TACType
+import Control.Monad.State
+import Data.List                           (intercalate)
+import Data.Maybe                          (catMaybes, fromJust, isJust)
+import Debug.Trace                         (trace)
+import FireLink.BackEnd.CodeGenerator
+import FireLink.BackEnd.FlowGraphGenerator
+import FireLink.BackEnd.Utils
+import TACType
+
+import qualified Data.Graph      as Graph
+import qualified Data.Map.Strict as Map
+import qualified Data.Set        as Set
 
 -- | Operations that consists of an assignment of a value to a lvalue
 -- | TODO: Add pointer operations here when their implementation is ready
@@ -181,32 +181,6 @@ livenessAnalyser fg@(numberedBlocks, flowGraph) =
 -- | A map that matches variable names to integer representations,
 -- | and a graph that matches such representations' mutual interference
 type InterferenceGraph = (Map.Map Int TACSymEntry, Graph.Graph)
-
--- | Given a basic block, generates the interference graph
--- | by checking all of its instructions, one by one, as an undirected
--- | graph.
--- | (helpful resource: http://lambda.uta.edu/cse5317/spring03/notes/node40.html)
--- | TODO: This function is probably going to be deprecated and deleted in the future
-generateInterferenceGraph :: BasicBlock -> InterferenceGraph
-generateInterferenceGraph block =
-    let nodes = getAllVariables block
-        numberedNodes = zip nodes [1..]
-        numberMap = Map.fromList numberedNodes
-        upperBound = length numberedNodes
-        stringEdges = getInterferenceEdges block
-        nodupStringEdges = Set.toList $ Set.fromList stringEdges
-        -- the graph must be created from pairs of integers, so we find each edge name's respective integer
-        -- if they were enumerated in the generation order
-        edges = [(fromJust $ Map.lookup x numberMap, fromJust $ Map.lookup y numberMap) | (x, y) <- nodupStringEdges]
-    in (Map.fromList $ map (\(i, j) -> (j, i)) $ Map.toList numberMap, Graph.buildG (0, upperBound) edges)
-    where
-        getInterferenceEdges :: BasicBlock -> [(TACSymEntry, TACSymEntry)]
-        getInterferenceEdges [] = []
-        getInterferenceEdges (ThreeAddressCode _ a b c:xs) =
-            let usedVarsList = catTACSymEntries $ catMaybes [a, b, c]
-                currentEdges = [(i, j) | i <- usedVarsList, j <- usedVarsList, i /= j]
-            in  currentEdges ++ getInterferenceEdges xs
-
 
 -- | Given a whole program, generates the interference graph by using liveness information
 -- | Also returns the liveness analysis result.
