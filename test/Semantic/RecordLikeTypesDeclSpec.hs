@@ -138,7 +138,7 @@ spec = do
             \   }\n\
             \in your inventory\n\
 
-            \   with orange saponite say x ~> y\n\
+            \   with orange soapstone say x ~> y\n\
 
             \you died\n\
 
@@ -156,7 +156,7 @@ spec = do
             \   }\n\
             \in your inventory\n\
 
-            \   with orange saponite say x ~> y ~> z\n\
+            \   with orange soapstone say x ~> y ~> z\n\
 
             \you died\n\
 
@@ -172,7 +172,7 @@ spec = do
             \   }\n\
             \in your inventory\n\
 
-            \   with orange saponite say x ~> x\n\
+            \   with orange soapstone say x ~> x\n\
 
             \you died\n\
 
@@ -188,7 +188,7 @@ spec = do
             \   }\n\
             \in your inventory\n\
 
-            \   with orange saponite say x ~> z\n\
+            \   with orange soapstone say x ~> z\n\
 
             \you died\n\
 
@@ -206,7 +206,7 @@ spec = do
             \   }\n\
             \in your inventory\n\
 
-            \   with orange saponite say x <$ 0 $> ~> y ~> z\n\
+            \   with orange soapstone say x <$ 0 $> ~> y ~> z\n\
 
             \you died\n\
 
@@ -220,7 +220,7 @@ spec = do
             \   var x of type <1>-chest of type humanity\n\
             \in your inventory\n\
 
-            \   with orange saponite say x<$0$> ~> z\n\
+            \   with orange soapstone say x<$0$> ~> z\n\
 
             \you died\n\
 
@@ -240,7 +240,7 @@ spec = do
             \   }\n\
             \in your inventory\n\
 
-            \   with orange saponite say x<$0$> ~> y ~> z<$0$> ~> a\n\
+            \   with orange soapstone say x<$0$> ~> y ~> z<$0$> ~> a\n\
 
             \you died\n\
 
@@ -260,7 +260,7 @@ spec = do
             \   }\n\
             \in your inventory\n\
 
-            \   with orange saponite say x<$0$> ~> y ~> z<$0$> ~> b\n\
+            \   with orange soapstone say x<$0$> ~> y ~> z<$0$> ~> b\n\
 
             \you died\n\
 
