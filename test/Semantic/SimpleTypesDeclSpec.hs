@@ -350,7 +350,7 @@ spec = do
             \   with orange soapstone say y\n\
             \ you died \
 
-            \ farewell ashen one" `U.shouldErrorOn` ("y", 6, 29)
+            \ farewell ashen one" `U.shouldErrorOn` ("y", 6, 30)
 
     describe "Correctly handles initialization (declaration + assignments)" $ do
         it "Prepends assignment instruction on initialization" $ do

@@ -192,7 +192,7 @@ spec = do
 
             \you died\n\
 
-            \farewell ashen one" `U.shouldErrorOn` ("~>", 8, 31)
+            \farewell ashen one" `U.shouldErrorOn` ("~>", 8, 32)
         it "allows to access ST.record properties of arrays of records" $
             U.shouldNotError "hello ashen one\n\
 
@@ -224,7 +224,7 @@ spec = do
 
             \you died\n\
 
-            \farewell ashen one" `U.shouldErrorOn` ("~>", 6, 36)
+            \farewell ashen one" `U.shouldErrorOn` ("~>", 6, 37)
         it "accepts valid x<$0$> ~> y ~> z<$0$> ~> a" $
             U.shouldNotError "hello ashen one\n\
 
@@ -264,7 +264,7 @@ spec = do
 
             \you died\n\
 
-            \farewell ashen one" `U.shouldErrorOn` ("~>", 12, 51)
+            \farewell ashen one" `U.shouldErrorOn` ("~>", 12, 52)
         it "accepts valid assigment of a struct literal for record" $
             U.shouldNotError "hello ashen one\n\
 

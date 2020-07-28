@@ -272,7 +272,7 @@ spec = do
             \ traveling somewhere\n\
             \   with orange soapstone say summon fun2\n\
             \ you died \
-            \ farewell ashen one" `U.shouldErrorOn` ("fun2", 9, 36)
+            \ farewell ashen one" `U.shouldErrorOn` ("fun2", 9, 37)
         it "allows recursion" $
             U.shouldNotError "hello ashen one\n\
 
