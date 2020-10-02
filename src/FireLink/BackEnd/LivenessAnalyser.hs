@@ -1,6 +1,6 @@
 module FireLink.BackEnd.LivenessAnalyser (
     def, use, InterferenceGraph (..), livenessAnalyser,
-    generateInterferenceGraph', LineLiveVariables(..), ProgramPoint, def1, use1
+    generateInterferenceGraph', LineLiveVariables(..), ProgramPoint(..), def1, use1
 ) where
 
 import Control.Monad.State
@@ -72,7 +72,11 @@ use1 (ThreeAddressCode op u v w)
 type LiveVariables = Set.Set TACSymEntry
 
 -- | (block id, instruction index)
-type ProgramPoint = (Int, Int)
+newtype ProgramPoint = ProgramPoint (Int, Int)
+    deriving (Eq)
+
+instance Show ProgramPoint where
+    show (ProgramPoint p) = show p
 
 data LineLiveVariables = LineLiveVariables
     { llvInstrId :: !ProgramPoint -- ^ Program point of this information
@@ -101,13 +105,13 @@ livenessAnalyser fg@(numberedBlocks, flowGraph) =
                 , llvOutLiveVariables = blockOut }) $ concatMap (livenessForInstruction . fst) $ Map.toList convergedInOut
 
     where
-        livenessInOutMap = Map.fromList $ zip graphNodes $ repeat (Set.empty, Set.empty)
-        convergedInOut = fixedPoint livenessAnalyser' livenessInOutMap
+        initialInOut = Map.fromList $ zip graphNodes $ repeat (Set.empty, Set.empty)
+        convergedInOut = fixedPoint livenessAnalyser' initialInOut
 
         -- | Computes for each block, the liveness information of each of their instructions
         -- | This is done after the dataflow execution is done and it helps in building refined
         -- | information about live variables in each instruction
-        livenessForInstruction :: Int -> [((Int, Int), LivenessInOut)]
+        livenessForInstruction :: Int -> [(ProgramPoint, LivenessInOut)]
         livenessForInstruction blockId =
             let
                 -- Let sn be the last instruction of a block, then out[sn] = out[B], by dataflow properties
@@ -117,7 +121,7 @@ livenessAnalyser fg@(numberedBlocks, flowGraph) =
                 reversedBasicBlock = reverse $ zip [0..] basicBlock
                 basicBlock = snd $ numberedBlocks !! blockId
                 in if blockId == (-1) || blockId == length numberedBlocks then []
-                    else reverse $ map (\(i, inOut) -> ((blockId, i), inOut)) $ go livenessOut reversedBasicBlock
+                    else reverse $ map (\(i, inOut) -> (ProgramPoint (blockId, i), inOut)) $ go livenessOut reversedBasicBlock
             where
                 -- | Computes the current instruction in/out, suppling in[s] as the out of previous instruction
                 -- | due to the not alteration of flow in a basic block
@@ -193,8 +197,8 @@ generateInterferenceGraph' flowGraph'@(numberedBlocks, flowGraph) =
         livenessAnalysis :: [LineLiveVariables]
         livenessAnalysis = livenessAnalyser flowGraph'
 
-        getTac :: (Int, Int) -> TAC
-        getTac (i, j) =
+        getTac :: ProgramPoint -> TAC
+        getTac (ProgramPoint (i, j)) =
             let basicBlock = snd $ head $ filter ((== i) . fst) numberedBlocks
             in basicBlock !! j
 
