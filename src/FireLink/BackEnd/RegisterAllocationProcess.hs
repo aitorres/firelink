@@ -22,6 +22,7 @@ import qualified Control.Monad.State                 as State
 import qualified Data.Array                          as A
 import           Data.Char                           (isDigit)
 import qualified Data.Graph                          as G
+import qualified Data.List
 import qualified Data.Map                            as Map
 import           Data.Map.Internal.Debug             (showTree)
 import qualified Data.Set                            as Set
@@ -65,10 +66,13 @@ data ColorationState = ColorationState
     { csGraph :: !G.Graph -- ^ state graph
     , csDeletedVertices :: !(Set.Set G.Vertex) -- ^ Set of deleted vertices
     , csVertexStack :: ![G.Vertex] -- ^ vertex stack to recolor in `select` phase
-    , csSpilledVertices :: !(Set.Set G.Vertex) -- ^ Set of spilled vertices
+    , csSpilledVertices :: !(Set.Set G.Vertex) -- ^ Set of spilled vertices in a single pass of the algorithm
 
     -- | Used in `select` phase
     , csColoredVertices :: !(Map.Map G.Vertex Color) -- ^ Map of vertex to color, where vertex represents a virtual register
+
+    -- | Used in `spill` phase
+    , csAlreadySpilledVars :: !(Set.Set G.Vertex)
 
     -- | General use properties
     , csProgramVariables :: !(Set.Set TACSymEntry) -- ^ All program variables, never updated
@@ -113,6 +117,15 @@ putSpilledVertices :: Set.Set G.Vertex -> ColorState ()
 putSpilledVertices v = do
     c <- State.get
     State.put c{csSpilledVertices = v}
+
+-- | Helper to get already spilled vertices
+getAlreadySpilledVertices :: ColorState (Set.Set G.Vertex)
+getAlreadySpilledVertices = csAlreadySpilledVars <$> State.get
+
+putAlreadySpilledVertices :: Set.Set G.Vertex -> ColorState ()
+putAlreadySpilledVertices v = do
+    c <- State.get
+    State.put c{csAlreadySpilledVars = v}
 
 -- | Add vertex to the set of spilled vertices
 addVertexToSpilledVertices :: G.Vertex -> ColorState ()
@@ -253,7 +266,7 @@ initialStep flowGraph@(numberedBlocks, graph) dict = (preProcessCode, graph)
 
         go :: NumberedBlock -> NumberedBlock
         go (index, block) =
-            (index, concatMap (go' . \(instrIdx, tac) -> ((index, instrIdx), tac)) $ zip [0..] block)
+            (index, concatMap (go' . \(instrIdx, tac) -> (ProgramPoint (index, instrIdx), tac)) $ zip [0..] block)
 
         getFunctionArguments :: String -> [TACSymEntry]
         getFunctionArguments funName =
@@ -267,6 +280,8 @@ initialStep flowGraph@(numberedBlocks, graph) dict = (preProcessCode, graph)
                 storeTacs = map (\tacSymEntry ->
                     ThreeAddressCode Store (Just (Id tacSymEntry)) Nothing Nothing) $
                         Set.toList $ llvInLiveVariables liveVariablesInOut
+                -- the register where the result of the call is saved can't
+                -- be "loaded" after calling
                 toDeleteAfterCall = case maybeVar of
                                         Nothing     -> Set.empty
                                         Just (Id v) -> Set.singleton v
@@ -391,11 +406,20 @@ simplify = prepareState >> go
         chooseVertexToSpill = do
             currGraph <- getGraph
             deletedVertices <- getDeletedVertices
+            alreadySpilledVertices <- getAlreadySpilledVertices
             let currentVertices = Set.toList $ Set.fromList (G.vertices currGraph) Set.\\ deletedVertices
-            costsWithVertex <- mapM lookupCost currentVertices
-            let (spilledVertex, _) = foldl (\v@(_, vcost) a@(_, acost) -> if vcost > acost then v else a)
-                                        (-1, -1) costsWithVertex
-            return spilledVertex
+            let (alreadySpilled, neverSpilled) = Data.List.partition (`Set.member` alreadySpilledVertices) currentVertices
+            neverSpilledCosts <- mapM lookupCost neverSpilled
+            alreadySpilledCosts <- mapM lookupCost alreadySpilled
+            let (neverSpilled, _) = foldl expensive (-1, -1) neverSpilledCosts
+            let (alreadySpilled, _) = foldl expensive (-1, -1) alreadySpilledCosts
+            -- FIXME: this is a risky heuristic, but it works
+            return $ if neverSpilled /= -1 then
+                neverSpilled
+            else
+                alreadySpilled
+          where
+            expensive v@(_, vcost) a@(_, acost) = if vcost < acost then a else v
 
         lookupCost :: G.Vertex -> ColorState (G.Vertex, Int)
         lookupCost vertex = (,) vertex <$> (getAssocVariable vertex >>= getVarSpillCost)
@@ -482,9 +506,14 @@ spill :: ColorState ()
 spill = do
     (numberedBlocks, flowGraph) <- getProgramFlowGraph
     (vertexToVarMap, _) <- getInterferenceGraph
-    spilledVertices <- Set.map (vertexToVarMap Map.!) <$> getSpilledVertices
-    let newNumberedBlocks = map (spillBlock spilledVertices) numberedBlocks
+    spilledVertices <- getSpilledVertices
+    alreadySpilledVertices <- getAlreadySpilledVertices
+    let verticesToSpill = spilledVertices Set.\\ alreadySpilledVertices
+    let varsToSpill = Set.map (vertexToVarMap Map.!) verticesToSpill
+
+    let newNumberedBlocks = map (spillBlock varsToSpill) numberedBlocks
     putProgramFlowGraph (newNumberedBlocks, flowGraph)
+    putAlreadySpilledVertices $ spilledVertices `Set.union` alreadySpilledVertices
     where
         spillBlock :: Set.Set TACSymEntry -> NumberedBlock -> NumberedBlock
         spillBlock spilledVertices (blockId, tacs) = (blockId, concatMap (addSpill spilledVertices) tacs)
@@ -522,6 +551,7 @@ run flowGraph dict = State.evalStateT go initialState
                 , csSpillsCostMap = Map.empty -- dummy value
                 , csSpilledVertices = Set.empty -- dummy value
                 , csColoredVertices = Map.empty -- dummy value
+                , csAlreadySpilledVars = Set.empty -- dummy value
                 }
 
         go :: ColorState (RegisterAssignment, FlowGraph)
@@ -531,32 +561,10 @@ run flowGraph dict = State.evalStateT go initialState
             costs
             simplify
             spilledVertices <- getSpilledVertices
+            (tacs, _) <- getProgramFlowGraph
 
             -- We successfully found an assignment of registers that didn't caused spills
             if Set.null spilledVertices then
                 select
             else spill >> go
 
-
-printAllState :: ColorState ()
-printAllState = do
-    c <- State.get
-    State.liftIO $ do
-        putStrLn "Printing current graph"
-        print $ csGraph c
-        putStrLn "\nPrinting deleted vertices"
-        putStrLn $ Set.showTree $ csDeletedVertices c
-        putStrLn "\nPrint vertex stack"
-        print $ csVertexStack c
-        putStrLn "\nPrint spilled vertices"
-        putStrLn $ Set.showTree $ csSpilledVertices c
-        putStrLn "\nColored vertices"
-        putStrLn $ showTree $ csColoredVertices c
-        putStrLn $ "\nProgram variables " ++ show (length $ csProgramVariables c)
-        putStrLn $ Set.showTree $ csProgramVariables c
-        putStrLn "\nInterference graph"
-        print $ let (_, graph) = csInterferenceGraph c in graph
-        -- putStrLn "\nLiveness information"
-        -- print $ csLivenessInformation c
-        putStrLn "\nSpill cost map"
-        putStrLn $ showTree $ csSpillsCostMap c
