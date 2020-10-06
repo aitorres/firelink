@@ -77,6 +77,12 @@ instance GenerateCode Program where
             genBlock (funName, codeblock@(CodeBlock _ maxOffset)) = do
                 setTempOffset $ alignedOffset maxOffset
                 genLabel $ Label funName
+                gen [ThreeAddressCode
+                    { tacOperand = Param
+                    , tacLvalue = Nothing
+                    , tacRvalue1 = Nothing
+                    , tacRvalue2 = Nothing
+                    }]
                 t <- newtemp
                 putArrayOffsetVar t
                 genIdAssignment (Id t) $ Constant ("TO_REPLACE", BigIntTAC)
@@ -120,10 +126,20 @@ genCodeForInstruction (InstInitArray arrayId@(G.Id _ s)) _ = do
             putArrayEntrySize typeName temp
             allocatedSize <- buildFromType t
             finalAllocatedSize <- Id <$> newtemp
+
+            -- ?INFO(Andres): Solves issue of `mul $reg 1 7`
+            midId <- Id <$> newtemp
+            gen [ThreeAddressCode
+                    { tacOperand = Assign
+                    , tacLvalue = Just midId
+                    , tacRvalue1 = Just allocatedSize
+                    , tacRvalue2 = Nothing
+                    }]
+
             gen [ThreeAddressCode
                 { tacOperand = Mult
                 , tacLvalue = Just finalAllocatedSize
-                , tacRvalue1 = Just allocatedSize
+                , tacRvalue1 = Just midId
                 , tacRvalue2 = Just operand
                 }]
             return finalAllocatedSize
@@ -162,10 +178,18 @@ genCodeForInstruction InstReturn _ =
 
 genCodeForInstruction (InstReturnWith expr) _ = do
     operand <- genCode' expr
+    midId <- Id <$> newtemp
+    -- ?INFO(Andres): Solves issue of `return 98`
     gen [ThreeAddressCode
+            { tacOperand = Assign
+            , tacLvalue = Just midId
+            , tacRvalue1 = Just operand
+            , tacRvalue2 = Nothing
+            },
+            ThreeAddressCode
             { tacOperand = Return
             , tacLvalue = Nothing
-            , tacRvalue1 = Just operand
+            , tacRvalue1 = Just midId
             , tacRvalue2 = Nothing
             }]
 

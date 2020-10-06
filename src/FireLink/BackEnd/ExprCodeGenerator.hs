@@ -159,10 +159,17 @@ genIndexAccess' array indexOperand = case expAst array of
         contents <- getContents $ ST.extractTypeFromExtra idEntry
         width <- typeWidth contents
         resultAddress <- TAC.Id <$> newtemp
+        midId <- TAC.Id <$> newtemp
         gen [TAC.ThreeAddressCode
+                { TAC.tacOperand = TAC.Assign
+                , TAC.tacLvalue = Just midId
+                , TAC.tacRvalue1 = Just indexOperand
+                , TAC.tacRvalue2 = Nothing
+                },
+                TAC.ThreeAddressCode
                 { TAC.tacOperand = TAC.Mult
                 , TAC.tacLvalue = Just resultAddress
-                , TAC.tacRvalue1 = Just indexOperand
+                , TAC.tacRvalue1 = Just midId
                 , TAC.tacRvalue2 = Just width
                 }]
         return (resultAddress, contents, TAC.Id $ TACVariable idEntry (getOffset idEntry))
@@ -171,10 +178,17 @@ genIndexAccess' array indexOperand = case expAst array of
         contents <- getContents $ ST.Simple contents'
         width <- typeWidth contents
         t <- TAC.Id <$> newtemp
+        midId <- TAC.Id <$> newtemp
         gen [TAC.ThreeAddressCode
+                { TAC.tacOperand = TAC.Assign
+                , TAC.tacLvalue = Just midId
+                , TAC.tacRvalue1 = Just offset
+                , TAC.tacRvalue2 = Nothing
+                },
+                TAC.ThreeAddressCode
                 { TAC.tacOperand = TAC.Add
                 , TAC.tacLvalue = Just t
-                , TAC.tacRvalue1 = Just offset
+                , TAC.tacRvalue1 = Just midId
                 , TAC.tacRvalue2 = Just indexOperand
                 }]
         resultAddress <- TAC.Id <$> newtemp
@@ -200,25 +214,42 @@ genIndexAccess' array indexOperand = case expAst array of
 genParams :: [Expr] -> CodeGenMonad Int
 genParams params = do
     operands <- mapM genCode' params
-    gen $ map createParam operands
+    mapM_ createParam operands
     return $ length params
     where
-        createParam :: OperandType -> TAC
-        createParam o = TAC.ThreeAddressCode
-            { TAC.tacOperand = TAC.Param
-            , TAC.tacLvalue = Nothing
-            , TAC.tacRvalue1 = Just o
-            , TAC.tacRvalue2 = Nothing
-            }
-
+        -- ?INFO(Andres): Solves issue of `param 89`
+        createParam :: OperandType -> CodeGenMonad ()
+        createParam o = do
+            midId <- TAC.Id <$> newtemp
+            tell [TAC.ThreeAddressCode
+                { TAC.tacOperand = TAC.Assign
+                , TAC.tacLvalue = Just midId
+                , TAC.tacRvalue1 = Just o
+                , TAC.tacRvalue2 = Nothing
+                },
+                TAC.ThreeAddressCode
+                { TAC.tacOperand = TAC.Param
+                , TAC.tacLvalue = Nothing
+                , TAC.tacRvalue1 = Just midId
+                , TAC.tacRvalue2 = Nothing
+                }]
 
 genOp2Code :: TAC.Operation -> OperandType -> OperandType -> CodeGenMonad OperandType
 genOp2Code operation lId rId = do
+    -- ?INFO(Andres): Solves issue of `n := 1 + 2`
+    midId <- TAC.Id <$> newtemp
+    tell [TAC.ThreeAddressCode
+            { TAC.tacOperand = TAC.Assign
+            , TAC.tacLvalue = Just midId
+            , TAC.tacRvalue1 = Just lId
+            , TAC.tacRvalue2 = Nothing
+            }]
+
     lvalue <- TAC.Id <$> newtemp
     tell [TAC.ThreeAddressCode
             { TAC.tacOperand = operation
             , TAC.tacLvalue = Just lvalue
-            , TAC.tacRvalue1 = Just lId
+            , TAC.tacRvalue1 = Just midId
             , TAC.tacRvalue2 = Just rId
             }]
     return lvalue
@@ -349,6 +380,7 @@ mapOp2ToTacOperation op = case op of
     Multiply  -> TAC.Mult
     Divide    -> TAC.Div
     Mod       -> TAC.Mod
+    _         -> error $ "Unsupported binadic operation: " ++ show op
 
 complement :: TAC.Operation -> TAC.Operation
 complement TAC.Lt  = TAC.Gte

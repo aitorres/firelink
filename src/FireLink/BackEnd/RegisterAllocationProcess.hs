@@ -40,11 +40,12 @@ import qualified FireLink.FrontEnd.SymTable          as ST (DictionaryEntry (..)
 import           TACType
 
 -- | To avoid confusions between G.Vertex and registers
-newtype Register = Register Int
+-- | In order to allow registers for floating point
+newtype Register = Register String
     deriving (Eq, Ord)
 
 instance Show Register where
-    show (Register r) = "$" ++ show r
+    show (Register r) = "$" ++ r
 
 type Color = Register
 
@@ -53,7 +54,7 @@ availableColors = Set.map Register availableRegisters
 
 -- | Associate a variable with a color (register). If the variable isn't in the
 -- | map we can say that it needs to be spilled
-type RegisterAssignment = Map.Map TACSymEntry Color
+type RegisterAssignment = Map.Map TACSymEntry Register
 
 
 -- | Coloration state for the optimistic coloring algorithm by Chaitan/Briggs, as exposed
@@ -233,14 +234,6 @@ initialStep flowGraph@(numberedBlocks, graph) dict = (preProcessCode, graph)
         programVariables :: Set.Set TACSymEntry
         programVariables = getProgramVariables numberedBlocks
 
-        -- | one for each actual variable
-        initialRegisters :: [Register]
-        initialRegisters = map Register [0 .. Set.size programVariables - 1]
-
-        -- | Map for each tac to its initial register
-        variableRegisterMap :: RegisterAssignment
-        variableRegisterMap = Map.fromList $ zip (Set.toList programVariables) initialRegisters
-
         initialLivenessAnalysis :: [LineLiveVariables]
         initialLivenessAnalysis = livenessAnalyser flowGraph
 
@@ -250,9 +243,8 @@ initialStep flowGraph@(numberedBlocks, graph) dict = (preProcessCode, graph)
         isTacLabelFun :: TAC -> Bool
         isTacLabelFun (ThreeAddressCode NewLabel _ (Just (Label (l : _))) _) =
             -- case for _main function, that isn't on symtable
-            l /= '_' &&
-            -- jump labels, functions do not begin with digits
-            not (isDigit l)
+            -- jump labels, functions do not begin with _
+            l /= '_'
 
         isTacLabelFun _ = False
 
@@ -290,9 +282,9 @@ initialStep flowGraph@(numberedBlocks, graph) dict = (preProcessCode, graph)
             if isTacLabelFun tac then
                 let args = getFunctionArguments funName
                     loadTacsSet = map (\tacSymEntry ->
-                        case variableRegisterMap Map.!? tacSymEntry of
-                            Nothing -> []
-                            Just _ -> [ThreeAddressCode Load (Just (Id tacSymEntry)) Nothing Nothing]) args
+                        [ThreeAddressCode
+                            Load (Just (Id tacSymEntry)) Nothing Nothing | tacSymEntry `Set.member` programVariables]
+                        ) args
                     loadTacs = concat loadTacsSet in
                         tac : loadTacs
             else [tac]
@@ -540,10 +532,7 @@ run flowGraph dict = State.evalStateT go initialState
             simplify
             spilledVertices <- getSpilledVertices
 
-            State.liftIO $ putStrLn $ Set.showTree spilledVertices
-            (vertexToVarMap, _) <- getInterferenceGraph
-            State.lift $ putStrLn $ Set.showTree $ Set.map (vertexToVarMap Map.!) spilledVertices
-            -- | We successfully found an assignment of registers that didn't caused spills
+            -- We successfully found an assignment of registers that didn't caused spills
             if Set.null spilledVertices then
                 select
             else spill >> go

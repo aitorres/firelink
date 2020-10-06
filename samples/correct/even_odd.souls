@@ -5,6 +5,9 @@ requesting
     val n of type humanity
 with skill of type bonfire
     traveling somewhere
+        with orange soapstone say @Entering even with @ \
+        with orange soapstone say n \
+        with orange soapstone say @\n@ \
         trust your inventory
         n eq 0:
             traveling somewhere
@@ -27,6 +30,9 @@ requesting
     val n of type humanity
 with skill of type bonfire
     traveling somewhere
+        with orange soapstone say @Entering odd with @ \
+        with orange soapstone say n \
+        with orange soapstone say @\n@ \
         trust your inventory
         n eq 0:
             traveling somewhere
@@ -49,10 +55,19 @@ with
     var n of type humanity,
     var b of type bonfire
 in your inventory
-    -- with orange soapstone say @Enter n: @ \
+    with orange soapstone say @Enter n: @ \
     transpose into n \
     b <<= summon even granting n to the knight \
-    with orange soapstone say b
+    trust your inventory
+        b:
+        traveling somewhere
+            with orange soapstone say @EVEN!\n@
+        you died
+        liar!:
+        traveling somewhere
+            with orange soapstone say @NOT EVEN, FAKE NEWS, ODD!\n@
+        you died
+    inventory closed
 you died
 
 farewell ashen one
