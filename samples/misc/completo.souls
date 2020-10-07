@@ -1,0 +1,127 @@
+hello ashen one
+
+traveling somewhere
+with
+    var n of type humanity,
+    var c of type sign,
+    var b of type bonfire,
+
+    var i of type humanity <<= 1
+in your inventory
+
+    -- Asignacion
+    with orange soapstone say @Asignemos cosas: \n@ \
+    n <<= 13 \
+    c <<= |M| \
+    b <<= lit \
+
+    with orange soapstone say n \
+    with orange soapstone say @\n@ \
+
+    with orange soapstone say c \
+    with orange soapstone say @\n@ \
+
+    with orange soapstone say b \
+    with orange soapstone say @\n@ \
+
+    -- Prints constantes
+    with orange soapstone say 1 \
+    with orange soapstone say @\n@ \
+
+    with orange soapstone say |S| \
+    with orange soapstone say @\n@ \
+
+    with orange soapstone say unlit \
+    with orange soapstone say @\n@ \
+
+    with orange soapstone say @ NANI!\n@ \
+
+    -- Reads
+    with orange soapstone say @enter n: @ \
+    transpose into n \
+    with orange soapstone say @your n is: @ \
+    with orange soapstone say n \
+    with orange soapstone say @\n@ \
+
+    with orange soapstone say @enter c: @ \
+    transpose into c \
+    with orange soapstone say @your c is: @ \
+    with orange soapstone say c \
+    with orange soapstone say @\n@ \
+
+    with orange soapstone say @enter b: @ \
+    transpose into b \
+    with orange soapstone say @your b is: @ \
+    with orange soapstone say b \
+    with orange soapstone say @\n@ \
+
+    -- Iterar
+    i <<= 0 \
+    upgrading i with 1 soul until level 10
+        traveling somewhere
+            with orange soapstone say @Iterando con cota @ \
+            with orange soapstone say i \
+            with orange soapstone say @\n@
+        you died
+    max level reached \
+
+    i <<= 1 \
+    while the i % 6 neq 0 covenant is active:
+        traveling somewhere
+            with orange soapstone say @Iterando incondicionado @ \
+            with orange soapstone say i % 6 eq 0 \
+            with orange soapstone say @\n@ \
+            i <<= i + 1
+        you died
+    covenant left \
+
+    with orange soapstone say @Vamos a probar el if, asi que pon un n: @ \
+    transpose into n \
+
+    trust your inventory
+        n gt 4:
+            traveling somewhere
+                with orange soapstone say @n es mayor a 4 \n@
+            you died
+        liar!:
+            traveling somewhere
+                with orange soapstone say @n es menor o igual a 4 \n@
+            you died
+    inventory closed \
+
+    with orange soapstone say @Vamos a probar el switch, asi que pon un n entre 1 y 10: @ \
+    transpose into n \
+
+    enter dungeon with n % 4:
+        0:
+        traveling somewhere
+            with orange soapstone say @Metiste un divisible entre 4\n@
+        you died
+        1:
+        traveling somewhere
+            with orange soapstone say @Restale 1 y es divisible entre 4\n@
+        you died
+        2:
+        traveling somewhere
+            with orange soapstone say @Suma o resta 2 y es divisible entre 4\n@
+        you died
+        3:
+        traveling somewhere
+            with orange soapstone say @Sumale 1 y es divisible entre 4\n@
+        you died
+    dungeon exited \
+
+    with orange soapstone say @Otro que funciona: fizzbuzz.souls \n@ \
+    with orange soapstone say @Otro que funciona: collatz.souls \n@ \
+    with orange soapstone say @Funciones con iteración: factorial_fun_iter.souls \n@ \
+    with orange soapstone say @Correcursión: even_odd.souls \n@ \
+    with orange soapstone say @Procs sencillos: sí \n@ \
+
+    with orange soapstone say @Funciones con recursión: problema, factorial_fun_rec.souls \n@ \
+    with orange soapstone say @Arreglos, flotantes, alias y estructuras: :-( \n@ \
+
+    go back
+
+you died
+
+farewell ashen one

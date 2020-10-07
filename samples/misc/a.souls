@@ -1,0 +1,14 @@
+hello ashen one
+
+traveling somewhere
+with
+    var a of type <2>-chest of type humanity,
+    var b of type humanity
+in your inventory
+    a<$0$> <<= 16 \
+    a<$1$> <<= 17 \
+    with orange soapstone say a<$0$> \
+    with orange soapstone say a<$1$>
+you died
+
+farewell ashen one

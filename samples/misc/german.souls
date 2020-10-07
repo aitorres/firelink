@@ -1,0 +1,41 @@
+hello ashen one
+
+traveling somewhere
+with
+    var n0 of type humanity <<= 0,
+    var n1 of type humanity <<= 1,
+    var n2 of type humanity <<= 2,
+    var n3 of type humanity <<= 3,
+    var n4 of type humanity <<= 4,
+    var n5 of type humanity <<= 5,
+    var n6 of type humanity <<= 6,
+    var n7 of type humanity <<= 7,
+    var n8 of type humanity <<= 8,
+    var n9 of type humanity <<= 9,
+    var n10 of type humanity <<= 10,
+    var n11 of type humanity <<= 11,
+    var n12 of type humanity <<= 12,
+    var n13 of type humanity <<= 13,
+    var n14 of type humanity <<= 14,
+    var n15 of type humanity <<= 15,
+    var n16 of type humanity <<= 16,
+    var n17 of type humanity <<= 17,
+    var n18 of type humanity <<= 18,
+    var n19 of type humanity <<= 19,
+    var n20 of type humanity <<= 20,
+    var n21 of type humanity <<= 21,
+    var n22 of type humanity <<= 22,
+    var n23 of type humanity <<= 23,
+    var n24 of type humanity <<= 24,
+    var n25 of type humanity <<= 25,
+    var n26 of type humanity <<= 26,
+    var n27 of type humanity <<= 27,
+    var n28 of type humanity <<= 28,
+    var n29 of type humanity <<= 29,
+    var german of type humanity
+in your inventory
+    german <<= n0 + n1 + n2 + n3 + n4 + n5 + n6 + n7 + n8 + n9 + n10 + n11 + n12 + n13 + n14 + n15 + n16 + n17 + n18 + n19 + n20 + n21 + n22 + n23 + n24 + n25 + n26 + n27 + n28 + n29 \
+    with orange soapstone say german \
+    go back
+you died
+farewell ashen one

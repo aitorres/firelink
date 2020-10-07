@@ -1,0 +1,74 @@
+-- **Cálculo de Raíz Cuadrada por el Método de Heron.**
+-- El programa debe operar en un ciclo infinito en el cual solicita un número
+-- en punto flotante no negativo, y muestra la raíz cuadrada calculada según el
+-- método descrito, con una precisión de un millonésimo, hasta que el usuario
+-- indique que no quiere continuar.
+
+hello ashen one
+
+invocation sqrt
+requesting
+  val n of type humanity,
+  val iters of type humanity
+with skill of type humanity
+  traveling somewhere
+  with
+    var x of type humanity <<= 1,
+    var i of type humanity <<= 0
+  in your inventory
+    iters <<= 3000 \
+    n <<= 144 \
+    with orange soapstone say @n: @ \
+    with orange soapstone say n \
+    with orange soapstone say @iters: @ \
+    with orange soapstone say iters \
+    with orange soapstone say @\n@ \
+    upgrading i with 1 soul until level iters
+      traveling somewhere
+        x <<= (x + (n/x)) / 2
+      you died
+    max level reached \
+    go back with x
+  you died
+after this return to your world
+
+traveling somewhere
+with
+  var stop of type bonfire <<= unlit
+in your inventory
+  with orange soapstone say @Square Root by Heron's Method\n@ \
+
+  while the not stop covenant is active:
+    traveling somewhere
+    with
+      var n of type humanity
+    in your inventory
+      with orange soapstone say @Enter the number: @ \
+      transpose into n \
+
+      trust your inventory
+        n lt 0:
+          traveling somewhere
+            stop <<= lit \
+            with orange soapstone say @Only non-negative numbers are allowed!\n@
+          you died
+        liar!:
+          traveling somewhere
+          with
+            var s of type humanity
+          in your inventory
+            s <<= summon sqrt granting n, 1000 to the knight \
+
+            with orange soapstone say @Approximate square root: @ \
+            with orange soapstone say s \
+            with orange soapstone say @\n@ \
+
+            with orange soapstone say @Wanna go again? (lit/unlit): @ \
+            transpose into stop
+          you died
+      inventory closed
+    you died
+  covenant left
+you died
+
+farewell ashen one
