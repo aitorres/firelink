@@ -7,7 +7,7 @@ cabal-version: 1.12
 -- hash: c03e077f88d0f2d1eeb7e770bf85737810b14d9e8bbdc92fd5122cf1adcf3458
 
 name:           firelink
-version:        0.2.0.0
+version:        1.0.0.0
 description:    Please see the README on GitHub at <https://github.com/aitorres/firelink#readme>
 homepage:       https://github.com/aitorres/firelink#readme
 bug-reports:    https://github.com/aitorres/firelink/issues
